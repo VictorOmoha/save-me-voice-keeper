@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { VoiceInput } from "@/components/VoiceInput";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { SavedEntriesList } from "@/components/SavedEntriesList";
 import { toast } from "sonner";
+import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 
 export interface FieldDefinition {
   id: string;
@@ -120,6 +120,83 @@ const Dashboard = () => {
     )
   );
 
+  const handleVoiceCommand = (command: VoiceCommand) => {
+    console.log('Executing voice command:', command);
+    
+    switch (command.type) {
+      case 'create_field':
+        // Open the add entry form
+        setShowAddEntry(true);
+        setEditingEntry(null);
+        setFillingEntry(null);
+        toast.success(`Voice command: Creating field "${command.params?.fieldName || 'New Field'}"`);
+        break;
+        
+      case 'delete_entry':
+        if (command.params?.entryTitle) {
+          const entryToDelete = savedEntries.find(entry => 
+            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          );
+          if (entryToDelete) {
+            deleteEntry(entryToDelete.id);
+            toast.success(`Deleted entry: ${entryToDelete.title}`);
+          } else {
+            toast.error(`Entry "${command.params.entryTitle}" not found`);
+          }
+        }
+        break;
+        
+      case 'open_entry':
+        if (command.params?.entryTitle) {
+          const entryToOpen = savedEntries.find(entry => 
+            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          );
+          if (entryToOpen) {
+            editEntry(entryToOpen);
+            toast.success(`Opening entry: ${entryToOpen.title}`);
+          } else {
+            toast.error(`Entry "${command.params.entryTitle}" not found`);
+          }
+        }
+        break;
+        
+      case 'fill_form':
+        if (command.params?.entryTitle) {
+          const entryToFill = savedEntries.find(entry => 
+            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          );
+          if (entryToFill) {
+            fillEntry(entryToFill);
+            toast.success(`Filling form: ${entryToFill.title}`);
+          } else {
+            toast.error(`Template "${command.params.entryTitle}" not found`);
+          }
+        }
+        break;
+        
+      case 'save_entry':
+        if (showAddEntry) {
+          // The form will handle the save action
+          toast.success('Voice command: Save the current entry');
+        } else {
+          toast.info('No entry form is currently open');
+        }
+        break;
+        
+      case 'cancel':
+        if (showAddEntry) {
+          handleCancelEdit();
+          toast.success('Voice command: Cancelled current action');
+        } else {
+          toast.info('No action to cancel');
+        }
+        break;
+        
+      default:
+        toast.info('Voice command not recognized. Try: "Create field", "Delete entry [name]", "Open entry [name]"');
+    }
+  };
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -153,10 +230,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <VoiceInput onVoiceResult={(text) => {
-            toast.success(`Voice input received: "${text}"`);
-            setShowAddEntry(true);
-          }} />
+          <VoiceInput 
+            onVoiceResult={(text) => {
+              toast.success(`Voice input received: "${text}"`);
+              setShowAddEntry(true);
+            }}
+            onVoiceCommand={handleVoiceCommand}
+          />
 
           <Card>
             <CardHeader className="text-center">

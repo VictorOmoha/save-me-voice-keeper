@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -191,7 +192,7 @@ const Dashboard = () => {
         
       case 'save_entry':
         if (showAddEntry) {
-          const saveMessage = 'Saving the current entry';
+          const saveMessage = 'Please fill out the form and click save to save the entry';
           toast.success('Voice command: Save the current entry');
           speak(saveMessage);
         } else {
@@ -215,9 +216,10 @@ const Dashboard = () => {
         break;
         
       default:
-        const unrecognizedMessage = 'Voice command not recognized. Try: Create field, Delete entry, or Open entry';
-        toast.info(unrecognizedMessage);
-        speak(unrecognizedMessage);
+        console.log('Unknown command received, providing help message');
+        const helpMessage = 'I can help you with commands like: Create field, Delete entry, Open entry, or Fill form. You can also say specific entry names like "Open Address Info".';
+        toast.info('Voice command not recognized');
+        speak(helpMessage);
     }
   };
 

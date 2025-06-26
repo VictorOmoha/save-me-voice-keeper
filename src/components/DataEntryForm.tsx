@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ interface DataEntryFormProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
   editEntry?: SavedEntry | null;
+  templateEntry?: SavedEntry | null;
+  mode?: 'create' | 'edit' | 'fill';
 }
 
 interface CustomField {
@@ -19,7 +22,13 @@ interface CustomField {
   value: any;
 }
 
-export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel, editEntry }) => {
+export const DataEntryForm: React.FC<DataEntryFormProps> = ({ 
+  onSave, 
+  onCancel, 
+  editEntry, 
+  templateEntry,
+  mode = 'create'
+}) => {
   const [title, setTitle] = useState("");
   const [fields, setFields] = useState<CustomField[]>([
     { id: '1', name: 'Description', type: 'textarea', value: '' }
@@ -35,8 +44,17 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel, 
         value
       }));
       setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+    } else if (templateEntry && mode === 'fill') {
+      setTitle(`${templateEntry.title} - ${new Date().toLocaleDateString()}`);
+      const templateFields: CustomField[] = Object.entries(templateEntry.fields).map(([name, value], index) => ({
+        id: (index + 1).toString(),
+        name,
+        type: typeof value === 'number' ? 'number' : 'text',
+        value: '' // Clear values for new data entry
+      }));
+      setFields(templateFields);
     }
-  }, [editEntry]);
+  }, [editEntry, templateEntry, mode]);
 
   const addField = () => {
     const newField: CustomField = {
@@ -74,6 +92,9 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel, 
     });
   };
 
+  const isEditMode = mode === 'edit' || mode === 'create';
+  const isFillMode = mode === 'fill';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
@@ -89,66 +110,78 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel, 
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label className="text-lg font-semibold">Custom Fields</Label>
-          <Button type="button" onClick={addField} variant="outline" size="sm">
-            Add Field
-          </Button>
+          <Label className="text-lg font-semibold">
+            {isFillMode ? 'Fill in the Data' : 'Custom Fields'}
+          </Label>
+          {isEditMode && (
+            <Button type="button" onClick={addField} variant="outline" size="sm">
+              Add Field
+            </Button>
+          )}
         </div>
 
         {fields.map((field, index) => (
           <div key={field.id} className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">Field {index + 1}</h4>
-              {fields.length > 1 && (
-                <Button 
-                  type="button" 
-                  onClick={() => removeField(field.id)}
-                  variant="outline" 
-                  size="sm"
-                >
-                  Remove
-                </Button>
-              )}
-            </div>
+            {isEditMode && (
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Field {index + 1}</h4>
+                {fields.length > 1 && (
+                  <Button 
+                    type="button" 
+                    onClick={() => removeField(field.id)}
+                    variant="outline" 
+                    size="sm"
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
+            )}
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Field Name</Label>
-                <Input
-                  placeholder="e.g., Medication Name, Dosage, Policy Number"
-                  value={field.name}
-                  onChange={(e) => updateField(field.id, 'name', e.target.value)}
-                />
+            {isEditMode ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Field Name</Label>
+                  <Input
+                    placeholder="e.g., Medication Name, Dosage, Policy Number"
+                    value={field.name}
+                    onChange={(e) => updateField(field.id, 'name', e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Field Type</Label>
+                  <Select value={field.type} onValueChange={(value) => updateField(field.id, 'type', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="date">Date</SelectItem>
+                      <SelectItem value="textarea">Long Text</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              
+            ) : (
               <div className="space-y-2">
-                <Label>Field Type</Label>
-                <Select value={field.type} onValueChange={(value) => updateField(field.id, 'type', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="number">Number</SelectItem>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="textarea">Long Text</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="font-medium">{field.name}</Label>
               </div>
-            </div>
+            )}
 
             <div className="space-y-2">
-              <Label>Value</Label>
+              <Label>{isFillMode ? 'Enter Data' : 'Value'}</Label>
               {field.type === 'textarea' ? (
                 <Textarea
-                  placeholder="Enter the value..."
+                  placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
                   value={field.value}
                   onChange={(e) => updateField(field.id, 'value', e.target.value)}
                 />
               ) : (
                 <Input
                   type={field.type}
-                  placeholder="Enter the value..."
+                  placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
                   value={field.value}
                   onChange={(e) => updateField(field.id, 'value', e.target.value)}
                 />
@@ -163,7 +196,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel, 
           Cancel
         </Button>
         <Button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
-          {editEntry ? 'Update Entry' : 'Save Entry'}
+          {editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
         </Button>
       </div>
     </form>

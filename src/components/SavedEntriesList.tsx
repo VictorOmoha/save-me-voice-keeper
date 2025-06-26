@@ -8,9 +8,15 @@ interface SavedEntriesListProps {
   entries: SavedEntry[];
   onDelete: (id: string) => void;
   onEdit: (entry: SavedEntry) => void;
+  onFill: (entry: SavedEntry) => void;
 }
 
-export const SavedEntriesList: React.FC<SavedEntriesListProps> = ({ entries, onDelete, onEdit }) => {
+export const SavedEntriesList: React.FC<SavedEntriesListProps> = ({ 
+  entries, 
+  onDelete, 
+  onEdit, 
+  onFill 
+}) => {
   if (entries.length === 0) {
     return (
       <Card>
@@ -38,6 +44,14 @@ export const SavedEntriesList: React.FC<SavedEntriesListProps> = ({ entries, onD
                 <Badge variant="outline">
                   {new Date(entry.createdAt).toLocaleDateString()}
                 </Badge>
+                <Button 
+                  onClick={() => onFill(entry)}
+                  variant="outline" 
+                  size="sm"
+                  className="text-green-600 hover:text-green-700"
+                >
+                  Fill Form
+                </Button>
                 <Button 
                   onClick={() => onEdit(entry)}
                   variant="outline" 

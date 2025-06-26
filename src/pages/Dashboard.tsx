@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
+  const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
 
   useEffect(() => {
     // Load saved entries from localStorage
@@ -76,12 +77,32 @@ const Dashboard = () => {
 
   const editEntry = (entry: SavedEntry) => {
     setEditingEntry(entry);
+    setFillingEntry(null);
+    setShowAddEntry(true);
+  };
+
+  const fillEntry = (entry: SavedEntry) => {
+    setFillingEntry(entry);
+    setEditingEntry(null);
     setShowAddEntry(true);
   };
 
   const handleCancelEdit = () => {
     setEditingEntry(null);
+    setFillingEntry(null);
     setShowAddEntry(false);
+  };
+
+  const getFormMode = () => {
+    if (editingEntry) return 'edit';
+    if (fillingEntry) return 'fill';
+    return 'create';
+  };
+
+  const getFormTitle = () => {
+    if (editingEntry) return 'Edit Entry';
+    if (fillingEntry) return `Fill Form: ${fillingEntry.title}`;
+    return 'Add New Entry';
   };
 
   const filteredEntries = savedEntries.filter(entry =>
@@ -158,13 +179,15 @@ const Dashboard = () => {
           <div className="mb-8">
             <Card>
               <CardHeader>
-                <CardTitle>{editingEntry ? 'Edit Entry' : 'Add New Entry'}</CardTitle>
+                <CardTitle>{getFormTitle()}</CardTitle>
               </CardHeader>
               <CardContent>
                 <DataEntryForm 
                   onSave={saveEntry}
                   onCancel={handleCancelEdit}
                   editEntry={editingEntry}
+                  templateEntry={fillingEntry}
+                  mode={getFormMode()}
                 />
               </CardContent>
             </Card>
@@ -176,6 +199,7 @@ const Dashboard = () => {
           entries={filteredEntries}
           onDelete={deleteEntry}
           onEdit={editEntry}
+          onFill={fillEntry}
         />
       </div>
     </div>

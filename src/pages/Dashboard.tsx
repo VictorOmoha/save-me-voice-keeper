@@ -1,0 +1,155 @@
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { Navigate } from "react-router-dom";
+import { DashboardHeader } from "@/components/DashboardHeader";
+import { VoiceInput } from "@/components/VoiceInput";
+import { DataEntryForm } from "@/components/DataEntryForm";
+import { SavedEntriesList } from "@/components/SavedEntriesList";
+import { toast } from "sonner";
+
+export interface SavedEntry {
+  id: string;
+  title: string;
+  fields: Record<string, any>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const Dashboard = () => {
+  const { user, isAuthenticated } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
+  const [showAddEntry, setShowAddEntry] = useState(false);
+
+  useEffect(() => {
+    // Load saved entries from localStorage
+    const entries = localStorage.getItem('savedEntries');
+    if (entries) {
+      setSavedEntries(JSON.parse(entries));
+    }
+  }, []);
+
+  const saveEntry = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newEntry: SavedEntry = {
+      ...entry,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const updatedEntries = [newEntry, ...savedEntries];
+    setSavedEntries(updatedEntries);
+    localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
+    toast.success("Entry saved successfully!");
+    setShowAddEntry(false);
+  };
+
+  const deleteEntry = (id: string) => {
+    const updatedEntries = savedEntries.filter(entry => entry.id !== id);
+    setSavedEntries(updatedEntries);
+    localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
+    toast.success("Entry deleted successfully!");
+  };
+
+  const filteredEntries = savedEntries.filter(entry =>
+    entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    Object.values(entry.fields).some(value =>
+      String(value).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  );
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.name}!
+          </h1>
+          <p className="text-gray-600">
+            What would you like to save today?
+          </p>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setShowAddEntry(true)}>
+            <CardHeader className="text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <span className="text-2xl">➕</span>
+              </div>
+              <CardTitle className="text-lg">Add New Entry</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 text-center">Quickly save any information</p>
+            </CardContent>
+          </Card>
+
+          <VoiceInput onVoiceResult={(text) => {
+            toast.success(`Voice input received: "${text}"`);
+            setShowAddEntry(true);
+          }} />
+
+          <Card>
+            <CardHeader className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <span className="text-2xl">📊</span>
+              </div>
+              <CardTitle className="text-lg">Your Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <div className="text-2xl font-bold text-blue-600 mb-1">{savedEntries.length}</div>
+              <p className="text-gray-600">Entries saved</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <div className="mb-6">
+          <Input
+            placeholder="🔍 Search your saved information..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-md"
+          />
+        </div>
+
+        {/* Add Entry Form */}
+        {showAddEntry && (
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Entry</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataEntryForm 
+                  onSave={saveEntry}
+                  onCancel={() => setShowAddEntry(false)}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Saved Entries */}
+        <SavedEntriesList 
+          entries={filteredEntries}
+          onDelete={deleteEntry}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;

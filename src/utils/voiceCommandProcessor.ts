@@ -23,7 +23,7 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   }
   
   // Delete entry commands
-  if (lowerTranscript.includes('delete') && (lowerTranscript.includes('entry') || lowerTranscript.includes('information'))) {
+  if (lowerTranscript.includes('delete')) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'delete');
     return {
       type: 'delete_entry',
@@ -31,9 +31,9 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
   
-  // Open entry commands
-  if ((lowerTranscript.includes('open') || lowerTranscript.includes('show')) && (lowerTranscript.includes('entry') || lowerTranscript.includes('information'))) {
-    const entryTitle = extractEntryTitle(lowerTranscript, 'open');
+  // Open entry commands - made more flexible
+  if (lowerTranscript.includes('open') || lowerTranscript.includes('show')) {
+    const entryTitle = extractEntryTitle(lowerTranscript, lowerTranscript.includes('open') ? 'open' : 'show');
     return {
       type: 'open_entry',
       params: { entryTitle }
@@ -50,7 +50,7 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   }
   
   // Save entry commands
-  if (lowerTranscript.includes('save') && (lowerTranscript.includes('entry') || lowerTranscript.includes('information'))) {
+  if (lowerTranscript.includes('save')) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'save');
     return {
       type: 'save_entry',
@@ -93,18 +93,24 @@ const extractFieldType = (transcript: string): 'text' | 'number' | 'date' | 'tex
 };
 
 const extractEntryTitle = (transcript: string, action: string): string => {
-  // Look for patterns like "delete entry called xyz" or "open information about xyz"
+  // More flexible patterns to capture various ways of naming entries
   const patterns = [
-    new RegExp(`${action}.*(?:entry|information).*called\\s+([^.]+)`, 'i'),
-    new RegExp(`${action}.*(?:entry|information)\\s+about\\s+([^.]+)`, 'i'),
-    new RegExp(`${action}.*(?:entry|information)\\s+([^.]+)`, 'i'),
+    // Specific patterns first
+    new RegExp(`${action}\\s+([^.]+?)\\s+(?:entry|information)`, 'i'),
+    new RegExp(`${action}\\s+(?:entry|information)\\s+(?:called|named)\\s+([^.]+)`, 'i'),
+    new RegExp(`${action}\\s+(?:entry|information)\\s+about\\s+([^.]+)`, 'i'),
+    new RegExp(`${action}\\s+(?:entry|information)\\s+([^.]+)`, 'i'),
+    // More general patterns - capture anything after the action word
     new RegExp(`${action}\\s+([^.]+)`, 'i')
   ];
   
   for (const pattern of patterns) {
     const match = transcript.match(pattern);
     if (match && match[1]) {
-      return match[1].trim().replace(/\.$/, '');
+      const title = match[1].trim().replace(/\.$/, '');
+      // Clean up common words that might be captured
+      const cleanTitle = title.replace(/\b(the|a|an|my|our|your)\b/gi, '').trim();
+      return cleanTitle || title;
     }
   }
   

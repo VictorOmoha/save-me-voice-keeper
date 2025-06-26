@@ -11,6 +11,7 @@ import { DataEntryForm } from "@/components/DataEntryForm";
 import { SavedEntriesList } from "@/components/SavedEntriesList";
 import { toast } from "sonner";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { speak } from "@/utils/textToSpeech";
 
 export interface FieldDefinition {
   id: string;
@@ -129,7 +130,9 @@ const Dashboard = () => {
         setShowAddEntry(true);
         setEditingEntry(null);
         setFillingEntry(null);
-        toast.success(`Voice command: Creating field "${command.params?.fieldName || 'New Field'}"`);
+        const createMessage = `Creating field "${command.params?.fieldName || 'New Field'}"`;
+        toast.success(`Voice command: ${createMessage}`);
+        speak(createMessage);
         break;
         
       case 'delete_entry':
@@ -139,9 +142,13 @@ const Dashboard = () => {
           );
           if (entryToDelete) {
             deleteEntry(entryToDelete.id);
-            toast.success(`Deleted entry: ${entryToDelete.title}`);
+            const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
+            toast.success(deleteMessage);
+            speak(deleteMessage);
           } else {
-            toast.error(`Entry "${command.params.entryTitle}" not found`);
+            const errorMessage = `Entry "${command.params.entryTitle}" not found`;
+            toast.error(errorMessage);
+            speak(errorMessage);
           }
         }
         break;
@@ -153,9 +160,13 @@ const Dashboard = () => {
           );
           if (entryToOpen) {
             editEntry(entryToOpen);
-            toast.success(`Opening entry: ${entryToOpen.title}`);
+            const openMessage = `Opening entry: ${entryToOpen.title}`;
+            toast.success(openMessage);
+            speak(openMessage);
           } else {
-            toast.error(`Entry "${command.params.entryTitle}" not found`);
+            const errorMessage = `Entry "${command.params.entryTitle}" not found`;
+            toast.error(errorMessage);
+            speak(errorMessage);
           }
         }
         break;
@@ -167,33 +178,46 @@ const Dashboard = () => {
           );
           if (entryToFill) {
             fillEntry(entryToFill);
-            toast.success(`Filling form: ${entryToFill.title}`);
+            const fillMessage = `Filling form: ${entryToFill.title}`;
+            toast.success(fillMessage);
+            speak(fillMessage);
           } else {
-            toast.error(`Template "${command.params.entryTitle}" not found`);
+            const errorMessage = `Template "${command.params.entryTitle}" not found`;
+            toast.error(errorMessage);
+            speak(errorMessage);
           }
         }
         break;
         
       case 'save_entry':
         if (showAddEntry) {
-          // The form will handle the save action
+          const saveMessage = 'Saving the current entry';
           toast.success('Voice command: Save the current entry');
+          speak(saveMessage);
         } else {
-          toast.info('No entry form is currently open');
+          const noEntryMessage = 'No entry form is currently open';
+          toast.info(noEntryMessage);
+          speak(noEntryMessage);
         }
         break;
         
       case 'cancel':
         if (showAddEntry) {
           handleCancelEdit();
+          const cancelMessage = 'Cancelled current action';
           toast.success('Voice command: Cancelled current action');
+          speak(cancelMessage);
         } else {
-          toast.info('No action to cancel');
+          const noCancelMessage = 'No action to cancel';
+          toast.info(noCancelMessage);
+          speak(noCancelMessage);
         }
         break;
         
       default:
-        toast.info('Voice command not recognized. Try: "Create field", "Delete entry [name]", "Open entry [name]"');
+        const unrecognizedMessage = 'Voice command not recognized. Try: Create field, Delete entry, or Open entry';
+        toast.info(unrecognizedMessage);
+        speak(unrecognizedMessage);
     }
   };
 

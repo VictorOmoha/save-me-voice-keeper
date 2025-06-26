@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mic, MicOff } from "lucide-react";
 import { processVoiceCommand, VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { getElevenLabsApiKey, setElevenLabsApiKey } from "@/utils/textToSpeech";
 
 interface VoiceInputProps {
   onVoiceResult: (text: string) => void;
@@ -15,6 +16,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
   const [isSupported, setIsSupported] = useState(false);
   const [lastCommand, setLastCommand] = useState<VoiceCommand | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const handleApiKeySetup = () => {
+    const apiKey = prompt('Enter your ElevenLabs API key for voice responses (optional):');
+    if (apiKey) {
+      setElevenLabsApiKey(apiKey);
+      alert('ElevenLabs API key saved! Voice responses will now use high-quality AI voices.');
+    }
+  };
 
   useEffect(() => {
     // Check if speech recognition is supported
@@ -171,10 +180,17 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
               "Delete entry People Info"<br/>
               "Open entry Medical Records"
             </p>
-            <Button onClick={startListening} size="sm">
-              <Mic className="h-4 w-4 mr-2" />
-              Start Voice Commands
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={startListening} size="sm" className="w-full">
+                <Mic className="h-4 w-4 mr-2" />
+                Start Voice Commands
+              </Button>
+              {!getElevenLabsApiKey() && (
+                <Button onClick={handleApiKeySetup} variant="outline" size="sm" className="w-full text-xs">
+                  🎤 Setup Voice Responses
+                </Button>
+              )}
+            </div>
           </div>
         )}
         

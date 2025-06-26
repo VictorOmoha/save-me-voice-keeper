@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,7 @@ import { SavedEntriesList } from "@/components/SavedEntriesList";
 import { toast } from "sonner";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { speak } from "@/utils/textToSpeech";
+import { EntriesTable } from "@/components/EntriesTable";
 
 export interface FieldDefinition {
   id: string;
@@ -83,6 +83,13 @@ const Dashboard = () => {
     setSavedEntries(updatedEntries);
     localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
     toast.success("Entry deleted successfully!");
+  };
+
+  const bulkDeleteEntries = (ids: string[]) => {
+    const updatedEntries = savedEntries.filter(entry => !ids.includes(entry.id));
+    setSavedEntries(updatedEntries);
+    localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
+    toast.success(`${ids.length} entries deleted successfully!`);
   };
 
   const editEntry = (entry: SavedEntry) => {
@@ -308,12 +315,13 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Saved Entries */}
-        <SavedEntriesList 
+        {/* Entries Table */}
+        <EntriesTable 
           entries={filteredEntries}
           onDelete={deleteEntry}
           onEdit={editEntry}
           onFill={fillEntry}
+          onBulkDelete={bulkDeleteEntries}
         />
       </div>
     </div>

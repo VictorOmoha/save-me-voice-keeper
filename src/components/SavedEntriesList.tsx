@@ -7,9 +7,10 @@ import { SavedEntry } from "@/pages/Dashboard";
 interface SavedEntriesListProps {
   entries: SavedEntry[];
   onDelete: (id: string) => void;
+  onEdit: (entry: SavedEntry) => void;
 }
 
-export const SavedEntriesList: React.FC<SavedEntriesListProps> = ({ entries, onDelete }) => {
+export const SavedEntriesList: React.FC<SavedEntriesListProps> = ({ entries, onDelete, onEdit }) => {
   if (entries.length === 0) {
     return (
       <Card>
@@ -37,6 +38,14 @@ export const SavedEntriesList: React.FC<SavedEntriesListProps> = ({ entries, onD
                 <Badge variant="outline">
                   {new Date(entry.createdAt).toLocaleDateString()}
                 </Badge>
+                <Button 
+                  onClick={() => onEdit(entry)}
+                  variant="outline" 
+                  size="sm"
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  Edit
+                </Button>
                 <Button 
                   onClick={() => onDelete(entry.id)}
                   variant="outline" 

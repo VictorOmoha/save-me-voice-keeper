@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +9,7 @@ import { SavedEntry } from "@/pages/Dashboard";
 interface DataEntryFormProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
+  editEntry?: SavedEntry | null;
 }
 
 interface CustomField {
@@ -19,11 +19,24 @@ interface CustomField {
   value: any;
 }
 
-export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel }) => {
+export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel, editEntry }) => {
   const [title, setTitle] = useState("");
   const [fields, setFields] = useState<CustomField[]>([
     { id: '1', name: 'Description', type: 'textarea', value: '' }
   ]);
+
+  useEffect(() => {
+    if (editEntry) {
+      setTitle(editEntry.title);
+      const editFields: CustomField[] = Object.entries(editEntry.fields).map(([name, value], index) => ({
+        id: (index + 1).toString(),
+        name,
+        type: typeof value === 'number' ? 'number' : 'text',
+        value
+      }));
+      setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+    }
+  }, [editEntry]);
 
   const addField = () => {
     const newField: CustomField = {
@@ -150,7 +163,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({ onSave, onCancel }
           Cancel
         </Button>
         <Button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
-          Save Entry
+          {editEntry ? 'Update Entry' : 'Save Entry'}
         </Button>
       </div>
     </form>

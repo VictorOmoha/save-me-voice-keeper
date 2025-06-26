@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [showAddEntry, setShowAddEntry] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
 
   useEffect(() => {
     // Load saved entries from localStorage
@@ -35,17 +35,35 @@ const Dashboard = () => {
   }, []);
 
   const saveEntry = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newEntry: SavedEntry = {
-      ...entry,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    const updatedEntries = [newEntry, ...savedEntries];
-    setSavedEntries(updatedEntries);
-    localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
-    toast.success("Entry saved successfully!");
+    if (editingEntry) {
+      // Update existing entry
+      const updatedEntry: SavedEntry = {
+        ...editingEntry,
+        ...entry,
+        updatedAt: new Date()
+      };
+      
+      const updatedEntries = savedEntries.map(e => 
+        e.id === editingEntry.id ? updatedEntry : e
+      );
+      setSavedEntries(updatedEntries);
+      localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
+      toast.success("Entry updated successfully!");
+      setEditingEntry(null);
+    } else {
+      // Create new entry
+      const newEntry: SavedEntry = {
+        ...entry,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const updatedEntries = [newEntry, ...savedEntries];
+      setSavedEntries(updatedEntries);
+      localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
+      toast.success("Entry saved successfully!");
+    }
     setShowAddEntry(false);
   };
 
@@ -54,6 +72,16 @@ const Dashboard = () => {
     setSavedEntries(updatedEntries);
     localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
     toast.success("Entry deleted successfully!");
+  };
+
+  const editEntry = (entry: SavedEntry) => {
+    setEditingEntry(entry);
+    setShowAddEntry(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntry(null);
+    setShowAddEntry(false);
   };
 
   const filteredEntries = savedEntries.filter(entry =>
@@ -125,17 +153,18 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Add Entry Form */}
+        {/* Add/Edit Entry Form */}
         {showAddEntry && (
           <div className="mb-8">
             <Card>
               <CardHeader>
-                <CardTitle>Add New Entry</CardTitle>
+                <CardTitle>{editingEntry ? 'Edit Entry' : 'Add New Entry'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <DataEntryForm 
                   onSave={saveEntry}
-                  onCancel={() => setShowAddEntry(false)}
+                  onCancel={handleCancelEdit}
+                  editEntry={editingEntry}
                 />
               </CardContent>
             </Card>
@@ -146,6 +175,7 @@ const Dashboard = () => {
         <SavedEntriesList 
           entries={filteredEntries}
           onDelete={deleteEntry}
+          onEdit={editEntry}
         />
       </div>
     </div>

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry, FieldDefinition } from "@/pages/Dashboard";
 
 interface DataEntryFormProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -37,22 +37,41 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   useEffect(() => {
     if (editEntry) {
       setTitle(editEntry.title);
-      const editFields: CustomField[] = Object.entries(editEntry.fields).map(([name, value], index) => ({
-        id: (index + 1).toString(),
-        name,
-        type: typeof value === 'number' ? 'number' : 'text',
-        value
-      }));
-      setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+      // Use fieldDefinitions if available, otherwise fall back to fields
+      if (editEntry.fieldDefinitions && editEntry.fieldDefinitions.length > 0) {
+        const editFields: CustomField[] = editEntry.fieldDefinitions.map(fieldDef => ({
+          ...fieldDef,
+          value: editEntry.fields[fieldDef.name] || ''
+        }));
+        setFields(editFields);
+      } else {
+        const editFields: CustomField[] = Object.entries(editEntry.fields).map(([name, value], index) => ({
+          id: (index + 1).toString(),
+          name,
+          type: typeof value === 'number' ? 'number' : 'text',
+          value
+        }));
+        setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+      }
     } else if (templateEntry && mode === 'fill') {
       setTitle(`${templateEntry.title} - ${new Date().toLocaleDateString()}`);
-      const templateFields: CustomField[] = Object.entries(templateEntry.fields).map(([name, value], index) => ({
-        id: (index + 1).toString(),
-        name,
-        type: typeof value === 'number' ? 'number' : 'text',
-        value: '' // Clear values for new data entry
-      }));
-      setFields(templateFields);
+      // Use fieldDefinitions to recreate the form structure
+      if (templateEntry.fieldDefinitions && templateEntry.fieldDefinitions.length > 0) {
+        const templateFields: CustomField[] = templateEntry.fieldDefinitions.map(fieldDef => ({
+          ...fieldDef,
+          value: '' // Clear values for new data entry
+        }));
+        setFields(templateFields);
+      } else {
+        // Fallback to old method if fieldDefinitions don't exist
+        const templateFields: CustomField[] = Object.entries(templateEntry.fields).map(([name, value], index) => ({
+          id: (index + 1).toString(),
+          name,
+          type: typeof value === 'number' ? 'number' : 'text',
+          value: ''
+        }));
+        setFields(templateFields);
+      }
     }
   }, [editEntry, templateEntry, mode]);
 
@@ -80,15 +99,25 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     e.preventDefault();
     
     const fieldData: Record<string, any> = {};
+    const fieldDefinitions: FieldDefinition[] = [];
+    
     fields.forEach(field => {
-      if (field.name && field.value) {
+      if (field.name && field.value !== undefined) {
         fieldData[field.name] = field.value;
+      }
+      if (field.name) {
+        fieldDefinitions.push({
+          id: field.id,
+          name: field.name,
+          type: field.type
+        });
       }
     });
 
     onSave({
       title: title || 'Untitled Entry',
-      fields: fieldData
+      fields: fieldData,
+      fieldDefinitions: fieldDefinitions
     });
   };
 

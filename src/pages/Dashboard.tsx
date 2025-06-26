@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +12,17 @@ import { DataEntryForm } from "@/components/DataEntryForm";
 import { SavedEntriesList } from "@/components/SavedEntriesList";
 import { toast } from "sonner";
 
+export interface FieldDefinition {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'date' | 'textarea';
+}
+
 export interface SavedEntry {
   id: string;
   title: string;
   fields: Record<string, any>;
+  fieldDefinitions?: FieldDefinition[]; // Add this to store form structure
   createdAt: Date;
   updatedAt: Date;
 }

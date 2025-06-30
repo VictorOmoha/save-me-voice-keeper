@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +15,10 @@ import {
 interface SidebarProps {
   savedEntriesCount: number;
   onAddEntry: () => void;
+  onCategorySelect: (categoryName: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry, onCategorySelect }) => {
   const location = useLocation();
 
   const categories = [
@@ -83,6 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry 
                   key={category.name}
                   variant="ghost"
                   className="w-full justify-start"
+                  onClick={() => onCategorySelect(category.name)}
                 >
                   <div className={`w-4 h-4 mr-3 rounded-sm ${category.color} flex items-center justify-center`}>
                     <Icon className="w-3 h-3" />

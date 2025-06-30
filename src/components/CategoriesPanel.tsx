@@ -1,9 +1,12 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Heart, Users, DollarSign, User, ChevronRight } from "lucide-react";
 
-export const CategoriesPanel: React.FC = () => {
+interface CategoriesPanelProps {
+  onCategorySelect: (categoryName: string) => void;
+}
+
+export const CategoriesPanel: React.FC<CategoriesPanelProps> = ({ onCategorySelect }) => {
   const categories = [
     { name: "Documents", icon: FileText, count: 12, color: "bg-blue-100 text-blue-600" },
     { name: "Health", icon: Heart, count: 8, color: "bg-red-100 text-red-600" },
@@ -26,6 +29,7 @@ export const CategoriesPanel: React.FC = () => {
               <div
                 key={category.name}
                 className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+                onClick={() => onCategorySelect(category.name)}
               >
                 <div className="flex items-center space-x-3">
                   <div className={`w-8 h-8 rounded-lg ${category.color} flex items-center justify-center`}>

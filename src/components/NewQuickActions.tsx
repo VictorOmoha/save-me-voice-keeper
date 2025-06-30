@@ -1,15 +1,17 @@
 
 import { Button } from "@/components/ui/button";
-import { Search, Mic, Plus } from "lucide-react";
+import { Search, Mic, Plus, FileText } from "lucide-react";
 
 interface NewQuickActionsProps {
   onAddEntry: () => void;
   onVoiceInput: () => void;
+  onCreateDocument: () => void;
 }
 
 export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
   onAddEntry,
   onVoiceInput,
+  onCreateDocument,
 }) => {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
@@ -22,6 +24,11 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
         <Button onClick={onAddEntry} className="flex items-center space-x-2">
           <Plus className="w-4 h-4" />
           <span>Add Entry</span>
+        </Button>
+        
+        <Button onClick={onCreateDocument} variant="outline" className="flex items-center space-x-2">
+          <FileText className="w-4 h-4" />
+          <span>Create Document</span>
         </Button>
         
         <Button variant="outline" className="flex items-center space-x-2">

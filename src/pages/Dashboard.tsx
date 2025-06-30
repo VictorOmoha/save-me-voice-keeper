@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Bell, Moon, User as UserIcon, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/hooks/useDashboard";
+import { DocumentCreator } from "@/components/DocumentCreator";
 
 export interface FieldDefinition {
   id: string;
@@ -54,6 +55,7 @@ const Dashboard = () => {
   } = useDashboard();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showDocumentCreator, setShowDocumentCreator] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -65,6 +67,19 @@ const Dashboard = () => {
 
   const handleBackToMain = () => {
     setSelectedCategory(null);
+  };
+
+  const handleCreateDocument = () => {
+    setShowDocumentCreator(true);
+  };
+
+  const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    saveEntry(entry);
+    setShowDocumentCreator(false);
+  };
+
+  const handleDocumentCancel = () => {
+    setShowDocumentCreator(false);
   };
 
   return (
@@ -134,6 +149,20 @@ const Dashboard = () => {
               {/* Stats Cards */}
               <StatsCards totalEntries={savedEntries.length} />
 
+              {/* Document Creator */}
+              {showDocumentCreator && (
+                <div className="mb-8">
+                  <Card>
+                    <CardContent className="p-6">
+                      <DocumentCreator 
+                        onSave={handleDocumentSave}
+                        onCancel={handleDocumentCancel}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* Add/Edit Entry Form */}
               {showAddEntry && (
                 <div className="mb-8">
@@ -171,6 +200,7 @@ const Dashboard = () => {
               <div className="mt-8">
                 <NewQuickActions 
                   onAddEntry={handleAddEntry}
+                  onCreateDocument={handleCreateDocument}
                   onVoiceInput={() => handleVoiceResult("")}
                 />
               </div>

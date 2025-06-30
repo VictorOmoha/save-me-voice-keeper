@@ -57,6 +57,15 @@ const Dashboard = () => {
     totalEntries: savedEntries.length
   });
 
+  // Enhanced diagnostic logging for saved entries
+  console.log('DIAGNOSTIC: All saved entries in Dashboard:', savedEntries.map(entry => ({
+    id: entry.id,
+    title: entry.title,
+    category: entry.fields.category,
+    createdAt: entry.createdAt,
+    fields: Object.keys(entry.fields)
+  })));
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -90,8 +99,14 @@ const Dashboard = () => {
   };
 
   const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log('DIAGNOSTIC: Document save triggered:', entry.title);
-    console.log('DIAGNOSTIC: Entry fields:', entry.fields);
+    console.log('DIAGNOSTIC: Document save triggered with entry:', {
+      title: entry.title,
+      fields: entry.fields,
+      fieldKeys: Object.keys(entry.fields),
+      category: entry.fields.category,
+      documentType: entry.fields.documentType,
+      fileName: entry.fields.fileName
+    });
     
     // Save the entry using the existing saveEntry function
     saveEntry(entry);
@@ -99,9 +114,16 @@ const Dashboard = () => {
     // Close the document creator
     setShowDocumentCreator(false);
     
-    // Force a re-render by logging the updated state
+    // Add a small delay to ensure state has updated, then log
     setTimeout(() => {
-      console.log('DIAGNOSTIC: After save - total entries:', savedEntries.length + 1);
+      console.log('DIAGNOSTIC: After document save - checking saved entries:', {
+        totalEntries: savedEntries.length,
+        lastEntry: savedEntries[0] ? {
+          title: savedEntries[0].title,
+          category: savedEntries[0].fields.category,
+          fields: Object.keys(savedEntries[0].fields)
+        } : 'No entries'
+      });
     }, 100);
   };
 

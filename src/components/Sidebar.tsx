@@ -23,17 +23,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry,
   const location = useLocation();
 
   const categories = [
-    { name: "Documents", icon: FileText, count: 12, color: "bg-blue-100 text-blue-600" },
-    { name: "Health", icon: Heart, count: 8, color: "bg-red-100 text-red-600" },
-    { name: "Contacts", icon: Users, count: 24, color: "bg-green-100 text-green-600" },
-    { name: "Finance", icon: DollarSign, count: 6, color: "bg-yellow-100 text-yellow-600" },
-    { name: "Personal", icon: User, count: 15, color: "bg-purple-100 text-purple-600" },
+    { name: "Documents", icon: FileText, count: 12, color: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" },
+    { name: "Health", icon: Heart, count: 8, color: "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300" },
+    { name: "Contacts", icon: Users, count: 24, color: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300" },
+    { name: "Finance", icon: DollarSign, count: 6, color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300" },
+    { name: "Personal", icon: User, count: 15, color: "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300" },
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-full flex flex-col">
+    <div className="w-64 bg-background border-r border-border h-full flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">SM</span>
@@ -73,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry,
 
         {/* Categories */}
         <div className="mt-8">
-          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-4">
             Categories
           </h3>
           <div className="space-y-1">
@@ -101,7 +101,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry,
       </div>
 
       {/* Settings */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-border">
         <Link to="/settings">
           <Button 
             variant={location.pathname === "/settings" ? "default" : "ghost"} 

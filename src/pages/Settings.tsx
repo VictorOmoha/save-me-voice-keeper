@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/components/ThemeProvider";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,8 @@ import {
 
 const Settings = () => {
   const { user, isAuthenticated } = useAuth();
+  const { theme, setTheme } = useTheme();
+  
   const [profile, setProfile] = useState({
     fullName: user?.name || "John Doe",
     email: user?.email || "john@example.com",
@@ -44,8 +47,6 @@ const Settings = () => {
     reminders: true,
     automation: false
   });
-
-  const [theme, setTheme] = useState("light");
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -69,7 +70,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <Sidebar 
         savedEntriesCount={42}
@@ -82,8 +83,8 @@ const Settings = () => {
         <div className="max-w-4xl mx-auto py-8 px-6">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-            <p className="text-gray-600">Manage your account preferences and application settings</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Settings</h1>
+            <p className="text-muted-foreground">Manage your account preferences and application settings</p>
           </div>
 
           {/* Profile Section */}
@@ -93,11 +94,11 @@ const Settings = () => {
                 <User className="w-5 h-5" />
                 Profile
               </CardTitle>
-              <p className="text-sm text-gray-600">Update your personal information</p>
+              <p className="text-sm text-muted-foreground">Update your personal information</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Full Name</label>
                 <Input
                   value={profile.fullName}
                   onChange={(e) => setProfile(prev => ({ ...prev, fullName: e.target.value }))}
@@ -105,7 +106,7 @@ const Settings = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Email</label>
                 <Input
                   value={profile.email}
                   onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
@@ -114,14 +115,14 @@ const Settings = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <label className="block text-sm font-medium text-foreground mb-1">Phone</label>
                 <Input
                   value={profile.phone}
                   onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
                   placeholder="Enter your phone number"
                 />
               </div>
-              <Button onClick={handleSaveProfile} className="bg-black text-white hover:bg-gray-800">
+              <Button onClick={handleSaveProfile} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 Save Changes
               </Button>
             </CardContent>
@@ -135,15 +136,15 @@ const Settings = () => {
                   <Shield className="w-5 h-5" />
                   Security
                 </CardTitle>
-                <p className="text-sm text-gray-600">Manage your account security</p>
+                <p className="text-sm text-muted-foreground">Manage your account security</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div>
                     <p className="font-medium text-sm">Two-Factor Authentication</p>
-                    <p className="text-xs text-gray-600">Add an extra layer of security</p>
+                    <p className="text-xs text-muted-foreground">Add an extra layer of security</p>
                   </div>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                     Enabled
                   </Badge>
                 </div>
@@ -167,13 +168,13 @@ const Settings = () => {
                   <Bell className="w-5 h-5" />
                   Notifications
                 </CardTitle>
-                <p className="text-sm text-gray-600">Configure how you receive notifications</p>
+                <p className="text-sm text-muted-foreground">Configure how you receive notifications</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">Email Notifications</p>
-                    <p className="text-xs text-gray-600">Receive updates via email</p>
+                    <p className="text-xs text-muted-foreground">Receive updates via email</p>
                   </div>
                   <Switch
                     checked={notifications.email}
@@ -184,7 +185,7 @@ const Settings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">Push Notifications</p>
-                    <p className="text-xs text-gray-600">Get browser notifications</p>
+                    <p className="text-xs text-muted-foreground">Get browser notifications</p>
                   </div>
                   <Switch
                     checked={notifications.push}
@@ -195,7 +196,7 @@ const Settings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">Smart Reminders</p>
-                    <p className="text-xs text-gray-600">Get reminded about important entries</p>
+                    <p className="text-xs text-muted-foreground">Get reminded about important entries</p>
                   </div>
                   <Switch
                     checked={notifications.reminders}
@@ -206,7 +207,7 @@ const Settings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">Automation Alerts</p>
-                    <p className="text-xs text-gray-600">Notifications from automated workflows</p>
+                    <p className="text-xs text-muted-foreground">Notifications from automated workflows</p>
                   </div>
                   <Switch
                     checked={notifications.automation}
@@ -225,13 +226,13 @@ const Settings = () => {
                   <Palette className="w-5 h-5" />
                   Appearance
                 </CardTitle>
-                <p className="text-sm text-gray-600">Customize the look and feel</p>
+                <p className="text-sm text-muted-foreground">Customize the look and feel</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">Theme</p>
-                    <p className="text-xs text-gray-600">Choose your preferred theme</p>
+                    <p className="text-xs text-muted-foreground">Choose your preferred theme</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -254,7 +255,7 @@ const Settings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-medium text-sm">Language</p>
-                    <p className="text-xs text-gray-600">Select your language</p>
+                    <p className="text-xs text-muted-foreground">Select your language</p>
                   </div>
                   <Badge variant="outline" className="gap-1">
                     <Globe className="w-3 h-3" />
@@ -271,13 +272,13 @@ const Settings = () => {
                   <CreditCard className="w-5 h-5" />
                   Subscription & Billing
                 </CardTitle>
-                <p className="text-sm text-gray-600">Manage your subscription and billing information</p>
+                <p className="text-sm text-muted-foreground">Manage your subscription and billing information</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <div>
                     <p className="font-medium text-sm">Personal Plan</p>
-                    <p className="text-xs text-gray-600">$9.99/month • Next billing: Jan 15, 2024</p>
+                    <p className="text-xs text-muted-foreground">$9.99/month • Next billing: Jan 15, 2024</p>
                   </div>
                   <Badge className="bg-blue-600 text-white">Active</Badge>
                 </div>
@@ -304,13 +305,13 @@ const Settings = () => {
                 <Zap className="w-5 h-5" />
                 Automation
               </CardTitle>
-              <p className="text-sm text-gray-600">Configure automation and integrations</p>
+              <p className="text-sm text-muted-foreground">Configure automation and integrations</p>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="font-medium text-sm">Connected Platforms</p>
-                  <p className="text-xs text-gray-600">2 platforms connected</p>
+                  <p className="text-xs text-muted-foreground">2 platforms connected</p>
                 </div>
                 <Button variant="outline" size="sm">Manage</Button>
               </div>
@@ -318,7 +319,7 @@ const Settings = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center justify-between p-3 border rounded-lg">
                   <span className="font-medium text-sm">n8n</span>
-                  <Badge variant="secondary" className="bg-green-100 text-green-700">
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                     Connected
                   </Badge>
                 </div>
@@ -337,13 +338,13 @@ const Settings = () => {
                 <Database className="w-5 h-5" />
                 Data Management
               </CardTitle>
-              <p className="text-sm text-gray-600">Export or delete your data</p>
+              <p className="text-sm text-muted-foreground">Export or delete your data</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-sm">Export Data</p>
-                  <p className="text-xs text-gray-600">Download all your entries and data</p>
+                  <p className="text-xs text-muted-foreground">Download all your entries and data</p>
                 </div>
                 <Button variant="outline" size="sm">
                   <Download className="w-4 h-4 mr-2" />
@@ -355,8 +356,8 @@ const Settings = () => {
               
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-sm text-red-600">Delete Account</p>
-                  <p className="text-xs text-gray-600">Permanently delete your account and all data</p>
+                  <p className="font-medium text-sm text-red-600 dark:text-red-400">Delete Account</p>
+                  <p className="text-xs text-muted-foreground">Permanently delete your account and all data</p>
                 </div>
                 <Button variant="destructive" size="sm">
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -373,7 +374,7 @@ const Settings = () => {
                 <HelpCircle className="w-5 h-5" />
                 Help & Support
               </CardTitle>
-              <p className="text-sm text-gray-600">Get help and contact support</p>
+              <p className="text-sm text-muted-foreground">Get help and contact support</p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

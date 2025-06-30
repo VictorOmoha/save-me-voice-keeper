@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +46,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   getFormTitle = () => 'Add New Entry',
   getFormMode = () => 'create'
 }) => {
-  console.log('CategoryView rendered with:', { 
+  console.log('DIAGNOSTIC: CategoryView rendered with:', { 
     categoryName, 
     showDocumentCreator, 
     showAddEntry,
@@ -56,12 +55,12 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   });
 
   const handleCreateEntry = () => {
-    console.log('Create button clicked for category:', categoryName);
-    console.log('onCreateEntry function type:', typeof onCreateEntry);
+    console.log('DIAGNOSTIC: Create button clicked for category:', categoryName);
+    console.log('DIAGNOSTIC: onCreateEntry function type:', typeof onCreateEntry);
     if (typeof onCreateEntry === 'function') {
       onCreateEntry(categoryName);
     } else {
-      console.error('onCreateEntry is not a function!');
+      console.error('DIAGNOSTIC: onCreateEntry is not a function!');
     }
   };
 

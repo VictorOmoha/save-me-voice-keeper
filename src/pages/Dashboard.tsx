@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -62,53 +61,80 @@ const Dashboard = () => {
   }
 
   const handleCategorySelect = (categoryName: string) => {
-    console.log('Category selected:', categoryName);
+    console.log('DIAGNOSTIC: Category select triggered for:', categoryName);
+    console.log('DIAGNOSTIC: Current form states before reset:', {
+      showDocumentCreator,
+      showAddEntry,
+      editingEntry: editingEntry?.title,
+      fillingEntry: fillingEntry?.title
+    });
     
     // Reset all form states when switching categories
-    console.log('Resetting form states for category switch');
+    console.log('DIAGNOSTIC: Resetting form states for category switch');
     setShowDocumentCreator(false);
     setShowAddEntry(false);
     setEditingEntry(null);
     setFillingEntry(null);
     
+    console.log('DIAGNOSTIC: Form states should now be reset');
+    console.log('DIAGNOSTIC: Setting selected category to:', categoryName);
     setSelectedCategory(categoryName);
+    
+    // Add a setTimeout to check if states were actually reset
+    setTimeout(() => {
+      console.log('DIAGNOSTIC: Form states after reset (delayed check):', {
+        showDocumentCreator,
+        showAddEntry,
+        editingEntry: editingEntry?.title,
+        fillingEntry: fillingEntry?.title
+      });
+    }, 100);
   };
 
   const handleBackToMain = () => {
-    console.log('Back to main dashboard');
+    console.log('DIAGNOSTIC: Back to main dashboard triggered');
+    console.log('DIAGNOSTIC: Current form states before reset:', {
+      showDocumentCreator,
+      showAddEntry,
+      editingEntry: editingEntry?.title,
+      fillingEntry: fillingEntry?.title
+    });
+    
     setSelectedCategory(null);
     // Reset form states when going back to main
     setShowDocumentCreator(false);
     setShowAddEntry(false);
     setEditingEntry(null);
     setFillingEntry(null);
+    
+    console.log('DIAGNOSTIC: Form states reset for back to main');
   };
 
   const handleCreateDocument = () => {
-    console.log('Create document triggered');
+    console.log('DIAGNOSTIC: Create document triggered');
     setShowDocumentCreator(true);
   };
 
   const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log('Document save triggered:', entry.title);
+    console.log('DIAGNOSTIC: Document save triggered:', entry.title);
     saveEntry(entry);
     setShowDocumentCreator(false);
   };
 
   const handleDocumentCancel = () => {
-    console.log('Document creation cancelled');
+    console.log('DIAGNOSTIC: Document creation cancelled');
     setShowDocumentCreator(false);
   };
 
   const handleCreateEntryForCategory = (categoryName: string) => {
-    console.log('DASHBOARD: Creating entry for category:', categoryName);
+    console.log('DIAGNOSTIC: Creating entry for category:', categoryName);
     
     if (categoryName === "Documents") {
-      console.log('DASHBOARD: Opening document creator');
+      console.log('DIAGNOSTIC: Opening document creator for Documents category');
       setShowDocumentCreator(true);
       setShowAddEntry(false);
     } else {
-      console.log('DASHBOARD: Setting up form for category:', categoryName);
+      console.log('DIAGNOSTIC: Setting up form for non-Documents category:', categoryName);
       // For other categories, use the regular add entry form with category pre-filled
       const templateEntry = {
         id: 'template',
@@ -181,12 +207,12 @@ const Dashboard = () => {
         updatedAt: new Date()
       };
       
-      console.log('DASHBOARD: Template entry created:', templateEntry);
+      console.log('DIAGNOSTIC: Template entry created:', templateEntry);
       setFillingEntry(templateEntry);
       setEditingEntry(null);
       setShowAddEntry(true);
       setShowDocumentCreator(false);
-      console.log('DASHBOARD: State updated - showAddEntry:', true, 'fillingEntry set');
+      console.log('DIAGNOSTIC: State updated - showAddEntry set to true, fillingEntry set');
     }
   };
 

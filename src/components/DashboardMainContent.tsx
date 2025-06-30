@@ -25,6 +25,8 @@ interface DashboardMainContentProps {
   onAddEntry: () => void;
   onCreateDocument: () => void;
   onVoiceResult: () => void;
+  onEditEntry: (entry: SavedEntry) => void;
+  onFillEntry: (entry: SavedEntry) => void;
 }
 
 export const DashboardMainContent = ({
@@ -44,6 +46,8 @@ export const DashboardMainContent = ({
   onAddEntry,
   onCreateDocument,
   onVoiceResult,
+  onEditEntry,
+  onFillEntry,
 }: DashboardMainContentProps) => {
   return (
     <>
@@ -96,7 +100,11 @@ export const DashboardMainContent = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Entries */}
         <div className="lg:col-span-2">
-          <RecentEntries entries={savedEntries} />
+          <RecentEntries 
+            entries={savedEntries} 
+            onEdit={onEditEntry}
+            onFill={onFillEntry}
+          />
         </div>
 
         {/* Categories Panel */}

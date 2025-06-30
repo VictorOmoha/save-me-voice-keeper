@@ -271,6 +271,8 @@ const Dashboard = () => {
               onAddEntry={handleAddEntry}
               onCreateDocument={handleCreateDocument}
               onVoiceResult={() => handleVoiceResult("")}
+              onEditEntry={editEntry}
+              onFillEntry={fillEntry}
             />
           )}
         </main>

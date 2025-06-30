@@ -1,15 +1,30 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SavedEntry } from "@/pages/Dashboard";
-import { FileText, Heart, Users, DollarSign, User, ExternalLink } from "lucide-react";
+import { FileText, Heart, Users, DollarSign, User, ExternalLink, Edit } from "lucide-react";
 
 interface RecentEntriesProps {
   entries: SavedEntry[];
+  onEdit?: (entry: SavedEntry) => void;
+  onFill?: (entry: SavedEntry) => void;
 }
 
-export const RecentEntries: React.FC<RecentEntriesProps> = ({ entries }) => {
+export const RecentEntries: React.FC<RecentEntriesProps> = ({ 
+  entries, 
+  onEdit,
+  onFill 
+}) => {
+  const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
+
   const getCategoryIcon = (title: string) => {
     const titleLower = title.toLowerCase();
     if (titleLower.includes('document') || titleLower.includes('paper')) return FileText;
@@ -37,57 +52,149 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({ entries }) => {
     return 'Personal';
   };
 
+  const getEntryType = (entry: SavedEntry): string => {
+    const fieldCount = Object.keys(entry.fields).length;
+    if (fieldCount <= 2) return 'Simple';
+    if (fieldCount <= 5) return 'Form';
+    return 'Complex';
+  };
+
   const recentEntries = entries.slice(0, 5);
 
+  const handleEntryClick = (entry: SavedEntry) => {
+    setViewingEntry(entry);
+  };
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-xl">Recent Entries</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">Your latest saved information</p>
-        </div>
-        <Button variant="ghost" size="sm" className="text-primary">
-          View all <ExternalLink className="w-4 h-4 ml-1" />
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {recentEntries.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No entries yet</p>
-            </div>
-          ) : (
-            recentEntries.map((entry) => {
-              const Icon = getCategoryIcon(entry.title);
-              const categoryColor = getCategoryColor(entry.title);
-              const categoryName = getCategoryName(entry.title);
-              
-              return (
-                <div key={entry.id} className="flex items-start space-x-4 p-4 rounded-lg hover:bg-accent transition-colors">
-                  <div className={`w-10 h-10 rounded-lg ${categoryColor} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-card-foreground truncate">{entry.title}</h4>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                      {Object.values(entry.fields).slice(0, 2).join(', ')}
-                    </p>
-                    <div className="flex items-center mt-2 space-x-3">
-                      <Badge variant="outline" className="text-xs">
-                        {categoryName}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(entry.createdAt).toLocaleDateString()}
-                      </span>
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-xl">Recent Entries</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Your latest saved information</p>
+          </div>
+          <Button variant="ghost" size="sm" className="text-primary">
+            View all <ExternalLink className="w-4 h-4 ml-1" />
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentEntries.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No entries yet</p>
+              </div>
+            ) : (
+              recentEntries.map((entry) => {
+                const Icon = getCategoryIcon(entry.title);
+                const categoryColor = getCategoryColor(entry.title);
+                const categoryName = getCategoryName(entry.title);
+                
+                return (
+                  <div 
+                    key={entry.id} 
+                    className="flex items-start space-x-4 p-4 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+                    onClick={() => handleEntryClick(entry)}
+                  >
+                    <div className={`w-10 h-10 rounded-lg ${categoryColor} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-card-foreground truncate">{entry.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                        {Object.values(entry.fields).slice(0, 2).join(', ')}
+                      </p>
+                      <div className="flex items-center mt-2 space-x-3">
+                        <Badge variant="outline" className="text-xs">
+                          {categoryName}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* View Entry Dialog */}
+      <Dialog open={viewingEntry !== null} onOpenChange={() => setViewingEntry(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">
+              {viewingEntry?.title}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {viewingEntry && (
+            <div className="space-y-6">
+              {/* Entry Metadata */}
+              <div className="flex items-center justify-between text-sm text-gray-600 border-b pb-4">
+                <div>
+                  <p>Created: {new Date(viewingEntry.createdAt).toLocaleDateString()}</p>
+                  <p>Last Modified: {new Date(viewingEntry.updatedAt).toLocaleDateString()}</p>
                 </div>
-              );
-            })
+                <Badge variant="outline">{getEntryType(viewingEntry)}</Badge>
+              </div>
+
+              {/* Entry Fields */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Entry Details</h3>
+                <div className="grid gap-4">
+                  {Object.entries(viewingEntry.fields).map(([key, value]) => (
+                    <div key={key} className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700 capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </label>
+                      <div className="p-3 bg-gray-50 rounded-md border">
+                        <p className="text-gray-900 whitespace-pre-wrap">
+                          {String(value) || 'No data'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {(onFill || onEdit) && (
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                  {onFill && (
+                    <Button
+                      onClick={() => {
+                        onFill(viewingEntry);
+                        setViewingEntry(null);
+                      }}
+                      variant="outline"
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Fill Form
+                    </Button>
+                  )}
+                  {onEdit && (
+                    <Button
+                      onClick={() => {
+                        onEdit(viewingEntry);
+                        setViewingEntry(null);
+                      }}
+                      variant="outline"
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Entry
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

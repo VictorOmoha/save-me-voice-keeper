@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SavedEntry } from "@/pages/Dashboard";
-import { FileText, Upload, X } from "lucide-react";
+import { FileText, Upload, X, Download, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 interface DocumentCreatorProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -21,6 +21,9 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   const [location, setLocation] = useState("");
   const [dateCreated, setDateCreated] = useState("");
   const [notes, setNotes] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [documentContent, setDocumentContent] = useState("");
+  const [createMode, setCreateMode] = useState<'upload' | 'create' | 'info'>('info');
 
   const documentTypes = [
     "ID Document",
@@ -32,8 +35,73 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
     "Certificate",
     "Receipt",
     "Invoice",
+    "Word Document",
+    "PDF Document",
     "Other"
   ];
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB");
+        return;
+      }
+      
+      setUploadedFile(file);
+      setDocumentName(file.name);
+      setDocumentType(file.type.includes('pdf') ? 'PDF Document' : 
+                     file.type.includes('word') || file.name.endsWith('.docx') ? 'Word Document' : 
+                     'Other');
+      toast.success(`File "${file.name}" selected for upload`);
+    }
+  };
+
+  const createWordDocument = () => {
+    if (!documentContent.trim()) {
+      toast.error("Please add some content to create the document");
+      return;
+    }
+
+    // Create a simple Word document structure
+    const wordContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <title>${documentName || 'Document'}</title>
+        </head>
+        <body>
+          <div style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5;">
+            ${documentContent.replace(/\n/g, '<br>')}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([wordContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    const fileName = `${documentName || 'document'}.doc`;
+    
+    // Create a pseudo-file for storage
+    const pseudoFile = new File([blob], fileName, { type: blob.type });
+    setUploadedFile(pseudoFile);
+    
+    toast.success("Word document created successfully!");
+  };
+
+  const downloadDocument = () => {
+    if (!uploadedFile) return;
+    
+    const url = URL.createObjectURL(uploadedFile);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = uploadedFile.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Document downloaded!");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +115,12 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
         tags: tags,
         location: location,
         dateCreated: dateCreated,
-        notes: notes
+        notes: notes,
+        fileName: uploadedFile?.name || '',
+        fileSize: uploadedFile?.size || 0,
+        fileType: uploadedFile?.type || '',
+        hasUploadedFile: !!uploadedFile,
+        documentContent: documentContent
       },
       fieldDefinitions: [
         { id: '1', name: 'category', type: 'text' as const },
@@ -56,11 +129,32 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
         { id: '4', name: 'tags', type: 'text' as const },
         { id: '5', name: 'location', type: 'text' as const },
         { id: '6', name: 'dateCreated', type: 'date' as const },
-        { id: '7', name: 'notes', type: 'textarea' as const }
+        { id: '7', name: 'notes', type: 'textarea' as const },
+        { id: '8', name: 'fileName', type: 'text' as const },
+        { id: '9', name: 'fileSize', type: 'number' as const },
+        { id: '10', name: 'fileType', type: 'text' as const },
+        { id: '11', name: 'hasUploadedFile', type: 'text' as const },
+        { id: '12', name: 'documentContent', type: 'textarea' as const }
       ]
     };
 
-    onSave(documentEntry);
+    // Store file data in localStorage if file exists
+    if (uploadedFile) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fileData = {
+          name: uploadedFile.name,
+          type: uploadedFile.type,
+          size: uploadedFile.size,
+          data: reader.result
+        };
+        localStorage.setItem(`document_${Date.now()}`, JSON.stringify(fileData));
+        onSave(documentEntry);
+      };
+      reader.readAsDataURL(uploadedFile);
+    } else {
+      onSave(documentEntry);
+    }
   };
 
   return (
@@ -71,11 +165,99 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
         </div>
         <div>
           <h2 className="text-xl font-semibold text-foreground">Create Document</h2>
-          <p className="text-muted-foreground">Save important document information</p>
+          <p className="text-muted-foreground">Save, create, or upload document information</p>
         </div>
       </div>
 
+      {/* Mode Selection */}
+      <div className="flex space-x-2 mb-6">
+        <Button
+          type="button"
+          variant={createMode === 'info' ? 'default' : 'outline'}
+          onClick={() => setCreateMode('info')}
+          className="flex items-center space-x-2"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Document Info</span>
+        </Button>
+        <Button
+          type="button"
+          variant={createMode === 'upload' ? 'default' : 'outline'}
+          onClick={() => setCreateMode('upload')}
+          className="flex items-center space-x-2"
+        >
+          <Upload className="w-4 h-4" />
+          <span>Upload File</span>
+        </Button>
+        <Button
+          type="button"
+          variant={createMode === 'create' ? 'default' : 'outline'}
+          onClick={() => setCreateMode('create')}
+          className="flex items-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create Word Doc</span>
+        </Button>
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* File Upload Section */}
+        {createMode === 'upload' && (
+          <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
+            <Label htmlFor="fileUpload" className="text-foreground">Upload Document</Label>
+            <div className="flex items-center space-x-4">
+              <Input
+                id="fileUpload"
+                type="file"
+                onChange={handleFileUpload}
+                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                className="bg-background border-border text-foreground"
+              />
+              {uploadedFile && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground">
+                    {uploadedFile.name} ({(uploadedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadDocument}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Word Document Creation Section */}
+        {createMode === 'create' && (
+          <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
+            <Label htmlFor="documentContent" className="text-foreground">Document Content</Label>
+            <Textarea
+              id="documentContent"
+              placeholder="Enter the content for your Word document..."
+              value={documentContent}
+              onChange={(e) => setDocumentContent(e.target.value)}
+              className="bg-background border-border text-foreground placeholder:text-muted-foreground min-h-[200px]"
+            />
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                onClick={createWordDocument}
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Create Word Document</span>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Document Information Form */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="documentName" className="text-foreground">Document Name *</Label>

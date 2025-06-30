@@ -63,6 +63,14 @@ const Dashboard = () => {
 
   const handleCategorySelect = (categoryName: string) => {
     console.log('Category selected:', categoryName);
+    
+    // Reset all form states when switching categories
+    console.log('Resetting form states for category switch');
+    setShowDocumentCreator(false);
+    setShowAddEntry(false);
+    setEditingEntry(null);
+    setFillingEntry(null);
+    
     setSelectedCategory(categoryName);
   };
 

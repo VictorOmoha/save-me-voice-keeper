@@ -14,10 +14,10 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
   onCreateDocument,
 }) => {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+    <div className="bg-card border border-border rounded-lg p-6 mb-8">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Quick Actions</h3>
-        <p className="text-gray-600 text-sm mb-4">Get started with these common tasks</p>
+        <h3 className="text-lg font-semibold text-card-foreground mb-2">Quick Actions</h3>
+        <p className="text-muted-foreground text-sm mb-4">Get started with these common tasks</p>
       </div>
       
       <div className="flex flex-wrap gap-3">

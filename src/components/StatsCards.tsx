@@ -13,32 +13,32 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries }) => {
       value: totalEntries.toString(),
       subtitle: "+2 13% from last month",
       icon: FileText,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-blue-50 dark:bg-blue-900/20"
     },
     {
       title: "Categories",
       value: "5",
       subtitle: "Organized collections",
       icon: FolderOpen,
-      color: "text-green-600",
-      bgColor: "bg-green-50"
+      color: "text-green-600 dark:text-green-400",
+      bgColor: "bg-green-50 dark:bg-green-900/20"
     },
     {
       title: "Storage Used",
       value: "2.4 GB",
       subtitle: "of 10 GB available",
       icon: HardDrive,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      color: "text-purple-600 dark:text-purple-400",
+      bgColor: "bg-purple-50 dark:bg-purple-900/20"
     },
     {
       title: "Recent Activity",
       value: "8",
       value_subtitle: "entries this week",
       icon: Activity,
-      color: "text-orange-600",
-      bgColor: "bg-orange-50"
+      color: "text-orange-600 dark:text-orange-400",
+      bgColor: "bg-orange-50 dark:bg-orange-900/20"
     }
   ];
 
@@ -51,13 +51,13 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries }) => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
                     {stat.title}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 mb-1">
+                  <p className="text-2xl font-bold text-card-foreground mb-1">
                     {stat.value}
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     {stat.subtitle || stat.value_subtitle}
                   </p>
                 </div>

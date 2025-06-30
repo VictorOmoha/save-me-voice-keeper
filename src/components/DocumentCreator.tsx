@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +107,19 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('DIAGNOSTIC: DocumentCreator handleSubmit called with data:', {
+      documentName,
+      documentType,
+      description,
+      tags,
+      location,
+      dateCreated,
+      notes,
+      hasUploadedFile: !!uploadedFile,
+      fileName: uploadedFile?.name,
+      documentContent: documentContent?.substring(0, 50) + '...'
+    });
+    
     const documentEntry = {
       title: documentName || 'Untitled Document',
       fields: {
@@ -138,6 +152,13 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       ]
     };
 
+    console.log('DIAGNOSTIC: Calling onSave with documentEntry:', {
+      title: documentEntry.title,
+      category: documentEntry.fields.category,
+      fieldsCount: Object.keys(documentEntry.fields).length,
+      allFieldKeys: Object.keys(documentEntry.fields)
+    });
+
     // Store file data in localStorage if file exists
     if (uploadedFile) {
       const reader = new FileReader();
@@ -149,10 +170,12 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
           data: reader.result
         };
         localStorage.setItem(`document_${Date.now()}`, JSON.stringify(fileData));
+        console.log('DIAGNOSTIC: File data stored, calling onSave...');
         onSave(documentEntry);
       };
       reader.readAsDataURL(uploadedFile);
     } else {
+      console.log('DIAGNOSTIC: No file to upload, calling onSave directly...');
       onSave(documentEntry);
     }
   };

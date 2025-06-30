@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -99,32 +100,52 @@ const Dashboard = () => {
   };
 
   const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log('DIAGNOSTIC: Document save triggered with entry:', {
+    console.log('DIAGNOSTIC: Document save triggered - RAW ENTRY DATA:', {
       title: entry.title,
       fields: entry.fields,
       fieldKeys: Object.keys(entry.fields),
       category: entry.fields.category,
       documentType: entry.fields.documentType,
-      fileName: entry.fields.fileName
+      fileName: entry.fields.fileName,
+      hasUploadedFile: entry.fields.hasUploadedFile,
+      fullFieldsObject: JSON.stringify(entry.fields, null, 2)
+    });
+    
+    // Ensure the category is properly set
+    const documentEntry = {
+      ...entry,
+      fields: {
+        ...entry.fields,
+        category: 'Documents' // Force the category to be Documents
+      }
+    };
+    
+    console.log('DIAGNOSTIC: Processed document entry before save:', {
+      title: documentEntry.title,
+      category: documentEntry.fields.category,
+      allFields: Object.keys(documentEntry.fields)
     });
     
     // Save the entry using the existing saveEntry function
-    saveEntry(entry);
+    saveEntry(documentEntry);
     
     // Close the document creator
     setShowDocumentCreator(false);
     
-    // Add a small delay to ensure state has updated, then log
+    console.log('DIAGNOSTIC: Document creator closed, checking saved entries...');
+    
+    // Add a small delay to check if the entry was saved
     setTimeout(() => {
-      console.log('DIAGNOSTIC: After document save - checking saved entries:', {
+      console.log('DIAGNOSTIC: After document save - current saved entries:', {
         totalEntries: savedEntries.length,
-        lastEntry: savedEntries[0] ? {
-          title: savedEntries[0].title,
-          category: savedEntries[0].fields.category,
-          fields: Object.keys(savedEntries[0].fields)
-        } : 'No entries'
+        entries: savedEntries.map(e => ({
+          id: e.id,
+          title: e.title,
+          category: e.fields?.category,
+          fields: Object.keys(e.fields || {})
+        }))
       });
-    }, 100);
+    }, 500);
   };
 
   const handleDocumentCancel = () => {

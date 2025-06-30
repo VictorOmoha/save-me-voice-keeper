@@ -60,8 +60,13 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   };
 
   const createWordDocument = () => {
+    console.log('DIAGNOSTIC: Create Word Document button clicked');
+    console.log('DIAGNOSTIC: Current documentContent:', documentContent);
+    console.log('DIAGNOSTIC: Current documentName:', documentName);
+    
     if (!documentContent.trim()) {
       toast.error("Please add some content to create the document");
+      console.log('DIAGNOSTIC: No content provided for Word document');
       return;
     }
 
@@ -87,7 +92,13 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
     const pseudoFile = new File([blob], fileName, { type: blob.type });
     setUploadedFile(pseudoFile);
     
-    toast.success("Word document created successfully!");
+    console.log('DIAGNOSTIC: Word document created successfully:', {
+      fileName,
+      fileSize: pseudoFile.size,
+      hasFile: !!pseudoFile
+    });
+    
+    toast.success("Word document created successfully! Now click 'Save Document' to save it.");
   };
 
   const downloadDocument = () => {
@@ -168,6 +179,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
 
     // Store file data in localStorage if file exists
     if (uploadedFile) {
+      console.log('DIAGNOSTIC: Processing file upload...');
       const reader = new FileReader();
       reader.onload = () => {
         const fileData = {
@@ -273,7 +285,10 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
               onChange={(e) => setDocumentContent(e.target.value)}
               className="bg-background border-border text-foreground placeholder:text-muted-foreground min-h-[200px]"
             />
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-muted-foreground">
+                After creating the document, scroll down and click "Save Document" to save it to your Documents.
+              </div>
               <Button
                 type="button"
                 onClick={createWordDocument}
@@ -284,6 +299,17 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
                 <span>Create Word Document</span>
               </Button>
             </div>
+            {uploadedFile && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-center space-x-2 text-green-700 dark:text-green-300">
+                  <FileText className="w-4 h-4" />
+                  <span className="text-sm font-medium">Document created: {uploadedFile.name}</span>
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  Now fill in the document details below and click "Save Document" to save it.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

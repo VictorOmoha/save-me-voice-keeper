@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -9,7 +10,7 @@ import { CategoriesPanel } from "@/components/CategoriesPanel";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Bell, Moon, User as UserIcon } from "lucide-react";
+import { Search, Bell, Moon, User as UserIcon, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/hooks/useDashboard";
 

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/pages/Dashboard";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 
 interface CategoryViewProps {
   categoryName: string;
@@ -12,6 +12,7 @@ interface CategoryViewProps {
   onEdit: (entry: SavedEntry) => void;
   onDelete: (id: string) => void;
   onFill: (entry: SavedEntry) => void;
+  onCreateEntry: (categoryName: string) => void;
 }
 
 export const CategoryView: React.FC<CategoryViewProps> = ({
@@ -20,7 +21,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   onBack,
   onEdit,
   onDelete,
-  onFill
+  onFill,
+  onCreateEntry
 }) => {
   const categoryEntries = entries.filter(entry => 
     entry.fields.category?.toLowerCase() === categoryName.toLowerCase() ||
@@ -33,13 +35,23 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <Button onClick={onBack} variant="ghost" size="sm">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button onClick={onBack} variant="ghost" size="sm">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">{categoryName}</h1>
+          <Badge variant="secondary">{categoryEntries.length} entries</Badge>
+        </div>
+        
+        <Button 
+          onClick={() => onCreateEntry(categoryName)}
+          className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create {categoryName.slice(0, -1)}
         </Button>
-        <h1 className="text-2xl font-bold">{categoryName}</h1>
-        <Badge variant="secondary">{categoryEntries.length} entries</Badge>
       </div>
 
       {categoryEntries.length === 0 ? (
@@ -47,9 +59,16 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
           <CardContent className="text-center py-12">
             <div className="text-6xl mb-4">📝</div>
             <h3 className="text-xl font-semibold mb-2">No {categoryName.toLowerCase()} entries yet</h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-6">
               Create your first {categoryName.toLowerCase()} entry to get started!
             </p>
+            <Button 
+              onClick={() => onCreateEntry(categoryName)}
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create {categoryName.slice(0, -1)}
+            </Button>
           </CardContent>
         </Card>
       ) : (

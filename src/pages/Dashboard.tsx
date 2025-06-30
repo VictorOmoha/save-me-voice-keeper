@@ -82,6 +82,15 @@ const Dashboard = () => {
     setShowDocumentCreator(false);
   };
 
+  const handleCreateEntryForCategory = (categoryName: string) => {
+    if (categoryName === "Documents") {
+      setShowDocumentCreator(true);
+    } else {
+      // For other categories, use the regular add entry form
+      handleAddEntry();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <Sidebar 
@@ -135,6 +144,7 @@ const Dashboard = () => {
               onEdit={editEntry}
               onDelete={deleteEntry}
               onFill={fillEntry}
+              onCreateEntry={handleCreateEntryForCategory}
             />
           ) : (
             <>

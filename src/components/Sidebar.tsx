@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,10 +102,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry,
 
       {/* Settings */}
       <div className="p-4 border-t border-gray-200">
-        <Button variant="ghost" className="w-full justify-start">
-          <Settings className="w-4 h-4 mr-3" />
-          Settings
-        </Button>
+        <Link to="/settings">
+          <Button 
+            variant={location.pathname === "/settings" ? "default" : "ghost"} 
+            className="w-full justify-start"
+          >
+            <Settings className="w-4 h-4 mr-3" />
+            Settings
+          </Button>
+        </Link>
       </div>
     </div>
   );

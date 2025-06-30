@@ -17,9 +17,15 @@ interface SidebarProps {
   savedEntriesCount: number;
   onAddEntry: () => void;
   onCategorySelect: (categoryName: string) => void;
+  onAllEntriesSelect: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry, onCategorySelect }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  savedEntriesCount, 
+  onAddEntry, 
+  onCategorySelect,
+  onAllEntriesSelect 
+}) => {
   const location = useLocation();
 
   const categories = [
@@ -57,7 +63,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry,
             </Button>
           </Link>
           
-          <Button variant="ghost" className="w-full justify-start">
+          <Button 
+            onClick={onAllEntriesSelect}
+            variant="ghost" 
+            className="w-full justify-start"
+          >
             <FileText className="w-4 h-4 mr-3" />
             All Entries
             <Badge variant="secondary" className="ml-auto">

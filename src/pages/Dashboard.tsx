@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
 import { CategoryView } from "@/components/CategoryView";
+import { AllEntriesView } from "@/components/AllEntriesView";
 import { useDashboard } from "@/hooks/useDashboard";
 import { DashboardTopHeader } from "@/components/DashboardTopHeader";
 import { DashboardMainContent } from "@/components/DashboardMainContent";
@@ -48,11 +49,13 @@ const Dashboard = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
+  const [showAllEntries, setShowAllEntries] = useState(false);
 
   console.log('Dashboard state:', {
     selectedCategory,
     showDocumentCreator,
     showAddEntry,
+    showAllEntries,
     editingEntry: editingEntry?.title,
     fillingEntry: fillingEntry?.title,
     totalEntries: savedEntries.length
@@ -79,14 +82,29 @@ const Dashboard = () => {
     setShowAddEntry(false);
     setEditingEntry(null);
     setFillingEntry(null);
+    setShowAllEntries(false);
     
     setSelectedCategory(categoryName);
+  };
+
+  const handleAllEntriesSelect = () => {
+    console.log('DIAGNOSTIC: All Entries select triggered');
+    
+    // Reset all form states when switching to all entries
+    setShowDocumentCreator(false);
+    setShowAddEntry(false);
+    setEditingEntry(null);
+    setFillingEntry(null);
+    setSelectedCategory(null);
+    
+    setShowAllEntries(true);
   };
 
   const handleBackToMain = () => {
     console.log('DIAGNOSTIC: Back to main dashboard triggered');
     
     setSelectedCategory(null);
+    setShowAllEntries(false);
     // Reset form states when going back to main
     setShowDocumentCreator(false);
     setShowAddEntry(false);
@@ -246,6 +264,7 @@ const Dashboard = () => {
         savedEntriesCount={savedEntries.length} 
         onAddEntry={handleAddEntry}
         onCategorySelect={handleCategorySelect}
+        onAllEntriesSelect={handleAllEntriesSelect}
       />
       
       <div className="flex-1 flex flex-col">
@@ -256,7 +275,22 @@ const Dashboard = () => {
         />
 
         <main className="flex-1 p-6">
-          {selectedCategory ? (
+          {showAllEntries ? (
+            <AllEntriesView
+              entries={savedEntries}
+              onBack={handleBackToMain}
+              onEdit={editEntry}
+              onDelete={deleteEntry}
+              onFill={fillEntry}
+              showAddEntry={showAddEntry}
+              editingEntry={editingEntry}
+              fillingEntry={fillingEntry}
+              onSaveEntry={saveEntry}
+              onCancelEdit={handleCancelEdit}
+              getFormTitle={getFormTitle}
+              getFormMode={getFormMode}
+            />
+          ) : selectedCategory ? (
             <CategoryView
               categoryName={selectedCategory}
               entries={savedEntries}

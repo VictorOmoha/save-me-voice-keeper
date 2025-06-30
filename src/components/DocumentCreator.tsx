@@ -119,22 +119,29 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       fileName: uploadedFile?.name,
       documentContent: documentContent?.substring(0, 50) + '...'
     });
+
+    // Validation - require at least a document name
+    if (!documentName.trim()) {
+      toast.error("Please enter a document name");
+      console.log('DIAGNOSTIC: Validation failed - no document name');
+      return;
+    }
     
     const documentEntry = {
-      title: documentName || 'Untitled Document',
+      title: documentName.trim(),
       fields: {
         category: 'Documents',
-        documentType: documentType,
-        description: description,
-        tags: tags,
-        location: location,
+        documentType: documentType || 'Other',
+        description: description.trim(),
+        tags: tags.trim(),
+        location: location.trim(),
         dateCreated: dateCreated,
-        notes: notes,
+        notes: notes.trim(),
         fileName: uploadedFile?.name || '',
         fileSize: uploadedFile?.size || 0,
         fileType: uploadedFile?.type || '',
         hasUploadedFile: !!uploadedFile,
-        documentContent: documentContent
+        documentContent: documentContent.trim()
       },
       fieldDefinitions: [
         { id: '1', name: 'category', type: 'text' as const },

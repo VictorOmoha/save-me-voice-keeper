@@ -7,7 +7,6 @@ import { CategoryView } from "@/components/CategoryView";
 import { useDashboard } from "@/hooks/useDashboard";
 import { DashboardTopHeader } from "@/components/DashboardTopHeader";
 import { DashboardMainContent } from "@/components/DashboardMainContent";
-import { CategoryEntryCreator } from "@/components/CategoryEntryCreator";
 
 export interface FieldDefinition {
   id: string;
@@ -50,14 +49,6 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
 
-  const categoryEntryCreator = CategoryEntryCreator({
-    categoryName: selectedCategory || '',
-    onShowDocumentCreator: () => setShowDocumentCreator(true),
-    onSetFillingEntry: setFillingEntry,
-    onSetEditingEntry: setEditingEntry,
-    onSetShowAddEntry: setShowAddEntry,
-  });
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -81,6 +72,86 @@ const Dashboard = () => {
 
   const handleDocumentCancel = () => {
     setShowDocumentCreator(false);
+  };
+
+  const handleCreateEntryForCategory = (categoryName: string) => {
+    if (categoryName === "Documents") {
+      setShowDocumentCreator(true);
+    } else {
+      // For other categories, use the regular add entry form with category pre-filled
+      setFillingEntry({
+        id: 'template',
+        title: `New ${categoryName.slice(0, -1)}`,
+        fields: {
+          category: categoryName,
+          // Add default fields based on category
+          ...(categoryName === "Health" && {
+            doctor: '',
+            condition: '',
+            medication: '',
+            date: '',
+            notes: ''
+          }),
+          ...(categoryName === "Contacts" && {
+            name: '',
+            phone: '',
+            email: '',
+            address: '',
+            relationship: ''
+          }),
+          ...(categoryName === "Finance" && {
+            accountType: '',
+            institution: '',
+            accountNumber: '',
+            balance: '',
+            notes: ''
+          }),
+          ...(categoryName === "Personal" && {
+            type: '',
+            description: '',
+            value: '',
+            location: '',
+            notes: ''
+          })
+        },
+        fieldDefinitions: [
+          { id: '1', name: 'category', type: 'text' as const },
+          // Add field definitions based on category
+          ...(categoryName === "Health" ? [
+            { id: '2', name: 'doctor', type: 'text' as const },
+            { id: '3', name: 'condition', type: 'text' as const },
+            { id: '4', name: 'medication', type: 'text' as const },
+            { id: '5', name: 'date', type: 'date' as const },
+            { id: '6', name: 'notes', type: 'textarea' as const }
+          ] : []),
+          ...(categoryName === "Contacts" ? [
+            { id: '2', name: 'name', type: 'text' as const },
+            { id: '3', name: 'phone', type: 'text' as const },
+            { id: '4', name: 'email', type: 'text' as const },
+            { id: '5', name: 'address', type: 'textarea' as const },
+            { id: '6', name: 'relationship', type: 'text' as const }
+          ] : []),
+          ...(categoryName === "Finance" ? [
+            { id: '2', name: 'accountType', type: 'text' as const },
+            { id: '3', name: 'institution', type: 'text' as const },
+            { id: '4', name: 'accountNumber', type: 'text' as const },
+            { id: '5', name: 'balance', type: 'number' as const },
+            { id: '6', name: 'notes', type: 'textarea' as const }
+          ] : []),
+          ...(categoryName === "Personal" ? [
+            { id: '2', name: 'type', type: 'text' as const },
+            { id: '3', name: 'description', type: 'textarea' as const },
+            { id: '4', name: 'value', type: 'text' as const },
+            { id: '5', name: 'location', type: 'text' as const },
+            { id: '6', name: 'notes', type: 'textarea' as const }
+          ] : [])
+        ],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      setEditingEntry(null);
+      setShowAddEntry(true);
+    }
   };
 
   return (
@@ -107,7 +178,7 @@ const Dashboard = () => {
               onEdit={editEntry}
               onDelete={deleteEntry}
               onFill={fillEntry}
-              onCreateEntry={categoryEntryCreator.handleCreateEntryForCategory}
+              onCreateEntry={handleCreateEntryForCategory}
             />
           ) : (
             <DashboardMainContent

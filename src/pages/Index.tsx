@@ -1,11 +1,29 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
 
 const Index = () => {
+  const { theme, setTheme } = useTheme();
+  
+  const toggleTheme = () => {
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
+  };
+
+  const getThemeIcon = () => {
+    if (theme === "light") return <Sun className="h-4 w-4" />;
+    if (theme === "dark") return <Moon className="h-4 w-4" />;
+    return <Sun className="h-4 w-4" />; // system default to sun icon
+  };
+
   const plans = [
     {
       name: "Free",
@@ -63,6 +81,14 @@ const Index = () => {
               </span>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="text-foreground hover:text-foreground"
+              >
+                {getThemeIcon()}
+              </Button>
               <Link to="/login">
                 <Button variant="ghost" className="text-foreground hover:text-foreground">Login</Button>
               </Link>

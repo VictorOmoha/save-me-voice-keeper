@@ -26,6 +26,10 @@ const Settings = () => {
     console.log("Category selected from settings:", categoryName);
   };
 
+  const handleAllEntriesSelect = () => {
+    console.log("All entries selected from settings");
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
@@ -33,6 +37,7 @@ const Settings = () => {
         savedEntriesCount={42}
         onAddEntry={handleAddEntry}
         onCategorySelect={handleCategorySelect}
+        onAllEntriesSelect={handleAllEntriesSelect}
       />
       
       {/* Main Content */}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -54,7 +53,8 @@ const Dashboard = () => {
     showDocumentCreator,
     showAddEntry,
     editingEntry: editingEntry?.title,
-    fillingEntry: fillingEntry?.title
+    fillingEntry: fillingEntry?.title,
+    totalEntries: savedEntries.length
   });
 
   if (!isAuthenticated) {
@@ -63,43 +63,18 @@ const Dashboard = () => {
 
   const handleCategorySelect = (categoryName: string) => {
     console.log('DIAGNOSTIC: Category select triggered for:', categoryName);
-    console.log('DIAGNOSTIC: Current form states before reset:', {
-      showDocumentCreator,
-      showAddEntry,
-      editingEntry: editingEntry?.title,
-      fillingEntry: fillingEntry?.title
-    });
     
     // Reset all form states when switching categories
-    console.log('DIAGNOSTIC: Resetting form states for category switch');
     setShowDocumentCreator(false);
     setShowAddEntry(false);
     setEditingEntry(null);
     setFillingEntry(null);
     
-    console.log('DIAGNOSTIC: Form states should now be reset');
-    console.log('DIAGNOSTIC: Setting selected category to:', categoryName);
     setSelectedCategory(categoryName);
-    
-    // Add a setTimeout to check if states were actually reset
-    setTimeout(() => {
-      console.log('DIAGNOSTIC: Form states after reset (delayed check):', {
-        showDocumentCreator,
-        showAddEntry,
-        editingEntry: editingEntry?.title,
-        fillingEntry: fillingEntry?.title
-      });
-    }, 100);
   };
 
   const handleBackToMain = () => {
     console.log('DIAGNOSTIC: Back to main dashboard triggered');
-    console.log('DIAGNOSTIC: Current form states before reset:', {
-      showDocumentCreator,
-      showAddEntry,
-      editingEntry: editingEntry?.title,
-      fillingEntry: fillingEntry?.title
-    });
     
     setSelectedCategory(null);
     // Reset form states when going back to main
@@ -107,8 +82,6 @@ const Dashboard = () => {
     setShowAddEntry(false);
     setEditingEntry(null);
     setFillingEntry(null);
-    
-    console.log('DIAGNOSTIC: Form states reset for back to main');
   };
 
   const handleCreateDocument = () => {
@@ -118,8 +91,18 @@ const Dashboard = () => {
 
   const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     console.log('DIAGNOSTIC: Document save triggered:', entry.title);
+    console.log('DIAGNOSTIC: Entry fields:', entry.fields);
+    
+    // Save the entry using the existing saveEntry function
     saveEntry(entry);
+    
+    // Close the document creator
     setShowDocumentCreator(false);
+    
+    // Force a re-render by logging the updated state
+    setTimeout(() => {
+      console.log('DIAGNOSTIC: After save - total entries:', savedEntries.length + 1);
+    }, 100);
   };
 
   const handleDocumentCancel = () => {
@@ -135,8 +118,6 @@ const Dashboard = () => {
       setShowDocumentCreator(true);
       setShowAddEntry(false);
     } else {
-      console.log('DIAGNOSTIC: Setting up form for non-Documents category:', categoryName);
-      // For other categories, use the regular add entry form with category pre-filled
       const templateEntry = {
         id: 'template',
         title: `New ${categoryName.slice(0, -1)}`,
@@ -213,7 +194,6 @@ const Dashboard = () => {
       setEditingEntry(null);
       setShowAddEntry(true);
       setShowDocumentCreator(false);
-      console.log('DIAGNOSTIC: State updated - showAddEntry set to true, fillingEntry set');
     }
   };
 

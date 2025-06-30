@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,27 +52,44 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
     showDocumentCreator, 
     showAddEntry,
     editingEntry: editingEntry?.title,
-    fillingEntry: fillingEntry?.title
+    fillingEntry: fillingEntry?.title,
+    totalEntries: entries.length
   });
 
   const handleCreateEntry = () => {
     console.log('DIAGNOSTIC: Create button clicked for category:', categoryName);
-    console.log('DIAGNOSTIC: onCreateEntry function type:', typeof onCreateEntry);
-    if (typeof onCreateEntry === 'function') {
-      onCreateEntry(categoryName);
-    } else {
-      console.error('DIAGNOSTIC: onCreateEntry is not a function!');
-    }
+    onCreateEntry(categoryName);
   };
 
-  const categoryEntries = entries.filter(entry => 
-    entry.fields.category?.toLowerCase() === categoryName.toLowerCase() ||
-    (categoryName === "Documents" && entry.title.toLowerCase().includes("document")) ||
-    (categoryName === "Health" && entry.title.toLowerCase().includes("health")) ||
-    (categoryName === "Contacts" && entry.title.toLowerCase().includes("contact")) ||
-    (categoryName === "Finance" && entry.title.toLowerCase().includes("finance")) ||
-    (categoryName === "Personal" && entry.title.toLowerCase().includes("personal"))
-  );
+  // Improved filtering for Documents category
+  const categoryEntries = entries.filter(entry => {
+    if (categoryName === "Documents") {
+      // For Documents, check multiple criteria
+      return (
+        entry.fields.category?.toLowerCase() === "documents" ||
+        entry.fields.documentType ||
+        entry.fields.fileName ||
+        entry.title.toLowerCase().includes("document") ||
+        entry.title.toLowerCase().includes("doc") ||
+        entry.title.toLowerCase().includes("pdf")
+      );
+    }
+    
+    // For other categories, use existing logic
+    return (
+      entry.fields.category?.toLowerCase() === categoryName.toLowerCase() ||
+      (categoryName === "Health" && entry.title.toLowerCase().includes("health")) ||
+      (categoryName === "Contacts" && entry.title.toLowerCase().includes("contact")) ||
+      (categoryName === "Finance" && entry.title.toLowerCase().includes("finance")) ||
+      (categoryName === "Personal" && entry.title.toLowerCase().includes("personal"))
+    );
+  });
+
+  console.log('DIAGNOSTIC: Filtered entries for', categoryName, ':', {
+    totalEntries: entries.length,
+    categoryEntries: categoryEntries.length,
+    categoryEntriesList: categoryEntries.map(e => ({ title: e.title, category: e.fields.category }))
+  });
 
   return (
     <div className="space-y-6">
@@ -151,6 +169,11 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                   <Badge variant="outline">
                     {new Date(entry.createdAt).toLocaleDateString()}
                   </Badge>
+                  {entry.fields.fileName && (
+                    <Badge variant="secondary" className="text-xs">
+                      {entry.fields.fileName}
+                    </Badge>
+                  )}
                   <Button 
                     onClick={() => {
                       console.log('Fill button clicked for entry:', entry.title);
@@ -194,7 +217,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                         {key}:
                       </span>
                       <span className="text-gray-900 sm:w-2/3">
-                        {String(value)}
+                        {key === 'fileSize' && typeof value === 'number' 
+                          ? `${(value / 1024).toFixed(1)} KB`
+                          : String(value)
+                        }
                       </span>
                     </div>
                   ))}

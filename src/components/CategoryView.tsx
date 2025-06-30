@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/pages/Dashboard";
 import { ArrowLeft, Plus } from "lucide-react";
+import { DocumentCreator } from "@/components/DocumentCreator";
+import { DataEntryForm } from "@/components/DataEntryForm";
 
 interface CategoryViewProps {
   categoryName: string;
@@ -13,6 +15,17 @@ interface CategoryViewProps {
   onDelete: (id: string) => void;
   onFill: (entry: SavedEntry) => void;
   onCreateEntry: (categoryName: string) => void;
+  // Add these new props for handling forms
+  showDocumentCreator?: boolean;
+  showAddEntry?: boolean;
+  editingEntry?: SavedEntry | null;
+  fillingEntry?: SavedEntry | null;
+  onDocumentSave?: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onDocumentCancel?: () => void;
+  onSaveEntry?: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onCancelEdit?: () => void;
+  getFormTitle?: () => string;
+  getFormMode?: () => 'create' | 'edit' | 'fill';
 }
 
 export const CategoryView: React.FC<CategoryViewProps> = ({
@@ -22,9 +35,25 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   onEdit,
   onDelete,
   onFill,
-  onCreateEntry
+  onCreateEntry,
+  showDocumentCreator = false,
+  showAddEntry = false,
+  editingEntry = null,
+  fillingEntry = null,
+  onDocumentSave = () => {},
+  onDocumentCancel = () => {},
+  onSaveEntry = () => {},
+  onCancelEdit = () => {},
+  getFormTitle = () => 'Add New Entry',
+  getFormMode = () => 'create'
 }) => {
-  console.log('CategoryView rendered with:', { categoryName, onCreateEntry: typeof onCreateEntry });
+  console.log('CategoryView rendered with:', { 
+    categoryName, 
+    showDocumentCreator, 
+    showAddEntry,
+    editingEntry: editingEntry?.title,
+    fillingEntry: fillingEntry?.title
+  });
 
   const handleCreateEntry = () => {
     console.log('Create button clicked for category:', categoryName);
@@ -65,6 +94,36 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
           Create {categoryName.slice(0, -1)}
         </Button>
       </div>
+
+      {/* Document Creator */}
+      {showDocumentCreator && (
+        <Card>
+          <CardContent className="p-6">
+            <DocumentCreator 
+              onSave={onDocumentSave}
+              onCancel={onDocumentCancel}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Add/Edit Entry Form */}
+      {showAddEntry && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{getFormTitle()}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataEntryForm 
+              onSave={onSaveEntry}
+              onCancel={onCancelEdit}
+              editEntry={editingEntry}
+              templateEntry={fillingEntry}
+              mode={getFormMode()}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {categoryEntries.length === 0 ? (
         <Card>

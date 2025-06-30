@@ -69,6 +69,11 @@ const Dashboard = () => {
   const handleBackToMain = () => {
     console.log('Back to main dashboard');
     setSelectedCategory(null);
+    // Reset form states when going back to main
+    setShowDocumentCreator(false);
+    setShowAddEntry(false);
+    setEditingEntry(null);
+    setFillingEntry(null);
   };
 
   const handleCreateDocument = () => {
@@ -88,13 +93,14 @@ const Dashboard = () => {
   };
 
   const handleCreateEntryForCategory = (categoryName: string) => {
-    console.log('Creating entry for category:', categoryName);
+    console.log('DASHBOARD: Creating entry for category:', categoryName);
     
     if (categoryName === "Documents") {
-      console.log('Opening document creator');
+      console.log('DASHBOARD: Opening document creator');
       setShowDocumentCreator(true);
+      setShowAddEntry(false);
     } else {
-      console.log('Setting up form for category:', categoryName);
+      console.log('DASHBOARD: Setting up form for category:', categoryName);
       // For other categories, use the regular add entry form with category pre-filled
       const templateEntry = {
         id: 'template',
@@ -167,11 +173,12 @@ const Dashboard = () => {
         updatedAt: new Date()
       };
       
-      console.log('Template entry created:', templateEntry);
+      console.log('DASHBOARD: Template entry created:', templateEntry);
       setFillingEntry(templateEntry);
       setEditingEntry(null);
       setShowAddEntry(true);
-      console.log('State updated - showAddEntry:', true, 'fillingEntry set');
+      setShowDocumentCreator(false);
+      console.log('DASHBOARD: State updated - showAddEntry:', true, 'fillingEntry set');
     }
   };
 
@@ -200,6 +207,16 @@ const Dashboard = () => {
               onDelete={deleteEntry}
               onFill={fillEntry}
               onCreateEntry={handleCreateEntryForCategory}
+              showDocumentCreator={showDocumentCreator}
+              showAddEntry={showAddEntry}
+              editingEntry={editingEntry}
+              fillingEntry={fillingEntry}
+              onDocumentSave={handleDocumentSave}
+              onDocumentCancel={handleDocumentCancel}
+              onSaveEntry={saveEntry}
+              onCancelEdit={handleCancelEdit}
+              getFormTitle={getFormTitle}
+              getFormMode={getFormMode}
             />
           ) : (
             <DashboardMainContent

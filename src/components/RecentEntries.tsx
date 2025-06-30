@@ -125,7 +125,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
       <Dialog open={viewingEntry !== null} onOpenChange={() => setViewingEntry(null)}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
+            <DialogTitle className="text-xl font-semibold text-foreground">
               {viewingEntry?.title}
             </DialogTitle>
           </DialogHeader>
@@ -133,7 +133,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
           {viewingEntry && (
             <div className="space-y-6">
               {/* Entry Metadata */}
-              <div className="flex items-center justify-between text-sm text-gray-600 border-b pb-4">
+              <div className="flex items-center justify-between text-sm text-muted-foreground border-b pb-4 border-border">
                 <div>
                   <p>Created: {new Date(viewingEntry.createdAt).toLocaleDateString()}</p>
                   <p>Last Modified: {new Date(viewingEntry.updatedAt).toLocaleDateString()}</p>
@@ -143,15 +143,15 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
 
               {/* Entry Fields */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Entry Details</h3>
+                <h3 className="text-lg font-medium text-foreground">Entry Details</h3>
                 <div className="grid gap-4">
                   {Object.entries(viewingEntry.fields).map(([key, value]) => (
                     <div key={key} className="space-y-1">
-                      <label className="text-sm font-medium text-gray-700 capitalize">
+                      <label className="text-sm font-medium text-foreground capitalize">
                         {key.replace(/([A-Z])/g, ' $1').trim()}
                       </label>
-                      <div className="p-3 bg-gray-50 rounded-md border">
-                        <p className="text-gray-900 whitespace-pre-wrap">
+                      <div className="p-3 bg-muted rounded-md border border-border">
+                        <p className="text-foreground whitespace-pre-wrap">
                           {String(value) || 'No data'}
                         </p>
                       </div>
@@ -162,7 +162,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
 
               {/* Action Buttons */}
               {(onFill || onEdit) && (
-                <div className="flex justify-end space-x-2 pt-4 border-t">
+                <div className="flex justify-end space-x-2 pt-4 border-t border-border">
                   {onFill && (
                     <Button
                       onClick={() => {
@@ -170,7 +170,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
                         setViewingEntry(null);
                       }}
                       variant="outline"
-                      className="text-green-600 hover:text-green-700"
+                      className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Fill Form
@@ -183,7 +183,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
                         setViewingEntry(null);
                       }}
                       variant="outline"
-                      className="text-blue-600 hover:text-blue-700"
+                      className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Entry

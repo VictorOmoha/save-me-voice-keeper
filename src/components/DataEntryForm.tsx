@@ -125,109 +125,115 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   const isFillMode = mode === 'fill';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="title">Entry Title</Label>
-        <Input
-          id="title"
-          placeholder="Give your entry a title (e.g., 'Medication Info', 'Insurance Policy')"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-lg font-semibold">
-            {isFillMode ? 'Fill in the Data' : 'Custom Fields'}
-          </Label>
-          {isEditMode && (
-            <Button type="button" onClick={addField} variant="outline" size="sm">
-              Add Field
-            </Button>
-          )}
+    <div className="bg-background text-foreground">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="title" className="text-foreground">Entry Title</Label>
+          <Input
+            id="title"
+            placeholder="Give your entry a title (e.g., 'Medication Info', 'Insurance Policy')"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+            required
+          />
         </div>
 
-        {fields.map((field, index) => (
-          <div key={field.id} className="p-4 border rounded-lg space-y-3">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-lg font-semibold text-foreground">
+              {isFillMode ? 'Fill in the Data' : 'Custom Fields'}
+            </Label>
             {isEditMode && (
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Field {index + 1}</h4>
-                {fields.length > 1 && (
-                  <Button 
-                    type="button" 
-                    onClick={() => removeField(field.id)}
-                    variant="outline" 
-                    size="sm"
-                  >
-                    Remove
-                  </Button>
+              <Button type="button" onClick={addField} variant="outline" size="sm">
+                Add Field
+              </Button>
+            )}
+          </div>
+
+          {fields.map((field, index) => (
+            <div key={field.id} className="p-4 border border-border rounded-lg space-y-3 bg-card">
+              {isEditMode && (
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-foreground">Field {index + 1}</h4>
+                  {fields.length > 1 && (
+                    <Button 
+                      type="button" 
+                      onClick={() => removeField(field.id)}
+                      variant="outline" 
+                      size="sm"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              )}
+              
+              {isEditMode ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Field Name</Label>
+                    <Input
+                      placeholder="e.g., Medication Name, Dosage, Policy Number"
+                      value={field.name}
+                      onChange={(e) => updateField(field.id, 'name', e.target.value)}
+                      className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-foreground">Field Type</Label>
+                    <Select value={field.type} onValueChange={(value) => updateField(field.id, 'type', value)}>
+                      <SelectTrigger className="bg-background border-border text-foreground">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border-border">
+                        <SelectItem value="text" className="text-foreground hover:bg-accent">Text</SelectItem>
+                        <SelectItem value="number" className="text-foreground hover:bg-accent">Number</SelectItem>
+                        <SelectItem value="date" className="text-foreground hover:bg-accent">Date</SelectItem>
+                        <SelectItem value="textarea" className="text-foreground hover:bg-accent">Long Text</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="font-medium text-foreground">{field.name}</Label>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-foreground">{isFillMode ? 'Enter Data' : 'Value'}</Label>
+                {field.type === 'textarea' ? (
+                  <Textarea
+                    placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
+                    value={field.value}
+                    onChange={(e) => updateField(field.id, 'value', e.target.value)}
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                  />
+                ) : (
+                  <Input
+                    type={field.type}
+                    placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
+                    value={field.value}
+                    onChange={(e) => updateField(field.id, 'value', e.target.value)}
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                  />
                 )}
               </div>
-            )}
-            
-            {isEditMode ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Field Name</Label>
-                  <Input
-                    placeholder="e.g., Medication Name, Dosage, Policy Number"
-                    value={field.name}
-                    onChange={(e) => updateField(field.id, 'name', e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Field Type</Label>
-                  <Select value={field.type} onValueChange={(value) => updateField(field.id, 'type', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                      <SelectItem value="textarea">Long Text</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label className="font-medium">{field.name}</Label>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label>{isFillMode ? 'Enter Data' : 'Value'}</Label>
-              {field.type === 'textarea' ? (
-                <Textarea
-                  placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
-                  value={field.value}
-                  onChange={(e) => updateField(field.id, 'value', e.target.value)}
-                />
-              ) : (
-                <Input
-                  type={field.type}
-                  placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
-                  value={field.value}
-                  onChange={(e) => updateField(field.id, 'value', e.target.value)}
-                />
-              )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button type="button" onClick={onCancel} variant="outline">
-          Cancel
-        </Button>
-        <Button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
-          {editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
-        </Button>
-      </div>
-    </form>
+        <div className="flex justify-end space-x-2">
+          <Button type="button" onClick={onCancel} variant="outline">
+            Cancel
+          </Button>
+          <Button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+            {editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };

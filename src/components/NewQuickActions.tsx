@@ -21,12 +21,25 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
       </div>
       
       <div className="flex flex-wrap gap-3">
-        <Button onClick={onAddEntry} className="flex items-center space-x-2">
+        <Button 
+          onClick={() => {
+            console.log('Add Entry button clicked');
+            onAddEntry();
+          }} 
+          className="flex items-center space-x-2"
+        >
           <Plus className="w-4 h-4" />
           <span>Add Entry</span>
         </Button>
         
-        <Button onClick={onCreateDocument} variant="outline" className="flex items-center space-x-2">
+        <Button 
+          onClick={() => {
+            console.log('Create Document button clicked');
+            onCreateDocument();
+          }} 
+          variant="outline" 
+          className="flex items-center space-x-2"
+        >
           <FileText className="w-4 h-4" />
           <span>Create Document</span>
         </Button>
@@ -36,7 +49,14 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
           <span>Search</span>
         </Button>
         
-        <Button onClick={onVoiceInput} variant="outline" className="flex items-center space-x-2">
+        <Button 
+          onClick={() => {
+            console.log('Voice Input button clicked');
+            onVoiceInput();
+          }} 
+          variant="outline" 
+          className="flex items-center space-x-2"
+        >
           <Mic className="w-4 h-4" />
           <span>Voice Input</span>
         </Button>

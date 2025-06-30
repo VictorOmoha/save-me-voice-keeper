@@ -24,6 +24,18 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   onFill,
   onCreateEntry
 }) => {
+  console.log('CategoryView rendered with:', { categoryName, onCreateEntry: typeof onCreateEntry });
+
+  const handleCreateEntry = () => {
+    console.log('Create button clicked for category:', categoryName);
+    console.log('onCreateEntry function type:', typeof onCreateEntry);
+    if (typeof onCreateEntry === 'function') {
+      onCreateEntry(categoryName);
+    } else {
+      console.error('onCreateEntry is not a function!');
+    }
+  };
+
   const categoryEntries = entries.filter(entry => 
     entry.fields.category?.toLowerCase() === categoryName.toLowerCase() ||
     (categoryName === "Documents" && entry.title.toLowerCase().includes("document")) ||
@@ -46,7 +58,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
         </div>
         
         <Button 
-          onClick={() => onCreateEntry(categoryName)}
+          onClick={handleCreateEntry}
           className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -63,7 +75,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
               Create your first {categoryName.toLowerCase()} entry to get started!
             </p>
             <Button 
-              onClick={() => onCreateEntry(categoryName)}
+              onClick={handleCreateEntry}
               className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -82,7 +94,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                     {new Date(entry.createdAt).toLocaleDateString()}
                   </Badge>
                   <Button 
-                    onClick={() => onFill(entry)}
+                    onClick={() => {
+                      console.log('Fill button clicked for entry:', entry.title);
+                      onFill(entry);
+                    }}
                     variant="outline" 
                     size="sm"
                     className="text-green-600 hover:text-green-700"
@@ -90,7 +105,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                     Fill Form
                   </Button>
                   <Button 
-                    onClick={() => onEdit(entry)}
+                    onClick={() => {
+                      console.log('Edit button clicked for entry:', entry.title);
+                      onEdit(entry);
+                    }}
                     variant="outline" 
                     size="sm"
                     className="text-blue-600 hover:text-blue-700"
@@ -98,7 +116,10 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                     Edit
                   </Button>
                   <Button 
-                    onClick={() => onDelete(entry.id)}
+                    onClick={() => {
+                      console.log('Delete button clicked for entry:', entry.id);
+                      onDelete(entry.id);
+                    }}
                     variant="outline" 
                     size="sm"
                     className="text-red-600 hover:text-red-700"

@@ -49,37 +49,54 @@ const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
 
+  console.log('Dashboard state:', {
+    selectedCategory,
+    showDocumentCreator,
+    showAddEntry,
+    editingEntry: editingEntry?.title,
+    fillingEntry: fillingEntry?.title
+  });
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   const handleCategorySelect = (categoryName: string) => {
+    console.log('Category selected:', categoryName);
     setSelectedCategory(categoryName);
   };
 
   const handleBackToMain = () => {
+    console.log('Back to main dashboard');
     setSelectedCategory(null);
   };
 
   const handleCreateDocument = () => {
+    console.log('Create document triggered');
     setShowDocumentCreator(true);
   };
 
   const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    console.log('Document save triggered:', entry.title);
     saveEntry(entry);
     setShowDocumentCreator(false);
   };
 
   const handleDocumentCancel = () => {
+    console.log('Document creation cancelled');
     setShowDocumentCreator(false);
   };
 
   const handleCreateEntryForCategory = (categoryName: string) => {
+    console.log('Creating entry for category:', categoryName);
+    
     if (categoryName === "Documents") {
+      console.log('Opening document creator');
       setShowDocumentCreator(true);
     } else {
+      console.log('Setting up form for category:', categoryName);
       // For other categories, use the regular add entry form with category pre-filled
-      setFillingEntry({
+      const templateEntry = {
         id: 'template',
         title: `New ${categoryName.slice(0, -1)}`,
         fields: {
@@ -148,9 +165,13 @@ const Dashboard = () => {
         ],
         createdAt: new Date(),
         updatedAt: new Date()
-      });
+      };
+      
+      console.log('Template entry created:', templateEntry);
+      setFillingEntry(templateEntry);
       setEditingEntry(null);
       setShowAddEntry(true);
+      console.log('State updated - showAddEntry:', true, 'fillingEntry set');
     }
   };
 

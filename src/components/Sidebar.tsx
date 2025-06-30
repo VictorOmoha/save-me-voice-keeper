@@ -15,9 +15,10 @@ import {
 
 interface SidebarProps {
   savedEntriesCount: number;
+  onAddEntry: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount, onAddEntry }) => {
   const location = useLocation();
 
   const categories = [
@@ -63,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ savedEntriesCount }) => {
             </Badge>
           </Button>
           
-          <Button variant="ghost" className="w-full justify-start">
+          <Button onClick={onAddEntry} variant="ghost" className="w-full justify-start">
             <Plus className="w-4 h-4 mr-3" />
             Add Entry
           </Button>

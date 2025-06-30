@@ -1,4 +1,5 @@
 
+
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
@@ -58,7 +59,10 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <Sidebar savedEntriesCount={savedEntries.length} />
+      <Sidebar 
+        savedEntriesCount={savedEntries.length} 
+        onAddEntry={handleAddEntry}
+      />
       
       <div className="flex-1 flex flex-col">
         {/* Top Header */}

@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SavedEntry } from "@/pages/Dashboard";
-import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown } from "lucide-react";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -143,6 +143,19 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
     </TableHead>
   );
 
+  const handleRowClick = (entry: SavedEntry, event: React.MouseEvent) => {
+    // Don't open dialog if clicking on action buttons, checkboxes, or expand button
+    const target = event.target as HTMLElement;
+    if (
+      target.closest('button') || 
+      target.closest('[role="checkbox"]') ||
+      target.tagName === 'INPUT'
+    ) {
+      return;
+    }
+    setViewingEntry(entry);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -184,7 +197,11 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
           <TableBody>
             {sortedEntries.map((entry) => (
               <>
-                <TableRow key={entry.id} className="hover:bg-gray-50">
+                <TableRow 
+                  key={entry.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={(e) => handleRowClick(entry, e)}
+                >
                   <TableCell>
                     <Checkbox
                       checked={selectedEntries.includes(entry.id)}
@@ -214,14 +231,6 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Button
-                        onClick={() => setViewingEntry(entry)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-purple-600 hover:text-purple-700"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
                       <Button
                         onClick={() => onFill(entry)}
                         variant="ghost"

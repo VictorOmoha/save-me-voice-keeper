@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
@@ -38,7 +39,7 @@ const Settings = () => {
             <p className="text-muted-foreground">Manage your account and preferences</p>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/dashboard">
+            <Link to="/dashboard">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Link>
@@ -79,7 +80,7 @@ const Settings = () => {
 
           <div className="flex-1">
             <TabsContent value="profile">
-              <ProfileSettings />
+              <ProfileSettings user={user} />
             </TabsContent>
             <TabsContent value="security">
               <SecuritySettings />

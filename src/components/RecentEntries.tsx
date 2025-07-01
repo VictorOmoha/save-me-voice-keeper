@@ -43,8 +43,14 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
     return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
   };
 
-  const getCategoryName = (title: string) => {
-    const titleLower = title.toLowerCase();
+  const getCategoryName = (entry: SavedEntry) => {
+    // First check if the entry has a category field
+    if (entry.fields?.category) {
+      return entry.fields.category;
+    }
+    
+    // Fallback to title-based categorization
+    const titleLower = entry.title.toLowerCase();
     if (titleLower.includes('document') || titleLower.includes('paper')) return 'Documents';
     if (titleLower.includes('health') || titleLower.includes('medical')) return 'Health';
     if (titleLower.includes('contact') || titleLower.includes('people')) return 'Contacts';
@@ -88,7 +94,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
               recentEntries.map((entry) => {
                 const Icon = getCategoryIcon(entry.title);
                 const categoryColor = getCategoryColor(entry.title);
-                const categoryName = getCategoryName(entry.title);
+                const categoryName = getCategoryName(entry);
                 
                 return (
                   <div 
@@ -100,14 +106,16 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-card-foreground truncate">{entry.title}</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-card-foreground truncate">{entry.title}</h4>
+                        <Badge variant="secondary" className="text-xs ml-2 flex-shrink-0">
+                          {categoryName}
+                        </Badge>
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {Object.values(entry.fields).slice(0, 2).join(', ')}
                       </p>
                       <div className="flex items-center mt-2 space-x-3">
-                        <Badge variant="outline" className="text-xs">
-                          {categoryName}
-                        </Badge>
                         <span className="text-xs text-muted-foreground">
                           {new Date(entry.createdAt).toLocaleDateString()}
                         </span>
@@ -138,7 +146,10 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
                   <p>Created: {new Date(viewingEntry.createdAt).toLocaleDateString()}</p>
                   <p>Last Modified: {new Date(viewingEntry.updatedAt).toLocaleDateString()}</p>
                 </div>
-                <Badge variant="outline">{getEntryType(viewingEntry)}</Badge>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline">{getCategoryName(viewingEntry)}</Badge>
+                  <Badge variant="outline">{getEntryType(viewingEntry)}</Badge>
+                </div>
               </div>
 
               {/* Entry Fields */}

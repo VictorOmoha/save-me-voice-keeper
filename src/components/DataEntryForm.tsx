@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,7 @@ interface DataEntryFormProps {
   editEntry?: SavedEntry | null;
   templateEntry?: SavedEntry | null;
   mode?: 'create' | 'edit' | 'fill';
+  preselectedCategory?: string;
 }
 
 interface CustomField {
@@ -22,14 +22,24 @@ interface CustomField {
   value: any;
 }
 
+const CATEGORIES = [
+  "Documents",
+  "Health", 
+  "Contacts",
+  "Finance",
+  "Personal"
+];
+
 export const DataEntryForm: React.FC<DataEntryFormProps> = ({ 
   onSave, 
   onCancel, 
   editEntry, 
   templateEntry,
-  mode = 'create'
+  mode = 'create',
+  preselectedCategory
 }) => {
   const [title, setTitle] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(preselectedCategory || "");
   const [fields, setFields] = useState<CustomField[]>([
     { id: '1', name: 'Description', type: 'textarea', value: '' }
   ]);
@@ -37,43 +47,55 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   useEffect(() => {
     if (editEntry) {
       setTitle(editEntry.title);
+      setSelectedCategory(editEntry.fields.category || "");
       // Use fieldDefinitions if available, otherwise fall back to fields
       if (editEntry.fieldDefinitions && editEntry.fieldDefinitions.length > 0) {
-        const editFields: CustomField[] = editEntry.fieldDefinitions.map(fieldDef => ({
-          ...fieldDef,
-          value: editEntry.fields[fieldDef.name] || ''
-        }));
-        setFields(editFields);
+        const editFields: CustomField[] = editEntry.fieldDefinitions
+          .filter(fieldDef => fieldDef.name !== 'category') // Filter out category field
+          .map(fieldDef => ({
+            ...fieldDef,
+            value: editEntry.fields[fieldDef.name] || ''
+          }));
+        setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
       } else {
-        const editFields: CustomField[] = Object.entries(editEntry.fields).map(([name, value], index) => ({
-          id: (index + 1).toString(),
-          name,
-          type: typeof value === 'number' ? 'number' : 'text',
-          value
-        }));
+        const editFields: CustomField[] = Object.entries(editEntry.fields)
+          .filter(([name]) => name !== 'category') // Filter out category field
+          .map(([name, value], index) => ({
+            id: (index + 1).toString(),
+            name,
+            type: typeof value === 'number' ? 'number' : 'text',
+            value
+          }));
         setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
       }
     } else if (templateEntry && mode === 'fill') {
       setTitle(`${templateEntry.title} - ${new Date().toLocaleDateString()}`);
+      setSelectedCategory(templateEntry.fields.category || preselectedCategory || "");
       // Use fieldDefinitions to recreate the form structure
       if (templateEntry.fieldDefinitions && templateEntry.fieldDefinitions.length > 0) {
-        const templateFields: CustomField[] = templateEntry.fieldDefinitions.map(fieldDef => ({
-          ...fieldDef,
-          value: '' // Clear values for new data entry
-        }));
-        setFields(templateFields);
+        const templateFields: CustomField[] = templateEntry.fieldDefinitions
+          .filter(fieldDef => fieldDef.name !== 'category') // Filter out category field
+          .map(fieldDef => ({
+            ...fieldDef,
+            value: '' // Clear values for new data entry
+          }));
+        setFields(templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
       } else {
         // Fallback to old method if fieldDefinitions don't exist
-        const templateFields: CustomField[] = Object.entries(templateEntry.fields).map(([name, value], index) => ({
-          id: (index + 1).toString(),
-          name,
-          type: typeof value === 'number' ? 'number' : 'text',
-          value: ''
-        }));
-        setFields(templateFields);
+        const templateFields: CustomField[] = Object.entries(templateEntry.fields)
+          .filter(([name]) => name !== 'category') // Filter out category field
+          .map(([name, value], index) => ({
+            id: (index + 1).toString(),
+            name,
+            type: typeof value === 'number' ? 'number' : 'text',
+            value: ''
+          }));
+        setFields(templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
       }
+    } else if (preselectedCategory) {
+      setSelectedCategory(preselectedCategory);
     }
-  }, [editEntry, templateEntry, mode]);
+  }, [editEntry, templateEntry, mode, preselectedCategory]);
 
   const addField = () => {
     const newField: CustomField = {
@@ -98,8 +120,12 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const fieldData: Record<string, any> = {};
-    const fieldDefinitions: FieldDefinition[] = [];
+    const fieldData: Record<string, any> = {
+      category: selectedCategory // Always include category
+    };
+    const fieldDefinitions: FieldDefinition[] = [
+      { id: 'category', name: 'category', type: 'text' } // Always include category in definitions
+    ];
     
     fields.forEach(field => {
       if (field.name && field.value !== undefined) {
@@ -123,6 +149,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   const isEditMode = mode === 'edit' || mode === 'create';
   const isFillMode = mode === 'fill';
+  const isCategoryReadonly = !!preselectedCategory || (templateEntry && mode === 'fill');
 
   return (
     <div className="bg-background text-foreground">
@@ -137,6 +164,31 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
             className="bg-background border-border text-foreground placeholder:text-muted-foreground"
             required
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category" className="text-foreground">Category</Label>
+          {isCategoryReadonly ? (
+            <Input
+              id="category"
+              value={selectedCategory}
+              readOnly
+              className="bg-muted border-border text-foreground"
+            />
+          ) : (
+            <Select value={selectedCategory} onValueChange={setSelectedCategory} required>
+              <SelectTrigger className="bg-background border-border text-foreground">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border">
+                {CATEGORIES.map((category) => (
+                  <SelectItem key={category} value={category} className="text-foreground hover:bg-accent">
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <div className="space-y-4">

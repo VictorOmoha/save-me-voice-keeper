@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -179,90 +178,29 @@ const Dashboard = () => {
       setShowDocumentCreator(true);
       setShowAddEntry(false);
     } else {
-      const templateEntry = {
-        id: 'template',
-        title: `New ${categoryName.slice(0, -1)}`,
-        fields: {
-          category: categoryName,
-          // Add default fields based on category
-          ...(categoryName === "Health" && {
-            doctor: '',
-            condition: '',
-            medication: '',
-            date: '',
-            notes: ''
-          }),
-          ...(categoryName === "Contacts" && {
-            name: '',
-            phone: '',
-            email: '',
-            address: '',
-            relationship: ''
-          }),
-          ...(categoryName === "Finance" && {
-            accountType: '',
-            institution: '',
-            accountNumber: '',
-            balance: '',
-            notes: ''
-          }),
-          ...(categoryName === "Personal" && {
-            type: '',
-            description: '',
-            value: '',
-            location: '',
-            notes: ''
-          })
-        },
-        fieldDefinitions: [
-          { id: '1', name: 'category', type: 'text' as const },
-          // Add field definitions based on category
-          ...(categoryName === "Health" ? [
-            { id: '2', name: 'doctor', type: 'text' as const },
-            { id: '3', name: 'condition', type: 'text' as const },
-            { id: '4', name: 'medication', type: 'text' as const },
-            { id: '5', name: 'date', type: 'date' as const },
-            { id: '6', name: 'notes', type: 'textarea' as const }
-          ] : []),
-          ...(categoryName === "Contacts" ? [
-            { id: '2', name: 'name', type: 'text' as const },
-            { id: '3', name: 'phone', type: 'text' as const },
-            { id: '4', name: 'email', type: 'text' as const },
-            { id: '5', name: 'address', type: 'textarea' as const },
-            { id: '6', name: 'relationship', type: 'text' as const }
-          ] : []),
-          ...(categoryName === "Finance" ? [
-            { id: '2', name: 'accountType', type: 'text' as const },
-            { id: '3', name: 'institution', type: 'text' as const },
-            { id: '4', name: 'accountNumber', type: 'text' as const },
-            { id: '5', name: 'balance', type: 'number' as const },
-            { id: '6', name: 'notes', type: 'textarea' as const }
-          ] : []),
-          ...(categoryName === "Personal" ? [
-            { id: '2', name: 'type', type: 'text' as const },
-            { id: '3', name: 'description', type: 'textarea' as const },
-            { id: '4', name: 'value', type: 'text' as const },
-            { id: '5', name: 'location', type: 'text' as const },
-            { id: '6', name: 'notes', type: 'textarea' as const }
-          ] : [])
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      
-      console.log('DIAGNOSTIC: Template entry created:', templateEntry);
-      setFillingEntry(templateEntry);
+      // For other categories, use the regular form with preselected category
+      console.log('DIAGNOSTIC: Opening regular form with preselected category:', categoryName);
+      setFillingEntry(null);
       setEditingEntry(null);
       setShowAddEntry(true);
       setShowDocumentCreator(false);
     }
   };
 
+  // Update the regular handleAddEntry to support general entry creation
+  const handleAddEntryWithCategory = () => {
+    console.log('DIAGNOSTIC: General add entry triggered');
+    setFillingEntry(null);
+    setEditingEntry(null);
+    setShowAddEntry(true);
+    setShowDocumentCreator(false);
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar 
         savedEntriesCount={savedEntries.length} 
-        onAddEntry={handleAddEntry}
+        onAddEntry={handleAddEntryWithCategory}
         onCategorySelect={handleCategorySelect}
         onAllEntriesSelect={handleAllEntriesSelect}
       />
@@ -325,7 +263,7 @@ const Dashboard = () => {
               onSaveEntry={saveEntry}
               onCancelEdit={handleCancelEdit}
               onCategorySelect={handleCategorySelect}
-              onAddEntry={handleAddEntry}
+              onAddEntry={handleAddEntryWithCategory}
               onCreateDocument={handleCreateDocument}
               onVoiceResult={() => handleVoiceResult("")}
               onEditEntry={editEntry}

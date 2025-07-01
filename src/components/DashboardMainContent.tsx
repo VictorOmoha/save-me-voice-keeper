@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCards } from "@/components/StatsCards";
 import { RecentEntries } from "@/components/RecentEntries";

@@ -1,12 +1,13 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/pages/Dashboard";
-import { ArrowLeft, Plus, Download } from "lucide-react";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { DataEntryForm } from "@/components/DataEntryForm";
-import { toast } from "sonner";
-import { useState } from "react";
+import { CategoryHeader } from "./categoryView/CategoryHeader";
+import { EntryCard } from "./categoryView/EntryCard";
+import { EmptyState } from "./categoryView/EmptyState";
+import { useDownload } from "./categoryView/useDownload";
+import { useCategoryFilter } from "./categoryView/useCategoryFilter";
 
 interface CategoryViewProps {
   categoryName: string;
@@ -16,7 +17,6 @@ interface CategoryViewProps {
   onDelete: (id: string) => void;
   onFill: (entry: SavedEntry) => void;
   onCreateEntry: (categoryName: string) => void;
-  // Add these new props for handling forms
   showDocumentCreator?: boolean;
   showAddEntry?: boolean;
   editingEntry?: SavedEntry | null;
@@ -48,7 +48,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   getFormTitle = () => 'Add New Entry',
   getFormMode = () => 'create'
 }) => {
-  const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);
+  const { downloadingFiles, handleDownload } = useDownload();
+  const { filterEntriesByCategory } = useCategoryFilter();
 
   console.log('DIAGNOSTIC: CategoryView rendered with:', { 
     categoryName, 
@@ -75,94 +76,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
     onCreateEntry(categoryName);
   };
 
-  const handleDownload = async (entry: SavedEntry) => {
-    if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
-      toast.error("No file available for download");
-      return;
-    }
-
-    setDownloadingFiles(prev => [...prev, entry.id]);
-    
-    try {
-      // Search for the file data in localStorage
-      const allKeys = Object.keys(localStorage);
-      const documentKeys = allKeys.filter(key => key.startsWith('document_'));
-      
-      let fileData = null;
-      for (const key of documentKeys) {
-        try {
-          const storedData = JSON.parse(localStorage.getItem(key) || '');
-          if (storedData.name === entry.fields.fileName) {
-            fileData = storedData;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-
-      if (!fileData) {
-        toast.error("File data not found in storage");
-        return;
-      }
-
-      // Create download link
-      const link = document.createElement('a');
-      link.href = fileData.data;
-      link.download = fileData.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success(`Downloaded ${fileData.name}`);
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error("Failed to download file");
-    } finally {
-      setDownloadingFiles(prev => prev.filter(id => id !== entry.id));
-    }
-  };
-
-  // Improved filtering for Documents category with detailed logging
-  const categoryEntries = entries.filter(entry => {
-    console.log(`DIAGNOSTIC: Checking entry "${entry.title}" for category "${categoryName}":`, {
-      entryCategory: entry.fields.category,
-      documentType: entry.fields.documentType,
-      fileName: entry.fields.fileName,
-      hasUploadedFile: entry.fields.hasUploadedFile,
-      titleLowerCase: entry.title.toLowerCase()
-    });
-
-    if (categoryName === "Documents") {
-      // More comprehensive criteria for Documents
-      const isDocument = (
-        entry.fields.category?.toLowerCase() === "documents" ||
-        entry.fields.category?.toLowerCase() === "document" ||
-        entry.fields.documentType ||
-        entry.fields.fileName ||
-        entry.fields.hasUploadedFile ||
-        entry.title.toLowerCase().includes("document") ||
-        entry.title.toLowerCase().includes("doc") ||
-        entry.title.toLowerCase().includes("pdf") ||
-        entry.title.toLowerCase().includes("word")
-      );
-      
-      console.log(`DIAGNOSTIC: Entry "${entry.title}" document check result:`, isDocument);
-      return isDocument;
-    }
-    
-    // For other categories, use existing logic
-    const isMatch = (
-      entry.fields.category?.toLowerCase() === categoryName.toLowerCase() ||
-      (categoryName === "Health" && entry.title.toLowerCase().includes("health")) ||
-      (categoryName === "Contacts" && entry.title.toLowerCase().includes("contact")) ||
-      (categoryName === "Finance" && entry.title.toLowerCase().includes("finance")) ||
-      (categoryName === "Personal" && entry.title.toLowerCase().includes("personal"))
-    );
-    
-    console.log(`DIAGNOSTIC: Entry "${entry.title}" category match result:`, isMatch);
-    return isMatch;
-  });
+  const categoryEntries = filterEntriesByCategory(entries, categoryName);
 
   console.log('DIAGNOSTIC: Filtered entries for', categoryName, ':', {
     totalEntries: entries.length,
@@ -178,24 +92,12 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button onClick={onBack} variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          <h1 className="text-2xl font-bold">{categoryName}</h1>
-          <Badge variant="secondary">{categoryEntries.length} entries</Badge>
-        </div>
-        
-        <Button 
-          onClick={handleCreateEntry}
-          className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Create {categoryName.slice(0, -1)}
-        </Button>
-      </div>
+      <CategoryHeader
+        categoryName={categoryName}
+        entriesCount={categoryEntries.length}
+        onBack={onBack}
+        onCreateEntry={handleCreateEntry}
+      />
 
       {/* Document Creator */}
       {showDocumentCreator && (
@@ -228,101 +130,22 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
       )}
 
       {categoryEntries.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-xl font-semibold mb-2">No {categoryName.toLowerCase()} entries yet</h3>
-            <p className="text-gray-600 mb-6">
-              Create your first {categoryName.toLowerCase()} entry to get started!
-            </p>
-            <Button 
-              onClick={handleCreateEntry}
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create {categoryName.slice(0, -1)}
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          categoryName={categoryName}
+          onCreateEntry={handleCreateEntry}
+        />
       ) : (
         <div className="grid gap-4">
           {categoryEntries.map((entry) => (
-            <Card key={entry.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-xl">{entry.title}</CardTitle>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="outline">
-                    {new Date(entry.createdAt).toLocaleDateString()}
-                  </Badge>
-                  {entry.fields.fileName && (
-                    <Badge variant="secondary" className="text-xs">
-                      {entry.fields.fileName}
-                    </Badge>
-                  )}
-                  {entry.fields.hasUploadedFile && entry.fields.fileName && (
-                    <Button
-                      onClick={() => handleDownload(entry)}
-                      variant="outline"
-                      size="sm"
-                      disabled={downloadingFiles.includes(entry.id)}
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                  )}
-                  <Button 
-                    onClick={() => {
-                      console.log('Fill button clicked for entry:', entry.title);
-                      onFill(entry);
-                    }}
-                    variant="outline" 
-                    size="sm"
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    Fill Form
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      console.log('Edit button clicked for entry:', entry.title);
-                      onEdit(entry);
-                    }}
-                    variant="outline" 
-                    size="sm"
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    Edit
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      console.log('Delete button clicked for entry:', entry.id);
-                      onDelete(entry.id);
-                    }}
-                    variant="outline" 
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-3">
-                  {Object.entries(entry.fields).map(([key, value]) => (
-                    <div key={key} className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="font-medium text-gray-700 mb-1 sm:mb-0 sm:w-1/3">
-                        {key}:
-                      </span>
-                      <span className="text-gray-900 sm:w-2/3">
-                        {key === 'fileSize' && typeof value === 'number' 
-                          ? `${(value / 1024).toFixed(1)} KB`
-                          : String(value)
-                        }
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <EntryCard
+              key={entry.id}
+              entry={entry}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onFill={onFill}
+              onDownload={handleDownload}
+              isDownloading={downloadingFiles.includes(entry.id)}
+            />
           ))}
         </div>
       )}

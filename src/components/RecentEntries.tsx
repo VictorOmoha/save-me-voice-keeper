@@ -25,24 +25,6 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
 
-  const getCategoryIcon = (title: string) => {
-    const titleLower = title.toLowerCase();
-    if (titleLower.includes('document') || titleLower.includes('paper')) return FileText;
-    if (titleLower.includes('health') || titleLower.includes('medical')) return Heart;
-    if (titleLower.includes('contact') || titleLower.includes('people')) return Users;
-    if (titleLower.includes('bank') || titleLower.includes('finance')) return DollarSign;
-    return User;
-  };
-
-  const getCategoryColor = (title: string) => {
-    const titleLower = title.toLowerCase();
-    if (titleLower.includes('document') || titleLower.includes('paper')) return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
-    if (titleLower.includes('health') || titleLower.includes('medical')) return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-    if (titleLower.includes('contact') || titleLower.includes('people')) return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
-    if (titleLower.includes('bank') || titleLower.includes('finance')) return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400';
-    return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
-  };
-
   const getCategoryName = (entry: SavedEntry) => {
     // First check if the entry has a category field
     if (entry.fields?.category) {
@@ -56,6 +38,24 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
     if (titleLower.includes('contact') || titleLower.includes('people')) return 'Contacts';
     if (titleLower.includes('bank') || titleLower.includes('finance')) return 'Finance';
     return 'Personal';
+  };
+
+  const getCategoryIcon = (entry: SavedEntry) => {
+    const categoryName = getCategoryName(entry).toLowerCase();
+    if (categoryName.includes('document')) return FileText;
+    if (categoryName.includes('health') || categoryName.includes('medical')) return Heart;
+    if (categoryName.includes('contact')) return Users;
+    if (categoryName.includes('finance') || categoryName.includes('bank')) return DollarSign;
+    return User;
+  };
+
+  const getCategoryColor = (entry: SavedEntry) => {
+    const categoryName = getCategoryName(entry).toLowerCase();
+    if (categoryName.includes('document')) return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
+    if (categoryName.includes('health') || categoryName.includes('medical')) return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+    if (categoryName.includes('contact')) return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
+    if (categoryName.includes('finance') || categoryName.includes('bank')) return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400';
+    return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
   };
 
   const getEntryType = (entry: SavedEntry): string => {
@@ -92,8 +92,8 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
               </div>
             ) : (
               recentEntries.map((entry) => {
-                const Icon = getCategoryIcon(entry.title);
-                const categoryColor = getCategoryColor(entry.title);
+                const Icon = getCategoryIcon(entry);
+                const categoryColor = getCategoryColor(entry);
                 const categoryName = getCategoryName(entry);
                 
                 return (

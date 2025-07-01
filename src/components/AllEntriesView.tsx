@@ -2,8 +2,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/pages/Dashboard";
-import { ArrowLeft, Edit, Trash2, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, FileText, Download } from "lucide-react";
 import { DataEntryForm } from "@/components/DataEntryForm";
+import { exportToCSV } from "@/utils/csvExport";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface AllEntriesViewProps {
   entries: SavedEntry[];
@@ -34,6 +37,26 @@ export const AllEntriesView: React.FC<AllEntriesViewProps> = ({
   getFormTitle = () => 'Add New Entry',
   getFormMode = () => 'create'
 }) => {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportCSV = async () => {
+    if (entries.length === 0) {
+      toast.error("No entries to export");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      exportToCSV(entries, 'all-entries');
+      toast.success(`Exported ${entries.length} entries to CSV`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error("Failed to export entries");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -45,6 +68,18 @@ export const AllEntriesView: React.FC<AllEntriesViewProps> = ({
           <h1 className="text-2xl font-bold">All Entries</h1>
           <Badge variant="secondary">{entries.length} entries</Badge>
         </div>
+        
+        {entries.length > 0 && (
+          <Button 
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            variant="outline"
+            className="text-green-600 hover:text-green-700"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+        )}
       </div>
 
       {/* Add/Edit Entry Form */}

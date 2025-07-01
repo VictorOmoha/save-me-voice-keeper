@@ -2,9 +2,39 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Database, Download, Trash2 } from "lucide-react";
+import { Database, Download, Trash2, FileText } from "lucide-react";
+import { exportToCSV } from "@/utils/csvExport";
+import { SavedEntry } from "@/pages/Dashboard";
+import { toast } from "sonner";
+import { useState } from "react";
 
-export const DataManagementSettings = () => {
+interface DataManagementSettingsProps {
+  savedEntries?: SavedEntry[];
+}
+
+export const DataManagementSettings: React.FC<DataManagementSettingsProps> = ({ 
+  savedEntries = [] 
+}) => {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportCSV = async () => {
+    if (savedEntries.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      exportToCSV(savedEntries, 'all-form-data');
+      toast.success(`Exported ${savedEntries.length} entries to CSV`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error("Failed to export data");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Card className="mt-6">
       <CardHeader>
@@ -15,6 +45,26 @@ export const DataManagementSettings = () => {
         <p className="text-sm text-muted-foreground">Export or delete your data</p>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-sm">Export to CSV</p>
+            <p className="text-xs text-muted-foreground">
+              Download all your form data as a CSV file ({savedEntries.length} entries)
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleExportCSV}
+            disabled={isExporting || savedEntries.length === 0}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+        </div>
+        
+        <Separator />
+        
         <div className="flex items-center justify-between">
           <div>
             <p className="font-medium text-sm">Export Data</p>

@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Sidebar } from "@/components/Sidebar";
@@ -10,73 +9,100 @@ import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings
 import { AutomationSettings } from "@/components/settings/AutomationSettings";
 import { DataManagementSettings } from "@/components/settings/DataManagementSettings";
 import { HelpSupportSettings } from "@/components/settings/HelpSupportSettings";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useState, useEffect } from "react";
 
 const Settings = () => {
-  const { user, isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const handleAddEntry = () => {
-    console.log("Add entry clicked from settings");
-  };
-
-  const handleCategorySelect = (categoryName: string) => {
-    console.log("Category selected from settings:", categoryName);
-  };
-
-  const handleAllEntriesSelect = () => {
-    console.log("All entries selected from settings");
-  };
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("profile");
+  
+  // Load saved entries for data management
+  const [savedEntries, setSavedEntries] = useState<any[]>([]);
+  
+  useEffect(() => {
+    const entries = localStorage.getItem('savedEntries');
+    if (entries) {
+      setSavedEntries(JSON.parse(entries));
+    }
+  }, []);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar 
-        savedEntriesCount={42}
-        onAddEntry={handleAddEntry}
-        onCategorySelect={handleCategorySelect}
-        onAllEntriesSelect={handleAllEntriesSelect}
-      />
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-4xl mx-auto py-8 px-6">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Settings</h1>
-            <p className="text-muted-foreground">Manage your account preferences and application settings</p>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Settings</h1>
+            <p className="text-muted-foreground">Manage your account and preferences</p>
           </div>
-
-          {/* Profile Section */}
-          <ProfileSettings user={user} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Security Section */}
-            <SecuritySettings />
-
-            {/* Notifications Section */}
-            <NotificationSettings />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            {/* Appearance Section */}
-            <AppearanceSettings />
-
-            {/* Subscription Section */}
-            <SubscriptionSettings />
-          </div>
-
-          {/* Automation Section */}
-          <AutomationSettings />
-
-          {/* Data Management Section */}
-          <DataManagementSettings />
-
-          {/* Help & Support Section */}
-          <HelpSupportSettings />
+          <Button variant="outline" asChild>
+            <Link href="/dashboard">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Link>
+          </Button>
         </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="flex gap-8">
+          <TabsList className="flex flex-col h-fit w-64 p-1">
+            <TabsTrigger value="profile" className="w-full justify-start">
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="security" className="w-full justify-start">
+              <Shield className="w-4 h-4 mr-2" />
+              Security
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="w-full justify-start">
+              <Bell className="w-4 h-4 mr-2" />
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="w-full justify-start">
+              <Palette className="w-4 h-4 mr-2" />
+              Appearance
+            </TabsTrigger>
+            <TabsTrigger value="automation" className="w-full justify-start">
+              <Zap className="w-4 h-4 mr-2" />
+              Automation
+            </TabsTrigger>
+            <TabsTrigger value="subscription" className="w-full justify-start">
+              <CreditCard className="w-4 h-4 mr-2" />
+              Subscription
+            </TabsTrigger>
+            <TabsTrigger value="help" className="w-full justify-start">
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Help & Support
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex-1">
+            <TabsContent value="profile">
+              <ProfileSettings />
+            </TabsContent>
+            <TabsContent value="security">
+              <SecuritySettings />
+            </TabsContent>
+            <TabsContent value="notifications">
+              <NotificationSettings />
+            </TabsContent>
+            <TabsContent value="appearance">
+              <AppearanceSettings />
+            </TabsContent>
+            <TabsContent value="automation">
+              <AutomationSettings />
+            </TabsContent>
+            <TabsContent value="subscription">
+              <SubscriptionSettings />
+            </TabsContent>
+            <TabsContent value="help">
+              <HelpSupportSettings />
+            </TabsContent>
+          </div>
+        </Tabs>
+
+        <DataManagementSettings savedEntries={savedEntries} />
       </div>
     </div>
   );

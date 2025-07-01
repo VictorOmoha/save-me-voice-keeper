@@ -1,11 +1,12 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/pages/Dashboard";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Download } from "lucide-react";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { DataEntryForm } from "@/components/DataEntryForm";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface CategoryViewProps {
   categoryName: string;
@@ -47,6 +48,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   getFormTitle = () => 'Add New Entry',
   getFormMode = () => 'create'
 }) => {
+  const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);
+
   console.log('DIAGNOSTIC: CategoryView rendered with:', { 
     categoryName, 
     showDocumentCreator, 
@@ -70,6 +73,54 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   const handleCreateEntry = () => {
     console.log('DIAGNOSTIC: Create button clicked for category:', categoryName);
     onCreateEntry(categoryName);
+  };
+
+  const handleDownload = async (entry: SavedEntry) => {
+    if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
+      toast.error("No file available for download");
+      return;
+    }
+
+    setDownloadingFiles(prev => [...prev, entry.id]);
+    
+    try {
+      // Search for the file data in localStorage
+      const allKeys = Object.keys(localStorage);
+      const documentKeys = allKeys.filter(key => key.startsWith('document_'));
+      
+      let fileData = null;
+      for (const key of documentKeys) {
+        try {
+          const storedData = JSON.parse(localStorage.getItem(key) || '');
+          if (storedData.name === entry.fields.fileName) {
+            fileData = storedData;
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      if (!fileData) {
+        toast.error("File data not found in storage");
+        return;
+      }
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = fileData.data;
+      link.download = fileData.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Downloaded ${fileData.name}`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error("Failed to download file");
+    } finally {
+      setDownloadingFiles(prev => prev.filter(id => id !== entry.id));
+    }
   };
 
   // Improved filtering for Documents category with detailed logging
@@ -207,6 +258,17 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                     <Badge variant="secondary" className="text-xs">
                       {entry.fields.fileName}
                     </Badge>
+                  )}
+                  {entry.fields.hasUploadedFile && entry.fields.fileName && (
+                    <Button
+                      onClick={() => handleDownload(entry)}
+                      variant="outline"
+                      size="sm"
+                      disabled={downloadingFiles.includes(entry.id)}
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
                   )}
                   <Button 
                     onClick={() => {

@@ -17,7 +17,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SavedEntry } from "@/pages/Dashboard";
-import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download } from "lucide-react";
+import { toast } from "sonner";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -42,6 +43,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   const [sortField, setSortField] = useState<SortField>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
+  const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);
 
   if (entries.length === 0) {
     return (
@@ -54,6 +56,54 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
       </div>
     );
   }
+
+  const handleDownload = async (entry: SavedEntry) => {
+    if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
+      toast.error("No file available for download");
+      return;
+    }
+
+    setDownloadingFiles(prev => [...prev, entry.id]);
+    
+    try {
+      // Search for the file data in localStorage
+      const allKeys = Object.keys(localStorage);
+      const documentKeys = allKeys.filter(key => key.startsWith('document_'));
+      
+      let fileData = null;
+      for (const key of documentKeys) {
+        try {
+          const storedData = JSON.parse(localStorage.getItem(key) || '');
+          if (storedData.name === entry.fields.fileName) {
+            fileData = storedData;
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      if (!fileData) {
+        toast.error("File data not found in storage");
+        return;
+      }
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = fileData.data;
+      link.download = fileData.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success(`Downloaded ${fileData.name}`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error("Failed to download file");
+    } finally {
+      setDownloadingFiles(prev => prev.filter(id => id !== entry.id));
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -231,6 +281,17 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
+                      {entry.fields.hasUploadedFile && entry.fields.fileName && (
+                        <Button
+                          onClick={() => handleDownload(entry)}
+                          variant="ghost"
+                          size="sm"
+                          disabled={downloadingFiles.includes(entry.id)}
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         onClick={() => onFill(entry)}
                         variant="ghost"
@@ -326,6 +387,17 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
 
               {/* Action Buttons */}
               <div className="flex justify-end space-x-2 pt-4 border-t">
+                {viewingEntry.fields.hasUploadedFile && viewingEntry.fields.fileName && (
+                  <Button
+                    onClick={() => handleDownload(viewingEntry)}
+                    variant="outline"
+                    disabled={downloadingFiles.includes(viewingEntry.id)}
+                    className="text-green-600 hover:text-green-700"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {downloadingFiles.includes(viewingEntry.id) ? 'Downloading...' : 'Download'}
+                  </Button>
+                )}
                 <Button
                   onClick={() => {
                     onFill(viewingEntry);

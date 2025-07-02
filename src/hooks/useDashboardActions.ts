@@ -30,8 +30,8 @@ export const useDashboardActions = ({
           .from('entries')
           .update({
             title: entry.title,
-            fields: entry.fields,
-            field_definitions: entry.fieldDefinitions,
+            fields: entry.fields as any,
+            field_definitions: entry.fieldDefinitions as any,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingEntry.id);
@@ -50,8 +50,8 @@ export const useDashboardActions = ({
           .from('entries')
           .insert({
             title: entry.title,
-            fields: entry.fields,
-            field_definitions: entry.fieldDefinitions,
+            fields: entry.fields as any,
+            field_definitions: entry.fieldDefinitions as any,
           });
 
         if (error) {

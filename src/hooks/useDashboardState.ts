@@ -33,8 +33,8 @@ export const useDashboardState = () => {
       const formattedEntries: SavedEntry[] = entries.map(entry => ({
         id: entry.id,
         title: entry.title,
-        fields: entry.fields || {},
-        fieldDefinitions: entry.field_definitions || undefined,
+        fields: (entry.fields as Record<string, any>) || {},
+        fieldDefinitions: entry.field_definitions as any || undefined,
         createdAt: new Date(entry.created_at),
         updatedAt: new Date(entry.updated_at)
       }));

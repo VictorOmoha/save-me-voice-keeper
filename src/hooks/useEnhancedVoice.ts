@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { SavedEntry } from "@/pages/Dashboard";
 import { EnhancedVoiceCommand, voiceProcessor, VoiceContext } from "@/utils/enhancedVoiceProcessor";
@@ -81,8 +82,8 @@ export const useEnhancedVoice = ({
           await handleConversationCommand(command);
           break;
         case 'unknown':
-          // Still show toast but don't speak to prevent feedback loops
-          toast.info('Command not recognized - please try a different command');
+          toast.info('I didn\'t understand that command. Could you please try again?');
+          // Don't speak for unknown commands to prevent feedback loops
           console.log('Unknown command, not using TTS to prevent feedback');
           break;
         default:
@@ -114,7 +115,12 @@ export const useEnhancedVoice = ({
 
     onCreateEntry(newEntry);
     toast.success(`Created: ${newEntry.title}`);
-    speak(command.conversationalResponse);
+    
+    // Always speak the response for successful commands
+    if (command.conversationalResponse) {
+      console.log('Speaking response for create command:', command.conversationalResponse);
+      await speak(command.conversationalResponse);
+    }
   };
 
   const handleDeleteCommand = async (command: EnhancedVoiceCommand) => {
@@ -123,13 +129,18 @@ export const useEnhancedVoice = ({
     if (!parameters.confirmed && command.needsConfirmation) {
       setConversationState('confirming');
       toast.info('Confirmation needed');
-      speak(command.conversationalResponse);
+      
+      // Speak confirmation request
+      if (command.conversationalResponse) {
+        console.log('Speaking confirmation request:', command.conversationalResponse);
+        await speak(command.conversationalResponse);
+      }
       return;
     }
 
     if (parameters.confirmed === false) {
       toast.info('Delete cancelled');
-      speak('Okay, I\'ve cancelled the delete operation.');
+      await speak('Okay, I\'ve cancelled the delete operation.');
       return;
     }
 
@@ -144,7 +155,7 @@ export const useEnhancedVoice = ({
     
     const message = `Deleted ${entriesToDelete.length} entry(ies)`;
     toast.success(message);
-    speak(message);
+    await speak(message);
   };
 
   const handleEditCommand = async (command: EnhancedVoiceCommand) => {
@@ -159,10 +170,15 @@ export const useEnhancedVoice = ({
     if (entryToEdit) {
       onEditEntry(entryToEdit);
       toast.success(`Opening: ${entryToEdit.title}`);
-      speak(command.conversationalResponse);
+      
+      // Speak the response
+      if (command.conversationalResponse) {
+        console.log('Speaking response for edit command:', command.conversationalResponse);
+        await speak(command.conversationalResponse);
+      }
     } else {
       toast.error('Entry not found');
-      speak('I couldn\'t find that entry. Could you be more specific?');
+      await speak('I couldn\'t find that entry. Could you be more specific?');
     }
   };
 
@@ -170,21 +186,36 @@ export const useEnhancedVoice = ({
     const { parameters } = command;
     onSearch(parameters.query || parameters.term || '');
     toast.success('Search executed');
-    speak(command.conversationalResponse);
+    
+    // Speak the response
+    if (command.conversationalResponse) {
+      console.log('Speaking response for search command:', command.conversationalResponse);
+      await speak(command.conversationalResponse);
+    }
   };
 
   const handleNavigateCommand = async (command: EnhancedVoiceCommand) => {
     const { parameters } = command;
     onNavigate(parameters.view || parameters.destination, parameters);
     toast.success('Navigation completed');
-    speak(command.conversationalResponse);
+    
+    // Speak the response
+    if (command.conversationalResponse) {
+      console.log('Speaking response for navigate command:', command.conversationalResponse);
+      await speak(command.conversationalResponse);
+    }
   };
 
   const handleExportCommand = async (command: EnhancedVoiceCommand) => {
     const { parameters } = command;
     onExport(parameters.format || 'csv', parameters.filter);
     toast.success('Export initiated');
-    speak(command.conversationalResponse);
+    
+    // Speak the response
+    if (command.conversationalResponse) {
+      console.log('Speaking response for export command:', command.conversationalResponse);
+      await speak(command.conversationalResponse);
+    }
   };
 
   const handleBulkOperationCommand = async (command: EnhancedVoiceCommand) => {
@@ -193,30 +224,45 @@ export const useEnhancedVoice = ({
     if (!parameters.confirmed && command.needsConfirmation) {
       setConversationState('confirming');
       toast.info('Confirmation needed for bulk operation');
-      speak(command.conversationalResponse);
+      
+      // Speak confirmation request
+      if (command.conversationalResponse) {
+        console.log('Speaking confirmation request for bulk operation:', command.conversationalResponse);
+        await speak(command.conversationalResponse);
+      }
       return;
     }
 
     if (parameters.confirmed === false) {
       toast.info('Bulk operation cancelled');
-      speak('Okay, I\'ve cancelled the bulk operation.');
+      await speak('Okay, I\'ve cancelled the bulk operation.');
       return;
     }
 
     onBulkOperation(parameters.operation, parameters.criteria);
     toast.success('Bulk operation completed');
-    speak('Bulk operation completed successfully.');
+    await speak('Bulk operation completed successfully.');
   };
 
   const handleFormFillCommand = async (command: EnhancedVoiceCommand) => {
     // This would integrate with form filling logic
     toast.success('Form filling initiated');
-    speak(command.conversationalResponse);
+    
+    // Speak the response
+    if (command.conversationalResponse) {
+      console.log('Speaking response for form fill command:', command.conversationalResponse);
+      await speak(command.conversationalResponse);
+    }
   };
 
   const handleConversationCommand = async (command: EnhancedVoiceCommand) => {
     toast.info('Voice Assistant');
-    speak(command.conversationalResponse);
+    
+    // Always speak conversation responses
+    if (command.conversationalResponse) {
+      console.log('Speaking conversation response:', command.conversationalResponse);
+      await speak(command.conversationalResponse);
+    }
   };
 
   const processVoiceInput = useCallback(async (transcript: string) => {
@@ -242,7 +288,8 @@ export const useEnhancedVoice = ({
     } catch (error) {
       console.error('Error processing voice input:', error);
       toast.error('Failed to process voice command');
-      speak('Sorry, I had trouble understanding that. Please try again.');
+      // Don't speak generic error messages to prevent feedback loops
+      console.log('Voice processing error, not using TTS to prevent feedback');
     } finally {
       setIsProcessing(false);
       if (conversationState !== 'confirming') {

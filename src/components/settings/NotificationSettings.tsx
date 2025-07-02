@@ -1,8 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
+import { toast } from "sonner";
 
 export const NotificationSettings = () => {
   const [notifications, setNotifications] = useState({
@@ -11,9 +13,30 @@ export const NotificationSettings = () => {
     reminders: true,
     automation: false
   });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Load saved notification preferences
+    const saved = localStorage.getItem('notificationSettings');
+    if (saved) {
+      setNotifications(JSON.parse(saved));
+    }
+  }, []);
 
   const handleNotificationChange = (key: string, value: boolean) => {
     setNotifications(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveSettings = () => {
+    setIsLoading(true);
+    try {
+      localStorage.setItem('notificationSettings', JSON.stringify(notifications));
+      toast.success("Notification settings saved");
+    } catch (error) {
+      toast.error("Failed to save settings");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -69,6 +92,14 @@ export const NotificationSettings = () => {
             onCheckedChange={(checked) => handleNotificationChange('automation', checked)}
           />
         </div>
+        
+        <Button 
+          onClick={handleSaveSettings} 
+          disabled={isLoading}
+          className="w-full mt-4"
+        >
+          {isLoading ? 'Saving...' : 'Save Settings'}
+        </Button>
       </CardContent>
     </Card>
   );

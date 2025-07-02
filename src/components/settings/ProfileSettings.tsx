@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ProfileSettingsProps {
   user: any;
@@ -15,10 +17,33 @@ export const ProfileSettings = ({ user }: ProfileSettingsProps) => {
     email: user?.email || "",
     phone: ""
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSaveProfile = () => {
-    console.log("Saving profile:", profile);
-    // Add save logic here
+  const handleSaveProfile = async () => {
+    if (!user?.id) {
+      toast.error("User not found");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: profile.fullName,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error("Failed to update profile");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,8 +81,12 @@ export const ProfileSettings = ({ user }: ProfileSettingsProps) => {
             placeholder="Enter your phone number"
           />
         </div>
-        <Button onClick={handleSaveProfile} className="bg-primary text-primary-foreground hover:bg-primary/90">
-          Save Changes
+        <Button 
+          onClick={handleSaveProfile} 
+          disabled={isLoading}
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {isLoading ? 'Saving...' : 'Save Changes'}
         </Button>
       </CardContent>
     </Card>

@@ -264,6 +264,12 @@ const Dashboard = () => {
               onFillEntry={fillEntry}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
+              onEnhancedVoiceInput={handleEnhancedVoiceInput}
+              isVoiceProcessing={isVoiceProcessing}
+              lastVoiceCommand={lastVoiceCommand}
+              conversationState={conversationState}
+              hasPendingConfirmation={hasPendingConfirmation}
+              onCancel={cancelCurrentOperation}
             />
           )}
         </main>

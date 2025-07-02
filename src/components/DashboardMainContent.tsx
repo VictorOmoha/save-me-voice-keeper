@@ -60,7 +60,7 @@ export const DashboardMainContent = ({
       </div>
 
       {/* Stats Cards */}
-      <StatsCards totalEntries={savedEntries.length} />
+      <StatsCards totalEntries={savedEntries.length} entries={savedEntries} />
 
       {/* Document Creator */}
       {showDocumentCreator && (

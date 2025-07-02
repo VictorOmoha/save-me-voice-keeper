@@ -1,12 +1,17 @@
 
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { FileText, FolderOpen, HardDrive, Activity } from "lucide-react";
+import { SavedEntry } from "@/pages/Dashboard";
+import { useStorageStats } from "@/hooks/useStorageStats";
 
 interface StatsCardsProps {
   totalEntries: number;
+  entries: SavedEntry[];
 }
 
-export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries }) => {
+export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries }) => {
+  const storageStats = useStorageStats(entries);
   const stats = [
     {
       title: "Total Entries",
@@ -26,11 +31,13 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries }) => {
     },
     {
       title: "Storage Used",
-      value: "2.4 GB",
-      subtitle: "of 10 GB available",
+      value: storageStats.totalUsedFormatted,
+      subtitle: `of ${storageStats.limitFormatted} available`,
       icon: HardDrive,
       color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20"
+      bgColor: "bg-purple-50 dark:bg-purple-900/20",
+      showProgress: true,
+      progress: storageStats.percentage
     },
     {
       title: "Recent Activity",
@@ -60,6 +67,14 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries }) => {
                   <p className="text-sm text-muted-foreground">
                     {stat.subtitle || stat.value_subtitle}
                   </p>
+                  {stat.showProgress && (
+                    <div className="mt-2">
+                      <Progress value={stat.progress} className="h-2" />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {stat.progress}% used
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className={`w-12 h-12 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
                   <Icon className={`w-6 h-6 ${stat.color}`} />

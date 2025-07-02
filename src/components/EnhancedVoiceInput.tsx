@@ -76,6 +76,22 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
         if (finalTranscript) {
           console.log('Final transcript:', finalTranscript, 'Confidence:', maxConfidence);
           
+          // Prevent feedback loop - ignore system messages
+          const lowerTranscript = finalTranscript.toLowerCase().trim();
+          const systemMessages = [
+            'sorry, i had trouble understanding that',
+            'could you please try again',
+            'i didn\'t understand that command',
+            'try saying something like',
+            'please try again'
+          ];
+          
+          const isSystemMessage = systemMessages.some(msg => lowerTranscript.includes(msg));
+          if (isSystemMessage) {
+            console.log('Ignoring system message to prevent feedback loop:', finalTranscript);
+            return;
+          }
+          
           // Prevent processing if already processing
           if (isProcessingAudio) {
             console.log('Already processing audio, ignoring new input');

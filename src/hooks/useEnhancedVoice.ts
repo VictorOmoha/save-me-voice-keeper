@@ -80,14 +80,18 @@ export const useEnhancedVoice = ({
         case 'conversation':
           await handleConversationCommand(command);
           break;
+        case 'unknown':
+          // Don't speak for unknown commands to prevent feedback loops
+          toast.info('Command not recognized - please try a different command');
+          break;
         default:
           toast.info('Command not recognized');
-          speak('I didn\'t understand that command. Could you please try again?');
+          // Don't use TTS for error messages to prevent feedback loops
       }
     } catch (error) {
       console.error('Error executing command:', error);
       toast.error('Failed to execute command');
-      speak('Sorry, I encountered an error executing that command.');
+      // Don't use TTS for error messages to prevent feedback loops
     }
   }, []);
 

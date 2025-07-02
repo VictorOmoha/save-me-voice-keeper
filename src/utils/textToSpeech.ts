@@ -6,6 +6,22 @@ const VOICE_ID = '9BWtsMINqrJLrRacOk9x'; // Aria voice
 export const speak = async (text: string): Promise<void> => {
   console.log('TTS: Attempting to speak:', text);
   
+  // Prevent TTS from speaking if the text contains system error messages
+  // This helps prevent feedback loops
+  const lowerText = text.toLowerCase();
+  const errorMessages = [
+    'sorry, i had trouble understanding that',
+    'could you please try again',
+    'i didn\'t understand that command',
+    'please try again'
+  ];
+  
+  const isErrorMessage = errorMessages.some(msg => lowerText.includes(msg));
+  if (isErrorMessage) {
+    console.log('Skipping TTS for error message to prevent feedback loop:', text);
+    return;
+  }
+  
   // Update API key in case it was set after initial load
   ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
   

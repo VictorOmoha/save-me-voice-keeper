@@ -6,7 +6,6 @@ import { CategoriesPanel } from "@/components/CategoriesPanel";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { DataEntryForm } from "@/components/DataEntryForm";
-import { SearchBar } from "@/components/SearchBar";
 import { SavedEntry } from "@/pages/Dashboard";
 
 interface DashboardMainContentProps {
@@ -56,12 +55,6 @@ export const DashboardMainContent = ({
 }: DashboardMainContentProps) => {
   return (
     <div className="space-y-6">
-      {/* Search Bar */}
-      <SearchBar 
-        searchQuery="" 
-        onSearchChange={() => {}}
-      />
-
       {/* Welcome Section */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-2">

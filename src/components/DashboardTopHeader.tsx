@@ -2,7 +2,6 @@
 import { SearchBar } from "./SearchBar";
 import { VoiceInput } from "./VoiceInput";
 import { EnhancedVoiceInput } from "./EnhancedVoiceInput";
-import { SavedEntry } from "@/pages/Dashboard";
 import { Button } from "./ui/button";
 import { LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +13,6 @@ interface DashboardTopHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   userName?: string;
-  entries: SavedEntry[];
   onVoiceResult: (result: string) => void;
   onVoiceCommand: (command: VoiceCommand) => void;
   onEnhancedVoiceInput: (input: string) => void;
@@ -22,14 +20,13 @@ interface DashboardTopHeaderProps {
   lastVoiceCommand: EnhancedVoiceCommand | null;
   conversationState: any;
   hasPendingConfirmation: boolean;
-  onCancelVoiceOperation: () => void;
+  onCancel: () => void;
 }
 
 export const DashboardTopHeader = ({
   searchQuery,
   onSearchChange,
   userName,
-  entries,
   onVoiceResult,
   onVoiceCommand,
   onEnhancedVoiceInput,
@@ -37,7 +34,7 @@ export const DashboardTopHeader = ({
   lastVoiceCommand,
   conversationState,
   hasPendingConfirmation,
-  onCancelVoiceOperation,
+  onCancel,
 }: DashboardTopHeaderProps) => {
   const handleSignOut = async () => {
     try {
@@ -77,7 +74,7 @@ export const DashboardTopHeader = ({
             lastCommand={lastVoiceCommand}
             conversationState={conversationState}
             hasPendingConfirmation={hasPendingConfirmation}
-            onCancel={onCancelVoiceOperation}
+            onCancel={onCancel}
           />
           
           <div className="flex items-center space-x-2 text-sm text-gray-600">

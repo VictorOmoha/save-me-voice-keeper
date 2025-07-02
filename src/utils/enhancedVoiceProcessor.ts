@@ -22,6 +22,8 @@ export interface VoiceContext {
 export class EnhancedVoiceProcessor {
   private conversationHistory: string[] = [];
   private pendingConfirmation: EnhancedVoiceCommand | null = null;
+  private maxRetries = 3;
+  private retryCount = 0;
 
   async processVoiceCommand(
     transcript: string,
@@ -68,8 +70,18 @@ export class EnhancedVoiceProcessor {
 
       if (error) {
         console.error('Error calling voice AI processor:', error);
+        this.retryCount++;
+        
+        if (this.retryCount >= this.maxRetries) {
+          this.retryCount = 0;
+          throw new Error('Maximum retries exceeded. Please check your connection and try again.');
+        }
+        
         throw error;
       }
+      
+      // Reset retry count on success
+      this.retryCount = 0;
 
       const processedCommand: EnhancedVoiceCommand = {
         ...data,

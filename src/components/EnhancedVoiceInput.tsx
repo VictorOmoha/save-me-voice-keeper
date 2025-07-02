@@ -30,6 +30,8 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
   const [confidence, setConfidence] = useState(0);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [isProcessingAudio, setIsProcessingAudio] = useState(false);
+  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Check if speech recognition is supported
@@ -73,14 +75,32 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
 
         if (finalTranscript) {
           console.log('Final transcript:', finalTranscript, 'Confidence:', maxConfidence);
+          
+          // Prevent processing if already processing
+          if (isProcessingAudio) {
+            console.log('Already processing audio, ignoring new input');
+            return;
+          }
+          
+          setIsProcessingAudio(true);
+          
+          // Clear any existing timeout
+          if (processingTimeoutRef.current) {
+            clearTimeout(processingTimeoutRef.current);
+          }
+          
+          // Stop listening immediately to prevent feedback loop
+          if (recognitionRef.current && isListening) {
+            recognitionRef.current.stop();
+          }
+          
+          // Process the command
           onVoiceInput(finalTranscript);
           
-          // Auto-stop after processing
-          setTimeout(() => {
-            if (recognitionRef.current && isListening) {
-              recognitionRef.current.stop();
-            }
-          }, 500);
+          // Reset processing state after a delay
+          processingTimeoutRef.current = setTimeout(() => {
+            setIsProcessingAudio(false);
+          }, 3000);
         }
       };
 
@@ -109,6 +129,9 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
     };
   }, [onVoiceInput, isListening]);
 
@@ -128,11 +151,19 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
       return;
     }
 
+    // Prevent starting if already processing
+    if (isProcessingAudio) {
+      console.log('Cannot start listening while processing audio');
+      return;
+    }
+
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
       setTranscript("");
       setConfidence(0);
+      setIsProcessingAudio(false);
+      
       if (recognitionRef.current && !isListening) {
         recognitionRef.current.start();
       }
@@ -221,11 +252,11 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          {!isListening && conversationState === 'idle' && (
+          {!isListening && conversationState === 'idle' && !isProcessingAudio && (
             <Button 
               onClick={startListening} 
               className="flex-1"
-              disabled={isProcessing}
+              disabled={isProcessing || isProcessingAudio}
             >
               <Mic className="h-4 w-4 mr-2" />
               Start Voice Command

@@ -1,24 +1,35 @@
 
 // Simple text-to-speech utility using ElevenLabs API
-const ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
+let ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
 const VOICE_ID = '9BWtsMINqrJLrRacOk9x'; // Aria voice
 
 export const speak = async (text: string): Promise<void> => {
   console.log('TTS: Attempting to speak:', text);
   
+  // Update API key in case it was set after initial load
+  ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
+  
   try {
-    if (!ELEVENLABS_API_KEY) {
-      console.log('ElevenLabs API key not found, using browser speech synthesis');
-      // Fallback to browser's built-in speech synthesis
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
+    // Always use browser speech synthesis for now to avoid API issues
+    console.log('Using browser speech synthesis');
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 0.8;
+    
+    await new Promise<void>((resolve, reject) => {
       utterance.onstart = () => console.log('Browser TTS started');
-      utterance.onend = () => console.log('Browser TTS ended');
-      utterance.onerror = (e) => console.error('Browser TTS error:', e);
+      utterance.onend = () => {
+        console.log('Browser TTS ended');
+        resolve();
+      };
+      utterance.onerror = (e) => {
+        console.error('Browser TTS error:', e);
+        reject(e);
+      };
       speechSynthesis.speak(utterance);
-      return;
-    }
+    });
+    return;
 
     console.log('Using ElevenLabs API for TTS');
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + VOICE_ID, {

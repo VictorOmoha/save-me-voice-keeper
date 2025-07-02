@@ -7,6 +7,8 @@ import { Button } from "./ui/button";
 import { LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { EnhancedVoiceCommand } from "@/utils/enhancedVoiceProcessor";
 
 interface DashboardTopHeaderProps {
   searchQuery: string;
@@ -14,10 +16,10 @@ interface DashboardTopHeaderProps {
   userName?: string;
   entries: SavedEntry[];
   onVoiceResult: (result: string) => void;
-  onVoiceCommand: (command: string) => void;
+  onVoiceCommand: (command: VoiceCommand) => void;
   onEnhancedVoiceInput: (input: string) => void;
   isVoiceProcessing: boolean;
-  lastVoiceCommand: string | null;
+  lastVoiceCommand: EnhancedVoiceCommand | null;
   conversationState: any;
   hasPendingConfirmation: boolean;
   onCancelVoiceOperation: () => void;
@@ -60,7 +62,6 @@ export const DashboardTopHeader = ({
           <SearchBar 
             searchQuery={searchQuery} 
             onSearchChange={onSearchChange}
-            entries={entries}
           />
         </div>
         

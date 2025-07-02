@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { CategoryView } from "@/components/CategoryView";
 import { AllEntriesView } from "@/components/AllEntriesView";
 import { useDashboard } from "@/hooks/useDashboard";
-import { DashboardTopHeader } from "@/components/DashboardTopHeader";
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { DashboardMainContent } from "@/components/DashboardMainContent";
 
 export interface FieldDefinition {
@@ -204,22 +204,13 @@ const Dashboard = () => {
       />
       
       <div className="flex-1 flex flex-col">
-        <DashboardTopHeader
+        <DashboardHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           userName={user?.full_name || user?.email}
-          entries={savedEntries}
-          onVoiceResult={handleVoiceResult}
-          onVoiceCommand={handleVoiceCommand}
-          onEnhancedVoiceInput={handleEnhancedVoiceInput}
-          isVoiceProcessing={isVoiceProcessing}
-          lastVoiceCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancelVoiceOperation={cancelCurrentOperation}
         />
 
-        <main className="flex-1 p-6">
+        <main className="flex-1">
           {showAllEntries ? (
             <AllEntriesView
               entries={savedEntries}

@@ -1,70 +1,117 @@
-
-import { Link, useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  Search,
+  Mic, 
+  Bell, 
+  Sun, 
+  Moon,
+  LogOut 
+} from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export const DashboardHeader = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+interface DashboardHeaderProps {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  userName?: string;
+}
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/");
+export const DashboardHeader = ({
+  searchQuery,
+  onSearchChange,
+  userName,
+}: DashboardHeaderProps) => {
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        toast.error("Failed to sign out");
+      } else {
+        toast.success("Signed out successfully");
+        window.location.href = '/login';
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error("Failed to sign out");
+    }
   };
 
-  return (
-    <header className="border-b bg-white sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/dashboard" className="flex items-center space-x-1">
-            <img 
-              src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
-              alt="Save Me Logo" 
-              className="w-12 h-12 object-contain"
-            />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              Save Me
-            </span>
-          </Link>
-          
-          <nav className="hidden md:flex items-center space-x-4">
-            <Link to="/dashboard">
-              <Button variant="ghost">Dashboard</Button>
-            </Link>
-            <Link to="/subscription">
-              <Button variant="ghost">Subscription</Button>
-            </Link>
-          </nav>
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+    // Add theme toggle logic here
+  };
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-medium text-sm">
-                    {(user?.full_name || user?.email)?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <span className="hidden md:block">{user?.full_name || user?.email}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link to="/subscription">Subscription</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/dashboard" className="md:hidden">Dashboard</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+  const userInitials = userName 
+    ? userName.split(' ').map(n => n[0]).join('').toUpperCase()
+    : 'U';
+
+  return (
+    <header className="bg-background border-b border-border px-6 py-4">
+      <div className="flex items-center justify-between">
+        {/* Search Bar */}
+        <div className="flex items-center flex-1 max-w-md">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search your entries..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
+            />
+          </div>
+        </div>
+
+        {/* Right Side Icons */}
+        <div className="flex items-center space-x-2">
+          {/* Mic Icon */}
+          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+            <Mic className="w-5 h-5" />
+          </Button>
+
+          {/* Notifications */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-muted-foreground hover:text-foreground relative"
+            onClick={() => setShowNotifications(!showNotifications)}
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"></span>
+          </Button>
+
+          {/* Theme Toggle */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-muted-foreground hover:text-foreground"
+            onClick={toggleTheme}
+          >
+            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
+
+          {/* User Avatar */}
+          <Avatar className="w-8 h-8">
+            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+
+          {/* Sign Out (optional, can be in dropdown) */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleSignOut}
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </header>

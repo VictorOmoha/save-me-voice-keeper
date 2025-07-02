@@ -54,10 +54,10 @@ export const DashboardMainContent = ({
   onFillEntry,
 }: DashboardMainContentProps) => {
   return (
-    <>
+    <div className="p-6">
       {/* Welcome Section */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           Welcome back, {userName}! 👋
         </h1>
         <p className="text-muted-foreground">Here's what's happening with your information today.</p>
@@ -130,6 +130,6 @@ export const DashboardMainContent = ({
           onVoiceCommand={onVoiceCommand}
         />
       </div>
-    </>
+    </div>
   );
 };

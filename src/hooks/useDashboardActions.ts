@@ -23,6 +23,18 @@ export const useDashboardActions = ({
 }: UseDashboardActionsProps) => {
   const saveEntry = async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('Authentication error:', authError);
+        toast.error("You must be logged in to save entries");
+        return;
+      }
+
+      console.log('Authenticated user:', user.id);
+      console.log('Saving entry:', entry);
+
       if (editingEntry) {
         // Update existing entry
         const { error } = await supabase
@@ -37,7 +49,7 @@ export const useDashboardActions = ({
 
         if (error) {
           console.error('Error updating entry:', error);
-          toast.error("Failed to update entry");
+          toast.error("Failed to update entry: " + error.message);
           return;
         }
 
@@ -45,20 +57,23 @@ export const useDashboardActions = ({
         setEditingEntry(null);
       } else {
         // Create new entry - user_id will be set automatically by the database trigger
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('entries')
           .insert({
             title: entry.title,
             fields: entry.fields as any,
             field_definitions: entry.fieldDefinitions as any,
-          });
+          })
+          .select()
+          .single();
 
         if (error) {
           console.error('Error creating entry:', error);
-          toast.error("Failed to save entry");
+          toast.error("Failed to save entry: " + error.message);
           return;
         }
 
+        console.log('Entry created successfully:', data);
         toast.success("Entry saved successfully!");
       }
       
@@ -66,7 +81,7 @@ export const useDashboardActions = ({
       await loadEntries(); // Reload entries from database
     } catch (error) {
       console.error('Error saving entry:', error);
-      toast.error("Failed to save entry");
+      toast.error("Failed to save entry: " + (error as Error).message);
     }
   };
 

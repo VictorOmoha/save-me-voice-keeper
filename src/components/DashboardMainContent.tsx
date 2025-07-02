@@ -6,6 +6,7 @@ import { CategoriesPanel } from "@/components/CategoriesPanel";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { DataEntryForm } from "@/components/DataEntryForm";
+import { SearchBar } from "@/components/SearchBar";
 import { SavedEntry } from "@/pages/Dashboard";
 
 interface DashboardMainContentProps {
@@ -29,6 +30,8 @@ interface DashboardMainContentProps {
   onVoiceCommand: (command: any) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
 }
 
 export const DashboardMainContent = ({
@@ -52,15 +55,25 @@ export const DashboardMainContent = ({
   onVoiceCommand,
   onEditEntry,
   onFillEntry,
+  searchQuery,
+  onSearchChange,
 }: DashboardMainContentProps) => {
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">
-          Welcome back, {userName}! 👋
-        </h1>
-        <p className="text-muted-foreground">Here's what's happening with your information today.</p>
+      {/* Header with Search */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Welcome back, {userName}! 👋
+          </h1>
+          <p className="text-muted-foreground">Here's what's happening with your information today.</p>
+        </div>
+        <div className="max-w-md">
+          <SearchBar 
+            searchQuery={searchQuery} 
+            onSearchChange={onSearchChange}
+          />
+        </div>
       </div>
 
       {/* Stats Cards */}

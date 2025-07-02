@@ -15,7 +15,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ searchQuery, onSearchChang
         placeholder="Search your entries..."
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
-        className="pl-10 max-w-md bg-gray-50 border-gray-200 focus:bg-white"
+        className="pl-10 w-full bg-gray-50 border-gray-200 focus:bg-white"
       />
     </div>
   );

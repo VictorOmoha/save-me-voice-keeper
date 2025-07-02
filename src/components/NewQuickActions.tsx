@@ -1,18 +1,26 @@
 
 import { Button } from "@/components/ui/button";
 import { Search, Mic, Plus, FileText } from "lucide-react";
+import { VoiceInput } from "@/components/VoiceInput";
+import { VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { useState } from "react";
 
 interface NewQuickActionsProps {
   onAddEntry: () => void;
   onVoiceInput: () => void;
+  onVoiceResult: (text: string) => void;
+  onVoiceCommand: (command: VoiceCommand) => void;
   onCreateDocument: () => void;
 }
 
 export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
   onAddEntry,
   onVoiceInput,
+  onVoiceResult,
+  onVoiceCommand,
   onCreateDocument,
 }) => {
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
   return (
     <div className="bg-card border border-border rounded-lg p-6 mb-8">
       <div>
@@ -52,15 +60,24 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
         <Button 
           onClick={() => {
             console.log('Voice Input button clicked');
-            onVoiceInput();
+            setShowVoiceInput(!showVoiceInput);
           }} 
-          variant="outline" 
+          variant={showVoiceInput ? "default" : "outline"}
           className="flex items-center space-x-2"
         >
           <Mic className="w-4 h-4" />
-          <span>Voice Input</span>
+          <span>Voice Commands</span>
         </Button>
       </div>
+      
+      {showVoiceInput && (
+        <div className="mt-6 pt-6 border-t border-border">
+          <VoiceInput 
+            onVoiceResult={onVoiceResult}
+            onVoiceCommand={onVoiceCommand}
+          />
+        </div>
+      )}
     </div>
   );
 };

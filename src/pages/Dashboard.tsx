@@ -44,6 +44,7 @@ const Dashboard = () => {
     getFormTitle,
     handleAddEntry,
     handleVoiceResult,
+    handleVoiceCommand,
     isLoading,
   } = useDashboard();
 
@@ -257,7 +258,8 @@ const Dashboard = () => {
               onCategorySelect={handleCategorySelect}
               onAddEntry={handleAddEntryWithCategory}
               onCreateDocument={handleCreateDocument}
-              onVoiceResult={() => handleVoiceResult("")}
+              onVoiceResult={handleVoiceResult}
+              onVoiceCommand={handleVoiceCommand}
               onEditEntry={editEntry}
               onFillEntry={fillEntry}
             />

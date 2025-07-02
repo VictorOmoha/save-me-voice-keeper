@@ -24,7 +24,8 @@ interface DashboardMainContentProps {
   onCategorySelect: (categoryName: string) => void;
   onAddEntry: () => void;
   onCreateDocument: () => void;
-  onVoiceResult: () => void;
+  onVoiceResult: (text: string) => void;
+  onVoiceCommand: (command: any) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
 }
@@ -46,6 +47,7 @@ export const DashboardMainContent = ({
   onAddEntry,
   onCreateDocument,
   onVoiceResult,
+  onVoiceCommand,
   onEditEntry,
   onFillEntry,
 }: DashboardMainContentProps) => {
@@ -121,7 +123,9 @@ export const DashboardMainContent = ({
         <NewQuickActions 
           onAddEntry={onAddEntry}
           onCreateDocument={onCreateDocument}
-          onVoiceInput={onVoiceResult}
+          onVoiceInput={() => console.log('Voice quick action - consider implementing VoiceInput component here')}
+          onVoiceResult={onVoiceResult}
+          onVoiceCommand={onVoiceCommand}
         />
       </div>
     </>

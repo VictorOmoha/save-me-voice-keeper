@@ -16,6 +16,8 @@ export const useDashboard = () => {
     fillingEntry,
     setFillingEntry,
     filteredEntries,
+    isLoading,
+    loadEntries,
   } = useDashboardState();
 
   const {
@@ -33,6 +35,7 @@ export const useDashboard = () => {
     setEditingEntry,
     setFillingEntry,
     setShowAddEntry,
+    loadEntries,
   });
 
   const {
@@ -84,5 +87,7 @@ export const useDashboard = () => {
     handleVoiceCommand,
     handleAddEntry,
     handleVoiceResult,
+    isLoading,
+    loadEntries,
   };
 };

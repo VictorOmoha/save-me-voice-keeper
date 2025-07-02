@@ -44,6 +44,7 @@ const Dashboard = () => {
     getFormTitle,
     handleAddEntry,
     handleVoiceResult,
+    isLoading,
   } = useDashboard();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -57,20 +58,24 @@ const Dashboard = () => {
     showAllEntries,
     editingEntry: editingEntry?.title,
     fillingEntry: fillingEntry?.title,
-    totalEntries: savedEntries.length
+    totalEntries: savedEntries.length,
+    isLoading
   });
-
-  // Enhanced diagnostic logging for saved entries
-  console.log('DIAGNOSTIC: All saved entries in Dashboard:', savedEntries.map(entry => ({
-    id: entry.id,
-    title: entry.title,
-    category: entry.fields.category,
-    createdAt: entry.createdAt,
-    fields: Object.keys(entry.fields)
-  })));
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Show loading state while entries are being loaded
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your entries...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleCategorySelect = (categoryName: string) => {
@@ -148,21 +153,6 @@ const Dashboard = () => {
     
     // Close the document creator
     setShowDocumentCreator(false);
-    
-    console.log('DIAGNOSTIC: Document creator closed, checking saved entries...');
-    
-    // Add a small delay to check if the entry was saved
-    setTimeout(() => {
-      console.log('DIAGNOSTIC: After document save - current saved entries:', {
-        totalEntries: savedEntries.length,
-        entries: savedEntries.map(e => ({
-          id: e.id,
-          title: e.title,
-          category: e.fields?.category,
-          fields: Object.keys(e.fields || {})
-        }))
-      });
-    }, 500);
   };
 
   const handleDocumentCancel = () => {

@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { SavedEntry } from "@/pages/Dashboard";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const useDashboardState = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -8,14 +10,43 @@ export const useDashboardState = () => {
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
   const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load saved entries from localStorage
-    const entries = localStorage.getItem('savedEntries');
-    if (entries) {
-      setSavedEntries(JSON.parse(entries));
-    }
+    loadEntries();
   }, []);
+
+  const loadEntries = async () => {
+    try {
+      setIsLoading(true);
+      const { data: entries, error } = await supabase
+        .from('entries')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading entries:', error);
+        toast.error('Failed to load entries');
+        return;
+      }
+
+      const formattedEntries: SavedEntry[] = entries.map(entry => ({
+        id: entry.id,
+        title: entry.title,
+        fields: entry.fields || {},
+        fieldDefinitions: entry.field_definitions || undefined,
+        createdAt: new Date(entry.created_at),
+        updatedAt: new Date(entry.updated_at)
+      }));
+
+      setSavedEntries(formattedEntries);
+    } catch (error) {
+      console.error('Error loading entries:', error);
+      toast.error('Failed to load entries');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredEntries = savedEntries.filter(entry =>
     entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -36,5 +67,7 @@ export const useDashboardState = () => {
     fillingEntry,
     setFillingEntry,
     filteredEntries,
+    isLoading,
+    loadEntries,
   };
 };

@@ -14,6 +14,7 @@ interface UseDashboardVoiceProps {
   editEntry: (entry: SavedEntry) => void;
   fillEntry: (entry: SavedEntry) => void;
   handleCancelEdit: () => void;
+  saveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 export const useDashboardVoice = ({
@@ -26,19 +27,56 @@ export const useDashboardVoice = ({
   editEntry,
   fillEntry,
   handleCancelEdit,
+  saveEntry,
 }: UseDashboardVoiceProps) => {
   const handleVoiceCommand = (command: VoiceCommand) => {
     console.log('Executing voice command:', command);
     
     switch (command.type) {
       case 'create_field':
-        // Open the add entry form
-        setShowAddEntry(true);
-        setEditingEntry(null);
-        setFillingEntry(null);
-        const createMessage = `Creating field "${command.params?.fieldName || 'New Field'}"`;
-        toast.success(`Voice command: ${createMessage}`);
+        // Actually create an entry with the specified field
+        const fieldName = command.params?.fieldName || 'New Field';
+        const fieldType = command.params?.fieldType || 'text';
+        
+        const newEntry = {
+          title: `${fieldName} Entry - ${new Date().toLocaleDateString()}`,
+          fields: {
+            category: 'Personal',
+            [fieldName]: ''
+          },
+          fieldDefinitions: [
+            { id: 'category', name: 'category', type: 'text' as const },
+            { id: Date.now().toString(), name: fieldName, type: fieldType as 'text' | 'number' | 'date' | 'textarea' }
+          ]
+        };
+        
+        saveEntry(newEntry);
+        const createMessage = `Created entry with field "${fieldName}"`;
+        toast.success(createMessage);
         speak(createMessage);
+        break;
+        
+      case 'create_entry':
+        // Create a new entry with the specified title and category
+        const entryTitle = command.params?.entryTitle || `New Entry - ${new Date().toLocaleDateString()}`;
+        const entryCategory = command.params?.entryCategory || 'Personal';
+        
+        const basicEntry = {
+          title: entryTitle,
+          fields: {
+            category: entryCategory,
+            description: ''
+          },
+          fieldDefinitions: [
+            { id: 'category', name: 'category', type: 'text' as const },
+            { id: Date.now().toString(), name: 'description', type: 'textarea' as const }
+          ]
+        };
+        
+        saveEntry(basicEntry);
+        const entryMessage = `Created entry "${entryTitle}" in ${entryCategory}`;
+        toast.success(entryMessage);
+        speak(entryMessage);
         break;
         
       case 'delete_entry':

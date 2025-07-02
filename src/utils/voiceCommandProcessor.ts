@@ -1,11 +1,12 @@
 
 export interface VoiceCommand {
-  type: 'create_field' | 'delete_entry' | 'open_entry' | 'save_entry' | 'cancel' | 'fill_form' | 'unknown';
+  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'save_entry' | 'cancel' | 'fill_form' | 'unknown';
   params?: {
     fieldName?: string;
     fieldType?: 'text' | 'number' | 'date' | 'textarea';
     entryTitle?: string;
     entryId?: string;
+    entryCategory?: string;
   };
 }
 
@@ -22,6 +23,15 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
   
+  // Create entry commands
+  if (lowerTranscript.includes('create') && (lowerTranscript.includes('entry') || lowerTranscript.includes('record'))) {
+    const entryTitle = extractEntryTitle(lowerTranscript, 'create');
+    const entryCategory = extractCategory(lowerTranscript);
+    return {
+      type: 'create_entry',
+      params: { entryTitle, entryCategory }
+    };
+  }
   // Delete entry commands
   if (lowerTranscript.includes('delete')) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'delete');
@@ -115,4 +125,17 @@ const extractEntryTitle = (transcript: string, action: string): string => {
   }
   
   return '';
+};
+
+const extractCategory = (transcript: string): string => {
+  const categories = ['documents', 'health', 'contacts', 'finance', 'personal'];
+  const lowerTranscript = transcript.toLowerCase();
+  
+  for (const category of categories) {
+    if (lowerTranscript.includes(category)) {
+      return category.charAt(0).toUpperCase() + category.slice(1);
+    }
+  }
+  
+  return 'Personal'; // Default category
 };

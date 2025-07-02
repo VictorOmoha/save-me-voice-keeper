@@ -51,6 +51,7 @@ export const useDashboard = () => {
     editEntry,
     fillEntry,
     handleCancelEdit,
+    saveEntry,
   });
 
   const getFormMode = () => {

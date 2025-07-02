@@ -16,12 +16,13 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await login(email, password);
+    const result = await login(email, password);
+    
+    if (result.error) {
+      toast.error(result.error);
+    } else {
       toast.success("Welcome back!");
       navigate("/dashboard");
-    } catch (error) {
-      toast.error("Invalid credentials. Please try again.");
     }
   };
 
@@ -76,6 +77,11 @@ const Login = () => {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+          <div className="mt-4 text-center text-sm">
+            <Link to="/reset-password" className="text-blue-600 hover:underline font-medium">
+              Forgot your password?
+            </Link>
+          </div>
           <div className="mt-6 text-center text-sm">
             <span className="text-gray-600">Don't have an account? </span>
             <Link to="/signup" className="text-blue-600 hover:underline font-medium">

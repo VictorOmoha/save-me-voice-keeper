@@ -13,8 +13,8 @@ export const DashboardHeader = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
   };
 
@@ -47,10 +47,10 @@ export const DashboardHeader = () => {
               <Button variant="ghost" className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-blue-600 font-medium text-sm">
-                    {user?.name?.charAt(0).toUpperCase()}
+                    {(user?.full_name || user?.email)?.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <span className="hidden md:block">{user?.name}</span>
+                <span className="hidden md:block">{user?.full_name || user?.email}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

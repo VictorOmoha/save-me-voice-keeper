@@ -201,7 +201,7 @@ const Dashboard = () => {
         <DashboardTopHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          userName={user?.name}
+          userName={user?.full_name || user?.email}
           entries={savedEntries}
           onVoiceResult={handleVoiceResult}
           onVoiceCommand={handleVoiceCommand}
@@ -245,7 +245,7 @@ const Dashboard = () => {
             />
           ) : (
             <DashboardMainContent
-              userName={user?.name}
+              userName={user?.full_name || user?.email}
               savedEntries={savedEntries}
               showDocumentCreator={showDocumentCreator}
               showAddEntry={showAddEntry}

@@ -11,9 +11,9 @@ interface ProfileSettingsProps {
 
 export const ProfileSettings = ({ user }: ProfileSettingsProps) => {
   const [profile, setProfile] = useState({
-    fullName: user?.name || "John Doe",
-    email: user?.email || "john@example.com",
-    phone: "+1 (555) 123-4567"
+    fullName: user?.full_name || "",
+    email: user?.email || "",
+    phone: ""
   });
 
   const handleSaveProfile = () => {

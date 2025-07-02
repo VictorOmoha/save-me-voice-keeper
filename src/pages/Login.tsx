@@ -30,9 +30,11 @@ const Login = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SM</span>
-            </div>
+            <img 
+              src="/lovable-uploads/81818669-5c4e-45dd-ac84-f1c3cfb0b13c" 
+              alt="Save Me Logo" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Save Me
             </span>

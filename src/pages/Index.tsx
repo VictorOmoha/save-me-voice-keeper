@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,9 +74,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">SM</span>
-              </div>
+              <img 
+                src="/lovable-uploads/81818669-5c4e-45dd-ac84-f1c3cfb0b13c" 
+                alt="Save Me Logo" 
+                className="w-8 h-8 object-contain"
+              />
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                 Save Me
               </span>
@@ -224,9 +227,11 @@ const Index = () => {
       <footer className="bg-gray-900 dark:bg-gray-950 text-white py-12 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SM</span>
-            </div>
+            <img 
+              src="/lovable-uploads/81818669-5c4e-45dd-ac84-f1c3cfb0b13c" 
+              alt="Save Me Logo" 
+              className="w-8 h-8 object-contain"
+            />
             <span className="text-xl font-bold">Save Me</span>
           </div>
           <p className="text-gray-400 mb-4">Your personal information, perfectly organized.</p>

@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div className="w-64 bg-background border-r border-border h-full flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-border">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           <img 
             src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
             alt="Save Me Logo" 

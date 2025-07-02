@@ -29,7 +29,7 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="flex items-center justify-center space-x-1 mb-4">
             <img 
               src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
               alt="Save Me Logo" 

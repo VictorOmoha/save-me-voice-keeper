@@ -22,7 +22,7 @@ export const DashboardHeader = () => {
     <header className="border-b bg-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <Link to="/dashboard" className="flex items-center space-x-2">
+          <Link to="/dashboard" className="flex items-center space-x-1">
             <img 
               src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
               alt="Save Me Logo" 

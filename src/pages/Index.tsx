@@ -73,7 +73,7 @@ const Index = () => {
       <nav className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
               <img 
                 src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
                 alt="Save Me Logo" 
@@ -226,7 +226,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-gray-900 dark:bg-gray-950 text-white py-12 px-4">
         <div className="max-w-6xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="flex items-center justify-center space-x-1 mb-4">
             <img 
               src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
               alt="Save Me Logo" 

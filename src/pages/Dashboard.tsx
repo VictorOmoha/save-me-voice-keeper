@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
@@ -5,7 +6,6 @@ import { Sidebar } from "@/components/Sidebar";
 import { CategoryView } from "@/components/CategoryView";
 import { AllEntriesView } from "@/components/AllEntriesView";
 import { useDashboard } from "@/hooks/useDashboard";
-import { DashboardTopHeader } from "@/components/DashboardTopHeader";
 import { DashboardMainContent } from "@/components/DashboardMainContent";
 
 export interface FieldDefinition {
@@ -204,21 +204,6 @@ const Dashboard = () => {
       />
       
       <div className="flex-1 flex flex-col">
-        <DashboardTopHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          userName={user?.full_name || user?.email}
-          entries={savedEntries}
-          onVoiceResult={handleVoiceResult}
-          onVoiceCommand={handleVoiceCommand}
-          onEnhancedVoiceInput={handleEnhancedVoiceInput}
-          isVoiceProcessing={isVoiceProcessing}
-          lastVoiceCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancelVoiceOperation={cancelCurrentOperation}
-        />
-
         <main className="flex-1 p-6">
           {showAllEntries ? (
             <AllEntriesView

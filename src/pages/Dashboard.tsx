@@ -203,6 +203,8 @@ const Dashboard = () => {
           onSearchChange={setSearchQuery}
           userName={user?.name}
           entries={savedEntries}
+          onVoiceResult={handleVoiceResult}
+          onVoiceCommand={handleVoiceCommand}
         />
 
         <main className="flex-1 p-6">

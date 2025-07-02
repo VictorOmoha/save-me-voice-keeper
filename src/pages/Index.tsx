@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sun, Moon } from "lucide-react";
+import { Check, Sun, Moon, Mic, RefreshCcw, Zap } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 
 const Index = () => {
@@ -135,7 +135,7 @@ const Index = () => {
             <Card className="text-center hover:shadow-lg transition-shadow bg-card border-border">
               <CardHeader>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🎤</span>
+                  <Mic className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <CardTitle className="text-card-foreground">Voice-First Design</CardTitle>
               </CardHeader>
@@ -149,7 +149,7 @@ const Index = () => {
             <Card className="text-center hover:shadow-lg transition-shadow bg-card border-border">
               <CardHeader>
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">🔄</span>
+                  <RefreshCcw className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <CardTitle className="text-card-foreground">Universal Sync</CardTitle>
               </CardHeader>
@@ -163,7 +163,7 @@ const Index = () => {
             <Card className="text-center hover:shadow-lg transition-shadow bg-card border-border">
               <CardHeader>
                 <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">⚡</span>
+                  <Zap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <CardTitle className="text-card-foreground">Smart Organization</CardTitle>
               </CardHeader>

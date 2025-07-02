@@ -31,7 +31,7 @@ const Login = () => {
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <img 
-              src="/lovable-uploads/81818669-5c4e-45dd-ac84-f1c3cfb0b13c" 
+              src="/lovable-uploads/5afb6472-ceee-46b0-8a1b-de259f177ac9.png" 
               alt="Save Me Logo" 
               className="w-8 h-8 object-contain"
             />

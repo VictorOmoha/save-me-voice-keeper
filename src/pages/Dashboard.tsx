@@ -45,6 +45,12 @@ const Dashboard = () => {
     handleAddEntry,
     handleVoiceResult,
     handleVoiceCommand,
+    handleEnhancedVoiceInput,
+    isVoiceProcessing,
+    lastVoiceCommand,
+    conversationState,
+    hasPendingConfirmation,
+    cancelCurrentOperation,
     isLoading,
   } = useDashboard();
 
@@ -205,6 +211,12 @@ const Dashboard = () => {
           entries={savedEntries}
           onVoiceResult={handleVoiceResult}
           onVoiceCommand={handleVoiceCommand}
+          onEnhancedVoiceInput={handleEnhancedVoiceInput}
+          isVoiceProcessing={isVoiceProcessing}
+          lastVoiceCommand={lastVoiceCommand}
+          conversationState={conversationState}
+          hasPendingConfirmation={hasPendingConfirmation}
+          onCancelVoiceOperation={cancelCurrentOperation}
         />
 
         <main className="flex-1 p-6">

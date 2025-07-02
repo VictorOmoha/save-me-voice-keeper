@@ -2,6 +2,7 @@
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useDashboardVoice } from "./useDashboardVoice";
+import { useEnhancedVoice } from "./useEnhancedVoice";
 
 export const useDashboard = () => {
   const {
@@ -54,6 +55,38 @@ export const useDashboard = () => {
     saveEntry,
   });
 
+  // Enhanced Voice System
+  const {
+    processVoiceInput: handleEnhancedVoiceInput,
+    isProcessing: isVoiceProcessing,
+    lastCommand: lastVoiceCommand,
+    conversationState,
+    hasPendingConfirmation,
+    cancelCurrentOperation,
+  } = useEnhancedVoice({
+    savedEntries,
+    currentView: showAddEntry ? 'form' : editingEntry ? 'edit' : 'dashboard',
+    currentEntry: editingEntry || fillingEntry,
+    onCreateEntry: saveEntry,
+    onDeleteEntry: deleteEntry,
+    onEditEntry: editEntry,
+    onBulkOperation: (operation, criteria) => {
+      console.log('Bulk operation:', operation, criteria);
+      // Implement bulk operations based on criteria
+    },
+    onNavigate: (view, params) => {
+      console.log('Navigate to:', view, params);
+      // Implement navigation logic
+    },
+    onSearch: (query) => {
+      setSearchQuery(query);
+    },
+    onExport: (format, filter) => {
+      console.log('Export:', format, filter);
+      // Implement export logic
+    },
+  });
+
   const getFormMode = () => {
     if (editingEntry) return 'edit';
     if (fillingEntry) return 'fill';
@@ -90,5 +123,12 @@ export const useDashboard = () => {
     handleVoiceResult,
     isLoading,
     loadEntries,
+    // Enhanced Voice
+    handleEnhancedVoiceInput,
+    isVoiceProcessing,
+    lastVoiceCommand,
+    conversationState,
+    hasPendingConfirmation,
+    cancelCurrentOperation,
   };
 };

@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Heart, Users, DollarSign, User, ChevronRight } from "lucide-react";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
 
 interface CategoriesPanelProps {

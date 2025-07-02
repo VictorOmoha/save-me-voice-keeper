@@ -1,6 +1,6 @@
 
 import { Badge } from "@/components/ui/badge";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { getCategoryIcon, getCategoryColor, getCategoryName } from "./categoryUtils";
 
 interface EntryItemProps {

@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download } from "lucide-react";
 import { toast } from "sonner";
 

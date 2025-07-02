@@ -2,7 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { FileText, FolderOpen, HardDrive, Activity } from "lucide-react";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { useStorageStats } from "@/hooks/useStorageStats";
 import { getRecentActivityCount } from "@/utils/storageUtils";
 

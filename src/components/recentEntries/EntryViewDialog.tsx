@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { Edit, FileText, Download } from "lucide-react";
 import { getCategoryIcon, getCategoryColor, getCategoryName, getEntryType } from "./categoryUtils";
 import { toast } from "sonner";

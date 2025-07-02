@@ -6,7 +6,7 @@ import { CategoriesPanel } from "@/components/CategoriesPanel";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { DataEntryForm } from "@/components/DataEntryForm";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardMainContentProps {
   userName?: string;

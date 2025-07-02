@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 

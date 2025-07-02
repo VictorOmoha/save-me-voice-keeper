@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { FileText, ExternalLink } from "lucide-react";
 import { EntryItem } from "./recentEntries/EntryItem";
 import { EntryViewDialog } from "./recentEntries/EntryViewDialog";

@@ -1,5 +1,5 @@
 
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 
 export const exportToCSV = (entries: SavedEntry[], filename: string = 'form-data') => {
   if (entries.length === 0) {

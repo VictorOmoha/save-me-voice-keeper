@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 
 export interface EnhancedVoiceCommand {
   intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'unknown';

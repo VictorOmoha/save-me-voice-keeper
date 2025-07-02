@@ -1,5 +1,5 @@
 
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 
 export const useCategoryFilter = () => {
   const filterEntriesByCategory = (entries: SavedEntry[], categoryName: string) => {

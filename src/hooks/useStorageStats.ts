@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { SavedEntry } from '@/pages/Dashboard';
+import { SavedEntry } from "@/types/dashboard";
 import { 
   calculateLocalStorageSize, 
   calculateDatabaseStorageSize, 

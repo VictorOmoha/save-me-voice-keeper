@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { SavedEntry, FieldDefinition } from "@/pages/Dashboard";
+import { SavedEntry, FieldDefinition } from "@/types/dashboard";
 import { CustomField, CATEGORIES } from './types';
 
 interface UseFormLogicProps {

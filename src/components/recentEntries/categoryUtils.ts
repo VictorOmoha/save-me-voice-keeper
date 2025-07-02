@@ -1,5 +1,5 @@
 
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { FileText, Heart, Users, DollarSign, User } from "lucide-react";
 
 export const getCategoryName = (entry: SavedEntry) => {

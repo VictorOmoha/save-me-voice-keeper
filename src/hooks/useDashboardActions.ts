@@ -1,4 +1,4 @@
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 

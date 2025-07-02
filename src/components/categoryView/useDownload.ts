@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 
 export const useDownload = () => {
   const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);

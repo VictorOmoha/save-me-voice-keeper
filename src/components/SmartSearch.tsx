@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { cn } from "@/lib/utils";
 
 interface SearchSuggestion {

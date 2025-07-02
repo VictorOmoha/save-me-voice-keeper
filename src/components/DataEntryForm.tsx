@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { useFormLogic } from "./forms/useFormLogic";
 import { CategorySelector } from "./forms/CategorySelector";
 import { FormFieldManager } from "./forms/FormFieldManager";

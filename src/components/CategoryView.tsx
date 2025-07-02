@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { CategoryHeader } from "./categoryView/CategoryHeader";

@@ -1,5 +1,5 @@
 
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";

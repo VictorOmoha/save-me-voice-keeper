@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Database, Download, Trash2, FileText } from "lucide-react";
 import { exportToCSV } from "@/utils/csvExport";
-import { SavedEntry } from "@/pages/Dashboard";
+import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { useState } from "react";
 

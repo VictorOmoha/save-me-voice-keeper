@@ -34,7 +34,7 @@ const Signup = () => {
             <img 
               src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
               alt="Save Me Logo" 
-              className="w-8 h-8 object-contain"
+              className="w-12 h-12 object-contain"
             />
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
               Save Me

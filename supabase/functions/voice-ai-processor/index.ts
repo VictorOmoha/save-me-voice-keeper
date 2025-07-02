@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -33,12 +34,12 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      console.error('OpenAI API key not configured');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      console.error('Gemini API key not configured');
       return new Response(
         JSON.stringify({ 
-          error: 'OpenAI API key not configured',
+          error: 'Gemini API key not configured',
           intent: 'unknown',
           action: 'error',
           confidence: 0,
@@ -62,7 +63,7 @@ serve(async (req) => {
     console.log('Processing voice command:', transcript);
     console.log('Context:', context);
 
-    // Create a detailed prompt for the AI to understand voice commands
+    // Create a detailed prompt for Gemini to understand voice commands
     const systemPrompt = `You are an intelligent voice assistant for "Save Me", a personal information management app. Your job is to interpret natural language voice commands and convert them into structured actions.
 
 AVAILABLE ACTIONS:
@@ -123,32 +124,55 @@ EXAMPLES:
   "followUpQuestions": ["Would you like to see the list first?", "Should I exclude any specific categories?"]
 }
 
-Be conversational, helpful, and always prioritize user safety by requesting confirmation for destructive actions.`;
+Be conversational, helpful, and always prioritize user safety by requesting confirmation for destructive actions.
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+Process this voice command: "${transcript}"`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Process this voice command: "${transcript}"` }
-        ],
-        temperature: 0.3,
-        max_tokens: 1000,
+        contents: [{
+          parts: [{
+            text: systemPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 1,
+          topP: 1,
+          maxOutputTokens: 1000,
+        },
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
       }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`OpenAI API error: ${error}`);
+      throw new Error(`Gemini API error: ${error}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = data.candidates[0].content.parts[0].text;
 
     console.log('AI Response:', aiResponse);
 

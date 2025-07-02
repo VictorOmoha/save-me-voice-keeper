@@ -201,6 +201,7 @@ const Dashboard = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           userName={user?.name}
+          entries={savedEntries}
         />
 
         <main className="flex-1 p-6">

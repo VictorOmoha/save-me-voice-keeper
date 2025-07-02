@@ -1,20 +1,23 @@
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Bell, Mic } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { Sun, Moon } from "lucide-react";
+import { SmartSearch } from "@/components/SmartSearch";
+import { SavedEntry } from "@/pages/Dashboard";
 
 interface DashboardTopHeaderProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   userName?: string;
+  entries: SavedEntry[];
 }
 
 export const DashboardTopHeader = ({
   searchQuery,
   onSearchChange,
   userName,
+  entries,
 }: DashboardTopHeaderProps) => {
   const { theme, setTheme } = useTheme();
 
@@ -27,12 +30,13 @@ export const DashboardTopHeader = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4 flex-1 max-w-md">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground z-10" />
+            <SmartSearch
+              entries={entries}
+              searchQuery={searchQuery}
+              onSearchChange={onSearchChange}
               placeholder="Search your entries..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
+              className="w-full"
             />
           </div>
         </div>

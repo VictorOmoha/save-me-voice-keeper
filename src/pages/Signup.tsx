@@ -32,7 +32,7 @@ const Signup = () => {
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <img 
-              src="/lovable-uploads/5afb6472-ceee-46b0-8a1b-de259f177ac9.png" 
+              src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
               alt="Save Me Logo" 
               className="w-8 h-8 object-contain"
             />

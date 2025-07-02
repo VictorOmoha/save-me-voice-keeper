@@ -24,7 +24,7 @@ export const DashboardHeader = () => {
         <div className="flex justify-between items-center h-16">
           <Link to="/dashboard" className="flex items-center space-x-2">
             <img 
-              src="/lovable-uploads/5afb6472-ceee-46b0-8a1b-de259f177ac9.png" 
+              src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
               alt="Save Me Logo" 
               className="w-8 h-8 object-contain"
             />

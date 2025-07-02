@@ -286,6 +286,22 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
             </Button>
           )}
 
+          {/* Test TTS Button */}
+          {conversationState === 'idle' && !isListening && (
+            <Button 
+              onClick={() => {
+                console.log('Testing TTS...');
+                import('@/utils/textToSpeech').then(({ speak }) => {
+                  speak('Hello! This is a test of the text to speech system.');
+                });
+              }} 
+              variant="secondary" 
+              size="sm"
+            >
+              Test Audio
+            </Button>
+          )}
+
           {(conversationState === 'confirming' || hasPendingConfirmation) && (
             <>
               <Button 

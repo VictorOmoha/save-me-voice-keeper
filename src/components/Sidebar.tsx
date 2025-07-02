@@ -12,28 +12,33 @@ import {
   Plus,
   Settings
 } from "lucide-react";
+import { SavedEntry } from "@/pages/Dashboard";
+import { useCategoryFilter } from "./categoryView/useCategoryFilter";
 
 interface SidebarProps {
   savedEntriesCount: number;
   onAddEntry: () => void;
   onCategorySelect: (categoryName: string) => void;
   onAllEntriesSelect: () => void;
+  entries: SavedEntry[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   savedEntriesCount, 
   onAddEntry, 
   onCategorySelect,
-  onAllEntriesSelect 
+  onAllEntriesSelect,
+  entries 
 }) => {
   const location = useLocation();
+  const { filterEntriesByCategory } = useCategoryFilter();
 
   const categories = [
-    { name: "Documents", icon: FileText, count: 12, color: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" },
-    { name: "Health", icon: Heart, count: 8, color: "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300" },
-    { name: "Contacts", icon: Users, count: 24, color: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300" },
-    { name: "Finance", icon: DollarSign, count: 6, color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300" },
-    { name: "Personal", icon: User, count: 15, color: "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300" },
+    { name: "Documents", icon: FileText, color: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300" },
+    { name: "Health", icon: Heart, color: "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300" },
+    { name: "Contacts", icon: Users, color: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300" },
+    { name: "Finance", icon: DollarSign, color: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300" },
+    { name: "Personal", icon: User, color: "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300" },
   ];
 
   return (
@@ -89,6 +94,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="space-y-1">
             {categories.map((category) => {
               const Icon = category.icon;
+              const categoryEntries = filterEntriesByCategory(entries, category.name);
+              const count = categoryEntries.length;
+              
               return (
                 <Button
                   key={category.name}
@@ -101,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   {category.name}
                   <Badge variant="outline" className="ml-auto text-xs">
-                    {category.count}
+                    {count}
                   </Badge>
                 </Button>
               );

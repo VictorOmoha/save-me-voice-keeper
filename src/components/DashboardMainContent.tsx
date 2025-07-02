@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatsCards } from "@/components/StatsCards";
 import { RecentEntries } from "@/components/RecentEntries";
@@ -108,7 +109,10 @@ export const DashboardMainContent = ({
 
         {/* Categories Panel */}
         <div>
-          <CategoriesPanel onCategorySelect={onCategorySelect} />
+          <CategoriesPanel 
+            onCategorySelect={onCategorySelect} 
+            entries={savedEntries}
+          />
         </div>
       </div>
 

@@ -193,6 +193,7 @@ const Dashboard = () => {
         onAddEntry={handleAddEntryWithCategory}
         onCategorySelect={handleCategorySelect}
         onAllEntriesSelect={handleAllEntriesSelect}
+        entries={savedEntries}
       />
       
       <div className="flex-1 flex flex-col">
@@ -227,7 +228,7 @@ const Dashboard = () => {
               onDelete={deleteEntry}
               onFill={fillEntry}
               onCreateEntry={handleCreateEntryForCategory}
-              showDocumentCreator={showDocumentCreator}
+              showDocumentCreator={showDocumentCreator}  
               showAddEntry={showAddEntry}
               editingEntry={editingEntry}
               fillingEntry={fillingEntry}

@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { FileText, FolderOpen, HardDrive, Activity } from "lucide-react";
 import { SavedEntry } from "@/pages/Dashboard";
 import { useStorageStats } from "@/hooks/useStorageStats";
+import { getRecentActivityCount } from "@/utils/storageUtils";
 
 interface StatsCardsProps {
   totalEntries: number;
@@ -12,6 +13,7 @@ interface StatsCardsProps {
 
 export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries }) => {
   const storageStats = useStorageStats(entries);
+  const recentActivityCount = getRecentActivityCount(entries);
   const stats = [
     {
       title: "Total Entries",
@@ -41,7 +43,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries })
     },
     {
       title: "Recent Activity",
-      value: "8",
+      value: recentActivityCount.toString(),
       value_subtitle: "entries this week",
       icon: Activity,
       color: "text-orange-600 dark:text-orange-400",

@@ -34,3 +34,13 @@ export const getStorageLimit = (): number => {
 export const calculateStoragePercentage = (used: number, limit: number): number => {
   return Math.round((used / limit) * 100);
 };
+
+export const getRecentActivityCount = (entries: any[]): number => {
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  
+  return entries.filter(entry => {
+    const entryDate = new Date(entry.createdAt);
+    return entryDate >= oneWeekAgo;
+  }).length;
+};

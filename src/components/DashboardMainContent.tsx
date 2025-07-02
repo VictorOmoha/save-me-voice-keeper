@@ -1,20 +1,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { StatsCards } from "@/components/StatsCards";
 import { RecentEntries } from "@/components/RecentEntries";
 import { CategoriesPanel } from "@/components/CategoriesPanel";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { DataEntryForm } from "@/components/DataEntryForm";
-import { SearchBar } from "@/components/SearchBar";
-import { VoiceInput } from "@/components/VoiceInput";
-import { EnhancedVoiceInput } from "@/components/EnhancedVoiceInput";
-import { useTheme } from "@/components/ThemeProvider";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, Sun, Moon, User, LogOut, Mic } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { SavedEntry } from "@/pages/Dashboard";
 
 interface DashboardMainContentProps {
@@ -38,14 +29,6 @@ interface DashboardMainContentProps {
   onVoiceCommand: (command: any) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  onEnhancedVoiceInput: (input: string) => void;
-  isVoiceProcessing: boolean;
-  lastVoiceCommand: any;
-  conversationState: any;
-  hasPendingConfirmation: boolean;
-  onCancel: () => void;
 }
 
 export const DashboardMainContent = ({
@@ -69,99 +52,15 @@ export const DashboardMainContent = ({
   onVoiceCommand,
   onEditEntry,
   onFillEntry,
-  searchQuery,
-  onSearchChange,
-  onEnhancedVoiceInput,
-  isVoiceProcessing,
-  lastVoiceCommand,
-  conversationState,
-  hasPendingConfirmation,
-  onCancel,
 }: DashboardMainContentProps) => {
-  const { theme, setTheme } = useTheme();
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        toast.error("Failed to sign out");
-      } else {
-        toast.success("Signed out successfully");
-        window.location.href = '/login';
-      }
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error("Failed to sign out");
-    }
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-
-  const getInitials = (name?: string) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Header with Search and Controls */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
-            Welcome back, {userName}! 👋
-          </h1>
-          <p className="text-muted-foreground">Here's what's happening with your information today.</p>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {/* Search Bar */}
-          <div className="max-w-md">
-            <SearchBar 
-              searchQuery={searchQuery} 
-              onSearchChange={onSearchChange}
-            />
-          </div>
-          
-          {/* Voice Input (Compact) */}
-          <Button variant="ghost" size="sm" className="p-2">
-            <Mic className="w-5 h-5" />
-          </Button>
-          
-          {/* Notifications */}
-          <Button variant="ghost" size="sm" className="p-2 relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs"></span>
-          </Button>
-          
-          {/* Theme Toggle */}
-          <Button variant="ghost" size="sm" className="p-2" onClick={toggleTheme}>
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </Button>
-          
-          {/* Profile */}
-          <div className="flex items-center gap-2">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src="" alt={userName} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                {getInitials(userName)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm font-medium hidden md:block">{userName}</span>
-          </div>
-          
-          {/* Sign Out */}
-          <Button 
-            onClick={handleSignOut}
-            variant="ghost"
-            size="sm"
-            className="p-2"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </div>
+    <>
+      {/* Welcome Section */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-2">
+          Welcome back, {userName}! 👋
+        </h1>
+        <p className="text-muted-foreground">Here's what's happening with your information today.</p>
       </div>
 
       {/* Stats Cards */}
@@ -231,23 +130,6 @@ export const DashboardMainContent = ({
           onVoiceCommand={onVoiceCommand}
         />
       </div>
-
-      {/* Hidden Voice Components for Functionality */}
-      <div className="hidden">
-        <VoiceInput 
-          onVoiceResult={onVoiceResult}
-          onVoiceCommand={onVoiceCommand}
-        />
-        
-        <EnhancedVoiceInput
-          onVoiceInput={onEnhancedVoiceInput}
-          isProcessing={isVoiceProcessing}
-          lastCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancel={onCancel}
-        />
-      </div>
-    </div>
+    </>
   );
 };

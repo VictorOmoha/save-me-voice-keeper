@@ -2,6 +2,7 @@
 import { SearchBar } from "./SearchBar";
 import { VoiceInput } from "./VoiceInput";
 import { EnhancedVoiceInput } from "./EnhancedVoiceInput";
+import { SavedEntry } from "@/pages/Dashboard";
 import { Button } from "./ui/button";
 import { LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ interface DashboardTopHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   userName?: string;
+  entries: SavedEntry[];
   onVoiceResult: (result: string) => void;
   onVoiceCommand: (command: VoiceCommand) => void;
   onEnhancedVoiceInput: (input: string) => void;
@@ -20,13 +22,14 @@ interface DashboardTopHeaderProps {
   lastVoiceCommand: EnhancedVoiceCommand | null;
   conversationState: any;
   hasPendingConfirmation: boolean;
-  onCancel: () => void;
+  onCancelVoiceOperation: () => void;
 }
 
 export const DashboardTopHeader = ({
   searchQuery,
   onSearchChange,
   userName,
+  entries,
   onVoiceResult,
   onVoiceCommand,
   onEnhancedVoiceInput,
@@ -34,7 +37,7 @@ export const DashboardTopHeader = ({
   lastVoiceCommand,
   conversationState,
   hasPendingConfirmation,
-  onCancel,
+  onCancelVoiceOperation,
 }: DashboardTopHeaderProps) => {
   const handleSignOut = async () => {
     try {
@@ -55,7 +58,7 @@ export const DashboardTopHeader = ({
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
-        <div className="flex-1 max-w-2xl">
+        <div className="flex-1">
           <SearchBar 
             searchQuery={searchQuery} 
             onSearchChange={onSearchChange}
@@ -74,7 +77,7 @@ export const DashboardTopHeader = ({
             lastCommand={lastVoiceCommand}
             conversationState={conversationState}
             hasPendingConfirmation={hasPendingConfirmation}
-            onCancel={onCancel}
+            onCancelCurrentOperation={onCancelVoiceOperation}
           />
           
           <div className="flex items-center space-x-2 text-sm text-gray-600">

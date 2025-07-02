@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { SavedEntry } from "@/pages/Dashboard";
 import { EnhancedVoiceCommand, voiceProcessor, VoiceContext } from "@/utils/enhancedVoiceProcessor";
@@ -116,11 +115,10 @@ export const useEnhancedVoice = ({
     onCreateEntry(newEntry);
     toast.success(`Created: ${newEntry.title}`);
     
-    // Always speak the response for successful commands
-    if (command.conversationalResponse) {
-      console.log('Speaking response for create command:', command.conversationalResponse);
-      await speak(command.conversationalResponse);
-    }
+    // Force speech for successful create commands
+    const response = command.conversationalResponse || `Successfully created ${newEntry.title}`;
+    console.log('Forcing speech for create command:', response);
+    setTimeout(() => speak(response), 500);
   };
 
   const handleDeleteCommand = async (command: EnhancedVoiceCommand) => {
@@ -130,17 +128,16 @@ export const useEnhancedVoice = ({
       setConversationState('confirming');
       toast.info('Confirmation needed');
       
-      // Speak confirmation request
-      if (command.conversationalResponse) {
-        console.log('Speaking confirmation request:', command.conversationalResponse);
-        await speak(command.conversationalResponse);
-      }
+      // Force speech for confirmation request
+      const response = command.conversationalResponse || 'Do you want to proceed with deleting this entry?';
+      console.log('Forcing speech for confirmation:', response);
+      setTimeout(() => speak(response), 500);
       return;
     }
 
     if (parameters.confirmed === false) {
       toast.info('Delete cancelled');
-      await speak('Okay, I\'ve cancelled the delete operation.');
+      setTimeout(() => speak('Okay, I\'ve cancelled the delete operation.'), 500);
       return;
     }
 
@@ -153,9 +150,9 @@ export const useEnhancedVoice = ({
 
     entriesToDelete.forEach(entry => onDeleteEntry(entry.id));
     
-    const message = `Deleted ${entriesToDelete.length} entry(ies)`;
+    const message = `Deleted ${entriesToDelete.length} entry or entries`;
     toast.success(message);
-    await speak(message);
+    setTimeout(() => speak(message), 500);
   };
 
   const handleEditCommand = async (command: EnhancedVoiceCommand) => {
@@ -171,14 +168,13 @@ export const useEnhancedVoice = ({
       onEditEntry(entryToEdit);
       toast.success(`Opening: ${entryToEdit.title}`);
       
-      // Speak the response
-      if (command.conversationalResponse) {
-        console.log('Speaking response for edit command:', command.conversationalResponse);
-        await speak(command.conversationalResponse);
-      }
+      // Force speech for successful edit commands
+      const response = command.conversationalResponse || `Opening ${entryToEdit.title} for editing`;
+      console.log('Forcing speech for edit command:', response);
+      setTimeout(() => speak(response), 500);
     } else {
       toast.error('Entry not found');
-      await speak('I couldn\'t find that entry. Could you be more specific?');
+      setTimeout(() => speak('I couldn\'t find that entry. Could you be more specific?'), 500);
     }
   };
 
@@ -187,11 +183,10 @@ export const useEnhancedVoice = ({
     onSearch(parameters.query || parameters.term || '');
     toast.success('Search executed');
     
-    // Speak the response
-    if (command.conversationalResponse) {
-      console.log('Speaking response for search command:', command.conversationalResponse);
-      await speak(command.conversationalResponse);
-    }
+    // Force speech for search commands
+    const response = command.conversationalResponse || `Searching for ${parameters.query || parameters.term}`;
+    console.log('Forcing speech for search command:', response);
+    setTimeout(() => speak(response), 500);
   };
 
   const handleNavigateCommand = async (command: EnhancedVoiceCommand) => {
@@ -199,11 +194,10 @@ export const useEnhancedVoice = ({
     onNavigate(parameters.view || parameters.destination, parameters);
     toast.success('Navigation completed');
     
-    // Speak the response
-    if (command.conversationalResponse) {
-      console.log('Speaking response for navigate command:', command.conversationalResponse);
-      await speak(command.conversationalResponse);
-    }
+    // Force speech for navigation commands
+    const response = command.conversationalResponse || 'Navigation completed';
+    console.log('Forcing speech for navigate command:', response);
+    setTimeout(() => speak(response), 500);
   };
 
   const handleExportCommand = async (command: EnhancedVoiceCommand) => {
@@ -211,11 +205,10 @@ export const useEnhancedVoice = ({
     onExport(parameters.format || 'csv', parameters.filter);
     toast.success('Export initiated');
     
-    // Speak the response
-    if (command.conversationalResponse) {
-      console.log('Speaking response for export command:', command.conversationalResponse);
-      await speak(command.conversationalResponse);
-    }
+    // Force speech for export commands
+    const response = command.conversationalResponse || 'Export has been initiated';
+    console.log('Forcing speech for export command:', response);
+    setTimeout(() => speak(response), 500);
   };
 
   const handleBulkOperationCommand = async (command: EnhancedVoiceCommand) => {
@@ -225,44 +218,41 @@ export const useEnhancedVoice = ({
       setConversationState('confirming');
       toast.info('Confirmation needed for bulk operation');
       
-      // Speak confirmation request
-      if (command.conversationalResponse) {
-        console.log('Speaking confirmation request for bulk operation:', command.conversationalResponse);
-        await speak(command.conversationalResponse);
-      }
+      // Force speech for bulk operation confirmation
+      const response = command.conversationalResponse || 'Do you want to proceed with this bulk operation?';
+      console.log('Forcing speech for bulk confirmation:', response);
+      setTimeout(() => speak(response), 500);
       return;
     }
 
     if (parameters.confirmed === false) {
       toast.info('Bulk operation cancelled');
-      await speak('Okay, I\'ve cancelled the bulk operation.');
+      setTimeout(() => speak('Okay, I\'ve cancelled the bulk operation.'), 500);
       return;
     }
 
     onBulkOperation(parameters.operation, parameters.criteria);
     toast.success('Bulk operation completed');
-    await speak('Bulk operation completed successfully.');
+    setTimeout(() => speak('Bulk operation completed successfully.'), 500);
   };
 
   const handleFormFillCommand = async (command: EnhancedVoiceCommand) => {
     // This would integrate with form filling logic
     toast.success('Form filling initiated');
     
-    // Speak the response
-    if (command.conversationalResponse) {
-      console.log('Speaking response for form fill command:', command.conversationalResponse);
-      await speak(command.conversationalResponse);
-    }
+    // Force speech for form fill commands
+    const response = command.conversationalResponse || 'Form filling has been initiated';
+    console.log('Forcing speech for form fill command:', response);
+    setTimeout(() => speak(response), 500);
   };
 
   const handleConversationCommand = async (command: EnhancedVoiceCommand) => {
     toast.info('Voice Assistant');
     
-    // Always speak conversation responses
-    if (command.conversationalResponse) {
-      console.log('Speaking conversation response:', command.conversationalResponse);
-      await speak(command.conversationalResponse);
-    }
+    // Always force speech for conversation responses
+    const response = command.conversationalResponse || 'Hello! How can I help you today?';
+    console.log('Forcing speech for conversation response:', response);
+    setTimeout(() => speak(response), 500);
   };
 
   const processVoiceInput = useCallback(async (transcript: string) => {
@@ -303,7 +293,7 @@ export const useEnhancedVoice = ({
     setConversationState('idle');
     setLastCommand(null);
     toast.info('Operation cancelled');
-    speak('Operation cancelled.');
+    setTimeout(() => speak('Operation cancelled.'), 500);
   }, []);
 
   return {

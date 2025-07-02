@@ -12,7 +12,7 @@ import { VoiceInput } from "@/components/VoiceInput";
 import { EnhancedVoiceInput } from "@/components/EnhancedVoiceInput";
 import { useTheme } from "@/components/ThemeProvider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Bell, Sun, Moon, User, LogOut } from "lucide-react";
+import { Bell, Sun, Moon, User, LogOut, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SavedEntry } from "@/pages/Dashboard";
@@ -127,7 +127,7 @@ export const DashboardMainContent = ({
           
           {/* Voice Input (Compact) */}
           <Button variant="ghost" size="sm" className="p-2">
-            <mic className="w-5 h-5" />
+            <Mic className="w-5 h-5" />
           </Button>
           
           {/* Notifications */}

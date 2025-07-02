@@ -1,4 +1,3 @@
-
 import { SavedEntry } from "@/pages/Dashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,7 +44,7 @@ export const useDashboardActions = ({
         toast.success("Entry updated successfully!");
         setEditingEntry(null);
       } else {
-        // Create new entry
+        // Create new entry - user_id will be set automatically by the database trigger
         const { error } = await supabase
           .from('entries')
           .insert({

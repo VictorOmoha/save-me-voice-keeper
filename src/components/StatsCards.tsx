@@ -9,10 +9,11 @@ import { getRecentActivityCount } from "@/utils/storageUtils";
 interface StatsCardsProps {
   totalEntries: number;
   entries: SavedEntry[];
+  userTier?: string;
 }
 
-export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries }) => {
-  const storageStats = useStorageStats(entries);
+export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, userTier = 'free' }) => {
+  const storageStats = useStorageStats(entries, userTier);
   const recentActivityCount = getRecentActivityCount(entries);
   const stats = [
     {

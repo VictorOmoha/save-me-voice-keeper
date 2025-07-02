@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { SavedEntry } from '@/pages/Dashboard';
 import { 
   calculateLocalStorageSize, 
-  calculateEntryDataSize, 
+  calculateDatabaseStorageSize, 
   getStorageLimit,
   calculateStoragePercentage,
   formatBytes 
@@ -19,12 +19,12 @@ interface StorageStats {
   availableFormatted: string;
 }
 
-export const useStorageStats = (entries: SavedEntry[]): StorageStats => {
+export const useStorageStats = (entries: SavedEntry[], userTier?: string): StorageStats => {
   return useMemo(() => {
     const localStorageUsed = calculateLocalStorageSize();
-    const databaseUsed = calculateEntryDataSize(entries);
+    const databaseUsed = calculateDatabaseStorageSize(entries);
     const totalUsed = localStorageUsed + databaseUsed;
-    const limit = getStorageLimit();
+    const limit = getStorageLimit(userTier);
     const percentage = calculateStoragePercentage(totalUsed, limit);
     const available = limit - totalUsed;
 
@@ -38,5 +38,5 @@ export const useStorageStats = (entries: SavedEntry[]): StorageStats => {
       percentage,
       availableFormatted: formatBytes(available),
     };
-  }, [entries]);
+  }, [entries, userTier]);
 };

@@ -8,27 +8,64 @@ export const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
-export const calculateLocalStorageSize = (): number => {
+export const calculateDatabaseStorageSize = (entries: any[]): number => {
   let totalSize = 0;
   
-  for (let key in localStorage) {
-    if (localStorage.hasOwnProperty(key)) {
-      totalSize += localStorage[key].length + key.length;
+  entries.forEach(entry => {
+    // Calculate size of the entry data
+    const entryData = {
+      id: entry.id,
+      title: entry.title,
+      fields: entry.fields,
+      field_definitions: entry.field_definitions,
+      created_at: entry.created_at,
+      updated_at: entry.updated_at,
+      user_id: entry.user_id
+    };
+    
+    const entryString = JSON.stringify(entryData);
+    totalSize += entryString.length * 2; // UTF-16 bytes estimate
+    
+    // Add extra calculation for field data
+    if (entry.fields) {
+      Object.values(entry.fields).forEach((value: any) => {
+        if (typeof value === 'string') {
+          totalSize += value.length * 2;
+        }
+      });
     }
-  }
+  });
   
-  // Convert to bytes (rough estimate, each character is ~2 bytes in UTF-16)
-  return totalSize * 2;
+  return totalSize;
 };
 
-export const calculateEntryDataSize = (entries: any[]): number => {
-  const entriesString = JSON.stringify(entries);
-  return entriesString.length * 2; // UTF-16 bytes estimate
+export const calculateLocalStorageSize = (): number => {
+  // Since we're now using Supabase, local storage should be minimal
+  // Only count auth tokens and app preferences
+  let totalSize = 0;
+  
+  const relevantKeys = ['supabase.auth.token', 'ui-theme', 'savedEntries'];
+  
+  relevantKeys.forEach(key => {
+    const item = localStorage.getItem(key);
+    if (item) {
+      totalSize += (item.length + key.length) * 2;
+    }
+  });
+  
+  return totalSize;
 };
 
-export const getStorageLimit = (): number => {
-  // 10 GB limit in bytes
-  return 10 * 1024 * 1024 * 1024;
+export const getStorageLimit = (userTier: string = 'free'): number => {
+  // Storage limits based on subscription tier
+  const limits = {
+    free: 500 * 1024 * 1024,      // 500 MB
+    basic: 5 * 1024 * 1024 * 1024, // 5 GB  
+    premium: 50 * 1024 * 1024 * 1024, // 50 GB
+    enterprise: 500 * 1024 * 1024 * 1024 // 500 GB
+  };
+  
+  return limits[userTier as keyof typeof limits] || limits.free;
 };
 
 export const calculateStoragePercentage = (used: number, limit: number): number => {

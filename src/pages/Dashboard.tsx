@@ -246,6 +246,7 @@ const Dashboard = () => {
           ) : (
             <DashboardMainContent
               userName={user?.full_name || user?.email}
+              userTier={user?.subscriptionTier}
               savedEntries={savedEntries}
               showDocumentCreator={showDocumentCreator}
               showAddEntry={showAddEntry}

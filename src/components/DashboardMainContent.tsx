@@ -10,6 +10,7 @@ import { SavedEntry } from "@/pages/Dashboard";
 
 interface DashboardMainContentProps {
   userName?: string;
+  userTier?: string;
   savedEntries: SavedEntry[];
   showDocumentCreator: boolean;
   showAddEntry: boolean;
@@ -32,6 +33,7 @@ interface DashboardMainContentProps {
 
 export const DashboardMainContent = ({
   userName,
+  userTier = 'free',
   savedEntries,
   showDocumentCreator,
   showAddEntry,
@@ -62,7 +64,7 @@ export const DashboardMainContent = ({
       </div>
 
       {/* Stats Cards */}
-      <StatsCards totalEntries={savedEntries.length} entries={savedEntries} />
+      <StatsCards totalEntries={savedEntries.length} entries={savedEntries} userTier={userTier} />
 
       {/* Document Creator */}
       {showDocumentCreator && (

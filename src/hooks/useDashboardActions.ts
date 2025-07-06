@@ -56,13 +56,14 @@ export const useDashboardActions = ({
         toast.success("Entry updated successfully!");
         setEditingEntry(null);
       } else {
-        // Create new entry - user_id will be set automatically by the database trigger
+        // Create new entry - explicitly set user_id and let trigger handle validation
         const { data, error } = await supabase
           .from('entries')
           .insert({
             title: entry.title,
             fields: entry.fields as any,
             field_definitions: entry.fieldDefinitions as any,
+            user_id: user.id,
           })
           .select()
           .single();

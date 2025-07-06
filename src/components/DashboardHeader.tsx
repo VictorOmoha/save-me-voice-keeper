@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTheme } from "@/components/ThemeProvider";
 
 interface DashboardHeaderProps {
   searchQuery: string;
@@ -24,7 +25,7 @@ export const DashboardHeader = ({
   onSearchChange,
   userName,
 }: DashboardHeaderProps) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme, setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handleSignOut = async () => {
@@ -44,8 +45,7 @@ export const DashboardHeader = ({
   };
 
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // Add theme toggle logic here
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const userInitials = userName 
@@ -93,7 +93,7 @@ export const DashboardHeader = ({
             className="text-muted-foreground hover:text-foreground"
             onClick={toggleTheme}
           >
-            {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </Button>
 
           {/* User Avatar */}

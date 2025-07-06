@@ -1,13 +1,16 @@
 
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sun, Moon, Mic, RefreshCcw, Zap } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { WaitingListModal } from "@/components/WaitingListModal";
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
+  const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
   
   const toggleTheme = () => {
     if (theme === "light") {
@@ -115,11 +118,13 @@ const Index = () => {
             Save Me is your AI-powered personal information manager. Store, organize, and retrieve any data with voice commands across all your devices.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/signup">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-8 py-3 text-lg">
-                Start Free Trial
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-8 py-3 text-lg"
+              onClick={() => setIsWaitingListModalOpen(true)}
+            >
+              Join Waiting List
+            </Button>
             <Button size="lg" variant="outline" className="px-8 py-3 text-lg border-gray-300 dark:border-gray-600 text-foreground hover:bg-accent">
               Watch Demo
             </Button>
@@ -292,15 +297,17 @@ const Index = () => {
                       </li>
                     ))}
                   </ul>
-                  <Link to="/signup">
-                    <Button className={`w-full ${
+                  <Button 
+                    className={`w-full ${
                       plan.popular 
                         ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' 
                         : ''
-                    }`} variant={plan.popular ? 'default' : 'outline'}>
-                      {plan.name === 'Free' ? 'Get Started Free' : 'Start Free Trial'}
-                    </Button>
-                  </Link>
+                    }`} 
+                    variant={plan.popular ? 'default' : 'outline'}
+                    onClick={() => setIsWaitingListModalOpen(true)}
+                  >
+                    Join Waiting List
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -327,6 +334,11 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      <WaitingListModal 
+        open={isWaitingListModalOpen} 
+        onOpenChange={setIsWaitingListModalOpen} 
+      />
     </div>
   );
 };

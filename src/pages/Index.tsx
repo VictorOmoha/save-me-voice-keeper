@@ -127,6 +127,91 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Demo Section */}
+      <section className="py-20 px-4 bg-gray-50 dark:bg-gray-800/30">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+              See Save Me in Action
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Experience our intuitive dashboard that adapts to your preferences with seamless dark and light modes
+            </p>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-8 items-start">
+            {/* Light Mode Demo */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                <span className="text-sm font-medium text-muted-foreground">Light Mode</span>
+              </div>
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+                <div className="relative">
+                  <img 
+                    src="/lovable-uploads/bc240c60-e282-4d87-8e60-f2af2366f886.png" 
+                    alt="Save Me Dashboard - Light Mode" 
+                    className="w-full rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dark Mode Demo */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-3 h-3 bg-indigo-400 rounded-full"></div>
+                <span className="text-sm font-medium text-muted-foreground">Dark Mode</span>
+              </div>
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+                <div className="relative">
+                  <img 
+                    src="/lovable-uploads/a98a0b41-8946-445c-97c4-379ad69e55bd.png" 
+                    alt="Save Me Dashboard - Dark Mode" 
+                    className="w-full rounded-lg shadow-2xl border border-gray-700"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="mt-16 grid md:grid-cols-3 gap-6">
+            <div className="text-center p-6">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">Smart Dashboard</h3>
+              <p className="text-sm text-muted-foreground">Organize your information with an intuitive dashboard that shows everything at a glance</p>
+            </div>
+            
+            <div className="text-center p-6">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">Category System</h3>
+              <p className="text-sm text-muted-foreground">Keep everything organized with smart categories that adapt to your workflow</p>
+            </div>
+            
+            <div className="text-center p-6">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-foreground mb-2">Powerful Search</h3>
+              <p className="text-sm text-muted-foreground">Find anything instantly with our advanced search that understands your needs</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-20 px-4 bg-white dark:bg-gray-800/50">
         <div className="max-w-6xl mx-auto">

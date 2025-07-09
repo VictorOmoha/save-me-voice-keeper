@@ -32,16 +32,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
+        
+        if (!mounted) return;
+        
         setSession(session);
         
         if (session?.user) {
           // Defer profile fetching to avoid potential deadlocks
           setTimeout(() => {
-            fetchAndSetUser(session);
+            if (mounted) {
+              fetchAndSetUser(session);
+            }
           }, 0);
         } else {
           setUser(null);
@@ -57,21 +64,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
           console.error('Error getting session:', error);
+          if (mounted) setIsLoading(false);
         } else if (session) {
-          // Don't set loading to false here - let onAuthStateChange handle it
           console.log('Initial session found:', session.user?.email);
+          // Force trigger auth state change for OAuth redirects
+          if (mounted) {
+            setSession(session);
+            setTimeout(() => {
+              if (mounted) {
+                fetchAndSetUser(session);
+              }
+            }, 0);
+            setIsLoading(false);
+          }
         } else {
-          setIsLoading(false);
+          if (mounted) setIsLoading(false);
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
 
     getInitialSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchAndSetUser = async (session: any) => {

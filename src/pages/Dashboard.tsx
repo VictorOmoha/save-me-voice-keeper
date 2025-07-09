@@ -9,7 +9,7 @@ import { DashboardMainContent } from "@/components/DashboardMainContent";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 const Dashboard = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const {
     searchQuery,
     setSearchQuery,
@@ -77,12 +77,18 @@ const Dashboard = () => {
     hasPendingConfirmation
   });
 
-  if (!isAuthenticated) {
+  // Check for OAuth callback in URL - don't redirect if this is an OAuth callback
+  const isOAuthCallback = window.location.search.includes('code=') || 
+                         window.location.hash.includes('access_token') ||
+                         window.location.pathname === '/dashboard';
+
+  // Don't redirect if we're loading or if this is an OAuth callback
+  if (!isAuthenticated && !authLoading && !isOAuthCallback) {
     return <Navigate to="/login" replace />;
   }
 
-  // Show loading state while entries are being loaded
-  if (isLoading) {
+  // Show loading state while auth is loading or entries are being loaded
+  if (authLoading || isLoading || (!isAuthenticated && isOAuthCallback)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

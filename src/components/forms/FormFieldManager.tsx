@@ -23,7 +23,7 @@ export const FormFieldManager: React.FC<FormFieldManagerProps> = ({
       <label className="text-lg font-semibold text-foreground">
         {isFillMode ? 'Fill in the Data' : 'Custom Fields'}
       </label>
-      {isEditMode && (
+      {(isEditMode || isFillMode) && (
         <button type="button" onClick={onAddField} className="px-3 py-1 text-sm border border-border rounded hover:bg-accent">
           Add Field
         </button>

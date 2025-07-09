@@ -60,7 +60,8 @@ const ResetPassword = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
+              variant="gradient"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? "Sending..." : "Send Reset Link"}

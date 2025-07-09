@@ -71,7 +71,8 @@ const Login = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
+              variant="gradient"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign In"}

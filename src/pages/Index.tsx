@@ -99,7 +99,7 @@ const Index = () => {
                 <Button variant="ghost" className="text-foreground hover:text-foreground">Login</Button>
               </Link>
               <Link to="/signup">
-                <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
+                <Button variant="gradient">
                   Sign Up
                 </Button>
               </Link>
@@ -120,7 +120,8 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-8 py-3 text-lg"
+              variant="gradient"
+              className="px-8 py-3 text-lg"
               onClick={() => setIsWaitingListModalOpen(true)}
             >
               Join Waiting List
@@ -279,7 +280,7 @@ const Index = () => {
                 plan.popular ? 'border-blue-500 shadow-lg scale-105' : ''
               }`}>
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
+                  <Badge variant="default" className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
                     Most Popular
                   </Badge>
                 )}
@@ -298,12 +299,8 @@ const Index = () => {
                     ))}
                   </ul>
                   <Button 
-                    className={`w-full ${
-                      plan.popular 
-                        ? 'bg-gradient-primary hover:opacity-90 text-primary-foreground' 
-                        : ''
-                    }`} 
-                    variant={plan.popular ? 'default' : 'outline'}
+                    variant={plan.popular ? "gradient" : "default"}
+                    className="w-full"
                     onClick={() => setIsWaitingListModalOpen(true)}
                   >
                     Join Waiting List

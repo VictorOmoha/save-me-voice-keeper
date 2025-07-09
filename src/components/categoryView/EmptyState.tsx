@@ -22,7 +22,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         </p>
         <Button 
           onClick={onCreateEntry}
-          variant="gradient"
+          className="bg-gradient-primary hover:opacity-90 text-primary-foreground"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create {categoryName.slice(0, -1)}

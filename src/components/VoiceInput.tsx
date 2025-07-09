@@ -168,8 +168,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
               <Button
                 type="button"
                 onClick={startListening}
-                variant="gradient"
-                className="flex-1"
+                className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground"
               >
                 <Mic className="w-4 h-4 mr-2" />
                 Start Listening

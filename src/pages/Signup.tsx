@@ -84,8 +84,7 @@ const Signup = () => {
             </div>
             <Button 
               type="submit" 
-              variant="gradient"
-              className="w-full"
+              className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
               disabled={isLoading}
             >
               {isLoading ? "Creating account..." : "Create Account"}

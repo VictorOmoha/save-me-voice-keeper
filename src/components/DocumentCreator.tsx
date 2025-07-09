@@ -406,7 +406,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
             <X className="w-4 h-4 mr-2" />
             Cancel
           </Button>
-          <Button type="submit" variant="gradient">
+          <Button type="submit" className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
             <FileText className="w-4 h-4 mr-2" />
             Save Document
           </Button>

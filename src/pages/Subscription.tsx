@@ -124,7 +124,7 @@ const Subscription = () => {
               plan.current ? 'border-blue-500 shadow-lg' : ''
             }`}>
               {plan.current && (
-                <Badge variant="default" className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
                   Current Plan
                 </Badge>
               )}
@@ -143,8 +143,7 @@ const Subscription = () => {
                   ))}
                 </ul>
                 <Button 
-                  variant={plan.current ? "outline" : "gradient"}
-                  className="w-full"
+                  className={`w-full ${plan.current ? 'bg-gray-400' : 'bg-gradient-primary hover:opacity-90 text-primary-foreground'}`}
                   disabled={plan.current}
                   onClick={() => handleUpgrade(plan.name)}
                 >

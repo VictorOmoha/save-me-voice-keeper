@@ -32,33 +32,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error getting session:', error);
-        } else {
-          setSession(session);
-          if (session?.user) {
-            await fetchAndSetUser(session);
-          }
-        }
-      } catch (error) {
-        console.error('Error in getInitialSession:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         
         if (session?.user) {
-          await fetchAndSetUser(session);
+          // Defer profile fetching to avoid potential deadlocks
+          setTimeout(() => {
+            fetchAndSetUser(session);
+          }, 0);
         } else {
           setUser(null);
         }
@@ -67,7 +51,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Get initial session
+    // THEN get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+        } else if (session) {
+          // Don't set loading to false here - let onAuthStateChange handle it
+          console.log('Initial session found:', session.user?.email);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+        setIsLoading(false);
+      }
+    };
+
     getInitialSession();
 
     return () => subscription.unsubscribe();

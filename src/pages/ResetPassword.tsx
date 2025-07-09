@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,8 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-1 mb-4">
             <img 
@@ -37,17 +38,17 @@ const ResetPassword = () => {
               alt="Save Me Logo" 
               className="w-16 h-16 object-contain"
             />
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
               Save Me
             </span>
           </div>
-          <CardTitle className="text-2xl">Reset Password</CardTitle>
-          <CardDescription>Enter your email to receive a password reset link</CardDescription>
+          <CardTitle className="text-2xl text-card-foreground">Reset Password</CardTitle>
+          <CardDescription className="text-muted-foreground">Enter your email to receive a password reset link</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -56,11 +57,13 @@ const ResetPassword = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                className="bg-background border-border text-foreground"
               />
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
+              variant="gradient"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? "Sending..." : "Send Reset Link"}

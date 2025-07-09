@@ -28,8 +28,8 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-card border-border">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-1 mb-4">
             <img 
@@ -37,17 +37,17 @@ const Signup = () => {
               alt="Save Me Logo" 
               className="w-16 h-16 object-contain"
             />
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
               Save Me
             </span>
           </div>
-          <CardTitle className="text-2xl">Create Your Account</CardTitle>
-          <CardDescription>Start organizing your information today</CardDescription>
+          <CardTitle className="text-2xl text-card-foreground">Create Your Account</CardTitle>
+          <CardDescription className="text-muted-foreground">Start organizing your information today</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className="text-foreground">Full Name</Label>
               <Input
                 id="name"
                 type="text"
@@ -56,10 +56,11 @@ const Signup = () => {
                 onChange={(e) => setName(e.target.value)}
                 required
                 disabled={isLoading}
+                className="bg-background border-border text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -68,10 +69,11 @@ const Signup = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                className="bg-background border-border text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -80,11 +82,13 @@ const Signup = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                className="bg-background border-border text-foreground"
               />
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
+              variant="gradient"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? "Creating account..." : "Create Account"}

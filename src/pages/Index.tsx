@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -71,7 +70,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-background dark:bg-gradient-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Navigation */}
       <nav className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -82,7 +81,7 @@ const Index = () => {
                 alt="Save Me Logo" 
                 className="w-12 h-12 object-contain"
               />
-              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                 Save Me
               </span>
             </div>
@@ -99,7 +98,7 @@ const Index = () => {
                 <Button variant="ghost" className="text-foreground hover:text-foreground">Login</Button>
               </Link>
               <Link to="/signup">
-                <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
+                <Button variant="gradient">
                   Sign Up
                 </Button>
               </Link>
@@ -111,7 +110,7 @@ const Index = () => {
       {/* Hero Section */}
       <section className="py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-accent bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Never Lose Important Information Again
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
@@ -120,7 +119,8 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-8 py-3 text-lg"
+              variant="gradient"
+              className="px-8 py-3 text-lg"
               onClick={() => setIsWaitingListModalOpen(true)}
             >
               Join Waiting List
@@ -279,7 +279,7 @@ const Index = () => {
                 plan.popular ? 'border-blue-500 shadow-lg scale-105' : ''
               }`}>
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
                     Most Popular
                   </Badge>
                 )}
@@ -298,12 +298,8 @@ const Index = () => {
                     ))}
                   </ul>
                   <Button 
-                    className={`w-full ${
-                      plan.popular 
-                        ? 'bg-gradient-primary hover:opacity-90 text-primary-foreground' 
-                        : ''
-                    }`} 
-                    variant={plan.popular ? 'default' : 'outline'}
+                    className="w-full" 
+                    variant={plan.popular ? 'gradient' : 'outline'}
                     onClick={() => setIsWaitingListModalOpen(true)}
                   >
                     Join Waiting List

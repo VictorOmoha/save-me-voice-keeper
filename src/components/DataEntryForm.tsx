@@ -94,10 +94,10 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button type="button" onClick={onCancel} variant="outline">
+          <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border">
             Cancel
           </Button>
-          <Button type="submit" className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
+          <Button type="submit" variant="gradient">
             {editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
           </Button>
         </div>

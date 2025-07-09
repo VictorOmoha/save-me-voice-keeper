@@ -33,7 +33,8 @@ export const DashboardLayout = ({
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar 
-        savedEntries={savedEntries}
+        savedEntriesCount={savedEntries.length}
+        entries={savedEntries}
         onAddEntry={onAddEntry}
         onCategorySelect={onCategorySelect}
         onAllEntriesSelect={onAllEntriesSelect}

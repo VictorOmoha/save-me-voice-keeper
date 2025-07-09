@@ -90,10 +90,11 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
     return (
       <DataEntryForm
         mode={getFormMode()}
-        editEntry={editingEntry}
-        templateEntry={fillingEntry}
+        title={getFormTitle()}
+        initialData={editingEntry || fillingEntry}
         onSave={onSaveEntry}
         onCancel={onCancelEdit}
+        savedEntries={savedEntries}
       />
     );
   }
@@ -139,8 +140,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       {/* Stats Cards */}
       <StatsCards 
         totalEntries={savedEntries.length}
-        entries={savedEntries}
-        userTier={userTier}
+        recentEntries={savedEntries.slice(0, 5).length}
       />
 
       {/* Categories Grid */}

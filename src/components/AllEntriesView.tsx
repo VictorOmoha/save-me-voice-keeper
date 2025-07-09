@@ -6,7 +6,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { ArrowLeft, Edit, Trash2, FileText, Download, Eye } from "lucide-react";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
-import { exportToCSV } from "@/utils/csvExport";
+import { ExportButton } from "@/components/export/ExportButton";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -39,27 +39,8 @@ export const AllEntriesView: React.FC<AllEntriesViewProps> = ({
   getFormTitle = () => 'Add New Entry',
   getFormMode = () => 'create'
 }) => {
-  const [isExporting, setIsExporting] = useState(false);
   const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
-
-  const handleExportCSV = async () => {
-    if (entries.length === 0) {
-      toast.error("No entries to export");
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      exportToCSV(entries, 'all-entries');
-      toast.success(`Exported ${entries.length} entries to CSV`);
-    } catch (error) {
-      console.error('Export error:', error);
-      toast.error("Failed to export entries");
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleDownload = async (entry: SavedEntry) => {
     if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
@@ -122,15 +103,11 @@ export const AllEntriesView: React.FC<AllEntriesViewProps> = ({
         </div>
         
         {entries.length > 0 && (
-          <Button 
-            onClick={handleExportCSV}
-            disabled={isExporting}
+          <ExportButton
+            entries={entries}
             variant="outline"
-            className="text-green-600 hover:text-green-700"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {isExporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
+            size="sm"
+          />
         )}
       </div>
 

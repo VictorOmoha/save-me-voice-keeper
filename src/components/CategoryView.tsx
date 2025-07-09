@@ -8,6 +8,7 @@ import { EntryCard } from "./categoryView/EntryCard";
 import { EmptyState } from "./categoryView/EmptyState";
 import { useDownload } from "./categoryView/useDownload";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
+import { ExportButton } from "@/components/export/ExportButton";
 
 interface CategoryViewProps {
   categoryName: string;
@@ -135,18 +136,31 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
           onCreateEntry={handleCreateEntry}
         />
       ) : (
-        <div className="grid gap-4">
-          {categoryEntries.map((entry) => (
-            <EntryCard
-              key={entry.id}
-              entry={entry}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onFill={onFill}
-              onDownload={handleDownload}
-              isDownloading={downloadingFiles.includes(entry.id)}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">
+              {categoryEntries.length} {categoryEntries.length === 1 ? 'entry' : 'entries'} in {categoryName}
+            </h3>
+            <ExportButton
+              entries={categoryEntries}
+              variant="outline"
+              size="sm"
             />
-          ))}
+          </div>
+          
+          <div className="grid gap-4">
+            {categoryEntries.map((entry) => (
+              <EntryCard
+                key={entry.id}
+                entry={entry}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onFill={onFill}
+                onDownload={handleDownload}
+                isDownloading={downloadingFiles.includes(entry.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>

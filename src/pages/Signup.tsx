@@ -5,14 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 
 const Signup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { signup, isLoading } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { signup, signInWithGoogle, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,6 +27,19 @@ const Signup = () => {
     } else {
       toast.success("Account created successfully! Please check your email to verify your account.");
       navigate("/dashboard");
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    const result = await signInWithGoogle();
+    
+    if (result.error) {
+      toast.error(result.error);
+      setIsGoogleLoading(false);
+    } else {
+      toast.success("Creating account with Google...");
+      // Don't set loading to false here as we're redirecting
     }
   };
 
@@ -44,7 +60,22 @@ const Signup = () => {
           <CardTitle className="text-2xl text-card-foreground">Create Your Account</CardTitle>
           <CardDescription className="text-muted-foreground">Start organizing your information today</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <GoogleSignInButton
+            onSignIn={handleGoogleSignIn}
+            isLoading={isGoogleLoading}
+            text="Sign up with Google"
+          />
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-foreground">Full Name</Label>

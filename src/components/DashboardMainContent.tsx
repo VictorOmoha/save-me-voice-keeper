@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +89,8 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
     return (
       <DataEntryForm
         mode={getFormMode()}
-        initialData={editingEntry || fillingEntry}
+        editEntry={editingEntry}
+        templateEntry={fillingEntry}
         onSave={onSaveEntry}
         onCancel={onCancelEdit}
         savedEntries={savedEntries}

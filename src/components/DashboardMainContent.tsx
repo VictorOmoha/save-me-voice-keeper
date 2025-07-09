@@ -1,11 +1,14 @@
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatsCards } from "@/components/StatsCards";
+import { Badge } from "@/components/ui/badge";
+import { Plus, FileText, Users, Shield, Zap, Star } from "lucide-react";
 import { RecentEntries } from "@/components/RecentEntries";
-import { CategoriesPanel } from "@/components/CategoriesPanel";
-import { NewQuickActions } from "@/components/NewQuickActions";
-import { DocumentCreator } from "@/components/DocumentCreator";
+import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
+import { DocumentCreator } from "@/components/DocumentCreator";
+import { NewQuickActions } from "@/components/NewQuickActions";
+import { EnhancedVoiceInput } from "@/components/EnhancedVoiceInput";
 import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardMainContentProps {
@@ -18,22 +21,37 @@ interface DashboardMainContentProps {
   fillingEntry: SavedEntry | null;
   getFormTitle: () => string;
   getFormMode: () => 'create' | 'edit' | 'fill';
-  onDocumentSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onDocumentSave: (document: any) => void;
   onDocumentCancel: () => void;
   onSaveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancelEdit: () => void;
-  onCategorySelect: (categoryName: string) => void;
+  onCategorySelect: (category: string) => void;
   onAddEntry: () => void;
   onCreateDocument: () => void;
   onVoiceResult: (text: string) => void;
   onVoiceCommand: (command: any) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
+  // Enhanced voice props
+  onEnhancedVoiceInput: (transcript: string) => void;
+  isVoiceProcessing: boolean;
+  lastVoiceCommand: any;
+  conversationState: 'listening' | 'confirming' | 'idle';
+  hasPendingConfirmation: boolean;
+  onCancelVoiceOperation: () => void;
 }
 
-export const DashboardMainContent = ({
+const categories = [
+  { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
+  { name: 'Health', icon: '🏥', description: 'Medical records, prescriptions, appointments' },
+  { name: 'Contacts', icon: '👥', description: 'People, businesses, emergency contacts' },
+  { name: 'Finance', icon: '💰', description: 'Bank info, investments, insurance' },
+  { name: 'Personal', icon: '👤', description: 'Personal notes, memories, goals' },
+];
+
+export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   userName,
-  userTier = 'free',
+  userTier,
   savedEntries,
   showDocumentCreator,
   showAddEntry,
@@ -52,83 +70,155 @@ export const DashboardMainContent = ({
   onVoiceCommand,
   onEditEntry,
   onFillEntry,
-}: DashboardMainContentProps) => {
+  onEnhancedVoiceInput,
+  isVoiceProcessing,
+  lastVoiceCommand,
+  conversationState,
+  hasPendingConfirmation,
+  onCancelVoiceOperation,
+}) => {
+  if (showDocumentCreator) {
+    return (
+      <DocumentCreator
+        onSave={onDocumentSave}
+        onCancel={onDocumentCancel}
+      />
+    );
+  }
+
+  if (showAddEntry || editingEntry || fillingEntry) {
+    return (
+      <DataEntryForm
+        mode={getFormMode()}
+        title={getFormTitle()}
+        initialData={editingEntry || fillingEntry}
+        onSave={onSaveEntry}
+        onCancel={onCancelEdit}
+        savedEntries={savedEntries}
+      />
+    );
+  }
+
   return (
-    <div className="p-6">
+    <div className="space-y-8">
       {/* Welcome Section */}
-      <div className="mb-6">
+      <div className="text-center">
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Welcome back, {userName}! 👋
+          Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}! 
+          {userTier && (
+            <Badge variant="secondary" className="ml-2">
+              {userTier}
+            </Badge>
+          )}
         </h1>
-        <p className="text-muted-foreground">Here's what's happening with your information today.</p>
+        <p className="text-lg text-muted-foreground">
+          Securely store and manage your important information
+        </p>
       </div>
 
-      {/* Stats Cards */}
-      <StatsCards totalEntries={savedEntries.length} entries={savedEntries} userTier={userTier} />
-
-      {/* Document Creator */}
-      {showDocumentCreator && (
-        <div className="mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <DocumentCreator 
-                onSave={onDocumentSave}
-                onCancel={onDocumentCancel}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Add/Edit Entry Form */}
-      {showAddEntry && (
-        <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>{getFormTitle()}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DataEntryForm 
-                onSave={onSaveEntry}
-                onCancel={onCancelEdit}
-                editEntry={editingEntry}
-                templateEntry={fillingEntry}
-                mode={getFormMode()}
-              />
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Entries */}
-        <div className="lg:col-span-2">
-          <RecentEntries 
-            entries={savedEntries} 
-            onEdit={onEditEntry}
-            onFill={onFillEntry}
-          />
-        </div>
-
-        {/* Categories Panel */}
-        <div>
-          <CategoriesPanel 
-            onCategorySelect={onCategorySelect} 
-            entries={savedEntries}
-          />
-        </div>
+      {/* Enhanced Voice Input */}
+      <div className="max-w-md mx-auto">
+        <EnhancedVoiceInput
+          onVoiceInput={onEnhancedVoiceInput}
+          isProcessing={isVoiceProcessing}
+          lastCommand={lastVoiceCommand}
+          conversationState={conversationState}
+          hasPendingConfirmation={hasPendingConfirmation}
+          onCancel={onCancelVoiceOperation}
+        />
       </div>
 
       {/* Quick Actions */}
-      <div className="mt-8">
-        <NewQuickActions 
-          onAddEntry={onAddEntry}
-          onCreateDocument={onCreateDocument}
-          onVoiceInput={() => console.log('Voice quick action - consider implementing VoiceInput component here')}
-          onVoiceResult={onVoiceResult}
-          onVoiceCommand={onVoiceCommand}
-        />
+      <NewQuickActions
+        onAddEntry={onAddEntry}
+        onVoiceInput={() => {}}
+        onVoiceResult={onVoiceResult}
+        onVoiceCommand={onVoiceCommand}
+        onCreateDocument={onCreateDocument}
+      />
+
+      {/* Stats Cards */}
+      <StatsCards 
+        totalEntries={savedEntries.length}
+        recentEntries={savedEntries.slice(0, 5).length}
+      />
+
+      {/* Categories Grid */}
+      <div>
+        <h2 className="text-2xl font-semibold text-foreground mb-6">Browse by Category</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {categories.map((category) => {
+            const categoryEntries = savedEntries.filter(entry => {
+              const entryCategory = entry.fields.category || 'Personal';
+              return entryCategory === category.name;
+            });
+
+            return (
+              <Card 
+                key={category.name}
+                className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/50"
+                onClick={() => onCategorySelect(category.name)}
+              >
+                <CardHeader className="text-center pb-2">
+                  <div className="text-3xl mb-2">{category.icon}</div>
+                  <CardTitle className="text-lg">{category.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">{category.description}</p>
+                  <Badge variant="outline" className="text-xs">
+                    {categoryEntries.length} entries
+                  </Badge>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Recent Entries */}
+      <RecentEntries 
+        entries={savedEntries.slice(0, 6)}
+        onEdit={onEditEntry}
+        onFill={onFillEntry}
+      />
+
+      {/* Features Preview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-border">
+        <Card className="text-center">
+          <CardHeader>
+            <Shield className="h-8 w-8 text-primary mx-auto mb-2" />
+            <CardTitle className="text-lg">Secure Storage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Your data is encrypted and stored securely in the cloud
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="text-center">
+          <CardHeader>
+            <Zap className="h-8 w-8 text-primary mx-auto mb-2" />
+            <CardTitle className="text-lg">Quick Access</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Find what you need instantly with powerful search and organization
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="text-center">
+          <CardHeader>
+            <Star className="h-8 w-8 text-primary mx-auto mb-2" />
+            <CardTitle className="text-lg">Smart Features</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Voice commands, smart templates, and automated organization
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

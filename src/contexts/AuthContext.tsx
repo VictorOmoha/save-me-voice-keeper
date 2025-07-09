@@ -167,7 +167,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async (): Promise<{ error?: string }> => {
     try {
+      // Use current origin to ensure redirect works properly
       const redirectUrl = `${window.location.origin}/dashboard`;
+      
+      console.log('Google sign-in initiated with redirect URL:', redirectUrl);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -181,12 +184,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        console.error('Google sign-in error:', error);
         return { error: error.message };
       }
       
-      // Don't set loading to false here as the redirect is happening
       return {};
     } catch (error) {
+      console.error('Google sign-in exception:', error);
       setIsLoading(false);
       return { error: 'An unexpected error occurred' };
     }

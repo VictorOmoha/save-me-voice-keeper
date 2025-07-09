@@ -56,9 +56,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   subscriptionTier: 'free',
                   subscriptionActive: true
                 });
+              } else {
+                // If no profile exists, create a basic user object
+                // The trigger should have created a profile, but just in case
+                setUser({
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  full_name: session.user.user_metadata?.full_name || 
+                           session.user.user_metadata?.name || 
+                           session.user.email?.split('@')[0] || 'User',
+                  avatar_url: session.user.user_metadata?.avatar_url || null,
+                  subscriptionTier: 'free',
+                  subscriptionActive: true
+                });
               }
             } catch (error) {
               console.error('Error fetching profile:', error);
+              // Fallback to basic user info
+              setUser({
+                id: session.user.id,
+                email: session.user.email || '',
+                full_name: session.user.user_metadata?.full_name || 
+                         session.user.user_metadata?.name || 
+                         session.user.email?.split('@')[0] || 'User',
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                subscriptionTier: 'free',
+                subscriptionActive: true
+              });
             }
           }, 0);
         } else {

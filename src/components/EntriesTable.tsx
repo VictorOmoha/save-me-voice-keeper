@@ -19,6 +19,7 @@ import {
 import { SavedEntry } from "@/types/dashboard";
 import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download } from "lucide-react";
 import { toast } from "sonner";
+import { ExportButton } from "@/components/export/ExportButton";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -210,21 +211,29 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Your Saved Information</h2>
-        {selectedEntries.length > 0 && (
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">
-              {selectedEntries.length} selected
-            </span>
-            <Button
-              onClick={handleBulkDelete}
-              variant="destructive"
-              size="sm"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete Selected
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          <ExportButton
+            entries={entries}
+            selectedEntries={selectedEntries}
+            variant="outline"
+            size="sm"
+          />
+          {selectedEntries.length > 0 && (
+            <>
+              <span className="text-sm text-gray-600">
+                {selectedEntries.length} selected
+              </span>
+              <Button
+                onClick={handleBulkDelete}
+                variant="destructive"
+                size="sm"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Selected
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="border rounded-lg">

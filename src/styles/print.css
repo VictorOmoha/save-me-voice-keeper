@@ -1,0 +1,224 @@
+/* Print-specific styles */
+@media print {
+  /* Hide non-essential elements */
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  /* Page setup */
+  @page {
+    margin: 0.5in;
+    size: letter;
+  }
+
+  /* Body and root styles */
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+    color: #000;
+    background: white;
+  }
+
+  /* Headers and titles */
+  h1, h2, h3, h4, h5, h6 {
+    color: #000;
+    page-break-after: avoid;
+  }
+
+  /* Entry containers */
+  .entry-card {
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+    padding: 15px;
+    page-break-inside: avoid;
+    background: white;
+  }
+
+  /* Entry titles */
+  .entry-title {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #000;
+  }
+
+  /* Metadata section */
+  .entry-metadata {
+    font-size: 10pt;
+    color: #666;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+
+  /* Field containers */
+  .field-grid {
+    display: block;
+  }
+
+  .field-item {
+    margin-bottom: 10px;
+    page-break-inside: avoid;
+  }
+
+  .field-label {
+    font-weight: bold;
+    color: #000;
+    font-size: 11pt;
+    margin-bottom: 2px;
+  }
+
+  .field-value {
+    color: #333;
+    font-size: 11pt;
+    word-wrap: break-word;
+    max-width: 100%;
+  }
+
+  /* Print header */
+  .print-header {
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+  }
+
+  .print-title {
+    font-size: 18pt;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #000;
+  }
+
+  .print-date {
+    font-size: 10pt;
+    color: #666;
+  }
+
+  .entry-count {
+    font-size: 12pt;
+    color: #666;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  /* Table styles for tabular data */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    font-size: 10pt;
+  }
+
+  th {
+    background-color: #f5f5f5;
+    font-weight: bold;
+  }
+
+  /* Links */
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+
+  a:after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #666;
+  }
+
+  /* Images */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Lists */
+  ul, ol {
+    margin: 10px 0;
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 5px;
+  }
+
+  /* Code blocks */
+  pre, code {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 5px;
+    font-family: "Courier New", monospace;
+    font-size: 10pt;
+  }
+
+  /* Utility classes */
+  .text-center {
+    text-align: center;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .font-bold {
+    font-weight: bold;
+  }
+
+  .italic {
+    font-style: italic;
+  }
+
+  .underline {
+    text-decoration: underline;
+  }
+
+  /* Responsive adjustments for different page sizes */
+  @media print and (max-width: 8.5in) {
+    .field-item {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .field-label {
+      font-size: 10pt;
+    }
+
+    .field-value {
+      font-size: 10pt;
+    }
+  }
+}
+
+/* Screen preview styles */
+@media screen {
+  .print-preview {
+    max-width: 8.5in;
+    margin: 20px auto;
+    padding: 20px;
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+  }
+
+  .print-preview .no-print {
+    display: none;
+  }
+}

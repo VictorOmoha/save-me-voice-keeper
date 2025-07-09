@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
+import { ExportButton } from "@/components/export/ExportButton";
 
 interface SavedEntriesListProps {
   entries: SavedEntry[];
@@ -33,7 +34,14 @@ export const SavedEntriesList: React.FC<SavedEntriesListProps> = ({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-gray-900">Your Saved Information</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Your Saved Information</h2>
+        <ExportButton
+          entries={entries}
+          variant="outline"
+          size="sm"
+        />
+      </div>
       
       <div className="grid gap-4">
         {entries.map((entry) => (

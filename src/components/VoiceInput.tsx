@@ -1,5 +1,10 @@
+import React, { useState, useEffect, useRef } from "react";
 import { VoiceControlModal } from "./VoiceControlModal";
-import { VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { VoiceCommand, processVoiceCommand } from "@/utils/voiceCommandProcessor";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Mic, MicOff } from "lucide-react";
+import { getElevenLabsApiKey, setElevenLabsApiKey } from "@/utils/textToSpeech";
 
 interface VoiceInputProps {
   onVoiceResult: (text: string) => void;

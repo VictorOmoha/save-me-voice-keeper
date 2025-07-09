@@ -1,15 +1,25 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Sun, Moon, Mic, RefreshCcw, Zap } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListModal } from "@/components/WaitingListModal";
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
   
   const toggleTheme = () => {
     if (theme === "light") {

@@ -1,7 +1,9 @@
-import { ReactNode } from 'react';
-import { Sidebar } from "@/components/Sidebar";
+
+import { ReactNode } from "react";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { SavedEntry } from '@/types/dashboard';
+import { Sidebar } from "@/components/Sidebar";
+import { SavedEntry } from "@/types/dashboard";
+import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -10,8 +12,10 @@ interface DashboardLayoutProps {
   userName?: string;
   savedEntries: SavedEntry[];
   onAddEntry: () => void;
-  onCategorySelect: (categoryName: string) => void;
+  onCategorySelect: (category: string) => void;
   onAllEntriesSelect: () => void;
+  onVoiceResult?: (text: string) => void;
+  onVoiceCommand?: (command: VoiceCommand) => void;
 }
 
 export const DashboardLayout = ({
@@ -23,15 +27,16 @@ export const DashboardLayout = ({
   onAddEntry,
   onCategorySelect,
   onAllEntriesSelect,
+  onVoiceResult,
+  onVoiceCommand,
 }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar 
-        savedEntriesCount={savedEntries.length} 
+        savedEntries={savedEntries}
         onAddEntry={onAddEntry}
         onCategorySelect={onCategorySelect}
         onAllEntriesSelect={onAllEntriesSelect}
-        entries={savedEntries}
       />
       
       <div className="flex-1 flex flex-col">
@@ -39,9 +44,11 @@ export const DashboardLayout = ({
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
           userName={userName}
+          onVoiceResult={onVoiceResult}
+          onVoiceCommand={onVoiceCommand}
         />
-
-        <main className="flex-1">
+        
+        <main className="flex-1 p-6 overflow-auto">
           {children}
         </main>
       </div>

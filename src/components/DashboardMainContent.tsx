@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +8,6 @@ import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
-import { EnhancedVoiceInput } from "@/components/EnhancedVoiceInput";
 import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardMainContentProps {
@@ -31,13 +31,6 @@ interface DashboardMainContentProps {
   onVoiceCommand: (command: any) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
-  // Enhanced voice props
-  onEnhancedVoiceInput: (transcript: string) => void;
-  isVoiceProcessing: boolean;
-  lastVoiceCommand: any;
-  conversationState: 'listening' | 'confirming' | 'idle';
-  hasPendingConfirmation: boolean;
-  onCancelVoiceOperation: () => void;
 }
 
 const categories = [
@@ -69,12 +62,6 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onVoiceCommand,
   onEditEntry,
   onFillEntry,
-  onEnhancedVoiceInput,
-  isVoiceProcessing,
-  lastVoiceCommand,
-  conversationState,
-  hasPendingConfirmation,
-  onCancelVoiceOperation,
 }) => {
   if (showDocumentCreator) {
     return (
@@ -93,7 +80,6 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         templateEntry={fillingEntry}
         onSave={onSaveEntry}
         onCancel={onCancelEdit}
-        savedEntries={savedEntries}
       />
     );
   }
@@ -113,18 +99,6 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         <p className="text-lg text-muted-foreground">
           Securely store and manage your important information
         </p>
-      </div>
-
-      {/* Enhanced Voice Input */}
-      <div className="max-w-md mx-auto">
-        <EnhancedVoiceInput
-          onVoiceInput={onEnhancedVoiceInput}
-          isProcessing={isVoiceProcessing}
-          lastCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancel={onCancelVoiceOperation}
-        />
       </div>
 
       {/* Quick Actions */}

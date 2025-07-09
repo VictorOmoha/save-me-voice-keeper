@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { CategoryView } from "@/components/CategoryView";
@@ -115,6 +114,8 @@ const Dashboard = () => {
       onAddEntry={handleAddEntryWithCategory}
       onCategorySelect={wrappedCategorySelect}
       onAllEntriesSelect={wrappedAllEntriesSelect}
+      onVoiceResult={handleVoiceResult}
+      onVoiceCommand={handleVoiceCommand}
     >
       {showAllEntries ? (
         <AllEntriesView
@@ -173,12 +174,6 @@ const Dashboard = () => {
           onVoiceCommand={handleVoiceCommand}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
-          onEnhancedVoiceInput={handleEnhancedVoiceInput}
-          isVoiceProcessing={isVoiceProcessing}
-          lastVoiceCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancelVoiceOperation={cancelCurrentOperation}
         />
       )}
     </DashboardLayout>

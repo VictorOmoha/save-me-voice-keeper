@@ -109,7 +109,19 @@ export const useAuthState = () => {
       }
     };
 
-    getInitialSession();
+    // Check for OAuth callback in URL
+    const handleOAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('code') || window.location.hash.includes('access_token')) {
+        // This is an OAuth callback, wait a bit longer for session to be established
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await getInitialSession();
+      } else {
+        await getInitialSession();
+      }
+    };
+
+    handleOAuthCallback();
 
     return () => {
       mounted = false;

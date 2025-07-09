@@ -29,7 +29,7 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
       
       <Button 
         onClick={onCreateEntry}
-        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+        className="bg-gradient-primary hover:opacity-90 text-primary-foreground"
       >
         <Plus className="w-4 h-4 mr-2" />
         Create {categoryName.slice(0, -1)}

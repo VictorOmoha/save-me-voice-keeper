@@ -97,7 +97,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           <Button type="button" onClick={onCancel} variant="outline">
             Cancel
           </Button>
-          <Button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+          <Button type="submit" className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
             {editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
           </Button>
         </div>

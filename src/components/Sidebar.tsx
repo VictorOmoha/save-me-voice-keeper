@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             alt="Save Me Logo" 
             className="w-12 h-12 object-contain"
           />
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+          <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Save Me
           </span>
         </div>

@@ -95,7 +95,7 @@ const Subscription = () => {
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-2 mb-2">
-                  <Badge variant="default" className="bg-gradient-to-r from-blue-600 to-cyan-600">
+                  <Badge variant="default" className="bg-gradient-primary text-primary-foreground">
                     {user?.subscriptionTier?.toUpperCase()} PLAN
                   </Badge>
                   {user?.subscriptionActive && (
@@ -124,7 +124,7 @@ const Subscription = () => {
               plan.current ? 'border-blue-500 shadow-lg' : ''
             }`}>
               {plan.current && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-cyan-600">
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
                   Current Plan
                 </Badge>
               )}
@@ -143,7 +143,7 @@ const Subscription = () => {
                   ))}
                 </ul>
                 <Button 
-                  className={`w-full ${plan.current ? 'bg-gray-400' : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'}`}
+                  className={`w-full ${plan.current ? 'bg-gray-400' : 'bg-gradient-primary hover:opacity-90 text-primary-foreground'}`}
                   disabled={plan.current}
                   onClick={() => handleUpgrade(plan.name)}
                 >

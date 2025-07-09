@@ -71,7 +71,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-background dark:bg-gradient-background">
       {/* Navigation */}
       <nav className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -82,7 +82,7 @@ const Index = () => {
                 alt="Save Me Logo" 
                 className="w-12 h-12 object-contain"
               />
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 Save Me
               </span>
             </div>
@@ -99,7 +99,7 @@ const Index = () => {
                 <Button variant="ghost" className="text-foreground hover:text-foreground">Login</Button>
               </Link>
               <Link to="/signup">
-                <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
                   Sign Up
                 </Button>
               </Link>
@@ -111,7 +111,7 @@ const Index = () => {
       {/* Hero Section */}
       <section className="py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-accent bg-clip-text text-transparent">
             Never Lose Important Information Again
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
@@ -120,7 +120,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 px-8 py-3 text-lg"
+              className="bg-gradient-primary hover:opacity-90 text-primary-foreground px-8 py-3 text-lg"
               onClick={() => setIsWaitingListModalOpen(true)}
             >
               Join Waiting List
@@ -152,7 +152,7 @@ const Index = () => {
                 <span className="text-sm font-medium text-muted-foreground">Light Mode</span>
               </div>
               <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
+                <div className="absolute -inset-1 bg-gradient-primary rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-300"></div>
                 <div className="relative">
                   <img 
                     src="/lovable-uploads/bc240c60-e282-4d87-8e60-f2af2366f886.png" 
@@ -279,7 +279,7 @@ const Index = () => {
                 plan.popular ? 'border-blue-500 shadow-lg scale-105' : ''
               }`}>
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-cyan-600">
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
                     Most Popular
                   </Badge>
                 )}
@@ -300,7 +300,7 @@ const Index = () => {
                   <Button 
                     className={`w-full ${
                       plan.popular 
-                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' 
+                        ? 'bg-gradient-primary hover:opacity-90 text-primary-foreground' 
                         : ''
                     }`} 
                     variant={plan.popular ? 'default' : 'outline'}

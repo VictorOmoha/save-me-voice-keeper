@@ -28,7 +28,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-1 mb-4">
@@ -37,7 +37,7 @@ const ResetPassword = () => {
               alt="Save Me Logo" 
               className="w-16 h-16 object-contain"
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
               Save Me
             </span>
           </div>
@@ -60,15 +60,15 @@ const ResetPassword = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
               disabled={isLoading}
             >
               {isLoading ? "Sending..." : "Send Reset Link"}
             </Button>
           </form>
           <div className="mt-6 text-center text-sm">
-            <span className="text-gray-600">Remember your password? </span>
-            <Link to="/login" className="text-blue-600 hover:underline font-medium">
+            <span className="text-muted-foreground">Remember your password? </span>
+            <Link to="/login" className="text-primary hover:underline font-medium">
               Sign in
             </Link>
           </div>

@@ -92,7 +92,7 @@ const Dashboard = () => {
 
   // Show loading state while auth is loading or entries are being loaded
   console.log('Loading check:', { authLoading, isLoading, isAuthenticated, isOAuthCallback });
-  if (authLoading || isLoading || (!isAuthenticated && isOAuthCallback)) {
+  if (authLoading || (isLoading && isAuthenticated)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

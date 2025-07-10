@@ -74,7 +74,10 @@ const Dashboard = () => {
     isLoading,
     isVoiceProcessing,
     conversationState,
-    hasPendingConfirmation
+    hasPendingConfirmation,
+    authLoading,
+    isAuthenticated,
+    user: user?.email
   });
 
   // Check for OAuth callback in URL - don't redirect if this is an OAuth callback
@@ -88,6 +91,7 @@ const Dashboard = () => {
   }
 
   // Show loading state while auth is loading or entries are being loaded
+  console.log('Loading check:', { authLoading, isLoading, isAuthenticated, isOAuthCallback });
   if (authLoading || isLoading || (!isAuthenticated && isOAuthCallback)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

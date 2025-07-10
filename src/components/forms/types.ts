@@ -2,7 +2,7 @@
 export interface CustomField {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'date' | 'textarea';
+  type: 'text' | 'number' | 'date' | 'textarea' | 'image' | 'gallery';
   value: any;
 }
 

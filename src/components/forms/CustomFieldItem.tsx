@@ -4,7 +4,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import { CustomField } from './types';
+import { ImageUpload } from './ImageUpload';
+import { ImageGallery } from './ImageGallery';
 
 interface CustomFieldItemProps {
   field: CustomField;
@@ -25,74 +28,163 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   onUpdateField,
   onRemoveField
 }) => {
-  return (
-    <div className="p-4 border border-border rounded-lg space-y-3 bg-card">
-      {isEditMode && (
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium text-foreground">Field {index + 1}</h4>
-          {fieldsLength > 1 && (
-            <Button 
-              type="button" 
-              onClick={() => onRemoveField(field.id)}
-              variant="outline" 
-              size="sm"
-            >
-              Remove
-            </Button>
-          )}
-        </div>
-      )}
-      
-      {isEditMode ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-2">
+  const canMoveUp = index > 0;
+  const canMoveDown = index < fieldsLength - 1;
+
+  const renderFieldInput = () => {
+    if (isFillMode) {
+      // In fill mode, show the appropriate input based on field type
+      switch (field.type) {
+        case 'image':
+          return (
+            <div className="space-y-4">
+              <ImageUpload
+                value={field.value || ''}
+                onChange={(value) => onUpdateField(field.id, 'value', value)}
+                multiple={false}
+                label=""
+              />
+              {field.value && (
+                <ImageGallery images={[field.value]} readOnly={false} />
+              )}
+            </div>
+          );
+        case 'gallery':
+          return (
+            <div className="space-y-4">
+              <ImageUpload
+                value={field.value || []}
+                onChange={(value) => onUpdateField(field.id, 'value', value)}
+                multiple={true}
+                label=""
+              />
+              {field.value && field.value.length > 0 && (
+                <ImageGallery images={field.value} readOnly={false} />
+              )}
+            </div>
+          );
+        case 'textarea':
+          return (
+            <Textarea
+              placeholder="Enter your text..."
+              value={field.value || ''}
+              onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
+              className="bg-background border-border text-foreground"
+            />
+          );
+        case 'date':
+          return (
+            <Input
+              type="date"
+              value={field.value || ''}
+              onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
+              className="bg-background border-border text-foreground"
+            />
+          );
+        case 'number':
+          return (
+            <Input
+              type="number"
+              placeholder="Enter a number..."
+              value={field.value || ''}
+              onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
+              className="bg-background border-border text-foreground"
+            />
+          );
+        default:
+          return (
+            <Input
+              type="text"
+              placeholder="Enter your text..."
+              value={field.value || ''}
+              onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
+              className="bg-background border-border text-foreground"
+            />
+          );
+      }
+    } else {
+      // In edit mode, show field configuration
+      return (
+        <div className="space-y-3">
+          <div>
             <Label className="text-foreground">Field Name</Label>
             <Input
-              placeholder="e.g., Medication Name, Dosage, Policy Number"
+              placeholder="Enter field name..."
               value={field.name}
               onChange={(e) => onUpdateField(field.id, 'name', e.target.value)}
-              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+              className="bg-background border-border text-foreground"
             />
           </div>
-          
-          <div className="space-y-2">
+          <div>
             <Label className="text-foreground">Field Type</Label>
             <Select value={field.type} onValueChange={(value) => onUpdateField(field.id, 'type', value)}>
               <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-background border-border">
-                <SelectItem value="text" className="text-foreground hover:bg-accent">Text</SelectItem>
-                <SelectItem value="number" className="text-foreground hover:bg-accent">Number</SelectItem>
-                <SelectItem value="date" className="text-foreground hover:bg-accent">Date</SelectItem>
-                <SelectItem value="textarea" className="text-foreground hover:bg-accent">Long Text</SelectItem>
+              <SelectContent>
+                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="number">Number</SelectItem>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="textarea">Long Text</SelectItem>
+                <SelectItem value="image">Single Image</SelectItem>
+                <SelectItem value="gallery">Image Gallery</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
-      ) : (
-        <div className="space-y-2">
-          <Label className="font-medium text-foreground">{field.name}</Label>
-        </div>
-      )}
+      );
+    }
+  };
 
-      <div className="space-y-2">
-        <Label className="text-foreground">{isFillMode ? 'Enter Data' : 'Value'}</Label>
-        {field.type === 'textarea' ? (
-          <Textarea
-            placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
-            value={field.value}
-            onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
-            className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-          />
-        ) : (
-          <Input
-            type={field.type}
-            placeholder={isFillMode ? `Enter ${field.name}...` : "Enter the value..."}
-            value={field.value}
-            onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
-            className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-          />
+  return (
+    <div className="p-4 border border-border rounded-lg bg-card">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          {!isFillMode && (
+            <Label className="text-foreground font-medium mb-2 block">
+              Field {index + 1}
+            </Label>
+          )}
+          {isFillMode && field.name && (
+            <Label className="text-foreground font-medium mb-2 block">
+              {field.name}
+            </Label>
+          )}
+          {renderFieldInput()}
+        </div>
+        
+        {isEditMode && (
+          <div className="flex flex-col space-y-1 ml-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onUpdateField(field.id, 'index', index - 1)}
+              disabled={!canMoveUp}
+              className="p-1"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => onUpdateField(field.id, 'index', index + 1)}
+              disabled={!canMoveDown}
+              className="p-1"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={() => onRemoveField(field.id)}
+              className="p-1"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         )}
       </div>
     </div>

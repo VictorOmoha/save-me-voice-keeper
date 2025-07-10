@@ -34,6 +34,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     addField,
     updateField,
     removeField,
+    moveField,
     prepareSubmissionData,
     categories
   } = useFormLogic({ editEntry, templateEntry, mode, preselectedCategory });
@@ -89,6 +90,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
               isFillMode={isFillMode}
               onUpdateField={updateField}
               onRemoveField={removeField}
+              onMoveField={moveField}
             />
           ))}
         </div>

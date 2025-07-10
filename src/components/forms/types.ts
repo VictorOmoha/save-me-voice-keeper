@@ -4,6 +4,7 @@ export interface CustomField {
   name: string;
   type: 'text' | 'number' | 'date' | 'textarea' | 'image' | 'gallery';
   value: any;
+  index?: number;
 }
 
 export const CATEGORIES = [

@@ -17,6 +17,7 @@ interface CustomFieldItemProps {
   isFillMode: boolean;
   onUpdateField: (id: string, key: keyof CustomField, value: any) => void;
   onRemoveField: (id: string) => void;
+  onMoveField?: (id: string, direction: 'up' | 'down') => void;
 }
 
 export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
@@ -26,7 +27,8 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   isEditMode,
   isFillMode,
   onUpdateField,
-  onRemoveField
+  onRemoveField,
+  onMoveField
 }) => {
   const canMoveUp = index > 0;
   const canMoveDown = index < fieldsLength - 1;
@@ -159,7 +161,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onUpdateField(field.id, 'index', index - 1)}
+              onClick={() => onMoveField?.(field.id, 'up')}
               disabled={!canMoveUp}
               className="p-1"
             >
@@ -169,7 +171,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onUpdateField(field.id, 'index', index + 1)}
+              onClick={() => onMoveField?.(field.id, 'down')}
               disabled={!canMoveDown}
               className="p-1"
             >

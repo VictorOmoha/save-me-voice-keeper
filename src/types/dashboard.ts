@@ -1,7 +1,8 @@
+
 export interface FieldDefinition {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'date' | 'textarea';
+  type: 'text' | 'number' | 'date' | 'textarea' | 'image' | 'gallery';
 }
 
 export interface SavedEntry {

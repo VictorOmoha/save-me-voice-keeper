@@ -149,18 +149,20 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const removeImage = (indexOrUrl: number | string) => {
     if (multiple && Array.isArray(value)) {
-      const newUrls = value.filter((_, index) => index !== indexOrUrl);
-      onChange(newUrls);
+      if (typeof indexOrUrl === 'number') {
+        const newUrls = value.filter((_, index) => index !== indexOrUrl);
+        onChange(newUrls);
+      }
     } else {
-      onChange('');
+      onChange(multiple ? [] : '');
     }
   };
 
-  const currentImages = multiple ? (Array.isArray(value) ? value : []) : (value ? [value] : []);
+  const currentImages = multiple ? (Array.isArray(value) ? value : []) : (value ? [value as string] : []);
 
   return (
     <div className="space-y-4">
-      <Label className="text-foreground">{label}</Label>
+      {label && <Label className="text-foreground">{label}</Label>}
       
       {/* Upload Area */}
       <div
@@ -212,7 +214,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
                 variant="destructive"
                 size="sm"
                 className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => removeImage(multiple ? index : url)}
+                onClick={() => removeImage(index)}
               >
                 <X className="w-4 h-4" />
               </Button>

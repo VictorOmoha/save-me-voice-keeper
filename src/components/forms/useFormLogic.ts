@@ -92,6 +92,18 @@ export const useFormLogic = ({
     setFields(fields.filter(field => field.id !== id));
   };
 
+  const moveField = (id: string, direction: 'up' | 'down') => {
+    const currentIndex = fields.findIndex(field => field.id === id);
+    if (currentIndex === -1) return;
+    
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= fields.length) return;
+    
+    const newFields = [...fields];
+    [newFields[currentIndex], newFields[newIndex]] = [newFields[newIndex], newFields[currentIndex]];
+    setFields(newFields);
+  };
+
   const prepareSubmissionData = () => {
     const fieldData: Record<string, any> = {
       category: selectedCategory
@@ -129,6 +141,7 @@ export const useFormLogic = ({
     addField,
     updateField,
     removeField,
+    moveField,
     prepareSubmissionData,
     categories: CATEGORIES
   };

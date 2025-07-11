@@ -43,18 +43,21 @@ export class EnhancedVoiceProcessor {
       
       // FIRST LINE OF DEFENSE: Check if this is clearly TTS output
       const lowerTranscript = transcript.toLowerCase().trim();
+      
+      // Only block if this starts with clear TTS phrases AND is not a follow-up response
       const ttsIndicators = [
-        /i'?ll help you/,
-        /what information would you like/,
-        /what would you like to add/,
-        /perfect! i'?ll create/,
-        /successfully created/,
+        /^i'?ll help you/,
+        /^what information would you like/,
+        /^what would you like to add/,
+        /^perfect! i'?ll create/,
+        /^successfully created/,
         /^i'?ll\s/,
-        /what\s.*\?$/,
-        /would you like.*\?$/,
+        /^what\s.*\?$/,
+        /^would you like.*\?$/,
       ];
       
-      const isClearlyTTS = ttsIndicators.some(pattern => pattern.test(lowerTranscript));
+      // Don't block if we're expecting a follow-up (user is responding to our question)
+      const isClearlyTTS = !this.expectingFollowUp && ttsIndicators.some(pattern => pattern.test(lowerTranscript));
       if (isClearlyTTS) {
         console.log('🚫 VOICE PROCESSOR: Blocking TTS feedback:', transcript);
         return {

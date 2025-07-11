@@ -88,9 +88,17 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
       currentAudio = null;
     }
     
-    // Try ElevenLabs first (always available now via edge function)
-    console.log('TTS: Using ElevenLabs TTS for high-quality speech');
-    await speakWithElevenLabs(text, voiceOption);
+    // Refresh API key from localStorage in case it was updated
+    ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
+    
+    // Try ElevenLabs first if API key is available
+    if (ELEVENLABS_API_KEY) {
+      console.log('TTS: Using ElevenLabs TTS for high-quality speech');
+      await speakWithElevenLabs(text, voiceOption);
+    } else {
+      console.log('TTS: Using browser speech synthesis (fallback)');
+      await speakWithBrowser(text);
+    }
     
   } catch (error) {
     console.error('TTS: Error with primary speech method, falling back:', error);
@@ -103,37 +111,31 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
   try {
     const voiceId = voiceOption ? VOICE_OPTIONS[voiceOption] : VOICE_ID;
     
-    // Use the edge function for secure API key handling
-    const response = await fetch('https://knblffjeqnlqcdnxgmyy.supabase.co/functions/v1/elevenlabs-tts', {
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
       headers: {
+        'Accept': 'audio/mpeg',
         'Content-Type': 'application/json',
+        'xi-api-key': ELEVENLABS_API_KEY || ''
       },
       body: JSON.stringify({
         text: text,
-        voice_id: voiceId,
-        model_id: 'eleven_multilingual_v2'
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+          style: 0.0,
+          use_speaker_boost: true
+        }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`TTS service error: ${response.status}`);
+      throw new Error(`ElevenLabs API error: ${response.status}`);
     }
 
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || 'TTS service failed');
-    }
-
-    // Convert base64 audio back to blob
-    const audioData = atob(result.audio);
-    const audioArray = new Uint8Array(audioData.length);
-    for (let i = 0; i < audioData.length; i++) {
-      audioArray[i] = audioData.charCodeAt(i);
-    }
-    
-    const audioBlob = new Blob([audioArray], { type: 'audio/mpeg' });
+    const audioBuffer = await response.arrayBuffer();
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
     const audioUrl = URL.createObjectURL(audioBlob);
     
     currentAudio = new Audio(audioUrl);

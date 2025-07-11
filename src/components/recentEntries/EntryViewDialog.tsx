@@ -12,6 +12,8 @@ import { SavedEntry } from "@/types/dashboard";
 import { Edit, FileText, Download } from "lucide-react";
 import { getCategoryIcon, getCategoryColor, getCategoryName, getEntryType } from "./categoryUtils";
 import { toast } from "sonner";
+import { ImageGallery } from "@/components/forms/ImageGallery";
+import { extractImagesFromEntry } from "@/utils/imageUtils";
 
 interface EntryViewDialogProps {
   entry: SavedEntry | null;
@@ -36,6 +38,9 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   const categoryColor = getCategoryColor(entry);
   const categoryName = getCategoryName(entry);
   const entryType = getEntryType(entry);
+  
+  // Extract images from the entry
+  const entryImages = extractImagesFromEntry(entry);
 
   const handleDownload = async () => {
     if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
@@ -127,12 +132,31 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
             )}
           </div>
 
+          {/* Images Gallery */}
+          {entryImages.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-foreground">Images</h3>
+              <ImageGallery images={entryImages} readOnly={true} />
+            </div>
+          )}
+
           {/* Entry Fields */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-foreground">Entry Details</h3>
             <div className="grid gap-4">
               {Object.entries(entry.fields)
-                .filter(([key]) => !['hasUploadedFile', 'fileName', 'fileSize', 'fileType'].includes(key))
+                .filter(([key, value]) => {
+                  // Skip file metadata fields
+                  if (['hasUploadedFile', 'fileName', 'fileSize', 'fileType'].includes(key)) {
+                    return false;
+                  }
+                  // Skip image fields that are already shown in the gallery
+                  if (entryImages.includes(String(value)) || 
+                      (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) {
+                    return false;
+                  }
+                  return true;
+                })
                 .map(([key, value]) => (
                 <div key={key} className="space-y-1">
                   <label className="text-sm font-medium text-muted-foreground capitalize">

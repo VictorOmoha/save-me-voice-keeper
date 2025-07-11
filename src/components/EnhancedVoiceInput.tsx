@@ -116,6 +116,19 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
           // Reset processing state after a delay
           processingTimeoutRef.current = setTimeout(() => {
             setIsProcessingAudio(false);
+            
+            // Check if we need to restart listening for follow-up
+            import('@/utils/enhancedVoiceProcessor').then(({ voiceProcessor }) => {
+              if (voiceProcessor.isExpectingFollowUp()) {
+                console.log('Follow-up expected, restarting listening...');
+                setTimeout(() => {
+                  if (recognitionRef.current && !isListening) {
+                    setTranscript("");
+                    recognitionRef.current.start();
+                  }
+                }, 1000); // Give some time for TTS to complete
+              }
+            });
           }, 3000);
         }
       };

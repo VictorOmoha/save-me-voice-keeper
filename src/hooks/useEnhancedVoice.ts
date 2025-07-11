@@ -46,6 +46,7 @@ export const useEnhancedVoice = ({
         id: currentEntry.id,
         title: currentEntry.title
       } : undefined,
+      previousCommands: [], // Add empty array initially, enhanced processor will fill this
     };
   }, [savedEntries, currentView, currentEntry]);
 
@@ -98,27 +99,36 @@ export const useEnhancedVoice = ({
   }, []);
 
   const handleCreateCommand = async (command: EnhancedVoiceCommand) => {
-    const { parameters } = command;
+    const { parameters, action } = command;
     
-    const newEntry = {
-      title: parameters.title || `New Entry - ${new Date().toLocaleDateString()}`,
-      fields: {
-        category: parameters.category || 'Personal',
-        description: parameters.description || '',
-        ...parameters.additionalFields || {}
-      },
-      fieldDefinitions: [
-        { id: 'category', name: 'category', type: 'text' as const },
-        { id: Date.now().toString(), name: 'description', type: 'textarea' as const }
-      ]
-    };
+    if (action === 'create_entry_with_content') {
+      // Handle follow-up response with content
+      const newEntry = {
+        title: parameters.title || `New Entry - ${new Date().toLocaleDateString()}`,
+        fields: {
+          category: parameters.category || 'Personal',
+          description: parameters.description || '',
+          ...parameters.additionalFields || {}
+        },
+        fieldDefinitions: [
+          { id: 'category', name: 'category', type: 'text' as const },
+          { id: Date.now().toString(), name: 'description', type: 'textarea' as const }
+        ]
+      };
 
-    onCreateEntry(newEntry);
-    
-    const successMessage = `Successfully created ${newEntry.title}`;
-    toast.success(successMessage);
-    console.log('Speaking create success:', successMessage);
-    setTimeout(() => speak(command.conversationalResponse || successMessage), 500);
+      onCreateEntry(newEntry);
+      
+      const successMessage = `Successfully created "${newEntry.title}" with your information`;
+      toast.success(successMessage);
+      console.log('Speaking create success:', successMessage);
+      setTimeout(() => speak(command.conversationalResponse || successMessage), 500);
+    } else {
+      // Initial create command - expecting follow-up
+      const successMessage = command.conversationalResponse || 'What information would you like to add to this entry?';
+      toast.info('Voice Assistant');
+      console.log('Speaking create prompt:', successMessage);
+      setTimeout(() => speak(successMessage), 500);
+    }
   };
 
   const handleDeleteCommand = async (command: EnhancedVoiceCommand) => {
@@ -302,6 +312,7 @@ export const useEnhancedVoice = ({
     lastCommand,
     conversationState,
     hasPendingConfirmation: voiceProcessor.hasPendingConfirmation(),
+    isExpectingFollowUp: voiceProcessor.isExpectingFollowUp(),
     cancelCurrentOperation,
   };
 };

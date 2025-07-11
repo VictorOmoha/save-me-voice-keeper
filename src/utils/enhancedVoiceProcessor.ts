@@ -10,6 +10,13 @@ export interface EnhancedVoiceCommand {
   conversationalResponse: string;
   followUpQuestions?: string[];
   originalTranscript: string;
+  expectsFollowUp?: boolean;
+  context?: {
+    category?: string;
+    entryTitle?: string;
+    operation?: string;
+    fields?: any;
+  };
 }
 
 export interface VoiceContext {
@@ -24,6 +31,8 @@ export class EnhancedVoiceProcessor {
   private pendingConfirmation: EnhancedVoiceCommand | null = null;
   private maxRetries = 3;
   private retryCount = 0;
+  private currentContext: any = null;
+  private expectingFollowUp: boolean = false;
 
   async processVoiceCommand(
     transcript: string,
@@ -37,6 +46,8 @@ export class EnhancedVoiceProcessor {
         const confirmed = this.extractConfirmation(transcript);
         const command = this.pendingConfirmation;
         this.pendingConfirmation = null;
+        this.expectingFollowUp = false;
+        this.currentContext = null;
         
         return {
           ...command,
@@ -46,6 +57,11 @@ export class EnhancedVoiceProcessor {
             ? `Confirmed! I'll ${command.action} now.`
             : 'Okay, I\'ve cancelled that action. What else can I help you with?'
         };
+      }
+
+      // Handle follow-up responses in ongoing conversations
+      if (this.expectingFollowUp && this.currentContext) {
+        return this.handleFollowUpResponse(transcript, context);
       }
 
       // Add current command to history
@@ -94,6 +110,12 @@ export class EnhancedVoiceProcessor {
         this.pendingConfirmation = processedCommand;
       }
 
+      // Set up follow-up expectations
+      if (processedCommand.expectsFollowUp) {
+        this.expectingFollowUp = true;
+        this.currentContext = processedCommand.context;
+      }
+
       console.log('Processed command:', processedCommand);
       return processedCommand;
 
@@ -128,6 +150,12 @@ export class EnhancedVoiceProcessor {
         conversationalResponse: 'I\'ll help you create a new entry. What information would you like to add?',
         followUpQuestions: ['What category should this entry be in?'],
         originalTranscript: transcript,
+        expectsFollowUp: true,
+        context: {
+          operation: 'create_entry',
+          category: 'Personal',
+          entryTitle: `New Entry - ${new Date().toLocaleDateString()}`
+        }
       };
     }
 
@@ -246,6 +274,101 @@ export class EnhancedVoiceProcessor {
 
   clearHistory(): void {
     this.conversationHistory = [];
+  }
+
+  private handleFollowUpResponse(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    const lowerTranscript = transcript.toLowerCase().trim();
+    
+    if (!this.currentContext) {
+      return this.createUnknownCommand(transcript);
+    }
+
+    // Handle different types of follow-up contexts
+    if (this.currentContext.operation === 'create_entry') {
+      return this.handleCreateEntryFollowUp(lowerTranscript, this.currentContext);
+    }
+
+    if (this.currentContext.operation === 'add_field') {
+      return this.handleAddFieldFollowUp(lowerTranscript, this.currentContext);
+    }
+
+    // Default follow-up handling
+    this.expectingFollowUp = false;
+    this.currentContext = null;
+    
+    return {
+      intent: 'conversation',
+      action: 'followup_complete',
+      parameters: { response: transcript },
+      conversationalResponse: `I've noted your response: "${transcript}". What would you like to do next?`,
+      needsConfirmation: false,
+      confidence: 0.9,
+      originalTranscript: transcript
+    };
+  }
+
+  private handleCreateEntryFollowUp(transcript: string, context: any): EnhancedVoiceCommand {
+    // Reset expectation since we're handling it
+    this.expectingFollowUp = false;
+    this.currentContext = null;
+
+    // Extract the content for the new entry
+    const entryData = {
+      title: context.entryTitle || `New Entry - ${new Date().toLocaleDateString()}`,
+      category: context.category || 'Personal',
+      content: transcript
+    };
+
+    return {
+      intent: 'create',
+      action: 'create_entry_with_content',
+      parameters: {
+        title: entryData.title,
+        category: entryData.category,
+        description: entryData.content,
+        additionalFields: {}
+      },
+      conversationalResponse: `Perfect! I'll create "${entryData.title}" with that information.`,
+      needsConfirmation: false,
+      confidence: 0.95,
+      originalTranscript: transcript
+    };
+  }
+
+  private handleAddFieldFollowUp(transcript: string, context: any): EnhancedVoiceCommand {
+    this.expectingFollowUp = false;
+    this.currentContext = null;
+
+    return {
+      intent: 'create',
+      action: 'add_field_to_entry',
+      parameters: {
+        entryId: context.entryId,
+        fieldName: context.fieldName,
+        fieldValue: transcript,
+        fieldType: context.fieldType || 'text'
+      },
+      conversationalResponse: `Great! I've added "${context.fieldName}" with the value you provided.`,
+      needsConfirmation: false,
+      confidence: 0.95,
+      originalTranscript: transcript
+    };
+  }
+
+  private createUnknownCommand(transcript: string): EnhancedVoiceCommand {
+    return {
+      intent: 'unknown',
+      action: 'unrecognized',
+      parameters: {},
+      conversationalResponse: 'I didn\'t understand that command. Try saying "create a new entry" or "show me my documents"',
+      needsConfirmation: false,
+      confidence: 0.1,
+      originalTranscript: transcript
+    };
+  }
+
+  isExpectingFollowUp(): boolean {
+    return this.expectingFollowUp;
   }
 }
 

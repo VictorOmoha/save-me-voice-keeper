@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { VoiceControlModal } from "./VoiceControlModal";
+import { VoiceSettingsModal } from "./VoiceSettingsModal";
 import { VoiceCommand, processVoiceCommand } from "@/utils/voiceCommandProcessor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mic, MicOff, Settings } from "lucide-react";
-import { getElevenLabsApiKey, setElevenLabsApiKey } from "@/utils/textToSpeech";
+import { getElevenLabsApiKey } from "@/utils/textToSpeech";
 
 interface VoiceInputProps {
   onVoiceResult: (text: string) => void;
@@ -17,15 +18,8 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
   const [isSupported, setIsSupported] = useState(false);
   const [lastCommand, setLastCommand] = useState<VoiceCommand | null>(null);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-
-  const handleApiKeySetup = () => {
-    const apiKey = prompt('Enter your ElevenLabs API key for voice responses (optional):');
-    if (apiKey) {
-      setElevenLabsApiKey(apiKey);
-      alert('ElevenLabs API key saved! Voice responses will now use high-quality AI voices.');
-    }
-  };
 
   useEffect(() => {
     // Check if speech recognition is supported
@@ -177,7 +171,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
             
             <Button
               type="button"
-              onClick={() => setShowVoiceModal(true)}
+              onClick={() => setShowSettingsModal(true)}
               variant="outline"
               size="icon"
             >
@@ -191,17 +185,21 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
                 Enhance your experience with premium AI voices
               </p>
               <Button
-                onClick={handleApiKeySetup}
+                onClick={() => setShowSettingsModal(true)}
                 variant="outline"
                 size="sm"
               >
-                Setup ElevenLabs API
+                Configure Voice Settings
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
+      <VoiceSettingsModal 
+        isOpen={showSettingsModal}
+        onOpenChange={setShowSettingsModal}
+      />
     </>
   );
 };

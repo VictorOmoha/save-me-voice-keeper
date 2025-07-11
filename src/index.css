@@ -92,6 +92,9 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 220 15% 18%;
     --gradient-background: linear-gradient(135deg, hsl(220 15% 12%), hsl(220 15% 14%), hsl(220 15% 16%));
+    
+    /* Dark mode gradient with proper contrast */
+    --gradient-primary: linear-gradient(135deg, hsl(217.2 91.2% 59.8%), hsl(217.2 91.2% 69.8%));
   }
 }
 

@@ -60,7 +60,14 @@ export class EnhancedVoiceProcessor {
         previousCommands: this.conversationHistory,
       };
 
-      // Call the Supabase Edge Function for AI processing
+      // Try local pattern matching first
+      const localCommand = this.processLocalCommand(transcript, enhancedContext);
+      if (localCommand.confidence > 0.5) {
+        console.log('Using local command processing:', localCommand);
+        return localCommand;
+      }
+
+      // Call the Supabase Edge Function for AI processing as fallback
       const { data, error } = await supabase.functions.invoke('voice-ai-processor', {
         body: {
           transcript,
@@ -70,14 +77,8 @@ export class EnhancedVoiceProcessor {
 
       if (error) {
         console.error('Error calling voice AI processor:', error);
-        this.retryCount++;
-        
-        if (this.retryCount >= this.maxRetries) {
-          this.retryCount = 0;
-          throw new Error('Maximum retries exceeded. Please check your connection and try again.');
-        }
-        
-        throw error;
+        // Fall back to local processing
+        return localCommand;
       }
       
       // Reset retry count on success
@@ -111,6 +112,108 @@ export class EnhancedVoiceProcessor {
         originalTranscript: transcript,
       };
     }
+  }
+
+  private processLocalCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    const lowerTranscript = transcript.toLowerCase().trim();
+    
+    // Create entry patterns
+    if (this.matchesPattern(lowerTranscript, ['create', 'add', 'new'], ['entry', 'record', 'item'])) {
+      return {
+        intent: 'create',
+        action: 'create_entry',
+        confidence: 0.9,
+        parameters: { type: 'entry' },
+        needsConfirmation: false,
+        conversationalResponse: 'I\'ll help you create a new entry. What information would you like to add?',
+        followUpQuestions: ['What category should this entry be in?'],
+        originalTranscript: transcript,
+      };
+    }
+
+    // Show/view all entries
+    if (this.matchesPattern(lowerTranscript, ['show', 'view', 'display', 'list'], ['all', 'entries', 'documents', 'items'])) {
+      return {
+        intent: 'navigate',
+        action: 'show_all_entries',
+        confidence: 0.9,
+        parameters: {},
+        needsConfirmation: false,
+        conversationalResponse: 'I\'ll show you all your entries.',
+        originalTranscript: transcript,
+      };
+    }
+
+    // Search patterns
+    if (this.matchesPattern(lowerTranscript, ['search', 'find', 'look'], ['for'])) {
+      const searchTerm = this.extractSearchTerm(lowerTranscript);
+      return {
+        intent: 'search',
+        action: 'search_entries',
+        confidence: 0.8,
+        parameters: { query: searchTerm },
+        needsConfirmation: false,
+        conversationalResponse: searchTerm 
+          ? `I'll search for "${searchTerm}" in your entries.`
+          : 'What would you like me to search for?',
+        originalTranscript: transcript,
+      };
+    }
+
+    // Category navigation
+    const categories = ['documents', 'health', 'contacts', 'finance', 'personal'];
+    for (const category of categories) {
+      if (lowerTranscript.includes(category)) {
+        return {
+          intent: 'navigate',
+          action: 'navigate_to_category',
+          confidence: 0.8,
+          parameters: { category: category.charAt(0).toUpperCase() + category.slice(1) },
+          needsConfirmation: false,
+          conversationalResponse: `I'll show you your ${category} entries.`,
+          originalTranscript: transcript,
+        };
+      }
+    }
+
+    // Default unknown command
+    return {
+      intent: 'unknown',
+      action: 'unknown',
+      confidence: 0.1,
+      parameters: {},
+      needsConfirmation: false,
+      conversationalResponse: 'I didn\'t quite understand that. Could you please rephrase your request?',
+      followUpQuestions: [
+        'Try saying "Create a new entry" or "Show me my documents"',
+        'You can also say "Search for [term]" or navigate to categories like "Show my health records"'
+      ],
+      originalTranscript: transcript,
+    };
+  }
+
+  private matchesPattern(text: string, triggerWords: string[], contextWords: string[]): boolean {
+    const hasTrigger = triggerWords.some(word => text.includes(word));
+    const hasContext = contextWords.some(word => text.includes(word));
+    return hasTrigger && (contextWords.length === 0 || hasContext);
+  }
+
+  private extractSearchTerm(text: string): string {
+    // Extract search term after words like "search for", "find", "look for"
+    const patterns = [
+      /search\s+for\s+(.+)/i,
+      /find\s+(.+)/i,
+      /look\s+for\s+(.+)/i,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    
+    return '';
   }
 
   private isConfirmationResponse(transcript: string): boolean {

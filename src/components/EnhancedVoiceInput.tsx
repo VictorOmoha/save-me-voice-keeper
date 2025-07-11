@@ -78,14 +78,19 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
           
           // Prevent feedback loop - ignore system messages and TTS responses
           const lowerTranscript = finalTranscript.toLowerCase().trim();
+          
+          // More comprehensive system message filtering
           const systemMessages = [
             'sorry, i had trouble understanding that',
             'could you please try again',
             'i didn\'t understand that command',
             'try saying something like',
             'please try again',
-            'i\'ll help you create a new entry',
+            'i\'ll help you create',
+            'i will help you create',
+            'help you create',
             'what information would you like to add',
+            'what information',
             'perfect! i\'ll create',
             'successfully created',
             'i\'ll show you',
@@ -95,12 +100,29 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
             'what category should this entry be in',
             'great! i\'ve added',
             'confirmed! i\'ll',
-            'okay, i\'ve cancelled'
+            'okay, i\'ve cancelled',
+            'i didn\'t quite understand',
+            'could you please rephrase',
+            'voice assistant',
+            'ai voice assistant',
+            'enhanced voice',
+            'text to speech'
           ];
           
-          const isSystemMessage = systemMessages.some(msg => lowerTranscript.includes(msg));
-          if (isSystemMessage) {
-            console.log('Ignoring system message to prevent feedback loop:', finalTranscript);
+          // Check if transcript is too similar to system messages
+          const isSystemMessage = systemMessages.some(msg => {
+            const similarity = lowerTranscript.includes(msg) || msg.includes(lowerTranscript);
+            return similarity;
+          });
+          
+          // Also check if it's very short (likely partial TTS pickup)
+          const isVeryShort = finalTranscript.trim().length < 5;
+          
+          // Check if confidence is very low (likely background noise or TTS)
+          const isLowConfidence = maxConfidence < 0.3;
+          
+          if (isSystemMessage || isVeryShort || isLowConfidence) {
+            console.log('Ignoring potential system message/TTS feedback:', finalTranscript, 'Confidence:', maxConfidence);
             return;
           }
           
@@ -140,11 +162,20 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
               if (voiceProcessor.isExpectingFollowUp()) {
                 console.log('Follow-up expected, restarting listening...');
                 setTimeout(() => {
-                  if (recognitionRef.current && !isListening) {
+                  // Double-check TTS isn't still playing before restarting
+                  if ((window as any).__tts_is_speaking) {
+                    console.log('TTS still speaking, delaying restart...');
+                    setTimeout(() => {
+                      if (recognitionRef.current && !isListening && !(window as any).__tts_is_speaking) {
+                        setTranscript("");
+                        recognitionRef.current.start();
+                      }
+                    }, 2000);
+                  } else if (recognitionRef.current && !isListening) {
                     setTranscript("");
                     recognitionRef.current.start();
                   }
-                }, 3000); // Give more time for TTS to complete and avoid feedback
+                }, 5000); // Increased delay to 5 seconds
               }
             });
           }, 3000);
@@ -182,10 +213,15 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
     };
   }, [onVoiceInput, isListening]);
 
-  // Simulate audio level for visual feedback
+  // Simulate audio level for visual feedback and monitor TTS status
   useEffect(() => {
     if (isListening) {
       const interval = setInterval(() => {
+        // Check if TTS started speaking while we're listening
+        if ((window as any).__tts_is_speaking && recognitionRef.current && isListening) {
+          console.log('TTS started, stopping voice recognition to prevent feedback');
+          recognitionRef.current.stop();
+        }
         setAudioLevel(Math.random() * 100);
       }, 100);
       return () => clearInterval(interval);

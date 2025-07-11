@@ -205,6 +205,8 @@ const speakWithBrowser = async (text: string): Promise<void> => {
       
       // Set up event handlers
       utterance.onstart = () => {
+        isSpeaking = true;
+        (window as any).__tts_is_speaking = true;
         console.log('TTS: Browser TTS started successfully');
       };
       

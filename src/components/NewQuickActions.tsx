@@ -8,16 +8,14 @@ import { useState } from "react";
 interface NewQuickActionsProps {
   onAddEntry: () => void;
   onVoiceInput: () => void;
-  onVoiceResult: (text: string) => void;
-  onVoiceCommand: (command: VoiceCommand) => void;
+  onEnhancedVoiceInput: (text: string) => void;
   onCreateDocument: () => void;
 }
 
 export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
   onAddEntry,
   onVoiceInput,
-  onVoiceResult,
-  onVoiceCommand,
+  onEnhancedVoiceInput,
   onCreateDocument,
 }) => {
   const [showVoiceInput, setShowVoiceInput] = useState(false);
@@ -73,8 +71,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
       {showVoiceInput && (
         <div className="mt-6 pt-6 border-t border-border">
           <VoiceInput 
-            onVoiceResult={onVoiceResult}
-            onVoiceCommand={onVoiceCommand}
+            onEnhancedVoiceInput={onEnhancedVoiceInput}
           />
         </div>
       )}

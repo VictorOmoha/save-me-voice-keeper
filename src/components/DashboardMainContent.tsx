@@ -27,8 +27,7 @@ interface DashboardMainContentProps {
   onCategorySelect: (category: string) => void;
   onAddEntry: () => void;
   onCreateDocument: () => void;
-  onVoiceResult: (text: string) => void;
-  onVoiceCommand: (command: any) => void;
+  onEnhancedVoiceInput: (text: string) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
 }
@@ -58,8 +57,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onCategorySelect,
   onAddEntry,
   onCreateDocument,
-  onVoiceResult,
-  onVoiceCommand,
+  onEnhancedVoiceInput,
   onEditEntry,
   onFillEntry,
 }) => {
@@ -105,8 +103,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       <NewQuickActions
         onAddEntry={onAddEntry}
         onVoiceInput={() => {}}
-        onVoiceResult={onVoiceResult}
-        onVoiceCommand={onVoiceCommand}
+        onEnhancedVoiceInput={onEnhancedVoiceInput}
         onCreateDocument={onCreateDocument}
       />
 

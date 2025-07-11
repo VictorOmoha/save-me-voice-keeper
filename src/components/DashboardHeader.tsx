@@ -21,16 +21,14 @@ interface DashboardHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   userName?: string;
-  onVoiceResult?: (text: string) => void;
-  onVoiceCommand?: (command: VoiceCommand) => void;
+  onEnhancedVoiceInput?: (text: string) => void;
 }
 
 export const DashboardHeader = ({
   searchQuery,
   onSearchChange,
   userName,
-  onVoiceResult,
-  onVoiceCommand,
+  onEnhancedVoiceInput,
 }: DashboardHeaderProps) => {
   const { theme, setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -145,8 +143,7 @@ export const DashboardHeader = ({
               </Button>
             </div>
             <VoiceInput 
-              onVoiceResult={onVoiceResult || (() => {})}
-              onVoiceCommand={onVoiceCommand}
+              onEnhancedVoiceInput={onEnhancedVoiceInput}
             />
           </div>
         </div>

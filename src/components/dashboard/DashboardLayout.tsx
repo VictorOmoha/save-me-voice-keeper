@@ -14,8 +14,7 @@ interface DashboardLayoutProps {
   onAddEntry: () => void;
   onCategorySelect: (category: string) => void;
   onAllEntriesSelect: () => void;
-  onVoiceResult?: (text: string) => void;
-  onVoiceCommand?: (command: VoiceCommand) => void;
+  onEnhancedVoiceInput?: (text: string) => void;
 }
 
 export const DashboardLayout = ({
@@ -27,8 +26,7 @@ export const DashboardLayout = ({
   onAddEntry,
   onCategorySelect,
   onAllEntriesSelect,
-  onVoiceResult,
-  onVoiceCommand,
+  onEnhancedVoiceInput,
 }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex">
@@ -45,8 +43,7 @@ export const DashboardLayout = ({
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
           userName={userName}
-          onVoiceResult={onVoiceResult}
-          onVoiceCommand={onVoiceCommand}
+          onEnhancedVoiceInput={onEnhancedVoiceInput}
         />
         
         <main className="flex-1 p-6 overflow-auto">

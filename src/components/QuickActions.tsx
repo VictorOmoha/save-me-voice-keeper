@@ -6,15 +6,13 @@ import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 interface QuickActionsProps {
   savedEntriesCount: number;
   onAddEntry: () => void;
-  onVoiceResult: (text: string) => void;
-  onVoiceCommand: (command: VoiceCommand) => void;
+  onEnhancedVoiceInput: (text: string) => void;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
   savedEntriesCount,
   onAddEntry,
-  onVoiceResult,
-  onVoiceCommand,
+  onEnhancedVoiceInput,
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -31,8 +29,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       </Card>
 
       <VoiceInput 
-        onVoiceResult={onVoiceResult}
-        onVoiceCommand={onVoiceCommand}
+        onEnhancedVoiceInput={onEnhancedVoiceInput}
       />
 
       <Card>

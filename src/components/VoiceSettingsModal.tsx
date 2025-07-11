@@ -87,6 +87,8 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     
     try {
       const testText = "Hello! This is a test of your voice settings. How does this sound?";
+      // Temporarily set the voice for testing without saving
+      setSelectedVoice(selectedVoice as keyof typeof VOICE_OPTIONS);
       await speak(testText, selectedVoice as keyof typeof VOICE_OPTIONS);
     } catch (error) {
       console.error('Voice test failed:', error);

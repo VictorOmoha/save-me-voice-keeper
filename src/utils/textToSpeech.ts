@@ -21,62 +21,66 @@ const SPEECH_COOLDOWN = 1500; // Reduced cooldown for better responsiveness
 let lastSpeechTime = 0;
 let currentAudio: HTMLAudioElement | null = null;
 
-export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIONS): Promise<void> => {
+export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIONS, isTest: boolean = false): Promise<void> => {
   console.log('TTS: Attempting to speak:', text);
   
-  // Check cooldown period
   const now = Date.now();
-  if (now - lastSpeechTime < SPEECH_COOLDOWN) {
-    console.log('TTS: In cooldown period, skipping speech');
-    return;
-  }
-  
-  // More comprehensive filtering to prevent feedback loops
   const lowerText = text.toLowerCase().trim();
   
-  // Skip empty or very short texts
-  if (!text || text.trim().length < 3) {
-    console.log('TTS: Text too short, skipping');
-    return;
-  }
-  
-  // Check against recent speech history
-  if (recentSpeechHistory.includes(lowerText)) {
-    console.log('TTS: Text recently spoken, skipping to prevent loop');
-    return;
-  }
-  
-  // Filter out system/error messages that could cause loops
-  const systemPatterns = [
-    'sorry, i had trouble understanding',
-    'could you please try again',
-    'i didn\'t understand that',
-    'speech recognition',
-    'microphone access',
-    'try saying something like',
-    'voice command not recognized',
-    'listening for commands',
-    'processing with ai',
-    'browser speech synthesis',
-    'tts',
-    'text to speech'
-  ];
-  
-  const isSystemMessage = systemPatterns.some(pattern => lowerText.includes(pattern));
-  if (isSystemMessage) {
-    console.log('TTS: Skipping system message to prevent feedback loop:', text);
-    return;
+  // Skip cooldown and history checks for voice tests
+  if (!isTest) {
+    // Check cooldown period
+    if (now - lastSpeechTime < SPEECH_COOLDOWN) {
+      console.log('TTS: In cooldown period, skipping speech');
+      return;
+    }
+    
+    // Skip empty or very short texts
+    if (!text || text.trim().length < 3) {
+      console.log('TTS: Text too short, skipping');
+      return;
+    }
+    
+    // Check against recent speech history
+    if (recentSpeechHistory.includes(lowerText)) {
+      console.log('TTS: Text recently spoken, skipping to prevent loop');
+      return;
+    }
+    
+    // Filter out system/error messages that could cause loops
+    const systemPatterns = [
+      'sorry, i had trouble understanding',
+      'could you please try again',
+      'i didn\'t understand that',
+      'speech recognition',
+      'microphone access',
+      'try saying something like',
+      'voice command not recognized',
+      'listening for commands',
+      'processing with ai',
+      'browser speech synthesis',
+      'tts',
+      'text to speech'
+    ];
+    
+    const isSystemMessage = systemPatterns.some(pattern => lowerText.includes(pattern));
+    if (isSystemMessage) {
+      console.log('TTS: Skipping system message to prevent feedback loop:', text);
+      return;
+    }
   }
   
   try {
-    // Add to speech history
-    recentSpeechHistory.push(lowerText);
-    if (recentSpeechHistory.length > SPEECH_HISTORY_LIMIT) {
-      recentSpeechHistory.shift();
+    // Add to speech history (only for non-test calls)
+    if (!isTest) {
+      recentSpeechHistory.push(lowerText);
+      if (recentSpeechHistory.length > SPEECH_HISTORY_LIMIT) {
+        recentSpeechHistory.shift();
+      }
+      
+      // Update last speech time
+      lastSpeechTime = now;
     }
-    
-    // Update last speech time
-    lastSpeechTime = now;
     
     // Stop any currently playing audio
     if (currentAudio) {

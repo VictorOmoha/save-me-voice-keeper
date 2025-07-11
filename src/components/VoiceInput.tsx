@@ -1,23 +1,24 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { VoiceControlModal } from "./VoiceControlModal";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
-import { VoiceCommand, processVoiceCommand } from "@/utils/voiceCommandProcessor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mic, MicOff, Settings } from "lucide-react";
 import { getElevenLabsApiKey } from "@/utils/textToSpeech";
 
 interface VoiceInputProps {
-  onVoiceResult: (text: string) => void;
-  onVoiceCommand?: (command: VoiceCommand) => void;
+  onEnhancedVoiceInput?: (text: string) => void;
+  onVoiceResult?: (text: string) => void; // Keep for backward compatibility but won't use both
 }
 
-export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCommand }) => {
+export const VoiceInput: React.FC<VoiceInputProps> = ({ 
+  onEnhancedVoiceInput, 
+  onVoiceResult 
+}) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(false);
-  const [lastCommand, setLastCommand] = useState<VoiceCommand | null>(null);
-  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
@@ -56,13 +57,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
 
         if (finalTranscript) {
           console.log('Final transcript:', finalTranscript);
-          onVoiceResult(finalTranscript);
           
-          // Process as voice command
-          if (onVoiceCommand) {
-            const command = processVoiceCommand(finalTranscript);
-            setLastCommand(command);
-            onVoiceCommand(command);
+          // Use enhanced voice input if available, otherwise fall back to legacy
+          if (onEnhancedVoiceInput) {
+            console.log('Using enhanced voice processing');
+            onEnhancedVoiceInput(finalTranscript);
+          } else if (onVoiceResult) {
+            console.log('Using legacy voice processing');
+            onVoiceResult(finalTranscript);
           }
         }
       };
@@ -77,12 +79,11 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
         console.log('Voice recognition ended');
       };
     }
-  }, [onVoiceResult, onVoiceCommand]);
+  }, [onEnhancedVoiceInput, onVoiceResult]);
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
       setTranscript("");
-      setLastCommand(null);
       recognitionRef.current.start();
     }
   };
@@ -91,11 +92,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
     if (recognitionRef.current && isListening) {
       recognitionRef.current.stop();
     }
-  };
-
-  const handleVoiceModalClose = () => {
-    setShowVoiceModal(false);
-    stopListening();
   };
 
   if (!isSupported) {
@@ -139,14 +135,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
             </div>
           )}
 
-          {lastCommand && (
-            <div className="p-3 bg-muted rounded-md">
-              <p className="text-sm text-muted-foreground">Last command:</p>
-              <p className="text-sm font-medium">{lastCommand.type}</p>
-              <p className="text-xs text-muted-foreground">Parameters: {JSON.stringify(lastCommand.params || {})}</p>
-            </div>
-          )}
-
           <div className="flex gap-2">
             {isListening ? (
               <Button
@@ -176,7 +164,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onVoiceResult, onVoiceCo
               variant="outline"
               size="icon"
             >
-              <Settings className="w-4 w-4" />
+              <Settings className="w-4 h-4" />
             </Button>
           </div>
 

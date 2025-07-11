@@ -76,14 +76,26 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
         if (finalTranscript) {
           console.log('Final transcript:', finalTranscript, 'Confidence:', maxConfidence);
           
-          // Prevent feedback loop - ignore system messages
+          // Prevent feedback loop - ignore system messages and TTS responses
           const lowerTranscript = finalTranscript.toLowerCase().trim();
           const systemMessages = [
             'sorry, i had trouble understanding that',
             'could you please try again',
             'i didn\'t understand that command',
             'try saying something like',
-            'please try again'
+            'please try again',
+            'i\'ll help you create a new entry',
+            'what information would you like to add',
+            'perfect! i\'ll create',
+            'successfully created',
+            'i\'ll show you',
+            'searching for',
+            'what would you like',
+            'hello! how can i help you',
+            'what category should this entry be in',
+            'great! i\'ve added',
+            'confirmed! i\'ll',
+            'okay, i\'ve cancelled'
           ];
           
           const isSystemMessage = systemMessages.some(msg => lowerTranscript.includes(msg));
@@ -92,9 +104,15 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
             return;
           }
           
-          // Prevent processing if already processing
+          // Prevent processing if already processing or if TTS is speaking
           if (isProcessingAudio) {
             console.log('Already processing audio, ignoring new input');
+            return;
+          }
+
+          // Check if TTS is currently speaking to prevent feedback
+          if ((window as any).__tts_is_speaking) {
+            console.log('TTS is speaking, ignoring voice input to prevent feedback');
             return;
           }
           
@@ -126,7 +144,7 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
                     setTranscript("");
                     recognitionRef.current.start();
                   }
-                }, 1000); // Give some time for TTS to complete
+                }, 3000); // Give more time for TTS to complete and avoid feedback
               }
             });
           }, 3000);

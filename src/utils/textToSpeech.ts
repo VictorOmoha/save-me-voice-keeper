@@ -20,6 +20,10 @@ const SPEECH_HISTORY_LIMIT = 5;
 const SPEECH_COOLDOWN = 1500; // Reduced cooldown for better responsiveness
 let lastSpeechTime = 0;
 let currentAudio: HTMLAudioElement | null = null;
+let isSpeaking = false;
+
+// Global state for voice input components to check
+(window as any).__tts_is_speaking = false;
 
 export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIONS, isTest: boolean = false): Promise<void> => {
   console.log('TTS: Attempting to speak:', text);
@@ -88,6 +92,10 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
       currentAudio = null;
     }
     
+    // Set global speaking state
+    isSpeaking = true;
+    (window as any).__tts_is_speaking = true;
+    
     // Refresh API key from localStorage in case it was updated
     ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
     
@@ -150,6 +158,8 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
       currentAudio.onended = () => {
         URL.revokeObjectURL(audioUrl);
         currentAudio = null;
+        isSpeaking = false;
+        (window as any).__tts_is_speaking = false;
         console.log('TTS: ElevenLabs TTS completed');
         resolve();
       };
@@ -157,6 +167,8 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
       currentAudio.onerror = (e) => {
         URL.revokeObjectURL(audioUrl);
         currentAudio = null;
+        isSpeaking = false;
+        (window as any).__tts_is_speaking = false;
         console.error('TTS: ElevenLabs audio playback error:', e);
         reject(e);
       };
@@ -197,11 +209,15 @@ const speakWithBrowser = async (text: string): Promise<void> => {
       };
       
       utterance.onend = () => {
+        isSpeaking = false;
+        (window as any).__tts_is_speaking = false;
         console.log('TTS: Browser TTS ended');
         resolve();
       };
       
       utterance.onerror = (e) => {
+        isSpeaking = false;
+        (window as any).__tts_is_speaking = false;
         console.error('TTS: Browser TTS error:', e);
         reject(e);
       };
@@ -236,10 +252,17 @@ export const stopCurrentSpeech = () => {
     currentAudio = null;
   }
   speechSynthesis.cancel();
+  isSpeaking = false;
+  (window as any).__tts_is_speaking = false;
 };
 
 // Clear speech history when needed
 export const clearSpeechHistory = () => {
   recentSpeechHistory = [];
   lastSpeechTime = 0;
+};
+
+// Check if TTS is currently speaking
+export const isTTSSpeaking = (): boolean => {
+  return isSpeaking || (window as any).__tts_is_speaking;
 };

@@ -34,6 +34,22 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Global function to stop voice recognition from anywhere
+    (window as any).__stopAllVoiceRecognition = () => {
+      console.log('🛑 GLOBAL STOP: Stopping all voice recognition');
+      if (recognitionRef.current && isListening) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      setIsProcessingAudio(false);
+    };
+
+    return () => {
+      delete (window as any).__stopAllVoiceRecognition;
+    };
+  }, [isListening]);
+
+  useEffect(() => {
     // Check if speech recognition is supported
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -76,44 +92,45 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
         if (finalTranscript) {
           console.log('Final transcript:', finalTranscript, 'Confidence:', maxConfidence);
           
-          // Prevent feedback loop - ignore system messages and TTS responses
+          // Prevent feedback loop - comprehensive TTS detection
           const lowerTranscript = finalTranscript.toLowerCase().trim();
           
-          // More comprehensive system message filtering
-          const systemMessages = [
-            'sorry, i had trouble understanding that',
-            'could you please try again',
-            'i didn\'t understand that command',
-            'try saying something like',
-            'please try again',
-            'i\'ll help you create',
-            'i will help you create',
-            'help you create',
-            'what information would you like to add',
-            'what information',
-            'perfect! i\'ll create',
-            'successfully created',
-            'i\'ll show you',
-            'searching for',
-            'what would you like',
-            'hello! how can i help you',
-            'what category should this entry be in',
-            'great! i\'ve added',
-            'confirmed! i\'ll',
-            'okay, i\'ve cancelled',
-            'i didn\'t quite understand',
-            'could you please rephrase',
-            'voice assistant',
-            'ai voice assistant',
-            'enhanced voice',
-            'text to speech'
+          // Check if this is clearly a TTS output by looking for key patterns
+          const ttsPatterns = [
+            // Common TTS phrases
+            /i'?ll help you/,
+            /what information would you like/,
+            /what would you like to add/,
+            /perfect! i'?ll create/,
+            /successfully created/,
+            /i'?ll show you/,
+            /sorry, i had trouble/,
+            /could you please try/,
+            /i didn'?t understand/,
+            /try saying something/,
+            /voice assistant/,
+            /ai voice/,
+            /what category should/,
+            /great! i'?ve added/,
+            /confirmed! i'?ll/,
+            /okay, i'?ve cancelled/,
+            /i didn'?t quite understand/,
+            /could you please rephrase/,
+            /hello! how can i help/,
+            /searching for/,
+            
+            // Detect sentences that start with "I'll" (likely TTS)
+            /^i'?ll\s/,
+            
+            // Detect questions that end with question words (likely TTS prompts)
+            /what\s.*\?$/,
+            /how\s.*\?$/,
+            /would you like.*\?$/,
+            /do you want.*\?$/,
           ];
           
-          // Check if transcript is too similar to system messages
-          const isSystemMessage = systemMessages.some(msg => {
-            const similarity = lowerTranscript.includes(msg) || msg.includes(lowerTranscript);
-            return similarity;
-          });
+          // Check for TTS patterns
+          const isTTSOutput = ttsPatterns.some(pattern => pattern.test(lowerTranscript));
           
           // Also check if it's very short (likely partial TTS pickup)
           const isVeryShort = finalTranscript.trim().length < 5;
@@ -121,8 +138,22 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
           // Check if confidence is very low (likely background noise or TTS)
           const isLowConfidence = maxConfidence < 0.3;
           
-          if (isSystemMessage || isVeryShort || isLowConfidence) {
-            console.log('Ignoring potential system message/TTS feedback:', finalTranscript, 'Confidence:', maxConfidence);
+          // Check if transcript contains multiple sentences (likely TTS)
+          const hasMultipleSentences = (finalTranscript.match(/[.!?]/g) || []).length > 1;
+          
+          // Check if transcript is suspiciously long (likely TTS)
+          const isSuspiciouslyLong = finalTranscript.length > 50;
+          
+          if (isTTSOutput || isVeryShort || isLowConfidence || (hasMultipleSentences && isSuspiciouslyLong)) {
+            console.log('🚫 BLOCKED TTS FEEDBACK:', {
+              transcript: finalTranscript,
+              confidence: maxConfidence,
+              isTTSOutput,
+              isVeryShort,
+              isLowConfidence,
+              hasMultipleSentences,
+              isSuspiciouslyLong
+            });
             return;
           }
           

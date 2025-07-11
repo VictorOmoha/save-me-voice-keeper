@@ -53,6 +53,12 @@ export const useEnhancedVoice = ({
   const executeCommand = useCallback(async (command: EnhancedVoiceCommand) => {
     console.log('Executing enhanced voice command:', command);
 
+    // Skip execution if this is blocked TTS feedback
+    if (command.action === 'tts_feedback_blocked') {
+      console.log('🚫 HOOK: Skipping TTS feedback execution');
+      return;
+    }
+
     try {
       switch (command.intent) {
         case 'create':
@@ -127,6 +133,12 @@ export const useEnhancedVoice = ({
       const successMessage = command.conversationalResponse || 'What information would you like to add to this entry?';
       toast.info('Voice Assistant');
       console.log('Speaking create prompt:', successMessage);
+      
+      // Stop any active voice recognition before speaking
+      if ((window as any).__stopAllVoiceRecognition) {
+        (window as any).__stopAllVoiceRecognition();
+      }
+      
       setTimeout(() => speak(successMessage), 500);
     }
   };

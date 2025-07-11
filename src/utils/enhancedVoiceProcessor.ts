@@ -41,6 +41,33 @@ export class EnhancedVoiceProcessor {
     try {
       console.log('Processing enhanced voice command:', transcript);
       
+      // FIRST LINE OF DEFENSE: Check if this is clearly TTS output
+      const lowerTranscript = transcript.toLowerCase().trim();
+      const ttsIndicators = [
+        /i'?ll help you/,
+        /what information would you like/,
+        /what would you like to add/,
+        /perfect! i'?ll create/,
+        /successfully created/,
+        /^i'?ll\s/,
+        /what\s.*\?$/,
+        /would you like.*\?$/,
+      ];
+      
+      const isClearlyTTS = ttsIndicators.some(pattern => pattern.test(lowerTranscript));
+      if (isClearlyTTS) {
+        console.log('🚫 VOICE PROCESSOR: Blocking TTS feedback:', transcript);
+        return {
+          intent: 'unknown',
+          action: 'tts_feedback_blocked',
+          confidence: 0,
+          parameters: {},
+          needsConfirmation: false,
+          conversationalResponse: '',
+          originalTranscript: transcript,
+        };
+      }
+      
       // Check if this is a confirmation response
       if (this.pendingConfirmation && this.isConfirmationResponse(transcript)) {
         const confirmed = this.extractConfirmation(transcript);

@@ -21,6 +21,23 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
   const [isSupported, setIsSupported] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const instanceIdRef = useRef<string>(`voice-input-${Date.now()}-${Math.random()}`);
+
+  // Global registry to track active voice input instances
+  useEffect(() => {
+    const globalRegistry = (window as any).__voiceInputRegistry || new Set();
+    (window as any).__voiceInputRegistry = globalRegistry;
+    
+    const instanceId = instanceIdRef.current;
+    globalRegistry.add(instanceId);
+    
+    return () => {
+      globalRegistry.delete(instanceId);
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // Check if speech recognition is supported
@@ -36,6 +53,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
 
       recognition.onstart = () => {
         setIsListening(true);
+        (window as any)[`isListening_${instanceIdRef.current}`] = true;
         console.log('Voice recognition started');
       };
 
@@ -72,24 +90,39 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
+        (window as any)[`isListening_${instanceIdRef.current}`] = false;
       };
 
       recognition.onend = () => {
         setIsListening(false);
+        (window as any)[`isListening_${instanceIdRef.current}`] = false;
         console.log('Voice recognition ended');
       };
     }
   }, [onEnhancedVoiceInput, onVoiceResult]);
 
   const startListening = () => {
+    // Check if any other voice input is already listening
+    const globalRegistry = (window as any).__voiceInputRegistry || new Set();
+    const currentlyListening = Array.from(globalRegistry).some((id: string) => 
+      id !== instanceIdRef.current && (window as any)[`isListening_${id}`]
+    );
+    
+    if (currentlyListening) {
+      console.log('Another voice input is already listening, ignoring start request');
+      return;
+    }
+    
     if (recognitionRef.current && !isListening) {
       setTranscript("");
+      (window as any)[`isListening_${instanceIdRef.current}`] = true;
       recognitionRef.current.start();
     }
   };
 
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
+      (window as any)[`isListening_${instanceIdRef.current}`] = false;
       recognitionRef.current.stop();
     }
   };

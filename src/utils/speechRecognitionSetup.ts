@@ -73,13 +73,45 @@ export const setupSpeechRecognition = ({
     setIsListening(true);
     // Set global flag for tracking
     (window as any).__speech_recognition_active = true;
-    toast.success('🎤 Listening... Speak clearly and loudly!');
+    toast.success('🎤 Listening... Speak VERY LOUDLY and CLEARLY!');
+    
+    // Add browser and audio debugging
+    console.log('🔍 Browser info:', {
+      userAgent: navigator.userAgent,
+      platform: navigator.platform,
+      language: navigator.language,
+      onLine: navigator.onLine
+    });
+    
+    // Test microphone access
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        console.log('✅ Microphone access confirmed');
+        console.log('🎙️ Audio tracks:', stream.getAudioTracks().map(track => ({
+          label: track.label,
+          enabled: track.enabled,
+          readyState: track.readyState,
+          settings: track.getSettings ? track.getSettings() : 'settings not available'
+        })));
+        
+        // Clean up the test stream
+        stream.getTracks().forEach(track => track.stop());
+      })
+      .catch(err => {
+        console.error('❌ Microphone access issue:', err);
+        toast.error('Microphone access issue: ' + err.message);
+      });
     
     // Add a timeout to detect if no speech is heard
     setTimeout(() => {
       if ((window as any).__speech_recognition_active && !document.querySelector('[data-voice-detected]')) {
-        console.log('⚠️ No speech detected after 10 seconds - check microphone');
-        toast.warning('No speech detected. Speak louder or check microphone settings.');
+        console.log('⚠️ No speech detected after 10 seconds');
+        console.log('💡 Troubleshooting tips:');
+        console.log('1. Speak VERY loud and close to microphone');
+        console.log('2. Try saying "HELLO TESTING" slowly and clearly');
+        console.log('3. Check if other apps can hear your microphone');
+        console.log('4. Try refreshing the page and allowing microphone again');
+        toast.warning('No speech detected. Try speaking MUCH LOUDER or check browser microphone settings.');
       }
     }, 10000);
   };

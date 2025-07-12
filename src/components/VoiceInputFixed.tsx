@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Volume2 } from "lucide-react";
 import { SimpleVoiceInput } from "./SimpleVoiceInput";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
+import { VoiceDebugTest } from "./VoiceDebugTest";
 import { MicrophoneTest } from "./MicrophoneTest";
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
 
@@ -66,6 +67,11 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
           <Settings className="h-3 w-3 mr-1" />
           Settings
         </Button>
+      </div>
+
+      {/* Voice Debug Test */}
+      <div className="mb-4">
+        <VoiceDebugTest />
       </div>
 
       {/* Microphone Diagnostics */}

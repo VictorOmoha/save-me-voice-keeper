@@ -171,16 +171,24 @@ export const useDashboardVoice = ({
         break;
         
       case 'cancel':
+        console.log('Close/Cancel command received in dashboard');
+        
+        // Comprehensive close functionality for dashboard
         if (showAddEntry) {
-          handleCancelEdit();
-          const cancelMessage = 'Cancelled current action';
-          toast.success('Voice command: Cancelled current action');
-          speak(cancelMessage);
+          handleCancelEdit(); // Close any edit forms
+          const closeFormMessage = 'Form closed';
+          toast.success(closeFormMessage);
+          speak(closeFormMessage);
         } else {
-          const noCancelMessage = 'No action to cancel';
-          toast.info(noCancelMessage);
-          speak(noCancelMessage);
+          const generalCloseMessage = 'Closing current view';
+          toast.info(generalCloseMessage);
+          speak(generalCloseMessage);
         }
+        
+        // Trigger a custom event that components can listen to for closing
+        window.dispatchEvent(new CustomEvent('voice-close-command', { 
+          detail: { timestamp: Date.now(), source: 'dashboard' } 
+        }));
         break;
         
       default:

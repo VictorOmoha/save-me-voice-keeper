@@ -157,9 +157,14 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
   
-  // Cancel commands
-  if (lowerTranscript.includes('cancel') || lowerTranscript.includes('stop') || lowerTranscript.includes('close')) {
-    console.log('Detected cancel command');
+  // Cancel/Close commands - enhanced patterns
+  if (lowerTranscript.includes('cancel') || 
+      lowerTranscript.includes('stop') || 
+      lowerTranscript.includes('close') ||
+      lowerTranscript.includes('exit') ||
+      lowerTranscript.includes('dismiss') ||
+      lowerTranscript.includes('back')) {
+    console.log('Detected close/cancel command');
     return { type: 'cancel' };
   }
   

@@ -519,17 +519,29 @@ export const useVoiceConversation = ({
         break;
         
       case 'cancel':
+        console.log('Close/Cancel command received');
+        
+        // Comprehensive close functionality
         if (conversationState.isActive) {
           cancelConversation();
+          const stopConversationMessage = 'Voice conversation stopped';
+          toast.info(stopConversationMessage);
+          speak(stopConversationMessage);
         } else if (showAddEntry) {
           handleCancelEdit();
-          const cancelMessage = 'Cancelled current action';
-          toast.success('Voice command: Cancelled current action');
-          speak(cancelMessage);
+          const closeFormMessage = 'Form closed';
+          toast.success(closeFormMessage);
+          speak(closeFormMessage);
         } else {
-          const noCancelMessage = 'No action to cancel';
-          toast.info(noCancelMessage);
-          speak(noCancelMessage);
+          // General close command - could close any open dialogs/modals
+          const generalCloseMessage = 'Closing current view';
+          toast.info(generalCloseMessage);
+          speak(generalCloseMessage);
+          
+          // Trigger a custom event that components can listen to for closing
+          window.dispatchEvent(new CustomEvent('voice-close-command', { 
+            detail: { timestamp: Date.now() } 
+          }));
         }
         break;
         

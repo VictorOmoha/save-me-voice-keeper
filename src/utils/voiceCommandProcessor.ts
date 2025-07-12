@@ -246,12 +246,19 @@ const extractFormValue = (transcript: string, fieldType: string): string => {
 const extractTitleFromSpeech = (transcript: string): string => {
   console.log('🔍 Extracting title from:', transcript);
   
-  // Handle speech recognition variations like "title my document" -> "document"
+  // Handle speech recognition variations and common misinterpretations
   const patterns = [
+    // Direct patterns
     /title\s+my\s+(.+?)(?:\.|$)/i,
     /(?:call it|name it)\s+(.+?)(?:\.|$)/i,
     /title\s+(.+?)(?:\.|$)/i,
     /(?:set|make)\s+(?:the\s+)?title\s+(.+?)(?:\.|$)/i,
+    
+    // Common speech recognition errors
+    /type\s+(?:to|two)\s+my\s+(.+?)(?:\.|$)/i,  // "title my" often becomes "type to my"
+    /tight\s+(?:to|two)\s+my\s+(.+?)(?:\.|$)/i, // "title" sometimes becomes "tight"
+    /(?:call|caller)\s+(?:it|this|that)\s+(.+?)(?:\.|$)/i, // "call it" variations
+    /(?:name|named?)\s+(?:it|this|that)\s+(.+?)(?:\.|$)/i, // "name it" variations
   ];
   
   for (const pattern of patterns) {

@@ -86,23 +86,34 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
         // Process the command
         const command = processVoiceCommand(finalTranscript);
         console.log('📋 Processed command:', command);
+        console.log('🔧 Form setters available:', { 
+          formTitleSetter: !!formTitleSetter, 
+          formCategorySetter: !!formCategorySetter 
+        });
         
         // Handle form field commands first
         if (command.type === 'set_title' && command.params?.titleValue) {
+          console.log('🎯 Setting title to:', command.params.titleValue);
           if (formTitleSetter) {
+            console.log('✅ Calling formTitleSetter with:', command.params.titleValue);
             formTitleSetter(command.params.titleValue);
             toast.success(`✅ Title set: "${command.params.titleValue}"`);
           } else {
+            console.log('❌ No formTitleSetter available');
             toast.warning('No form open to set title');
           }
         } else if (command.type === 'set_category' && command.params?.categoryValue) {
+          console.log('🎯 Setting category to:', command.params.categoryValue);
           if (formCategorySetter) {
+            console.log('✅ Calling formCategorySetter with:', command.params.categoryValue);
             formCategorySetter(command.params.categoryValue);
             toast.success(`✅ Category set: "${command.params.categoryValue}"`);
           } else {
+            console.log('❌ No formCategorySetter available');
             toast.warning('No form open to set category');
           }
         } else {
+          console.log('🔄 Processing as regular command');
           // Handle regular commands (create entry, etc.)
           if (onEnhancedVoiceInput) {
             onEnhancedVoiceInput(finalTranscript);
@@ -112,6 +123,7 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
           if (command.type !== 'unknown') {
             toast.success(`✅ Command: ${command.type.replace('_', ' ')}`);
           } else {
+            console.log('❓ Unknown command, transcript was:', finalTranscript);
             toast.info(`📝 Heard: "${finalTranscript}"`);
           }
         }

@@ -43,9 +43,9 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
     const recognition = new SpeechRecognition();
     (window as any).__global_simple_recognition = recognition;
     
-    // Simple configuration that works
-    recognition.continuous = false;
-    recognition.interimResults = true;
+    // Use the same working configuration as the diagnostic
+    recognition.continuous = true;  // Allow longer phrases
+    recognition.interimResults = true;  // Show partial results
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {

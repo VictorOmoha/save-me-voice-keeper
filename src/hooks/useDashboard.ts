@@ -56,8 +56,8 @@ export const useDashboard = () => {
     fillEntry,
     handleCancelEdit,
     saveEntry,
-    formTitleSetter,
-    formCategorySetter,
+    formTitleSetter: formTitleSetter || undefined,
+    formCategorySetter: formCategorySetter || undefined,
   });
 
   // Enhanced voice input processing

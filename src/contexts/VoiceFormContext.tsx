@@ -14,8 +14,15 @@ const VoiceFormContext = createContext<VoiceFormContextType | null>(null);
 
 export const useVoiceFormContext = () => {
   const context = useContext(VoiceFormContext);
+  // Return default values if context is not available to prevent crashes
   if (!context) {
-    throw new Error('useVoiceFormContext must be used within a VoiceFormProvider');
+    console.warn('useVoiceFormContext called outside of VoiceFormProvider, returning default values');
+    return {
+      formTitleSetter: null,
+      formCategorySetter: null,
+      registerFormSetters: () => {},
+      unregisterFormSetters: () => {},
+    };
   }
   return context;
 };

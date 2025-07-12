@@ -45,13 +45,17 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   // Register form setters for voice input when component mounts
   useEffect(() => {
-    console.log('DataEntryForm: Registering voice form setters');
-    registerFormSetters(setTitle, setSelectedCategory);
-    
-    return () => {
-      console.log('DataEntryForm: Unregistering voice form setters');
-      unregisterFormSetters();
-    };
+    if (registerFormSetters && unregisterFormSetters) {
+      console.log('DataEntryForm: Registering voice form setters');
+      registerFormSetters(setTitle, setSelectedCategory);
+      
+      return () => {
+        console.log('DataEntryForm: Unregistering voice form setters');
+        unregisterFormSetters();
+      };
+    } else {
+      console.log('DataEntryForm: Voice form context not available');
+    }
   }, [registerFormSetters, unregisterFormSetters, setTitle, setSelectedCategory]);
 
   const handleSubmit = (e: React.FormEvent) => {

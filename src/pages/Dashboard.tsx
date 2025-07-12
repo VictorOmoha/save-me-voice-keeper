@@ -35,6 +35,7 @@ const Dashboard = () => {
     conversationState,
     hasPendingConfirmation,
     cancelCurrentOperation,
+    conversationData,
     isLoading,
   } = useDashboard();
 
@@ -129,6 +130,7 @@ const Dashboard = () => {
       conversationState={conversationState}
       hasPendingConfirmation={hasPendingConfirmation}
       onCancelVoice={cancelCurrentOperation}
+      conversationData={conversationData}
     >
       {showAllEntries ? (
         <AllEntriesView
@@ -191,6 +193,7 @@ const Dashboard = () => {
           conversationState={conversationState}
           hasPendingConfirmation={hasPendingConfirmation}
           onCancelVoice={cancelCurrentOperation}
+          conversationData={conversationData}
         />
       )}
     </DashboardLayout>

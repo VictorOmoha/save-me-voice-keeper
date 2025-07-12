@@ -27,6 +27,7 @@ interface DashboardHeaderProps {
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
+  conversationData?: { isActive: boolean; currentStep?: { question: string } };
 }
 
 export const DashboardHeader = ({
@@ -39,6 +40,7 @@ export const DashboardHeader = ({
   conversationState,
   hasPendingConfirmation,
   onCancelVoice,
+  conversationData,
 }: DashboardHeaderProps) => {
   const { theme, setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);

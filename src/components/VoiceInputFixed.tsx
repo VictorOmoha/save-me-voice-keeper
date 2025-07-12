@@ -13,6 +13,7 @@ interface VoiceInputFixedProps {
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
+  conversationData?: { isActive: boolean; currentStep?: { question: string } };
 }
 
 export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
@@ -22,6 +23,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   conversationState,
   hasPendingConfirmation,
   onCancelVoice,
+  conversationData,
 }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
@@ -68,7 +70,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
       {/* Simple Voice Input */}
       <SimpleVoiceInput 
         onEnhancedVoiceInput={handleVoiceCommand}
-        conversationState={lastVoiceCommand?.conversationState}
+        conversationState={conversationData}
       />
 
       {/* Voice Settings Modal */}

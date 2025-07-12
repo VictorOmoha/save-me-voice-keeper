@@ -20,6 +20,7 @@ interface DashboardLayoutProps {
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
+  conversationData?: { isActive: boolean; currentStep?: { question: string } };
 }
 
 export const DashboardLayout = ({
@@ -37,6 +38,7 @@ export const DashboardLayout = ({
   conversationState,
   hasPendingConfirmation,
   onCancelVoice,
+  conversationData,
 }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex">
@@ -59,6 +61,7 @@ export const DashboardLayout = ({
           conversationState={conversationState}
           hasPendingConfirmation={hasPendingConfirmation}
           onCancelVoice={onCancelVoice}
+          conversationData={conversationData}
         />
         
         <main className="flex-1 p-6 overflow-auto">

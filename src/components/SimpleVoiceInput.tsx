@@ -99,6 +99,19 @@ export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
       recognition.onend = () => {
         console.log('Speech recognition ended');
         setIsListening(false);
+        
+        // Auto-restart if we're in an active conversation
+        if (conversationState?.isActive && recognitionRef.current) {
+          console.log('Auto-restarting voice recognition for conversation');
+          setTimeout(() => {
+            try {
+              recognitionRef.current?.start();
+              setIsListening(true);
+            } catch (error) {
+              console.error('Error restarting recognition:', error);
+            }
+          }, 500); // Small delay to prevent rapid restart issues
+        }
       };
       
       recognitionRef.current = recognition;
@@ -109,7 +122,7 @@ export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
         recognitionRef.current.abort();
       }
     };
-  }, [onVoiceCommand, onEnhancedVoiceInput, lastProcessedTranscript]);
+  }, [onVoiceCommand, onEnhancedVoiceInput, lastProcessedTranscript, conversationState?.isActive]);
 
   const startListening = () => {
     if (!isSupported) {

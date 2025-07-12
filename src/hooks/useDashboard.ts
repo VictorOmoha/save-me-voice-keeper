@@ -104,5 +104,6 @@ export const useDashboard = () => {
     conversationState: (conversationState.isActive ? 'listening' : 'idle') as 'listening' | 'confirming' | 'idle',
     hasPendingConfirmation: conversationState.isActive,
     cancelCurrentOperation: cancelConversation,
+    conversationData: conversationState, // Add the full conversation data
   };
 };

@@ -15,6 +15,7 @@ interface NewQuickActionsProps {
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
+  conversationData?: { isActive: boolean; currentStep?: { question: string } };
 }
 
 export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
@@ -27,6 +28,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
   conversationState,
   hasPendingConfirmation,
   onCancelVoice,
+  conversationData,
 }) => {
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   return (
@@ -87,6 +89,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             conversationState={conversationState || 'idle'}
             hasPendingConfirmation={hasPendingConfirmation || false}
             onCancelVoice={onCancelVoice || (() => {})}
+            conversationData={conversationData}
           />
         </div>
       )}

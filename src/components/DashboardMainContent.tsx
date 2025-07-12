@@ -35,6 +35,7 @@ interface DashboardMainContentProps {
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
+  conversationData?: { isActive: boolean; currentStep?: { question: string } };
 }
 
 const categories = [
@@ -70,6 +71,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   conversationState,
   hasPendingConfirmation,
   onCancelVoice,
+  conversationData,
 }) => {
   if (showDocumentCreator) {
     return (
@@ -120,6 +122,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         conversationState={conversationState}
         hasPendingConfirmation={hasPendingConfirmation}
         onCancelVoice={onCancelVoice}
+        conversationData={conversationData}
       />
 
       {/* Stats Cards */}

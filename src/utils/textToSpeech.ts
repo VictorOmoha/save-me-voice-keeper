@@ -162,13 +162,18 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
         (window as any).__tts_is_speaking = false;
         console.log('TTS: ElevenLabs TTS completed');
         
-        // Trigger event to restart speech recognition if needed
+        // Critical: Use longer delay to ensure microphone is fully released
         setTimeout(() => {
           const event = new CustomEvent('tts-completed', { 
-            detail: { text, shouldRestartRecognition: true }
+            detail: { 
+              text, 
+              shouldRestartRecognition: true,
+              timestamp: Date.now()
+            }
           });
           window.dispatchEvent(event);
-        }, 300);
+          console.log('TTS completion event dispatched with delay');
+        }, 1000); // Increased delay to 1 second
         
         resolve();
       };
@@ -220,17 +225,22 @@ const speakWithBrowser = async (text: string): Promise<void> => {
       };
       
       utterance.onend = () => {
+        console.log('TTS: Browser TTS ended');
         isSpeaking = false;
         (window as any).__tts_is_speaking = false;
-        console.log('TTS: Browser TTS ended');
         
-        // Trigger event to restart speech recognition if needed
+        // Critical: Use longer delay for browser TTS as well
         setTimeout(() => {
           const event = new CustomEvent('tts-completed', { 
-            detail: { text, shouldRestartRecognition: true }
+            detail: { 
+              text, 
+              shouldRestartRecognition: true,
+              timestamp: Date.now()
+            }
           });
           window.dispatchEvent(event);
-        }, 300);
+          console.log('Browser TTS completion event dispatched with delay');
+        }, 1000); // Increased delay to 1 second
         
         resolve();
       };

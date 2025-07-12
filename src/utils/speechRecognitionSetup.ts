@@ -111,32 +111,36 @@ export const setupSpeechRecognition = ({
       
       const attemptRestart = () => {
         try {
-          // Double-check conversation state and TTS state before restarting
-          if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
+          // Critical: Check microphone availability before restart
+          const isTTSSpeaking = (window as any).__tts_is_speaking;
+          
+          if (conversationState?.isActive && recognitionRef.current && !isTTSSpeaking) {
             console.log('Conditions met, starting voice recognition...');
             recognitionRef.current.start();
             setIsListening(true);
             console.log('Voice recognition restarted successfully');
-          } else if ((window as any).__tts_is_speaking) {
+          } else if (isTTSSpeaking) {
             console.log('TTS is still speaking, waiting longer...');
-            setTimeout(attemptRestart, 1000);
+            setTimeout(attemptRestart, 2000); // Wait even longer
           } else {
             console.log('Conversation no longer active or recognition unavailable');
           }
         } catch (error) {
           console.error('Error restarting recognition:', error);
-          // Try one more time after a longer delay
+          
+          // Final retry with longer delay
           setTimeout(() => {
             try {
               if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
                 recognitionRef.current.start();
                 setIsListening(true);
+                console.log('Voice recognition restarted on final retry');
               }
             } catch (retryError) {
-              console.error('Retry failed:', retryError);
+              console.error('Final retry failed:', retryError);
               toast.info('Voice recognition stopped. Click "Start Voice Commands" to continue.');
             }
-          }, 2000);
+          }, 3000); // 3 second final delay
         }
       };
       

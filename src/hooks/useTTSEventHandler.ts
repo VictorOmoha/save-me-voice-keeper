@@ -21,28 +21,40 @@ export const useTTSEventHandler = ({
       // Force restart recognition if in conversation mode
       if (conversationState?.isActive && recognitionRef.current && !isListening) {
         console.log('TTS completed during conversation - restarting speech recognition');
+        
+        // Critical: Wait longer to ensure microphone is fully released
         setTimeout(() => {
           try {
-            if (recognitionRef.current && conversationState?.isActive && !isListening) {
+            // Double-check all conditions before restarting
+            if (conversationState?.isActive && recognitionRef.current && !isListening && !(window as any).__tts_is_speaking) {
+              console.log('Attempting to restart speech recognition...');
               recognitionRef.current.start();
               setIsListening(true);
               console.log('Speech recognition force-restarted after TTS completion');
+            } else {
+              console.log('Conditions not met for restart:', {
+                conversationActive: conversationState?.isActive,
+                hasRecognition: !!recognitionRef.current,
+                isListening,
+                ttsSpeaking: (window as any).__tts_is_speaking
+              });
             }
           } catch (error) {
             console.error('Error restarting recognition after TTS:', error);
-            // Try again after a delay
+            // Try again after a longer delay
             setTimeout(() => {
               try {
-                if (recognitionRef.current && conversationState?.isActive && !isListening) {
+                if (conversationState?.isActive && recognitionRef.current && !isListening && !(window as any).__tts_is_speaking) {
                   recognitionRef.current.start();
                   setIsListening(true);
+                  console.log('Speech recognition restarted on retry');
                 }
               } catch (retryError) {
                 console.error('Failed to restart recognition after retry:', retryError);
               }
-            }, 1000);
+            }, 2000);
           }
-        }, 500);
+        }, 1500); // Increased delay to 1.5 seconds
       }
     };
 

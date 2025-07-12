@@ -284,8 +284,26 @@ export const useVoiceConversation = ({
       case 'create_entry':
         console.log('Voice command: create_entry received');
         console.log('Current showAddEntry state:', showAddEntry);
+        console.log('Command params:', command.params);
         
-        // Ensure the add entry form opens even if conversation fails
+        // Check if this has an entryTitle param which would indicate it's trying to "fill" instead of "create"
+        if (command.params?.entryTitle && command.params.entryTitle.trim() !== '') {
+          console.log('ISSUE DETECTED: create_entry command has entryTitle param:', command.params.entryTitle);
+          console.log('This will be treated as a fill operation instead of conversation start');
+          
+          // For "create new entry" commands with extracted titles, ignore the title and start conversation
+          if (command.params.entryTitle.toLowerCase().includes('new entry') || 
+              command.params.entryTitle.toLowerCase().includes('entry')) {
+            console.log('Detected generic "new entry" command - starting conversation instead of fill');
+            command.params.entryTitle = ''; // Clear the problematic title
+          }
+        }
+        
+        // Clear any filling state to ensure we're in create mode
+        setFillingEntry(null);
+        setEditingEntry(null);
+        
+        // Ensure the add entry form opens
         setShowAddEntry(true);
         
         startCreateEntryConversation();

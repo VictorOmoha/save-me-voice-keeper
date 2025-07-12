@@ -15,13 +15,30 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
   onStop,
   onReset,
 }) => {
+  const handleStartStop = () => {
+    console.log('VoiceControls: Button clicked, isListening:', isListening);
+    if (isListening) {
+      console.log('VoiceControls: Calling onStop');
+      onStop();
+    } else {
+      console.log('VoiceControls: Calling onStart');
+      onStart();
+    }
+  };
+
+  const handleReset = () => {
+    console.log('VoiceControls: Reset button clicked');
+    onReset();
+  };
+
   return (
     <div className="flex gap-2">
       <Button
-        onClick={isListening ? onStop : onStart}
+        onClick={handleStartStop}
         variant={isListening ? "destructive" : "default"}
         size="sm"
         className="flex-1"
+        disabled={false} // Ensure button is not disabled
       >
         {isListening ? (
           <>
@@ -36,9 +53,10 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
         )}
       </Button>
       <Button
-        onClick={onReset}
+        onClick={handleReset}
         variant="outline"
         size="sm"
+        disabled={false} // Ensure button is not disabled
       >
         Reset
       </Button>

@@ -17,9 +17,24 @@ export const useSpeechRecognitionControls = ({
   setLastProcessedTranscript,
   setIsListening,
 }: UseSpeechRecognitionControlsProps) => {
-  const startListening = () => {
+  const startListening = async () => {
+    console.log('useSpeechRecognitionControls: startListening called');
+    console.log('isSupported:', isSupported, 'isListening:', isListening);
+    
     if (!isSupported) {
+      console.error('Speech recognition not supported');
       toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+    
+    // Check for microphone permissions first
+    try {
+      console.log('Requesting microphone permissions...');
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Microphone permissions granted');
+    } catch (error) {
+      console.error('Microphone permission denied:', error);
+      toast.error('Microphone access denied. Please allow microphone access and try again.');
       return;
     }
     
@@ -41,6 +56,7 @@ export const useSpeechRecognitionControls = ({
     
     if (recognitionRef.current && !isListening) {
       try {
+        console.log('Starting speech recognition...');
         // Clean state before starting
         setTranscript("");
         setLastProcessedTranscript("");
@@ -49,19 +65,20 @@ export const useSpeechRecognitionControls = ({
         try {
           recognitionRef.current.stop();
         } catch (e) {
-          // Ignore stop errors
+          console.log('Stop call failed (expected if not running):', e);
         }
         
         // Brief delay then start
         setTimeout(() => {
           try {
             if (recognitionRef.current && !isListening) {
+              console.log('Actually starting speech recognition now...');
               recognitionRef.current.start();
               toast.info('Voice recognition started - speak now');
             }
           } catch (startError) {
             console.error('Error starting speech recognition:', startError);
-            toast.error('Failed to start voice recognition');
+            toast.error(`Failed to start voice recognition: ${startError.message}`);
           }
         }, 200);
         
@@ -69,6 +86,8 @@ export const useSpeechRecognitionControls = ({
         console.error('Error in startListening:', error);
         toast.error('Failed to start voice recognition');
       }
+    } else {
+      console.log('Cannot start - recognitionRef:', !!recognitionRef.current, 'isListening:', isListening);
     }
   };
 

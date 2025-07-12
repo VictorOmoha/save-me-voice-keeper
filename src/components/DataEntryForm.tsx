@@ -43,26 +43,29 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   const { registerFormSetters, unregisterFormSetters } = useVoiceFormContext();
 
-  // Register form setters for voice input when component mounts
+  // Register form setters for voice input when component mounts  
   useEffect(() => {
     console.log('🔧 DataEntryForm: useEffect triggered');
     console.log('🔧 DataEntryForm: registerFormSetters available:', !!registerFormSetters);
-    console.log('🔧 DataEntryForm: unregisterFormSetters available:', !!unregisterFormSetters);
-    console.log('🔧 DataEntryForm: setTitle available:', !!setTitle);
-    console.log('🔧 DataEntryForm: setSelectedCategory available:', !!setSelectedCategory);
     
     if (registerFormSetters && unregisterFormSetters) {
       console.log('✅ DataEntryForm: Registering voice form setters');
-      registerFormSetters(setTitle, setSelectedCategory);
+      
+      // Use a small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        registerFormSetters(setTitle, setSelectedCategory);
+        console.log('🎯 DataEntryForm: Form setters registered with delay');
+      }, 100);
       
       return () => {
+        clearTimeout(timer);
         console.log('🧹 DataEntryForm: Unregistering voice form setters');
         unregisterFormSetters();
       };
     } else {
       console.log('❌ DataEntryForm: Voice form context not available');
     }
-  }, [registerFormSetters, unregisterFormSetters, setTitle, setSelectedCategory]);
+  }, []); // Removed dependencies to prevent re-registration
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

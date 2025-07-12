@@ -244,26 +244,31 @@ const extractFormValue = (transcript: string, fieldType: string): string => {
 };
 
 const extractTitleFromSpeech = (transcript: string): string => {
-  // Handle speech recognition variations like "title call on my document" -> "My Document"
+  console.log('🔍 Extracting title from:', transcript);
+  
+  // Handle speech recognition variations like "title my document" -> "My Document"
   const patterns = [
-    /title.*?(?:call|called|is|named|should be).*?(?:on|for)?\s*(.+)/i,
-    /(?:call|name)\s+(?:it|this|the\s+(?:entry|document))?\s*(.+)/i,
-    /title\s+(.+)/i,
-    /(?:set|make)\s+(?:the\s+)?title\s+(.+)/i,
+    /title[^.]*?(?:my|call it|named?)\s+(.+?)(?:\.|$)/i,
+    /(?:call it|name it|title)\s+(.+?)(?:\.|$)/i,
+    /title\s+(.+?)(?:\.|$)/i,
+    /(?:set|make)\s+(?:the\s+)?title\s+(.+?)(?:\.|$)/i,
   ];
   
   for (const pattern of patterns) {
     const match = transcript.match(pattern);
+    console.log('🔍 Testing pattern:', pattern, 'Match:', match);
     if (match && match[1]) {
       let title = match[1].trim();
       // Clean up common speech recognition artifacts
-      title = title.replace(/\b(my|the|a|an|document|entry)\b/gi, '').trim();
-      if (title.length > 2) {
+      title = title.replace(/\b(my|the|a|an|document|entry|this|that)\b/gi, '').trim();
+      console.log('🔍 Extracted title after cleanup:', title);
+      if (title.length > 1) {
         return title;
       }
     }
   }
   
+  console.log('🔍 No title extracted');
   return '';
 };
 

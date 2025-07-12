@@ -20,14 +20,6 @@ const Index = () => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [activeDemoVideo, setActiveDemoVideo] = useState<{ url: string; title: string } | null>(null);
 
-  // Redirect authenticated users to dashboard
-  useEffect(() => {
-    console.log("Auth check:", { isAuthenticated });
-    if (isAuthenticated) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isAuthenticated, navigate]);
-
   // Fetch active demo video
   useEffect(() => {
     const fetchActiveDemoVideo = async () => {
@@ -36,13 +28,11 @@ const Index = () => {
         const { data, error } = await supabase
           .from('demo_videos')
           .select('video_url, title')
-          .eq('is_active', true)
-          .limit(1)
-          .single();
+          .eq('is_active', true);
 
-        if (data && !error) {
-          console.log("Demo video found:", data);
-          setActiveDemoVideo({ url: data.video_url, title: data.title });
+        if (data && data.length > 0 && !error) {
+          console.log("Demo video found:", data[0]);
+          setActiveDemoVideo({ url: data[0].video_url, title: data[0].title });
         } else {
           console.log("No demo video found or error:", error);
         }
@@ -145,14 +135,24 @@ const Index = () => {
               >
                 {getThemeIcon()}
               </Button>
-              <Link to="/login">
-                <Button variant="ghost" className="text-foreground hover:text-foreground">Login</Button>
-              </Link>
-              <Link to="/signup">
-                <Button variant="gradient">
-                  Sign Up
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <Link to="/dashboard">
+                  <Button variant="gradient">
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <Link to="/login">
+                    <Button variant="ghost" className="text-foreground hover:text-foreground">Login</Button>
+                  </Link>
+                  <Link to="/signup">
+                    <Button variant="gradient">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -168,14 +168,26 @@ const Index = () => {
             Save Me is your AI-powered personal information manager. Store, organize, and retrieve any data with voice commands across all your devices.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              variant="gradient"
-              className="px-8 py-3 text-lg"
-              onClick={() => setIsWaitingListModalOpen(true)}
-            >
-              Join Waiting List
-            </Button>
+            {isAuthenticated ? (
+              <Link to="/dashboard">
+                <Button 
+                  size="lg" 
+                  variant="gradient"
+                  className="px-8 py-3 text-lg"
+                >
+                  Go to Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <Button 
+                size="lg" 
+                variant="gradient"
+                className="px-8 py-3 text-lg"
+                onClick={() => setIsWaitingListModalOpen(true)}
+              >
+                Join Waiting List
+              </Button>
+            )}
             <Button 
               size="lg" 
               variant="outline" 

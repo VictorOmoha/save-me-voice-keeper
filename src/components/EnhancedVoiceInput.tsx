@@ -92,67 +92,37 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
         if (finalTranscript) {
           console.log('Final transcript:', finalTranscript, 'Confidence:', maxConfidence);
           
-          // Prevent feedback loop - comprehensive TTS detection
+          // Prevent feedback loop - but be less aggressive
           const lowerTranscript = finalTranscript.toLowerCase().trim();
           
-          // Check if this is clearly a TTS output by looking for key patterns
-          const ttsPatterns = [
-            // Common TTS phrases
-            /i'?ll help you/,
-            /what information would you like/,
-            /what would you like to add/,
-            /perfect! i'?ll create/,
-            /successfully created/,
-            /i'?ll show you/,
-            /sorry, i had trouble/,
-            /could you please try/,
-            /i didn'?t understand/,
-            /try saying something/,
-            /voice assistant/,
-            /ai voice/,
-            /what category should/,
-            /great! i'?ve added/,
-            /confirmed! i'?ll/,
-            /okay, i'?ve cancelled/,
-            /i didn'?t quite understand/,
-            /could you please rephrase/,
-            /hello! how can i help/,
-            /searching for/,
-            
-            // Detect sentences that start with "I'll" (likely TTS)
-            /^i'?ll\s/,
-            
-            // Detect questions that end with question words (likely TTS prompts)
-            /what\s.*\?$/,
-            /how\s.*\?$/,
-            /would you like.*\?$/,
-            /do you want.*\?$/,
+          // Only block very specific TTS patterns that are clearly system responses
+          const exactTTSPhrases = [
+            "i'll help you create a new entry. what information would you like to add?",
+            "what information would you like to add?",
+            "perfect! i'll create that for you.",
+            "successfully created",
+            "voice assistant",
+            "ai voice assistant ready",
+            "processing with ai",
+            "listening for commands",
           ];
           
-          // Check for TTS patterns
-          const isTTSOutput = ttsPatterns.some(pattern => pattern.test(lowerTranscript));
+          const isExactTTSMatch = exactTTSPhrases.some(phrase => lowerTranscript === phrase);
           
-          // Also check if it's very short (likely partial TTS pickup)
-          const isVeryShort = finalTranscript.trim().length < 5;
+          // Only block if it's an exact TTS match OR very short/low confidence noise
+          const isVeryShort = finalTranscript.trim().length < 3;
+          const isLowConfidence = maxConfidence < 0.2; // Lower threshold
           
-          // Check if confidence is very low (likely background noise or TTS)
-          const isLowConfidence = maxConfidence < 0.3;
+          // Don't block legitimate user commands
+          const shouldBlock = isExactTTSMatch || isVeryShort || isLowConfidence;
           
-          // Check if transcript contains multiple sentences (likely TTS)
-          const hasMultipleSentences = (finalTranscript.match(/[.!?]/g) || []).length > 1;
-          
-          // Check if transcript is suspiciously long (likely TTS)
-          const isSuspiciouslyLong = finalTranscript.length > 50;
-          
-          if (isTTSOutput || isVeryShort || isLowConfidence || (hasMultipleSentences && isSuspiciouslyLong)) {
+          if (shouldBlock) {
             console.log('🚫 BLOCKED TTS FEEDBACK:', {
               transcript: finalTranscript,
               confidence: maxConfidence,
-              isTTSOutput,
+              isExactTTSMatch,
               isVeryShort,
-              isLowConfidence,
-              hasMultipleSentences,
-              isSuspiciouslyLong
+              isLowConfidence
             });
             return;
           }

@@ -44,22 +44,21 @@ export class EnhancedVoiceProcessor {
       // FIRST LINE OF DEFENSE: Check if this is clearly TTS output
       const lowerTranscript = transcript.toLowerCase().trim();
       
-      // Only block if this starts with clear TTS phrases AND is not a follow-up response
-      const ttsIndicators = [
-        /^i'?ll help you/,
-        /^what information would you like/,
-        /^what would you like to add/,
-        /^perfect! i'?ll create/,
-        /^successfully created/,
-        /^i'?ll\s/,
-        /^what\s.*\?$/,
-        /^would you like.*\?$/,
+      // Only block exact system responses - be very conservative
+      const exactTTSResponses = [
+        "i'll help you create a new entry. what information would you like to add?",
+        "what information would you like to add?",
+        "perfect! i'll create that for you.",
+        "successfully created",
+        "voice assistant",
+        "ai voice assistant ready", 
+        "processing with ai",
+        "listening for commands"
       ];
       
-      // Don't block if we're expecting a follow-up (user is responding to our question)
-      const isClearlyTTS = !this.expectingFollowUp && ttsIndicators.some(pattern => pattern.test(lowerTranscript));
-      if (isClearlyTTS) {
-        console.log('🚫 VOICE PROCESSOR: Blocking TTS feedback:', transcript);
+      // Only block if it's an exact match to prevent blocking real user commands
+      if (exactTTSResponses.includes(lowerTranscript)) {
+        console.log('🚫 VOICE PROCESSOR: Blocking exact TTS match:', transcript);
         return {
           intent: 'unknown',
           action: 'tts_feedback_blocked',
@@ -70,6 +69,8 @@ export class EnhancedVoiceProcessor {
           originalTranscript: transcript,
         };
       }
+      
+      console.log('✅ VOICE PROCESSOR: Processing user command:', transcript);
       
       // Check if this is a confirmation response
       if (this.pendingConfirmation && this.isConfirmationResponse(transcript)) {

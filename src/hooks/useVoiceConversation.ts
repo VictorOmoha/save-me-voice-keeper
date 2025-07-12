@@ -90,9 +90,11 @@ export const useVoiceConversation = ({
     
     // First, open the Add Entry form immediately
     setShowAddEntry(true);
+    console.log('Set showAddEntry to true');
     
     // Force a small delay to ensure the UI has time to update and state to propagate
     setTimeout(() => {
+      console.log('Starting conversation state');
       const newState: VoiceConversationState = {
         isActive: true,
         currentStep: CONVERSATION_STEPS.TITLE,
@@ -100,11 +102,11 @@ export const useVoiceConversation = ({
       };
       
       setConversationState(newState);
-      console.log('Conversation state set to active:', newState);
+      console.log('Conversation state set:', newState);
       
-      // Give another moment for state to propagate before starting TTS
+      // Speak the first question after a brief delay
       setTimeout(() => {
-        console.log('Starting voice conversation for entry title');
+        console.log('Speaking first question:', CONVERSATION_STEPS.TITLE.question);
         speak(CONVERSATION_STEPS.TITLE.question);
         toast.info("Voice conversation started - please speak the entry title");
       }, 300);
@@ -272,8 +274,22 @@ export const useVoiceConversation = ({
     
     switch (command.type) {
       case 'create_entry':
-        console.log('Starting create entry conversation...');
+        console.log('Voice command: create_entry received');
+        console.log('Current showAddEntry state:', showAddEntry);
+        
+        // Ensure the add entry form opens even if conversation fails
+        setShowAddEntry(true);
+        
         startCreateEntryConversation();
+        console.log('startCreateEntryConversation called');
+        
+        // Fallback: if conversation doesn't start, at least show success message
+        setTimeout(() => {
+          if (!conversationState.isActive) {
+            toast.success('Add Entry form opened');
+            speak('Entry form is now open. You can fill it out manually or try the voice command again.');
+          }
+        }, 2000);
         break;
         
       case 'open_entry':

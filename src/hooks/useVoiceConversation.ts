@@ -388,13 +388,20 @@ export const useVoiceConversation = ({
 
   const handleVoiceResult = (text: string) => {
     console.log('Processing voice text:', text);
+    console.log('Current conversation state:', {
+      isActive: conversationState.isActive,
+      currentStep: conversationState.currentStep?.type,
+      hasEntryDraft: !!conversationState.entryDraft
+    });
     
     // First check if we're in conversation mode
     if (conversationState.isActive && processConversationResponse(text)) {
+      console.log('Voice input handled by conversation system');
       return; // Handled by conversation system
     }
     
     // Otherwise process as a regular command
+    console.log('Processing as regular voice command');
     const command = processVoiceCommand(text);
     handleVoiceCommand(command);
   };

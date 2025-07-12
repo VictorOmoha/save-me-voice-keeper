@@ -161,6 +161,15 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
         isSpeaking = false;
         (window as any).__tts_is_speaking = false;
         console.log('TTS: ElevenLabs TTS completed');
+        
+        // Trigger event to restart speech recognition if needed
+        setTimeout(() => {
+          const event = new CustomEvent('tts-completed', { 
+            detail: { text, shouldRestartRecognition: true }
+          });
+          window.dispatchEvent(event);
+        }, 300);
+        
         resolve();
       };
       
@@ -214,6 +223,15 @@ const speakWithBrowser = async (text: string): Promise<void> => {
         isSpeaking = false;
         (window as any).__tts_is_speaking = false;
         console.log('TTS: Browser TTS ended');
+        
+        // Trigger event to restart speech recognition if needed
+        setTimeout(() => {
+          const event = new CustomEvent('tts-completed', { 
+            detail: { text, shouldRestartRecognition: true }
+          });
+          window.dispatchEvent(event);
+        }, 300);
+        
         resolve();
       };
       

@@ -8,7 +8,6 @@ import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
 import { useDashboardEntryHandlers } from "@/hooks/useDashboardEntryHandlers";
 import { DashboardMainContent } from "@/components/DashboardMainContent";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { VoiceFormProvider } from "@/contexts/VoiceFormContext";
 
 const Dashboard = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -117,89 +116,87 @@ const Dashboard = () => {
   };
 
   return (
-    <VoiceFormProvider>
-      <DashboardLayout
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        userName={user?.full_name || user?.email}
-        savedEntries={savedEntries}
-        onAddEntry={handleAddEntryWithCategory}
-        onCategorySelect={wrappedCategorySelect}
-        onAllEntriesSelect={wrappedAllEntriesSelect}
-        onEnhancedVoiceInput={handleEnhancedVoiceInput}
-        isVoiceProcessing={isVoiceProcessing}
-        lastVoiceCommand={lastVoiceCommand}
-        conversationState={conversationState}
-        hasPendingConfirmation={hasPendingConfirmation}
-        onCancelVoice={cancelCurrentOperation}
-        conversationData={conversationData}
-      >
-        {showAllEntries ? (
-          <AllEntriesView
-            entries={savedEntries}
-            onBack={wrappedBackToMain}
-            onEdit={editEntry}
-            onDelete={deleteEntry}
-            onFill={fillEntry}
-            showAddEntry={showAddEntry}
-            editingEntry={editingEntry}
-            fillingEntry={fillingEntry}
-            onSaveEntry={saveEntry}
-            onCancelEdit={handleCancelEdit}
-            getFormTitle={getFormTitle}
-            getFormMode={getFormMode}
-          />
-        ) : selectedCategory ? (
-          <CategoryView
-            categoryName={selectedCategory}
-            entries={savedEntries}
-            onBack={wrappedBackToMain}
-            onEdit={editEntry}
-            onDelete={deleteEntry}
-            onFill={fillEntry}
-            onCreateEntry={handleCreateEntryForCategory}
-            showDocumentCreator={showDocumentCreator}  
-            showAddEntry={showAddEntry}
-            editingEntry={editingEntry}
-            fillingEntry={fillingEntry}
-            onDocumentSave={handleDocumentSave}
-            onDocumentCancel={handleDocumentCancel}
-            onSaveEntry={saveEntry}
-            onCancelEdit={handleCancelEdit}
-            getFormTitle={getFormTitle}
-            getFormMode={getFormMode}
-          />
-        ) : (
-          <DashboardMainContent
-            userName={user?.full_name || user?.email}
-            userTier={user?.subscriptionTier}
-            savedEntries={savedEntries}
-            showDocumentCreator={showDocumentCreator}
-            showAddEntry={showAddEntry}
-            editingEntry={editingEntry}
-            fillingEntry={fillingEntry}
-            getFormTitle={getFormTitle}
-            getFormMode={getFormMode}
-            onDocumentSave={handleDocumentSave}
-            onDocumentCancel={handleDocumentCancel}
-            onSaveEntry={saveEntry}
-            onCancelEdit={handleCancelEdit}
-            onCategorySelect={wrappedCategorySelect}
-            onAddEntry={handleAddEntryWithCategory}
-            onCreateDocument={handleCreateDocument}
-            onEnhancedVoiceInput={handleEnhancedVoiceInput}
-            onEditEntry={editEntry}
-            onFillEntry={fillEntry}
-            isVoiceProcessing={isVoiceProcessing}
-            lastVoiceCommand={lastVoiceCommand}
-            conversationState={conversationState}
-            hasPendingConfirmation={hasPendingConfirmation}
-            onCancelVoice={cancelCurrentOperation}
-            conversationData={conversationData}
-          />
-        )}
-      </DashboardLayout>
-    </VoiceFormProvider>
+    <DashboardLayout
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      userName={user?.full_name || user?.email}
+      savedEntries={savedEntries}
+      onAddEntry={handleAddEntryWithCategory}
+      onCategorySelect={wrappedCategorySelect}
+      onAllEntriesSelect={wrappedAllEntriesSelect}
+      onEnhancedVoiceInput={handleEnhancedVoiceInput}
+      isVoiceProcessing={isVoiceProcessing}
+      lastVoiceCommand={lastVoiceCommand}
+      conversationState={conversationState}
+      hasPendingConfirmation={hasPendingConfirmation}
+      onCancelVoice={cancelCurrentOperation}
+      conversationData={conversationData}
+    >
+      {showAllEntries ? (
+        <AllEntriesView
+          entries={savedEntries}
+          onBack={wrappedBackToMain}
+          onEdit={editEntry}
+          onDelete={deleteEntry}
+          onFill={fillEntry}
+          showAddEntry={showAddEntry}
+          editingEntry={editingEntry}
+          fillingEntry={fillingEntry}
+          onSaveEntry={saveEntry}
+          onCancelEdit={handleCancelEdit}
+          getFormTitle={getFormTitle}
+          getFormMode={getFormMode}
+        />
+      ) : selectedCategory ? (
+        <CategoryView
+          categoryName={selectedCategory}
+          entries={savedEntries}
+          onBack={wrappedBackToMain}
+          onEdit={editEntry}
+          onDelete={deleteEntry}
+          onFill={fillEntry}
+          onCreateEntry={handleCreateEntryForCategory}
+          showDocumentCreator={showDocumentCreator}  
+          showAddEntry={showAddEntry}
+          editingEntry={editingEntry}
+          fillingEntry={fillingEntry}
+          onDocumentSave={handleDocumentSave}
+          onDocumentCancel={handleDocumentCancel}
+          onSaveEntry={saveEntry}
+          onCancelEdit={handleCancelEdit}
+          getFormTitle={getFormTitle}
+          getFormMode={getFormMode}
+        />
+      ) : (
+        <DashboardMainContent
+          userName={user?.full_name || user?.email}
+          userTier={user?.subscriptionTier}
+          savedEntries={savedEntries}
+          showDocumentCreator={showDocumentCreator}
+          showAddEntry={showAddEntry}
+          editingEntry={editingEntry}
+          fillingEntry={fillingEntry}
+          getFormTitle={getFormTitle}
+          getFormMode={getFormMode}
+          onDocumentSave={handleDocumentSave}
+          onDocumentCancel={handleDocumentCancel}
+          onSaveEntry={saveEntry}
+          onCancelEdit={handleCancelEdit}
+          onCategorySelect={wrappedCategorySelect}
+          onAddEntry={handleAddEntryWithCategory}
+          onCreateDocument={handleCreateDocument}
+          onEnhancedVoiceInput={handleEnhancedVoiceInput}
+          onEditEntry={editEntry}
+          onFillEntry={fillEntry}
+          isVoiceProcessing={isVoiceProcessing}
+          lastVoiceCommand={lastVoiceCommand}
+          conversationState={conversationState}
+          hasPendingConfirmation={hasPendingConfirmation}
+          onCancelVoice={cancelCurrentOperation}
+          conversationData={conversationData}
+        />
+      )}
+    </DashboardLayout>
   );
 };
 

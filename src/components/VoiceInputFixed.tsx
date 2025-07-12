@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Volume2 } from "lucide-react";
-import { RobustVoiceInput } from "./RobustVoiceInput";
+import { SimpleVoiceInput } from "./SimpleVoiceInput";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
 
@@ -65,8 +65,8 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
         </Button>
       </div>
 
-      {/* Robust Voice Input */}
-      <RobustVoiceInput 
+      {/* Simple Voice Input */}
+      <SimpleVoiceInput 
         onEnhancedVoiceInput={handleVoiceCommand}
       />
 

@@ -41,29 +41,65 @@ export const setupSpeechRecognition = ({
   const recognition = new SpeechRecognition();
   (window as any).__global_recognition = recognition; // Track globally
   
-  // Configure recognition
+  // Configure recognition with more sensitive settings
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = localStorage.getItem('speech_language') || 'en-US';
+  recognition.maxAlternatives = 1;
+  
+  // Add more sensitive audio settings if available
+  if ('webkitSpeechRecognition' in window) {
+    // Chrome-specific optimizations
+    (recognition as any).serviceURI = 'wss://www.google.com/speech-api/v2/recognize';
+  }
+  
+  console.log('Speech recognition configured:', {
+    continuous: recognition.continuous,
+    interimResults: recognition.interimResults,
+    lang: recognition.lang,
+    maxAlternatives: recognition.maxAlternatives
+  });
   
   // Event handlers
   recognition.onstart = () => {
-    console.log('Speech recognition started successfully');
+    console.log('🎤 Speech recognition started successfully');
     setIsListening(true);
     // Set global flag for tracking
     (window as any).__speech_recognition_active = true;
-    toast.success('🎤 Listening for voice commands - try saying "Create new entry"');
+    toast.success('🎤 Listening... Speak clearly and loudly!');
+    
+    // Add a timeout to detect if no speech is heard
+    setTimeout(() => {
+      if ((window as any).__speech_recognition_active && !document.querySelector('[data-voice-detected]')) {
+        console.log('⚠️ No speech detected after 10 seconds - check microphone');
+        toast.warning('No speech detected. Speak louder or check microphone settings.');
+      }
+    }, 10000);
   };
   
   recognition.onresult = (event) => {
-    console.log('🎤 Voice input detected!', event);
+    console.log('🎤🎤🎤 VOICE INPUT DETECTED! 🎤🎤🎤', event);
+    
+    // Mark that voice was detected
+    document.body.setAttribute('data-voice-detected', 'true');
+    
     let finalTranscript = '';
     let interimTranscript = '';
     
+    console.log('Processing', event.results.length, 'speech results...');
+    
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
-      console.log(`Result ${i}: "${transcript}" (confidence: ${event.results[i][0].confidence}, final: ${event.results[i].isFinal})`);
-      if (event.results[i].isFinal) {
+      const confidence = event.results[i][0].confidence;
+      const isFinal = event.results[i].isFinal;
+      
+      console.log(`Result ${i}:`, {
+        transcript: `"${transcript}"`,
+        confidence: confidence,
+        isFinal: isFinal
+      });
+      
+      if (isFinal) {
         finalTranscript += transcript;
       } else {
         interimTranscript += transcript;
@@ -71,7 +107,7 @@ export const setupSpeechRecognition = ({
     }
     
     const currentTranscript = finalTranscript || interimTranscript;
-    console.log('Current transcript:', currentTranscript);
+    console.log('📝 Current transcript:', `"${currentTranscript}"`);
     setTranscript(currentTranscript);
     
     // Process final results

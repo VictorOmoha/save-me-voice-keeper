@@ -246,10 +246,10 @@ const extractFormValue = (transcript: string, fieldType: string): string => {
 const extractTitleFromSpeech = (transcript: string): string => {
   console.log('🔍 Extracting title from:', transcript);
   
-  // Handle speech recognition variations like "title my document" -> "My Document"
+  // Handle speech recognition variations like "title my document" -> "document"
   const patterns = [
-    /title[^.]*?(?:my|call it|named?)\s+(.+?)(?:\.|$)/i,
-    /(?:call it|name it|title)\s+(.+?)(?:\.|$)/i,
+    /title\s+my\s+(.+?)(?:\.|$)/i,
+    /(?:call it|name it)\s+(.+?)(?:\.|$)/i,
     /title\s+(.+?)(?:\.|$)/i,
     /(?:set|make)\s+(?:the\s+)?title\s+(.+?)(?:\.|$)/i,
   ];
@@ -259,10 +259,10 @@ const extractTitleFromSpeech = (transcript: string): string => {
     console.log('🔍 Testing pattern:', pattern, 'Match:', match);
     if (match && match[1]) {
       let title = match[1].trim();
-      // Clean up common speech recognition artifacts
-      title = title.replace(/\b(my|the|a|an|document|entry|this|that)\b/gi, '').trim();
+      // Only clean up common prefixes, preserve the actual content
+      title = title.replace(/^(the|a|an)\s+/gi, '').trim();
       console.log('🔍 Extracted title after cleanup:', title);
-      if (title.length > 1) {
+      if (title.length > 0) {
         return title;
       }
     }

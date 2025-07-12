@@ -1,6 +1,6 @@
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
-import { useDashboardVoice } from "./useDashboardVoice";
+import { useVoiceConversation } from "./useVoiceConversation";
 
 export const useDashboard = () => {
   const {
@@ -40,7 +40,9 @@ export const useDashboard = () => {
   const {
     handleVoiceCommand,
     handleVoiceResult,
-  } = useDashboardVoice({
+    conversationState,
+    cancelConversation,
+  } = useVoiceConversation({
     savedEntries,
     showAddEntry,
     setShowAddEntry,
@@ -95,12 +97,12 @@ export const useDashboard = () => {
     handleVoiceResult,
     isLoading,
     loadEntries,
-    // Enhanced Voice - simplified
+    // Enhanced Voice - with conversation support
     handleEnhancedVoiceInput,
     isVoiceProcessing: false,
-    lastVoiceCommand: null,
-    conversationState: 'idle' as const,
-    hasPendingConfirmation: false,
-    cancelCurrentOperation: () => {},
+    lastVoiceCommand: conversationState.isActive ? { conversationState } : null,
+    conversationState: (conversationState.isActive ? 'listening' : 'idle') as 'listening' | 'confirming' | 'idle',
+    hasPendingConfirmation: conversationState.isActive,
+    cancelCurrentOperation: cancelConversation,
   };
 };

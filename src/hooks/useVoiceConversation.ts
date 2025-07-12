@@ -1,0 +1,398 @@
+import { useState, useRef } from "react";
+import { SavedEntry } from "@/types/dashboard";
+import { VoiceCommand, processVoiceCommand } from "@/utils/voiceCommandProcessor";
+import { toast } from "sonner";
+import { speak } from "@/utils/textToSpeech";
+
+interface ConversationStep {
+  type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'confirm';
+  question: string;
+  expectedResponse?: string[];
+}
+
+interface EntryDraft {
+  title?: string;
+  category?: string;
+  fields: { name: string; type: 'text' | 'number' | 'date' | 'textarea' }[];
+}
+
+interface VoiceConversationState {
+  isActive: boolean;
+  currentStep: ConversationStep | null;
+  entryDraft: EntryDraft;
+  currentFieldName?: string;
+}
+
+interface UseVoiceConversationProps {
+  savedEntries: SavedEntry[];
+  showAddEntry: boolean;
+  setShowAddEntry: (show: boolean) => void;
+  setEditingEntry: (entry: SavedEntry | null) => void;
+  setFillingEntry: (entry: SavedEntry | null) => void;
+  deleteEntry: (id: string) => void;
+  editEntry: (entry: SavedEntry) => void;
+  fillEntry: (entry: SavedEntry) => void;
+  handleCancelEdit: () => void;
+  saveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+}
+
+const CONVERSATION_STEPS = {
+  TITLE: {
+    type: 'title' as const,
+    question: "What would you like to call this entry?",
+  },
+  CATEGORY: {
+    type: 'category' as const,
+    question: "What category should this entry be in? You can say Documents, Health, Contacts, Finance, or Personal.",
+    expectedResponse: ['Documents', 'Health', 'Contacts', 'Finance', 'Personal']
+  },
+  MORE_FIELDS: {
+    type: 'more_fields' as const,
+    question: "Would you like to add any custom fields? Say yes to add fields, or no to create the entry now.",
+    expectedResponse: ['yes', 'no']
+  },
+  FIELD_NAME: {
+    type: 'field_name' as const,
+    question: "What would you like to name this field?",
+  },
+  FIELD_TYPE: {
+    type: 'field_type' as const,
+    question: "What type of field should this be? You can say text, number, date, or textarea.",
+    expectedResponse: ['text', 'number', 'date', 'textarea']
+  },
+  CONFIRM: {
+    type: 'confirm' as const,
+    question: "I'll create your entry now. Say confirm to proceed or cancel to start over.",
+    expectedResponse: ['confirm', 'cancel']
+  }
+};
+
+export const useVoiceConversation = ({
+  savedEntries,
+  showAddEntry,
+  setShowAddEntry,
+  setEditingEntry,
+  setFillingEntry,
+  deleteEntry,
+  editEntry,
+  fillEntry,
+  handleCancelEdit,
+  saveEntry,
+}: UseVoiceConversationProps) => {
+  const [conversationState, setConversationState] = useState<VoiceConversationState>({
+    isActive: false,
+    currentStep: null,
+    entryDraft: { fields: [] },
+  });
+
+  const startCreateEntryConversation = () => {
+    const newState: VoiceConversationState = {
+      isActive: true,
+      currentStep: CONVERSATION_STEPS.TITLE,
+      entryDraft: { fields: [] },
+    };
+    
+    setConversationState(newState);
+    speak(CONVERSATION_STEPS.TITLE.question);
+    toast.info("Voice conversation started - please speak the entry title");
+  };
+
+  const processConversationResponse = (transcript: string) => {
+    if (!conversationState.isActive || !conversationState.currentStep) {
+      return false; // Not in conversation mode
+    }
+
+    const lowerTranscript = transcript.toLowerCase().trim();
+    const { currentStep, entryDraft } = conversationState;
+
+    console.log('Processing conversation response:', {
+      step: currentStep.type,
+      transcript: lowerTranscript
+    });
+
+    switch (currentStep.type) {
+      case 'title':
+        // Capture the title
+        const newEntryDraft = { ...entryDraft, title: transcript };
+        setConversationState({
+          ...conversationState,
+          currentStep: CONVERSATION_STEPS.CATEGORY,
+          entryDraft: newEntryDraft,
+        });
+        speak(CONVERSATION_STEPS.CATEGORY.question);
+        toast.success(`Entry title set: \"${transcript}\"`);
+        break;
+
+      case 'category':
+        // Match category
+        const categories = ['documents', 'health', 'contacts', 'finance', 'personal'];
+        const matchedCategory = categories.find(cat => 
+          lowerTranscript.includes(cat)
+        );
+        
+        const categoryName = matchedCategory ? 
+          matchedCategory.charAt(0).toUpperCase() + matchedCategory.slice(1) : 
+          'Personal';
+        
+        const updatedDraft = { ...entryDraft, category: categoryName };
+        setConversationState({
+          ...conversationState,
+          currentStep: CONVERSATION_STEPS.MORE_FIELDS,
+          entryDraft: updatedDraft,
+        });
+        speak(CONVERSATION_STEPS.MORE_FIELDS.question);
+        toast.success(`Category set: ${categoryName}`);
+        break;
+
+      case 'more_fields':
+        if (lowerTranscript.includes('yes') || lowerTranscript.includes('add')) {
+          setConversationState({
+            ...conversationState,
+            currentStep: CONVERSATION_STEPS.FIELD_NAME,
+          });
+          speak(CONVERSATION_STEPS.FIELD_NAME.question);
+          toast.info("Adding custom field - what should it be called?");
+        } else {
+          // No more fields, create the entry
+          createEntryFromDraft(entryDraft);
+        }
+        break;
+
+      case 'field_name':
+        // Store field name and ask for type
+        setConversationState({
+          ...conversationState,
+          currentStep: CONVERSATION_STEPS.FIELD_TYPE,
+          currentFieldName: transcript,
+        });
+        speak(CONVERSATION_STEPS.FIELD_TYPE.question);
+        toast.success(`Field name set: \"${transcript}\"`);
+        break;
+
+      case 'field_type':
+        // Match field type
+        const fieldTypes = ['text', 'number', 'date', 'textarea'];
+        const matchedType = fieldTypes.find(type => 
+          lowerTranscript.includes(type)
+        ) as 'text' | 'number' | 'date' | 'textarea' || 'text';
+        
+        // Add field to draft
+        const newField = {
+          name: conversationState.currentFieldName || 'Custom Field',
+          type: matchedType
+        };
+        
+        const draftWithField = {
+          ...entryDraft,
+          fields: [...entryDraft.fields, newField]
+        };
+        
+        setConversationState({
+          ...conversationState,
+          currentStep: CONVERSATION_STEPS.MORE_FIELDS,
+          entryDraft: draftWithField,
+          currentFieldName: undefined,
+        });
+        
+        speak(`Added ${matchedType} field \"${newField.name}\". ${CONVERSATION_STEPS.MORE_FIELDS.question}`);
+        toast.success(`Added field: ${newField.name} (${matchedType})`);
+        break;
+
+      case 'confirm':
+        if (lowerTranscript.includes('confirm') || lowerTranscript.includes('yes')) {
+          createEntryFromDraft(entryDraft);
+        } else {
+          cancelConversation();
+        }
+        break;
+    }
+
+    return true; // Handled in conversation mode
+  };
+
+  const createEntryFromDraft = (draft: EntryDraft) => {
+    const entry = {
+      title: draft.title || `New Entry - ${new Date().toLocaleDateString()}`,
+      fields: {
+        category: draft.category || 'Personal',
+        description: '', // Default field
+        ...Object.fromEntries(draft.fields.map(field => [field.name, '']))
+      },
+      fieldDefinitions: [
+        { id: 'category', name: 'category', type: 'text' as const },
+        { id: 'description', name: 'description', type: 'textarea' as const },
+        ...draft.fields.map((field, index) => ({
+          id: `field_${Date.now()}_${index}`,
+          name: field.name,
+          type: field.type
+        }))
+      ]
+    };
+
+    saveEntry(entry);
+    
+    const successMessage = `Created entry \"${entry.title}\" in ${entry.fields.category} with ${draft.fields.length} custom fields`;
+    toast.success(successMessage);
+    speak(successMessage);
+    
+    // Reset conversation state
+    setConversationState({
+      isActive: false,
+      currentStep: null,
+      entryDraft: { fields: [] },
+    });
+  };
+
+  const cancelConversation = () => {
+    setConversationState({
+      isActive: false,
+      currentStep: null,
+      entryDraft: { fields: [] },
+    });
+    speak("Entry creation cancelled. What else can I help you with?");
+    toast.info("Voice conversation cancelled");
+  };
+
+  const handleVoiceCommand = (command: VoiceCommand) => {
+    console.log('Executing voice command:', command);
+    
+    switch (command.type) {
+      case 'create_entry':
+        console.log('Starting create entry conversation...');
+        startCreateEntryConversation();
+        break;
+        
+      case 'open_entry':
+        if (command.params?.entryTitle === 'all_entries') {
+          const allEntriesMessage = 'Showing all entries';
+          toast.success(allEntriesMessage);
+          speak(allEntriesMessage);
+        } else if (command.params?.entryTitle) {
+          const entryToOpen = savedEntries.find(entry => 
+            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          );
+          if (entryToOpen) {
+            editEntry(entryToOpen);
+            const openMessage = `Opening entry: ${entryToOpen.title}`;
+            toast.success(openMessage);
+            speak(openMessage);
+          } else {
+            const errorMessage = `Entry \"${command.params.entryTitle}\" not found. Showing available entries instead.`;
+            toast.info(errorMessage);
+            speak(errorMessage);
+          }
+        }
+        break;
+        
+      case 'create_field':
+        const fieldName = command.params?.fieldName || 'New Field';
+        const fieldType = command.params?.fieldType || 'text';
+        
+        const newEntry = {
+          title: `${fieldName} Entry - ${new Date().toLocaleDateString()}`,
+          fields: {
+            category: 'Personal',
+            [fieldName]: ''
+          },
+          fieldDefinitions: [
+            { id: 'category', name: 'category', type: 'text' as const },
+            { id: Date.now().toString(), name: fieldName, type: fieldType as 'text' | 'number' | 'date' | 'textarea' }
+          ]
+        };
+        
+        saveEntry(newEntry);
+        const createFieldMessage = `Created entry with field \"${fieldName}\"`;
+        toast.success(createFieldMessage);
+        speak(createFieldMessage);
+        break;
+        
+      case 'delete_entry':
+        if (command.params?.entryTitle) {
+          const entryToDelete = savedEntries.find(entry => 
+            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          );
+          if (entryToDelete) {
+            deleteEntry(entryToDelete.id);
+            const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
+            toast.success(deleteMessage);
+            speak(deleteMessage);
+          } else {
+            const errorMessage = `Entry \"${command.params.entryTitle}\" not found`;
+            toast.error(errorMessage);
+            speak(errorMessage);
+          }
+        }
+        break;
+        
+      case 'fill_form':
+        if (command.params?.entryTitle) {
+          const entryToFill = savedEntries.find(entry => 
+            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          );
+          if (entryToFill) {
+            fillEntry(entryToFill);
+            const fillMessage = `Filling form: ${entryToFill.title}`;
+            toast.success(fillMessage);
+            speak(fillMessage);
+          } else {
+            const errorMessage = `Template \"${command.params.entryTitle}\" not found`;
+            toast.error(errorMessage);
+            speak(errorMessage);
+          }
+        }
+        break;
+        
+      case 'save_entry':
+        if (showAddEntry) {
+          const saveMessage = 'Please fill out the form and click save to save the entry';
+          toast.success('Voice command: Save the current entry');
+          speak(saveMessage);
+        } else {
+          const noEntryMessage = 'No entry form is currently open';
+          toast.info(noEntryMessage);
+          speak(noEntryMessage);
+        }
+        break;
+        
+      case 'cancel':
+        if (conversationState.isActive) {
+          cancelConversation();
+        } else if (showAddEntry) {
+          handleCancelEdit();
+          const cancelMessage = 'Cancelled current action';
+          toast.success('Voice command: Cancelled current action');
+          speak(cancelMessage);
+        } else {
+          const noCancelMessage = 'No action to cancel';
+          toast.info(noCancelMessage);
+          speak(noCancelMessage);
+        }
+        break;
+        
+      default:
+        const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, or Fill form. Try saying \"create a new entry\" or \"show all my documents\".';
+        toast.info('Voice command not recognized');
+        speak(helpMessage);
+    }
+  };
+
+  const handleVoiceResult = (text: string) => {
+    console.log('Processing voice text:', text);
+    
+    // First check if we're in conversation mode
+    if (conversationState.isActive && processConversationResponse(text)) {
+      return; // Handled by conversation system
+    }
+    
+    // Otherwise process as a regular command
+    const command = processVoiceCommand(text);
+    handleVoiceCommand(command);
+  };
+
+  return {
+    handleVoiceCommand,
+    handleVoiceResult,
+    conversationState,
+    cancelConversation,
+  };
+};

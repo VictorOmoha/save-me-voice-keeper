@@ -68,6 +68,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
       {/* Simple Voice Input */}
       <SimpleVoiceInput 
         onEnhancedVoiceInput={handleVoiceCommand}
+        conversationState={lastVoiceCommand?.conversationState}
       />
 
       {/* Voice Settings Modal */}

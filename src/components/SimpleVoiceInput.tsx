@@ -10,11 +10,13 @@ import { toast } from "sonner";
 interface SimpleVoiceInputProps {
   onVoiceCommand?: (command: VoiceCommand) => void;
   onEnhancedVoiceInput?: (text: string) => void;
+  conversationState?: { isActive: boolean; currentStep?: { question: string } };
 }
 
 export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
   onVoiceCommand,
   onEnhancedVoiceInput,
+  conversationState,
 }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -169,7 +171,12 @@ export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
           <span className="text-sm font-medium">Voice Commands</span>
           {isListening && (
             <Badge variant="default" className="text-xs animate-pulse">
-              Listening...
+              {conversationState?.isActive ? 'In Conversation' : 'Listening...'}
+            </Badge>
+          )}
+          {conversationState?.isActive && !isListening && (
+            <Badge variant="secondary" className="text-xs">
+              Conversation Active
             </Badge>
           )}
         </div>
@@ -221,6 +228,19 @@ export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
               Reset
             </Button>
           </div>
+
+          {/* Conversation Status */}
+          {conversationState?.isActive && conversationState.currentStep && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+              <div className="flex items-center gap-2 mb-1">
+                <Volume2 className="h-3 w-3 text-blue-600" />
+                <span className="font-medium text-blue-700 dark:text-blue-300">System:</span>
+              </div>
+              <p className="text-blue-900 dark:text-blue-100">
+                {conversationState.currentStep.question}
+              </p>
+            </div>
+          )}
 
           {/* Transcript Display */}
           {transcript && (

@@ -100,6 +100,18 @@ export const MicrophoneTest: React.FC = () => {
   const testSpeechRecognition = () => {
     console.log('Testing basic speech recognition...');
     
+    // Stop any existing recognition first
+    if ((window as any).__global_recognition) {
+      console.log('Stopping existing recognition...');
+      try {
+        (window as any).__global_recognition.abort();
+      } catch (e) {
+        console.log('Stop existing recognition failed (expected):', e);
+      }
+      (window as any).__global_recognition = null;
+    }
+    
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
@@ -108,6 +120,8 @@ export const MicrophoneTest: React.FC = () => {
     }
     
     const recognition = new SpeechRecognition();
+    (window as any).__global_recognition = recognition; // Track globally
+    
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
@@ -125,12 +139,18 @@ export const MicrophoneTest: React.FC = () => {
     };
     
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      toast.error(`Speech recognition error: ${event.error}`);
+      console.error('Speech recognition error:', event.error, event);
+      if (event.error !== 'aborted') {
+        toast.error(`Speech recognition error: ${event.error}`);
+      } else {
+        console.log('Speech recognition was aborted (likely due to conflict)');
+        toast.warning('Speech recognition was interrupted. Try again.');
+      }
     };
     
     recognition.onend = () => {
       console.log('Basic speech recognition ended');
+      (window as any).__global_recognition = null; // Clear global reference
     };
     
     try {

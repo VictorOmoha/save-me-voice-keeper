@@ -27,7 +27,19 @@ export const setupSpeechRecognition = ({
     return null;
   }
 
+  // Stop any existing global recognition first
+  if ((window as any).__global_recognition) {
+    console.log('Stopping existing global recognition...');
+    try {
+      (window as any).__global_recognition.abort();
+    } catch (e) {
+      console.log('Stop existing global recognition failed (expected):', e);
+    }
+    (window as any).__global_recognition = null;
+  }
+
   const recognition = new SpeechRecognition();
+  (window as any).__global_recognition = recognition; // Track globally
   
   // Configure recognition
   recognition.continuous = true;
@@ -138,6 +150,7 @@ export const setupSpeechRecognition = ({
     setIsListening(false);
     // Clear global flag
     (window as any).__speech_recognition_active = false;
+    (window as any).__global_recognition = null; // Clear global reference
     
     // Simple restart logic for conversation mode
     if (conversationState?.isActive && restartAttempts < maxRestartAttempts && recognitionRef.current) {

@@ -111,6 +111,8 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
   try {
     const voiceId = voiceOption ? VOICE_OPTIONS[voiceOption] : VOICE_ID;
     
+    console.log('TTS: Calling ElevenLabs Edge Function with:', { text: text.substring(0, 50), voiceId });
+    
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
       body: {
@@ -120,11 +122,15 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
       }
     });
 
+    console.log('TTS: Edge Function response:', { data: !!data, error: error?.message });
+
     if (error) {
+      console.error('TTS: Edge Function error details:', error);
       throw new Error(`Edge Function error: ${error.message}`);
     }
 
     if (!data?.audioContent) {
+      console.error('TTS: No audio content in response:', data);
       throw new Error('No audio content returned from Edge Function');
     }
 

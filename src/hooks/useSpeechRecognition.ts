@@ -110,26 +110,39 @@ export const useSpeechRecognition = ({
             try {
               // Double-check conversation state and TTS state before restarting
               if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
+                console.log('Conditions met, starting voice recognition...');
                 recognitionRef.current.start();
                 setIsListening(true);
                 console.log('Voice recognition restarted successfully');
               } else if ((window as any).__tts_is_speaking) {
-                console.log('TTS is speaking, delaying restart...');
-                setTimeout(attemptRestart, 500);
+                console.log('TTS is still speaking, waiting longer...');
+                setTimeout(attemptRestart, 1000);
+              } else {
+                console.log('Conversation no longer active or recognition unavailable');
               }
             } catch (error) {
               console.error('Error restarting recognition:', error);
-              // If restart fails, let user know they need to manually restart
-              toast.info('Voice recognition stopped. Click "Start Voice Commands" to continue.');
+              // Try one more time after a longer delay
+              setTimeout(() => {
+                try {
+                  if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
+                    recognitionRef.current.start();
+                    setIsListening(true);
+                  }
+                } catch (retryError) {
+                  console.error('Retry failed:', retryError);
+                  toast.info('Voice recognition stopped. Click "Start Voice Commands" to continue.');
+                }
+              }, 2000);
             }
           };
           
           // If TTS is speaking, wait for it to finish
           if (isTTSSpeaking) {
             console.log('TTS is speaking, waiting for completion before restart...');
-            setTimeout(attemptRestart, 2000); // Wait longer if TTS is speaking
+            setTimeout(attemptRestart, 3000); // Wait longer if TTS is speaking
           } else {
-            setTimeout(attemptRestart, 1000); // Normal restart delay
+            setTimeout(attemptRestart, 1500); // Normal restart delay
           }
         }
       };

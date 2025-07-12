@@ -14,10 +14,10 @@ export const VOICE_OPTIONS = {
 let selectedVoice = localStorage.getItem('selected_voice') || 'aria';
 const VOICE_ID = VOICE_OPTIONS[selectedVoice as keyof typeof VOICE_OPTIONS] || VOICE_OPTIONS.aria;
 
-// Track recent speech to prevent feedback loops
+// Track recent speech to prevent feedback loops - TEMPORARILY DISABLED FOR TESTING
 let recentSpeechHistory: string[] = [];
 const SPEECH_HISTORY_LIMIT = 5;
-const SPEECH_COOLDOWN = 1500; // Reduced cooldown for better responsiveness
+const SPEECH_COOLDOWN = 500; // Reduced for testing
 let lastSpeechTime = 0;
 let currentAudio: HTMLAudioElement | null = null;
 let isSpeaking = false;
@@ -45,11 +45,11 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
       return;
     }
     
-    // Check against recent speech history
-    if (recentSpeechHistory.includes(lowerText)) {
-      console.log('TTS: Text recently spoken, skipping to prevent loop');
-      return;
-    }
+    // TEMPORARILY DISABLED - Check against recent speech history
+    // if (recentSpeechHistory.includes(lowerText)) {
+    //   console.log('TTS: Text recently spoken, skipping to prevent loop');
+    //   return;
+    // }
     
     // Filter out system/error messages that could cause loops
     const systemPatterns = [

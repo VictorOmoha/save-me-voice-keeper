@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Mic, MicOff, Brain, MessageCircle, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Mic, MicOff, Brain, MessageCircle, AlertTriangle, CheckCircle, XCircle, Settings } from "lucide-react";
 import { EnhancedVoiceCommand } from "@/utils/enhancedVoiceProcessor";
+import { VoiceSettingsModal } from "./VoiceSettingsModal";
 import { cn } from "@/lib/utils";
 
 interface EnhancedVoiceInputProps {
@@ -28,6 +29,7 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
   const [transcript, setTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(false);
   const [confidence, setConfidence] = useState(0);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [audioLevel, setAudioLevel] = useState(0);
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
@@ -469,7 +471,25 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
             </div>
           </div>
         )}
+
+        {/* Settings Button */}
+        <div className="flex justify-center pt-2">
+          <Button
+            onClick={() => setShowSettingsModal(true)}
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+          >
+            <Settings className="h-3 w-3 mr-1" />
+            Voice Settings
+          </Button>
+        </div>
       </CardContent>
+
+      <VoiceSettingsModal 
+        isOpen={showSettingsModal}
+        onOpenChange={setShowSettingsModal}
+      />
     </Card>
   );
 };

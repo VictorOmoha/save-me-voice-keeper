@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Search, Mic, Plus, FileText } from "lucide-react";
-import { EnhancedVoiceInput } from "@/components/EnhancedVoiceInput";
+import { VoiceInputFixed } from "@/components/VoiceInputFixed";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { useState } from "react";
 
@@ -80,13 +80,13 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
       
       {showVoiceInput && (
         <div className="mt-6 pt-6 border-t border-border">
-          <EnhancedVoiceInput 
-            onVoiceInput={onEnhancedVoiceInput}
-            isProcessing={isVoiceProcessing || false}
-            lastCommand={lastVoiceCommand}
+          <VoiceInputFixed 
+            onEnhancedVoiceInput={onEnhancedVoiceInput}
+            isVoiceProcessing={isVoiceProcessing || false}
+            lastVoiceCommand={lastVoiceCommand}
             conversationState={conversationState || 'idle'}
             hasPendingConfirmation={hasPendingConfirmation || false}
-            onCancel={onCancelVoice || (() => {})}
+            onCancelVoice={onCancelVoice || (() => {})}
           />
         </div>
       )}

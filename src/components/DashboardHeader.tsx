@@ -14,7 +14,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
-import { EnhancedVoiceInput } from "@/components/EnhancedVoiceInput";
+import { VoiceInputFixed } from "@/components/VoiceInputFixed";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 
 interface DashboardHeaderProps {
@@ -152,13 +152,13 @@ export const DashboardHeader = ({
                 ✕
               </Button>
             </div>
-            <EnhancedVoiceInput 
-              onVoiceInput={onEnhancedVoiceInput || (() => {})}
-              isProcessing={isVoiceProcessing || false}
-              lastCommand={lastVoiceCommand}
+            <VoiceInputFixed 
+              onEnhancedVoiceInput={onEnhancedVoiceInput || (() => {})}
+              isVoiceProcessing={isVoiceProcessing || false}
+              lastVoiceCommand={lastVoiceCommand}
               conversationState={conversationState || 'idle'}
               hasPendingConfirmation={hasPendingConfirmation || false}
-              onCancel={onCancelVoice || (() => {})}
+              onCancelVoice={onCancelVoice || (() => {})}
             />
           </div>
         </div>

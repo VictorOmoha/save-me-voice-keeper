@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mic, MicOff, Settings, Volume2 } from "lucide-react";
-import { VoiceInput } from "./VoiceInput";
-import { EnhancedVoiceInput } from "./EnhancedVoiceInput";
+import { Settings, Volume2 } from "lucide-react";
+import { RobustVoiceInput } from "./RobustVoiceInput";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
+import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
 
 interface VoiceInputFixedProps {
   onEnhancedVoiceInput: (text: string) => void;
@@ -24,58 +23,52 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   hasPendingConfirmation,
   onCancelVoice,
 }) => {
-  const [useEnhanced, setUseEnhanced] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  const handleVoiceCommand = (transcript: string) => {
+    console.log('Voice command received:', transcript);
+    const command = processVoiceCommand(transcript);
+    
+    // For now, just pass the transcript to the enhanced voice input handler
+    // The hook will handle the actual command processing
+    if (onEnhancedVoiceInput) {
+      onEnhancedVoiceInput(transcript);
+    }
+  };
 
   return (
     <div className="space-y-4">
-      {/* Voice Input Toggle */}
+      {/* Status Display */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Voice Input</span>
-          {lastVoiceCommand && (
+          {isVoiceProcessing && (
             <Badge variant="secondary" className="text-xs">
-              {lastVoiceCommand.intent || 'processing'}
+              Processing
+            </Badge>
+          )}
+          {lastVoiceCommand && (
+            <Badge variant="default" className="text-xs">
+              {lastVoiceCommand.intent || 'Ready'}
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setUseEnhanced(!useEnhanced)}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
-            {useEnhanced ? 'Enhanced' : 'Basic'}
-          </Button>
-          <Button
-            onClick={() => setShowSettingsModal(true)}
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-          >
-            <Settings className="h-3 w-3 mr-1" />
-            Settings
-          </Button>
-        </div>
+        <Button
+          onClick={() => setShowSettingsModal(true)}
+          variant="ghost"
+          size="sm"
+          className="text-xs"
+        >
+          <Settings className="h-3 w-3 mr-1" />
+          Settings
+        </Button>
       </div>
 
-      {/* Voice Input Component */}
-      {useEnhanced ? (
-        <EnhancedVoiceInput
-          onVoiceInput={onEnhancedVoiceInput}
-          isProcessing={isVoiceProcessing || false}
-          lastCommand={lastVoiceCommand}
-          conversationState={conversationState || 'idle'}
-          hasPendingConfirmation={hasPendingConfirmation || false}
-          onCancel={onCancelVoice || (() => {})}
-        />
-      ) : (
-        <VoiceInput 
-          onEnhancedVoiceInput={onEnhancedVoiceInput}
-        />
-      )}
+      {/* Robust Voice Input */}
+      <RobustVoiceInput 
+        onEnhancedVoiceInput={handleVoiceCommand}
+      />
 
       {/* Voice Settings Modal */}
       <VoiceSettingsModal 

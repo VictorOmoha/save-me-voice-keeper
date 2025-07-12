@@ -12,38 +12,57 @@ export interface VoiceCommand {
 
 export const processVoiceCommand = (transcript: string): VoiceCommand => {
   const lowerTranscript = transcript.toLowerCase().trim();
+  console.log('Processing voice command:', lowerTranscript);
+  
+  // Enhanced pattern matching for better command recognition
+  
+  // Create entry commands - more flexible patterns
+  if ((lowerTranscript.includes('create') || lowerTranscript.includes('add') || lowerTranscript.includes('new')) && 
+      (lowerTranscript.includes('entry') || lowerTranscript.includes('record') || lowerTranscript.includes('item'))) {
+    const entryTitle = extractEntryTitle(lowerTranscript, 'create');
+    const entryCategory = extractCategory(lowerTranscript);
+    console.log('Detected create entry command:', { entryTitle, entryCategory });
+    return {
+      type: 'create_entry',
+      params: { entryTitle, entryCategory }
+    };
+  }
+
+  // Show/view all entries - very flexible patterns
+  if ((lowerTranscript.includes('show') || lowerTranscript.includes('view') || lowerTranscript.includes('display') || lowerTranscript.includes('list')) && 
+      (lowerTranscript.includes('all') || lowerTranscript.includes('entries') || lowerTranscript.includes('documents') || lowerTranscript.includes('my'))) {
+    console.log('Detected show all entries command');
+    return {
+      type: 'open_entry',
+      params: { entryTitle: 'all_entries' }
+    };
+  }
   
   // Create field commands
-  if (lowerTranscript.includes('create') && lowerTranscript.includes('field')) {
+  if ((lowerTranscript.includes('create') || lowerTranscript.includes('add')) && lowerTranscript.includes('field')) {
     const fieldName = extractFieldName(lowerTranscript);
     const fieldType = extractFieldType(lowerTranscript);
+    console.log('Detected create field command:', { fieldName, fieldType });
     return {
       type: 'create_field',
       params: { fieldName, fieldType }
     };
   }
   
-  // Create entry commands
-  if (lowerTranscript.includes('create') && (lowerTranscript.includes('entry') || lowerTranscript.includes('record'))) {
-    const entryTitle = extractEntryTitle(lowerTranscript, 'create');
-    const entryCategory = extractCategory(lowerTranscript);
-    return {
-      type: 'create_entry',
-      params: { entryTitle, entryCategory }
-    };
-  }
   // Delete entry commands
-  if (lowerTranscript.includes('delete')) {
+  if (lowerTranscript.includes('delete') || lowerTranscript.includes('remove')) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'delete');
+    console.log('Detected delete command:', { entryTitle });
     return {
       type: 'delete_entry',
       params: { entryTitle }
     };
   }
   
-  // Open entry commands - made more flexible
-  if (lowerTranscript.includes('open') || lowerTranscript.includes('show')) {
-    const entryTitle = extractEntryTitle(lowerTranscript, lowerTranscript.includes('open') ? 'open' : 'show');
+  // Open specific entry commands
+  if ((lowerTranscript.includes('open') || lowerTranscript.includes('edit')) && !lowerTranscript.includes('all')) {
+    const entryTitle = extractEntryTitle(lowerTranscript, 'open');
+    console.log('Detected open entry command:', { entryTitle });
     return {
       type: 'open_entry',
       params: { entryTitle }
@@ -51,8 +70,9 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   }
   
   // Fill form commands
-  if (lowerTranscript.includes('fill') && lowerTranscript.includes('form')) {
+  if (lowerTranscript.includes('fill') && (lowerTranscript.includes('form') || lowerTranscript.includes('template'))) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'fill');
+    console.log('Detected fill form command:', { entryTitle });
     return {
       type: 'fill_form',
       params: { entryTitle }
@@ -62,6 +82,7 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   // Save entry commands
   if (lowerTranscript.includes('save')) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'save');
+    console.log('Detected save command:', { entryTitle });
     return {
       type: 'save_entry',
       params: { entryTitle }
@@ -70,9 +91,11 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   
   // Cancel commands
   if (lowerTranscript.includes('cancel') || lowerTranscript.includes('stop') || lowerTranscript.includes('close')) {
+    console.log('Detected cancel command');
     return { type: 'cancel' };
   }
   
+  console.log('Unknown command:', lowerTranscript);
   return { type: 'unknown' };
 };
 

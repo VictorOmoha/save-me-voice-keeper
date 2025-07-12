@@ -1,6 +1,6 @@
 
 import { SavedEntry } from "@/types/dashboard";
-import { VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { VoiceCommand, processVoiceCommand } from "@/utils/voiceCommandProcessor";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
 
@@ -33,7 +33,42 @@ export const useDashboardVoice = ({
     console.log('Executing voice command:', command);
     
     switch (command.type) {
+      case 'create_entry':
+        console.log('Creating new entry...');
+        // Open the add entry form
+        setShowAddEntry(true);
+        const createMessage = 'Creating a new entry';
+        toast.success(createMessage);
+        speak(createMessage);
+        break;
+        
+      case 'open_entry':
+        if (command.params?.entryTitle === 'all_entries') {
+          console.log('Opening all entries view...');
+          // This would need to be handled by the parent component
+          // For now, just show a message
+          const allEntriesMessage = 'Showing all entries';
+          toast.success(allEntriesMessage);
+          speak(allEntriesMessage);
+        } else if (command.params?.entryTitle) {
+          const entryToOpen = savedEntries.find(entry => 
+            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          );
+          if (entryToOpen) {
+            editEntry(entryToOpen);
+            const openMessage = `Opening entry: ${entryToOpen.title}`;
+            toast.success(openMessage);
+            speak(openMessage);
+          } else {
+            const errorMessage = `Entry "${command.params.entryTitle}" not found. Showing available entries instead.`;
+            toast.info(errorMessage);
+            speak(errorMessage);
+          }
+        }
+        break;
+        
       case 'create_field':
+        console.log('Creating field...');
         // Actually create an entry with the specified field
         const fieldName = command.params?.fieldName || 'New Field';
         const fieldType = command.params?.fieldType || 'text';
@@ -51,32 +86,9 @@ export const useDashboardVoice = ({
         };
         
         saveEntry(newEntry);
-        const createMessage = `Created entry with field "${fieldName}"`;
-        toast.success(createMessage);
-        speak(createMessage);
-        break;
-        
-      case 'create_entry':
-        // Create a new entry with the specified title and category
-        const entryTitle = command.params?.entryTitle || `New Entry - ${new Date().toLocaleDateString()}`;
-        const entryCategory = command.params?.entryCategory || 'Personal';
-        
-        const basicEntry = {
-          title: entryTitle,
-          fields: {
-            category: entryCategory,
-            description: ''
-          },
-          fieldDefinitions: [
-            { id: 'category', name: 'category', type: 'text' as const },
-            { id: Date.now().toString(), name: 'description', type: 'textarea' as const }
-          ]
-        };
-        
-        saveEntry(basicEntry);
-        const entryMessage = `Created entry "${entryTitle}" in ${entryCategory}`;
-        toast.success(entryMessage);
-        speak(entryMessage);
+        const createFieldMessage = `Created entry with field "${fieldName}"`;
+        toast.success(createFieldMessage);
+        speak(createFieldMessage);
         break;
         
       case 'delete_entry':
@@ -89,24 +101,6 @@ export const useDashboardVoice = ({
             const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
             toast.success(deleteMessage);
             speak(deleteMessage);
-          } else {
-            const errorMessage = `Entry "${command.params.entryTitle}" not found`;
-            toast.error(errorMessage);
-            speak(errorMessage);
-          }
-        }
-        break;
-        
-      case 'open_entry':
-        if (command.params?.entryTitle) {
-          const entryToOpen = savedEntries.find(entry => 
-            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
-          );
-          if (entryToOpen) {
-            editEntry(entryToOpen);
-            const openMessage = `Opening entry: ${entryToOpen.title}`;
-            toast.success(openMessage);
-            speak(openMessage);
           } else {
             const errorMessage = `Entry "${command.params.entryTitle}" not found`;
             toast.error(errorMessage);
@@ -160,15 +154,17 @@ export const useDashboardVoice = ({
         
       default:
         console.log('Unknown command received, providing help message');
-        const helpMessage = 'I can help you with commands like: Create field, Delete entry, Open entry, or Fill form. You can also say specific entry names like "Open Address Info".';
+        const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, or Fill form. Try saying "create a new entry" or "show all my documents".';
         toast.info('Voice command not recognized');
         speak(helpMessage);
     }
   };
 
   const handleVoiceResult = (text: string) => {
-    toast.success(`Voice input received: "${text}"`);
-    setShowAddEntry(true);
+    console.log('Processing voice text:', text);
+    // Process the text as a voice command
+    const command = processVoiceCommand(text);
+    handleVoiceCommand(command);
   };
 
   return {

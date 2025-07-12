@@ -32,13 +32,16 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   const handleVoiceCommand = (transcript: string) => {
-    console.log('Voice command received:', transcript);
+    console.log('🔊 VoiceInputFixed: Voice command received:', transcript);
     const command = processVoiceCommand(transcript);
+    console.log('🔊 VoiceInputFixed: Processed command:', command);
     
-    // For now, just pass the transcript to the enhanced voice input handler
-    // The hook will handle the actual command processing
+    // Pass the transcript to the dashboard for processing
     if (onEnhancedVoiceInput) {
+      console.log('🔊 VoiceInputFixed: Calling onEnhancedVoiceInput with:', transcript);
       onEnhancedVoiceInput(transcript);
+    } else {
+      console.error('🔊 VoiceInputFixed: onEnhancedVoiceInput is not available!');
     }
   };
 

@@ -112,11 +112,27 @@ export const useVoiceConversation = ({
     setConversationState(newState);
     console.log('Conversation state set immediately:', newState);
     
-    // Speak the first question after a brief delay to ensure UI has updated
+    // CRITICAL: Ensure speech recognition keeps listening after form opens
     setTimeout(() => {
       console.log('Speaking first question:', CONVERSATION_STEPS.TITLE.question);
       speak(CONVERSATION_STEPS.TITLE.question);
       toast.info("Voice conversation started - Add Entry form is now open");
+      
+      // FORCE speech recognition to continue listening after form opens
+      setTimeout(() => {
+        const isListening = (window as any).__speech_recognition_active;
+        console.log('Checking if speech recognition is still listening after form opened:', isListening);
+        
+        if (!isListening) {
+          console.log('Speech recognition stopped after form opened - forcing restart');
+          // Trigger a restart by dispatching a custom event
+          window.dispatchEvent(new CustomEvent('force-voice-restart', { 
+            detail: { reason: 'form_opened', conversationActive: true } 
+          }));
+        } else {
+          console.log('Speech recognition is still active - continuing conversation');
+        }
+      }, 1000);
     }, 300);
   };
 

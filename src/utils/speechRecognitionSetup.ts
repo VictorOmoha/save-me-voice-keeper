@@ -38,6 +38,8 @@ export const setupSpeechRecognition = ({
   recognition.onstart = () => {
     console.log('Speech recognition started');
     setIsListening(true);
+    // Set global flag for tracking
+    (window as any).__speech_recognition_active = true;
   };
   
   recognition.onresult = (event) => {
@@ -119,6 +121,8 @@ export const setupSpeechRecognition = ({
   recognition.onend = () => {
     console.log('Speech recognition ended');
     setIsListening(false);
+    // Clear global flag
+    (window as any).__speech_recognition_active = false;
     
     // Simple restart logic for conversation mode
     if (conversationState?.isActive && restartAttempts < maxRestartAttempts && recognitionRef.current) {

@@ -3,6 +3,7 @@ import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { useTTSEventHandler } from './useTTSEventHandler';
 import { useSpeechRecognitionControls } from './useSpeechRecognitionControls';
 import { setupSpeechRecognition } from '@/utils/speechRecognitionSetup';
+import { toast } from 'sonner';
 
 interface UseSpeechRecognitionProps {
   onVoiceCommand?: (command: VoiceCommand) => void;
@@ -51,12 +52,34 @@ export const useSpeechRecognition = ({
       }
     }
     
+    // Add listener for forced voice restart when form opens
+    const handleForceRestart = (event: CustomEvent) => {
+      console.log('Force voice restart event received:', event.detail);
+      if (event.detail.conversationActive && recognitionRef.current) {
+        setTimeout(() => {
+          try {
+            if (recognitionRef.current && !isListening) {
+              console.log('Forcing speech recognition restart after form opened');
+              recognitionRef.current.start();
+              setIsListening(true);
+              toast.info('Voice recognition restarted - ready for your response');
+            }
+          } catch (error) {
+            console.log('Force restart failed:', error);
+          }
+        }, 500);
+      }
+    };
+    
+    window.addEventListener('force-voice-restart', handleForceRestart as EventListener);
+    
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
+      window.removeEventListener('force-voice-restart', handleForceRestart as EventListener);
     };
-  }, [onVoiceCommand, onEnhancedVoiceInput, lastProcessedTranscript, conversationState?.isActive]);
+  }, [onVoiceCommand, onEnhancedVoiceInput, lastProcessedTranscript, conversationState?.isActive, isListening]);
 
   // Get control methods
   const controls = useSpeechRecognitionControls({

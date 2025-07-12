@@ -20,8 +20,8 @@ export const VoiceDiagnostic: React.FC = () => {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;  // Changed to true for longer phrases
+    recognition.interimResults = true;  // Changed to true to see partial results
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
@@ -31,20 +31,41 @@ export const VoiceDiagnostic: React.FC = () => {
     };
 
     recognition.onresult = (event) => {
-      const text = event.results[0][0].transcript;
-      console.log('🎯 DIAGNOSTIC: Heard:', text);
-      setLastHeard(text);
-      toast.success(`Heard: "${text}"`);
+      let finalText = '';
+      let interimText = '';
       
-      // Test the processing
-      if (text.toLowerCase().includes('test')) {
-        console.log('✅ DIAGNOSTIC: Test word detected!');
-        toast.success('✅ Test word detected!');
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalText += result[0].transcript;
+        } else {
+          interimText += result[0].transcript;
+        }
       }
       
-      if (text.toLowerCase().includes('title') || text.toLowerCase().includes('call')) {
-        console.log('✅ DIAGNOSTIC: Title-like word detected!');
-        toast.success('✅ Title command detected!');
+      const currentText = finalText || interimText;
+      console.log('🎯 DIAGNOSTIC: Current text:', currentText);
+      setLastHeard(currentText);
+      
+      if (finalText) {
+        console.log('🎯 DIAGNOSTIC: Final text:', finalText);
+        toast.success(`Final: "${finalText}"`);
+        
+        // Test the processing
+        if (finalText.toLowerCase().includes('test')) {
+          console.log('✅ DIAGNOSTIC: Test word detected!');
+          toast.success('✅ Test word detected!');
+        }
+        
+        if (finalText.toLowerCase().includes('title') || finalText.toLowerCase().includes('call')) {
+          console.log('✅ DIAGNOSTIC: Title-like word detected!');
+          toast.success('✅ Title command detected!');
+        }
+        
+        // Auto-stop after getting final result
+        setTimeout(() => {
+          recognition.stop();
+        }, 500);
       }
     };
 

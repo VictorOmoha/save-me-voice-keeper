@@ -11,12 +11,18 @@ Deno.serve(async (req) => {
   try {
     const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = await req.json();
 
+    console.log('TTS Edge Function - Received text length:', text?.length, 'Voice ID:', voiceId);
+
     if (!text) {
       return new Response(
         JSON.stringify({ error: 'Text is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // ElevenLabs has a character limit, let's check and truncate if needed
+    const maxLength = 1000; // Conservative limit
+    const processedText = text.length > maxLength ? text.substring(0, maxLength) : text;
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     if (!ELEVENLABS_API_KEY) {
@@ -34,7 +40,7 @@ Deno.serve(async (req) => {
         'xi-api-key': ELEVENLABS_API_KEY
       },
       body: JSON.stringify({
-        text,
+        text: processedText,
         model_id: modelId,
         voice_settings: {
           stability: 0.5,
@@ -47,6 +53,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('ElevenLabs API error:', response.status, errorText);
       return new Response(
         JSON.stringify({ error: `ElevenLabs API error: ${response.status} - ${errorText}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

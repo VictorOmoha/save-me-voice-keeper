@@ -111,7 +111,7 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
   try {
     const voiceId = voiceOption ? VOICE_OPTIONS[voiceOption] : VOICE_ID;
     
-    console.log('TTS: Calling ElevenLabs Edge Function with:', { text: text.substring(0, 50), voiceId });
+    console.log('TTS: Calling ElevenLabs Edge Function with:', { text: text.length > 100 ? text.substring(0, 100) + '...' : text, voiceId });
     
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {

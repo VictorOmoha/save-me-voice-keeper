@@ -65,7 +65,13 @@ export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
             onStart={() => {
               console.log('SimpleVoiceInput: onStart called, about to call startListening');
               console.log('SimpleVoiceInput: startListening function type:', typeof startListening);
-              startListening();
+              console.log('SimpleVoiceInput: startListening function:', startListening);
+              try {
+                startListening();
+                console.log('SimpleVoiceInput: startListening() call completed');
+              } catch (error) {
+                console.error('SimpleVoiceInput: Error calling startListening:', error);
+              }
             }}
             onStop={() => {
               console.log('SimpleVoiceInput: onStop called, about to call stopListening');

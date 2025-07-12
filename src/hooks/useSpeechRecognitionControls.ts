@@ -27,18 +27,21 @@ export const useSpeechRecognitionControls = ({
       return;
     }
     
-    console.log('About to request microphone permissions...');
-    
-    // Check for microphone permissions first
-    try {
-      console.log('Requesting microphone permissions...');
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone permissions granted');
-    } catch (error) {
-      console.error('Microphone permission denied:', error);
-      toast.error('Microphone access denied. Please allow microphone access and try again.');
+    if (isListening) {
+      console.log('Already listening, ignoring start request');
       return;
     }
+    
+    if (!recognitionRef.current) {
+      console.error('No recognition reference available');
+      toast.error('Speech recognition not properly initialized');
+      return;
+    }
+    
+    console.log('About to check microphone permissions...');
+    
+    // Skip microphone permission check - let recognition handle it
+    console.log('Skipping explicit permission check, letting recognition handle it...');
     
     console.log('Checking TTS speaking state...');
     // Check if TTS is currently speaking
@@ -60,17 +63,6 @@ export const useSpeechRecognitionControls = ({
     console.log('TTS not speaking, proceeding with speech recognition...');
     console.log('Recognition status - available:', !!recognitionRef.current, 'listening:', isListening);
     
-    if (!recognitionRef.current) {
-      console.error('No recognition reference available');
-      toast.error('Speech recognition not properly initialized');
-      return;
-    }
-    
-    if (isListening) {
-      console.log('Already listening, ignoring start request');
-      return;
-    }
-    
     try {
       console.log('Starting speech recognition process...');
       
@@ -89,7 +81,26 @@ export const useSpeechRecognitionControls = ({
       
     } catch (error) {
       console.error('Error starting speech recognition:', error);
-      toast.error(`Failed to start: ${error.message}`);
+      
+      // More specific error handling
+      if (error.name === 'InvalidStateError') {
+        console.log('Recognition already running, stopping and restarting...');
+        try {
+          recognitionRef.current.stop();
+          setTimeout(() => {
+            if (recognitionRef.current) {
+              recognitionRef.current.start();
+            }
+          }, 100);
+        } catch (restartError) {
+          console.error('Failed to restart recognition:', restartError);
+          toast.error('Failed to restart speech recognition');
+        }
+      } else if (error.name === 'NotAllowedError') {
+        toast.error('Microphone access denied. Please allow microphone access and try again.');
+      } else {
+        toast.error(`Failed to start: ${error.message}`);
+      }
     }
   };
 

@@ -1,18 +1,42 @@
 
 export interface VoiceCommand {
-  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'save_entry' | 'cancel' | 'fill_form' | 'unknown';
+  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'unknown';
   params?: {
     fieldName?: string;
     fieldType?: 'text' | 'number' | 'date' | 'textarea';
     entryTitle?: string;
     entryId?: string;
     entryCategory?: string;
+    titleValue?: string;
+    categoryValue?: string;
   };
 }
 
 export const processVoiceCommand = (transcript: string): VoiceCommand => {
   const lowerTranscript = transcript.toLowerCase().trim();
   console.log('Processing voice command:', lowerTranscript);
+  
+  // Form field commands - check these first for active forms
+  
+  // Title setting commands: "TITLE: My Document" or "SET TITLE My Document"
+  if (lowerTranscript.includes('title:') || lowerTranscript.includes('title ')) {
+    const titleValue = extractFormValue(lowerTranscript, 'title');
+    console.log('Detected set title command:', { titleValue });
+    return {
+      type: 'set_title',
+      params: { titleValue }
+    };
+  }
+  
+  // Category setting commands: "CATEGORY: Personal" or "SET CATEGORY Personal"
+  if (lowerTranscript.includes('category:') || lowerTranscript.includes('category ')) {
+    const categoryValue = extractFormValue(lowerTranscript, 'category');
+    console.log('Detected set category command:', { categoryValue });
+    return {
+      type: 'set_category',
+      params: { categoryValue }
+    };
+  }
   
   // Enhanced pattern matching for better command recognition
   
@@ -188,4 +212,24 @@ const extractCategory = (transcript: string): string => {
   }
   
   return 'Personal'; // Default category
+};
+
+const extractFormValue = (transcript: string, fieldType: string): string => {
+  const lowerTranscript = transcript.toLowerCase();
+  
+  // Pattern 1: "TITLE: My Document" or "CATEGORY: Personal"
+  const colonPattern = new RegExp(`${fieldType}:\\s*(.+)`, 'i');
+  const colonMatch = transcript.match(colonPattern);
+  if (colonMatch && colonMatch[1]) {
+    return colonMatch[1].trim();
+  }
+  
+  // Pattern 2: "SET TITLE My Document" or "TITLE My Document"  
+  const setPattern = new RegExp(`(?:set\\s+)?${fieldType}\\s+(.+)`, 'i');
+  const setMatch = transcript.match(setPattern);
+  if (setMatch && setMatch[1]) {
+    return setMatch[1].trim();
+  }
+  
+  return '';
 };

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mic, MicOff, Square } from "lucide-react";
 import { toast } from 'sonner';
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
+import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 
 interface SimpleVoiceComponentProps {
   onEnhancedVoiceInput?: (text: string) => void;
@@ -16,6 +17,9 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isInitializedRef = useRef(false);
+  
+  // Access form setters for voice form filling
+  const { formTitleSetter, formCategorySetter } = useVoiceFormContext();
 
   const initializeRecognition = () => {
     if (isInitializedRef.current) return recognitionRef.current;
@@ -83,16 +87,33 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
         const command = processVoiceCommand(finalTranscript);
         console.log('📋 Processed command:', command);
         
-        // Call the handler
-        if (onEnhancedVoiceInput) {
-          onEnhancedVoiceInput(finalTranscript);
-        }
-        
-        // Show success feedback
-        if (command.type !== 'unknown') {
-          toast.success(`✅ Command: ${command.type.replace('_', ' ')}`);
+        // Handle form field commands first
+        if (command.type === 'set_title' && command.params?.titleValue) {
+          if (formTitleSetter) {
+            formTitleSetter(command.params.titleValue);
+            toast.success(`✅ Title set: "${command.params.titleValue}"`);
+          } else {
+            toast.warning('No form open to set title');
+          }
+        } else if (command.type === 'set_category' && command.params?.categoryValue) {
+          if (formCategorySetter) {
+            formCategorySetter(command.params.categoryValue);
+            toast.success(`✅ Category set: "${command.params.categoryValue}"`);
+          } else {
+            toast.warning('No form open to set category');
+          }
         } else {
-          toast.info(`📝 Heard: "${finalTranscript}"`);
+          // Handle regular commands (create entry, etc.)
+          if (onEnhancedVoiceInput) {
+            onEnhancedVoiceInput(finalTranscript);
+          }
+          
+          // Show success feedback
+          if (command.type !== 'unknown') {
+            toast.success(`✅ Command: ${command.type.replace('_', ' ')}`);
+          } else {
+            toast.info(`📝 Heard: "${finalTranscript}"`);
+          }
         }
         
         // Continue listening for more commands instead of stopping

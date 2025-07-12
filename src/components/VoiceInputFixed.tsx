@@ -74,16 +74,10 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
         </Button>
       </div>
 
-      {/* PRIORITY: Voice Diagnostic - Use this first! */}
+      {/* WORKING: Voice Commands using clean implementation */}
       <div className="mb-4">
-        <VoiceDiagnostic />
+        <VoiceDiagnostic onVoiceCommand={handleVoiceCommand} />
       </div>
-
-      {/* PRIMARY: SimpleVoiceInput - This is the main component */}
-      <SimpleVoiceInput 
-        onEnhancedVoiceInput={handleVoiceCommand}
-        conversationState={conversationData}
-      />
 
       {/* Voice Settings Modal */}
       <VoiceSettingsModal 

@@ -3,31 +3,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mic } from "lucide-react";
 import { toast } from 'sonner';
+import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
 
-export const VoiceDiagnostic: React.FC = () => {
+interface VoiceDiagnosticProps {
+  onVoiceCommand?: (transcript: string) => void;
+}
+
+export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand }) => {
   const [isListening, setIsListening] = useState(false);
   const [lastHeard, setLastHeard] = useState('');
 
   const testVoice = () => {
-    console.log('🧪 DIAGNOSTIC: Starting voice test...');
+    console.log('🧪 VOICE COMMAND: Starting voice command system...');
     
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
-      console.log('❌ DIAGNOSTIC: No speech recognition');
+      console.log('❌ VOICE COMMAND: No speech recognition');
       toast.error('Speech recognition not supported');
       return;
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;  // Changed to true for longer phrases
-    recognition.interimResults = true;  // Changed to true to see partial results
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
-      console.log('✅ DIAGNOSTIC: Voice started');
+      console.log('✅ VOICE COMMAND: Listening for commands...');
       setIsListening(true);
-      toast.success('🎤 Say something now!');
+      toast.success('🎤 Say "CREATE NEW ENTRY" or any command!');
     };
 
     recognition.onresult = (event) => {
@@ -44,22 +49,27 @@ export const VoiceDiagnostic: React.FC = () => {
       }
       
       const currentText = finalText || interimText;
-      console.log('🎯 DIAGNOSTIC: Current text:', currentText);
+      console.log('🎯 VOICE COMMAND: Current text:', currentText);
       setLastHeard(currentText);
       
       if (finalText) {
-        console.log('🎯 DIAGNOSTIC: Final text:', finalText);
-        toast.success(`Final: "${finalText}"`);
+        console.log('🎯 VOICE COMMAND: Final text:', finalText);
         
-        // Test the processing
-        if (finalText.toLowerCase().includes('test')) {
-          console.log('✅ DIAGNOSTIC: Test word detected!');
-          toast.success('✅ Test word detected!');
+        // Process the voice command
+        const command = processVoiceCommand(finalText);
+        console.log('🎯 VOICE COMMAND: Processed command:', command);
+        
+        // Send to parent component (VoiceInputFixed)
+        if (onVoiceCommand) {
+          console.log('🎯 VOICE COMMAND: Calling onVoiceCommand with:', finalText);
+          onVoiceCommand(finalText);
         }
         
-        if (finalText.toLowerCase().includes('title') || finalText.toLowerCase().includes('call')) {
-          console.log('✅ DIAGNOSTIC: Title-like word detected!');
-          toast.success('✅ Title command detected!');
+        // Show command feedback
+        if (command.type !== 'unknown') {
+          toast.success(`✅ Command: ${command.type.replace('_', ' ')}`);
+        } else {
+          toast.info(`📝 Heard: "${finalText}"`);
         }
         
         // Auto-stop after getting final result
@@ -70,28 +80,28 @@ export const VoiceDiagnostic: React.FC = () => {
     };
 
     recognition.onerror = (event) => {
-      console.log('❌ DIAGNOSTIC: Error:', event.error);
+      console.log('❌ VOICE COMMAND: Error:', event.error);
       setIsListening(false);
       toast.error(`Error: ${event.error}`);
     };
 
     recognition.onend = () => {
-      console.log('🔚 DIAGNOSTIC: Voice ended');
+      console.log('🔚 VOICE COMMAND: Voice ended');
       setIsListening(false);
     };
 
     try {
       recognition.start();
     } catch (error) {
-      console.log('❌ DIAGNOSTIC: Start failed:', error);
+      console.log('❌ VOICE COMMAND: Start failed:', error);
       toast.error('Failed to start');
     }
   };
 
   return (
-    <Card className="w-full max-w-md border-red-200">
+    <Card className="w-full max-w-md border-blue-200">
       <CardHeader>
-        <CardTitle className="text-red-600">🧪 Voice Diagnostic</CardTitle>
+        <CardTitle className="text-blue-600">🎤 Voice Commands (Working)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-center">
@@ -101,23 +111,23 @@ export const VoiceDiagnostic: React.FC = () => {
             className="w-full"
           >
             <Mic className="h-4 w-4 mr-2" />
-            {isListening ? 'Listening...' : 'Test Voice'}
+            {isListening ? 'Listening for Commands...' : 'Start Voice Commands'}
           </Button>
         </div>
 
         {lastHeard && (
-          <div className="p-3 bg-yellow-50 rounded-lg">
+          <div className="p-3 bg-blue-50 rounded-lg">
             <p className="text-sm font-medium">Last heard:</p>
-            <p className="text-yellow-700">"{lastHeard}"</p>
+            <p className="text-blue-700">"{lastHeard}"</p>
           </div>
         )}
 
         <div className="text-xs text-muted-foreground">
-          <p className="font-medium">Test by saying:</p>
+          <p className="font-medium">Try these commands:</p>
           <ul className="list-disc list-inside">
-            <li>"TEST" - Should trigger test detection</li>
-            <li>"TITLE MY DOCUMENT" - Should trigger title detection</li>
-            <li>"CALL IT HELLO" - Should trigger title detection</li>
+            <li><strong>"CREATE NEW ENTRY"</strong> - Opens new entry form</li>
+            <li><strong>"TITLE MY DOCUMENT"</strong> - Sets title when form is open</li>
+            <li><strong>"SHOW ALL ENTRIES"</strong> - Shows all entries</li>
           </ul>
         </div>
       </CardContent>

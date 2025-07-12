@@ -67,6 +67,37 @@ export const useDashboardVoice = ({
         }
         break;
         
+      case 'open_file':
+        // Enhanced file search with fuzzy matching
+        if (command.params?.entryTitle) {
+          const searchTerm = command.params.entryTitle;
+          const searchResults = savedEntries.filter(entry => {
+            const searchLower = searchTerm.toLowerCase();
+            const titleMatch = entry.title.toLowerCase().includes(searchLower);
+            const fieldMatch = Object.values(entry.fields).some(value => 
+              typeof value === 'string' && value.toLowerCase().includes(searchLower)
+            );
+            return titleMatch || fieldMatch;
+          });
+          
+          if (searchResults.length === 1) {
+            editEntry(searchResults[0]);
+            const openMessage = `Opening: ${searchResults[0].title}`;
+            toast.success(openMessage);
+            speak(openMessage);
+          } else if (searchResults.length > 1) {
+            const matches = searchResults.slice(0, 3).map(entry => entry.title).join(', ');
+            const multipleMessage = `Found ${searchResults.length} matches: ${matches}. Please be more specific.`;
+            toast.info(multipleMessage);
+            speak(multipleMessage);
+          } else {
+            const noMatchMessage = `No files found matching "${searchTerm}". Try "show all entries" to see available files.`;
+            toast.info(noMatchMessage);
+            speak(noMatchMessage);
+          }
+        }
+        break;
+        
       case 'create_field':
         console.log('Creating field...');
         // Actually create an entry with the specified field

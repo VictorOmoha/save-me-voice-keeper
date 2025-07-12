@@ -1,6 +1,6 @@
 
 export interface VoiceCommand {
-  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'unknown';
+  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'unknown';
   params?: {
     fieldName?: string;
     fieldType?: 'text' | 'number' | 'date' | 'textarea';
@@ -107,13 +107,33 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
   
-  // Open specific entry commands
-  if ((lowerTranscript.includes('open') || lowerTranscript.includes('edit')) && !lowerTranscript.includes('all')) {
-    const entryTitle = extractEntryTitle(lowerTranscript, 'open');
-    console.log('Detected open entry command:', { entryTitle });
+  // Open specific entry commands - enhanced to handle any file/entry
+  if (lowerTranscript.includes('open') && !lowerTranscript.includes('all')) {
+    const searchTerm = extractOpenTarget(lowerTranscript);
+    console.log('Detected open command:', { searchTerm });
+    
+    // If it looks like a file search, use the file command type
+    if (searchTerm && (searchTerm.includes('.') || lowerTranscript.includes('file'))) {
+      return {
+        type: 'open_file',
+        params: { entryTitle: searchTerm }
+      };
+    }
+    
+    // Otherwise treat as entry command
     return {
       type: 'open_entry',
-      params: { entryTitle }
+      params: { entryTitle: searchTerm }
+    };
+  }
+  
+  // Edit commands - also enhanced for flexibility
+  if (lowerTranscript.includes('edit')) {
+    const searchTerm = extractOpenTarget(lowerTranscript);
+    console.log('Detected edit command:', { searchTerm });
+    return {
+      type: 'open_entry',
+      params: { entryTitle: searchTerm }
     };
   }
   
@@ -286,6 +306,38 @@ const extractCategoryFromSpeech = (transcript: string): string => {
   for (const category of categories) {
     if (lowerTranscript.includes(category)) {
       return category.charAt(0).toUpperCase() + category.slice(1);
+    }
+  }
+  
+  return '';
+};
+
+const extractOpenTarget = (transcript: string): string => {
+  const lowerTranscript = transcript.toLowerCase();
+  
+  // Enhanced patterns for flexible file/entry opening
+  const patterns = [
+    // Direct patterns: "open my medical records", "open file invoice.pdf"
+    /open\s+(?:my\s+|the\s+|file\s+)?(.+?)(?:\.|$)/i,
+    /edit\s+(?:my\s+|the\s+|file\s+)?(.+?)(?:\.|$)/i,
+    // Handle "open" followed by anything
+    /open\s+(.+)/i,
+    /edit\s+(.+)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = transcript.match(pattern);
+    if (match && match[1]) {
+      let target = match[1].trim();
+      
+      // Clean up common words but preserve the core search term
+      target = target.replace(/\b(document|entry|record|item|information)\b/gi, '').trim();
+      target = target.replace(/\b(the|a|an|my|our|your)\b/gi, '').trim();
+      
+      // If we still have meaningful content, return it
+      if (target.length > 1) {
+        return target;
+      }
     }
   }
   

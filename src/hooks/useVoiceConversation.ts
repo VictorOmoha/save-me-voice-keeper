@@ -344,6 +344,39 @@ export const useVoiceConversation = ({
     toast.info("Voice conversation cancelled");
   };
 
+  const handleOpenFileCommand = (searchTerm: string) => {
+    console.log('Processing open file command for:', searchTerm);
+    
+    // Enhanced search across all entries with fuzzy matching
+    const searchResults = savedEntries.filter(entry => {
+      const searchLower = searchTerm.toLowerCase();
+      const titleMatch = entry.title.toLowerCase().includes(searchLower);
+      const fieldMatch = Object.values(entry.fields).some(value => 
+        typeof value === 'string' && value.toLowerCase().includes(searchLower)
+      );
+      return titleMatch || fieldMatch;
+    });
+    
+    if (searchResults.length === 1) {
+      // Single match - open it directly
+      editEntry(searchResults[0]);
+      const openMessage = `Opening: ${searchResults[0].title}`;
+      toast.success(openMessage);
+      speak(openMessage);
+    } else if (searchResults.length > 1) {
+      // Multiple matches - show options
+      const matches = searchResults.slice(0, 3).map(entry => entry.title).join(', ');
+      const multipleMessage = `Found ${searchResults.length} matches: ${matches}. Please be more specific.`;
+      toast.info(multipleMessage);
+      speak(multipleMessage);
+    } else {
+      // No matches - suggest alternatives
+      const noMatchMessage = `No files found matching "${searchTerm}". Try "show all entries" to see available files.`;
+      toast.info(noMatchMessage);
+      speak(noMatchMessage);
+    }
+  };
+
   const handleVoiceCommand = (command: VoiceCommand) => {
     console.log('Executing voice command:', command);
     
@@ -399,6 +432,10 @@ export const useVoiceConversation = ({
             speak(errorMessage);
           }
         }
+        break;
+        
+      case 'open_file':
+        handleOpenFileCommand(command.params?.entryTitle || '');
         break;
         
       case 'create_field':

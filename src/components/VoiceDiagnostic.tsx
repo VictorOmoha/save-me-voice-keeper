@@ -148,6 +148,9 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
           <p className="font-medium">Try these commands:</p>
           <ul className="list-disc list-inside">
             <li><strong>"CREATE NEW ENTRY"</strong> - Opens new entry form</li>
+            <li><strong>"OPEN [filename]"</strong> - Opens any file/entry by name</li>
+            <li><strong>"OPEN MEDICAL RECORDS"</strong> - Smart search for entries</li>
+            <li><strong>"SHOW ALL ENTRIES"</strong> - View all your entries</li>
             <li><strong>"TITLE MY DOCUMENT"</strong> - Sets title when form is open</li>
             <li><strong>"ADD FIELD NAME"</strong> - Adds a field called "Name"</li>
             <li><strong>"CREATE FIELD EMAIL"</strong> - Adds an email field</li>

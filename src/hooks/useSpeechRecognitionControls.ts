@@ -61,49 +61,39 @@ export const useSpeechRecognitionControls = ({
     console.log('recognitionRef.current:', !!recognitionRef.current);
     console.log('isListening:', isListening);
     
-    if (recognitionRef.current && !isListening) {
-      try {
-        console.log('Starting speech recognition process...');
-        // Clean state before starting
-        setTranscript("");
-        setLastProcessedTranscript("");
-        console.log('State cleared, stopping any existing recognition...');
-        
-        // Stop first to ensure clean state
-        try {
-          recognitionRef.current.stop();
-          console.log('Stopped existing recognition (if any)');
-        } catch (e) {
-          console.log('Stop call failed (expected if not running):', e);
-        }
-        
-        // Brief delay then start
-        setTimeout(() => {
-          try {
-            console.log('Attempting to start speech recognition now...');
-            if (recognitionRef.current && !isListening) {
-              console.log('Conditions met, calling recognition.start()...');
-              recognitionRef.current.start();
-              console.log('recognition.start() called successfully');
-              toast.info('Voice recognition started - speak now');
-            } else {
-              console.log('Cannot start - conditions not met:', {
-                recognitionRef: !!recognitionRef.current,
-                isListening: isListening
-              });
-            }
-          } catch (startError) {
-            console.error('Error starting speech recognition:', startError);
-            toast.error(`Failed to start voice recognition: ${startError.message}`);
-          }
-        }, 200);
-        
-      } catch (error) {
-        console.error('Error in startListening:', error);
-        toast.error('Failed to start voice recognition');
-      }
-    } else {
-      console.log('Cannot start - recognitionRef:', !!recognitionRef.current, 'isListening:', isListening);
+    console.log('recognitionRef.current:', !!recognitionRef.current);
+    console.log('isListening:', isListening);
+    
+    if (!recognitionRef.current) {
+      console.error('No recognition reference available');
+      toast.error('Speech recognition not properly initialized');
+      return;
+    }
+    
+    if (isListening) {
+      console.log('Already listening, ignoring start request');
+      return;
+    }
+    
+    try {
+      console.log('Starting speech recognition process...');
+      
+      // Clean state before starting
+      setTranscript("");
+      setLastProcessedTranscript("");
+      console.log('State cleared');
+      
+      // Simple direct start - no complex timing
+      console.log('Calling recognition.start() directly...');
+      recognitionRef.current.start();
+      console.log('recognition.start() called - should see onstart event soon');
+      
+      // Show immediate feedback
+      toast.success('Voice recognition starting...');
+      
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      toast.error(`Failed to start: ${error.message}`);
     }
   };
 

@@ -82,18 +82,18 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
 
     recognition.onend = () => {
       console.log('🔚 VOICE COMMAND: Voice ended');
-      // Auto-restart if still supposed to be listening
+      // Only auto-restart if still supposed to be listening and not manually stopped
       if (isListening) {
         setTimeout(() => {
           try {
+            console.log('🔄 VOICE COMMAND: Auto-restarting for next command...');
             recognition.start();
-            console.log('🔄 VOICE COMMAND: Auto-restarted for next command');
           } catch (error) {
             console.log('Auto-restart failed:', error.message);
             setIsListening(false);
             toast.info('Voice ended. Click "Start Voice Commands" to continue.');
           }
-        }, 500);
+        }, 1000);
       }
     };
 

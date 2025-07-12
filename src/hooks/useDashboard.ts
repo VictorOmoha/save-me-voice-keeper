@@ -1,6 +1,7 @@
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceConversation } from "./useVoiceConversation";
+import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 
 export const useDashboard = () => {
   const {
@@ -37,6 +38,8 @@ export const useDashboard = () => {
     loadEntries,
   });
 
+  const { formTitleSetter, formCategorySetter } = useVoiceFormContext();
+
   const {
     handleVoiceCommand,
     handleVoiceResult,
@@ -53,6 +56,8 @@ export const useDashboard = () => {
     fillEntry,
     handleCancelEdit,
     saveEntry,
+    formTitleSetter,
+    formCategorySetter,
   });
 
   // Enhanced voice input processing

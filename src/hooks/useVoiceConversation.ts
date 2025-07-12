@@ -34,6 +34,9 @@ interface UseVoiceConversationProps {
   fillEntry: (entry: SavedEntry) => void;
   handleCancelEdit: () => void;
   saveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  // Add form field setters to communicate with the form
+  formTitleSetter?: (title: string) => void;
+  formCategorySetter?: (category: string) => void;
 }
 
 const CONVERSATION_STEPS = {
@@ -78,6 +81,8 @@ export const useVoiceConversation = ({
   fillEntry,
   handleCancelEdit,
   saveEntry,
+  formTitleSetter,
+  formCategorySetter,
 }: UseVoiceConversationProps) => {
   const [conversationState, setConversationState] = useState<VoiceConversationState>({
     isActive: false,
@@ -146,15 +151,22 @@ export const useVoiceConversation = ({
           entryDraft: newEntryDraft,
         });
         
-        // Update the form title field visually
-        setTimeout(() => {
-          const titleInput = document.querySelector('input[name="title"]') as HTMLInputElement;
-          if (titleInput) {
-            titleInput.value = transcript;
-            titleInput.dispatchEvent(new Event('input', { bubbles: true }));
-            console.log('Updated title field in form:', transcript);
-          }
-        }, 100);
+        // Update the form title field using the proper setter
+        if (formTitleSetter) {
+          console.log('Setting form title via setter:', transcript);
+          formTitleSetter(transcript);
+        } else {
+          console.log('No form title setter available, using DOM fallback');
+          // Fallback to DOM manipulation if setter not available
+          setTimeout(() => {
+            const titleInput = document.querySelector('#title') as HTMLInputElement;
+            if (titleInput) {
+              titleInput.value = transcript;
+              titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+              console.log('Updated title field in form via DOM:', transcript);
+            }
+          }, 100);
+        }
         
         speak(CONVERSATION_STEPS.CATEGORY.question);
         toast.success(`Entry title set: \"${transcript}\"`);
@@ -178,21 +190,28 @@ export const useVoiceConversation = ({
           entryDraft: updatedDraft,
         });
         
-        // Update the category field visually in the form
-        setTimeout(() => {
-          const categorySelect = document.querySelector('button[role="combobox"]') as HTMLButtonElement;
-          if (categorySelect) {
-            categorySelect.click();
-            setTimeout(() => {
-              const categoryOption = Array.from(document.querySelectorAll('[role="option"]'))
-                .find(option => option.textContent?.toLowerCase().includes(categoryName.toLowerCase()));
-              if (categoryOption) {
-                (categoryOption as HTMLElement).click();
-                console.log('Updated category field in form:', categoryName);
-              }
-            }, 100);
-          }
-        }, 100);
+        // Update the category field using the proper setter
+        if (formCategorySetter) {
+          console.log('Setting form category via setter:', categoryName);
+          formCategorySetter(categoryName);
+        } else {
+          console.log('No form category setter available, using DOM fallback');
+          // Fallback to DOM manipulation
+          setTimeout(() => {
+            const categorySelect = document.querySelector('button[role="combobox"]') as HTMLButtonElement;
+            if (categorySelect) {
+              categorySelect.click();
+              setTimeout(() => {
+                const categoryOption = Array.from(document.querySelectorAll('[role="option"]'))
+                  .find(option => option.textContent?.toLowerCase().includes(categoryName.toLowerCase()));
+                if (categoryOption) {
+                  (categoryOption as HTMLElement).click();
+                  console.log('Updated category field in form via DOM:', categoryName);
+                }
+              }, 100);
+            }
+          }, 100);
+        }
         
         speak(CONVERSATION_STEPS.MORE_FIELDS.question);
         toast.success(`Category set: ${categoryName}`);

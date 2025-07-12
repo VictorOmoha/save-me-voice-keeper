@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import { useFormLogic } from "./forms/useFormLogic";
 import { CategorySelector } from "./forms/CategorySelector";
 import { FormFieldManager } from "./forms/FormFieldManager";
 import { CustomFieldItem } from "./forms/CustomFieldItem";
+import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 
 interface DataEntryFormProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -38,6 +40,19 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     prepareSubmissionData,
     categories
   } = useFormLogic({ editEntry, templateEntry, mode, preselectedCategory });
+
+  const { registerFormSetters, unregisterFormSetters } = useVoiceFormContext();
+
+  // Register form setters for voice input when component mounts
+  useEffect(() => {
+    console.log('DataEntryForm: Registering voice form setters');
+    registerFormSetters(setTitle, setSelectedCategory);
+    
+    return () => {
+      console.log('DataEntryForm: Unregistering voice form setters');
+      unregisterFormSetters();
+    };
+  }, [registerFormSetters, unregisterFormSetters, setTitle, setSelectedCategory]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

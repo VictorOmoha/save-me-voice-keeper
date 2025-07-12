@@ -288,8 +288,26 @@ export const EnhancedVoiceInput: React.FC<EnhancedVoiceInputProps> = ({
   };
 
   const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
+    console.log('🛑 Stop button clicked - stopping voice recognition');
+    
+    // Immediately update state to provide instant feedback
+    setIsListening(false);
+    setIsProcessingAudio(false);
+    setTranscript("");
+    
+    // Stop the recognition if it's running
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
+    }
+    
+    // Clear any processing timeouts
+    if (processingTimeoutRef.current) {
+      clearTimeout(processingTimeoutRef.current);
+      processingTimeoutRef.current = null;
     }
   };
 

@@ -100,17 +100,21 @@ export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
         console.log('Speech recognition ended');
         setIsListening(false);
         
-        // Auto-restart if we're in an active conversation
+        // Auto-restart if we're in an active conversation and not manually stopped
         if (conversationState?.isActive && recognitionRef.current) {
           console.log('Auto-restarting voice recognition for conversation');
           setTimeout(() => {
             try {
-              recognitionRef.current?.start();
-              setIsListening(true);
+              if (conversationState?.isActive && recognitionRef.current) {
+                recognitionRef.current.start();
+                setIsListening(true);
+              }
             } catch (error) {
               console.error('Error restarting recognition:', error);
+              // If restart fails, let user know they need to manually restart
+              toast.info('Voice recognition stopped. Click "Start Voice Commands" to continue.');
             }
-          }, 500); // Small delay to prevent rapid restart issues
+          }, 1000); // Longer delay to ensure clean restart
         }
       };
       

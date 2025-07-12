@@ -54,13 +54,13 @@ export const setupSpeechRecognition = ({
   (window as any).__global_recognition = recognition; // Track globally
   (window as any).__creating_recognition = false;
   
-  // Configure recognition with maximum sensitivity
-  recognition.continuous = true;
+  // Configure recognition with optimal settings for voice commands
+  recognition.continuous = false; // Set to false for better command recognition
   recognition.interimResults = true;
   recognition.lang = localStorage.getItem('speech_language') || 'en-US';
-  recognition.maxAlternatives = 3; // Try more alternatives
+  recognition.maxAlternatives = 1; // Simplified for better performance
   
-  console.log('Speech recognition configured:', {
+  console.log('🔧 Speech recognition configured:', {
     continuous: recognition.continuous,
     interimResults: recognition.interimResults,
     lang: recognition.lang,
@@ -73,51 +73,30 @@ export const setupSpeechRecognition = ({
     setIsListening(true);
     // Set global flag for tracking
     (window as any).__speech_recognition_active = true;
-    toast.success('🎤 Listening... Speak VERY LOUDLY and CLEARLY!');
+    toast.success('🎤 Listening... Say a command like "CREATE NEW ENTRY"');
     
-    // Add browser and audio debugging
-    console.log('🔍 Browser info:', {
-      userAgent: navigator.userAgent,
-      platform: navigator.platform,
-      language: navigator.language,
-      onLine: navigator.onLine
-    });
-    
-    // Test microphone access
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        console.log('✅ Microphone access confirmed');
-        console.log('🎙️ Audio tracks:', stream.getAudioTracks().map(track => ({
-          label: track.label,
-          enabled: track.enabled,
-          readyState: track.readyState,
-          settings: track.getSettings ? track.getSettings() : 'settings not available'
-        })));
-        
-        // Clean up the test stream
-        stream.getTracks().forEach(track => track.stop());
-      })
-      .catch(err => {
-        console.error('❌ Microphone access issue:', err);
-        toast.error('Microphone access issue: ' + err.message);
-      });
-    
-    // Add a timeout to detect if no speech is heard
+    // Add a timeout to auto-restart for continuous listening
     setTimeout(() => {
       if ((window as any).__speech_recognition_active && !document.querySelector('[data-voice-detected]')) {
-        console.log('⚠️ No speech detected after 10 seconds');
-        console.log('💡 Troubleshooting tips:');
-        console.log('1. Speak VERY loud and close to microphone');
-        console.log('2. Try saying "HELLO TESTING" slowly and clearly');
-        console.log('3. Check if other apps can hear your microphone');
-        console.log('4. Try refreshing the page and allowing microphone again');
-        toast.warning('No speech detected. Try speaking MUCH LOUDER or check browser microphone settings.');
+        console.log('⚠️ No speech detected after 10 seconds - auto-restarting...');
+        
+        // Auto-restart for continuous listening
+        if (recognitionRef.current && conversationState?.isActive) {
+          try {
+            recognitionRef.current.start();
+            console.log('Auto-restarted speech recognition');
+          } catch (error) {
+            console.log('Auto-restart failed:', error.message);
+          }
+        } else {
+          toast.info('Say "START VOICE COMMANDS" to activate voice control');
+        }
       }
-    }, 10000);
+    }, 8000);
   };
   
   recognition.onresult = (event) => {
-    console.log('🎤🎤🎤 VOICE INPUT DETECTED! 🎤🎤🎤', event);
+    console.log('🎤 Voice detected!');
     
     // Mark that voice was detected
     document.body.setAttribute('data-voice-detected', 'true');
@@ -125,18 +104,9 @@ export const setupSpeechRecognition = ({
     let finalTranscript = '';
     let interimTranscript = '';
     
-    console.log('Processing', event.results.length, 'speech results...');
-    
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
-      const confidence = event.results[i][0].confidence;
       const isFinal = event.results[i].isFinal;
-      
-      console.log(`Result ${i}:`, {
-        transcript: `"${transcript}"`,
-        confidence: confidence,
-        isFinal: isFinal
-      });
       
       if (isFinal) {
         finalTranscript += transcript;
@@ -146,12 +116,11 @@ export const setupSpeechRecognition = ({
     }
     
     const currentTranscript = finalTranscript || interimTranscript;
-    console.log('📝 Current transcript:', `"${currentTranscript}"`);
     setTranscript(currentTranscript);
     
-    // Process final results
-    if (finalTranscript && finalTranscript !== lastProcessedTranscript) {
-      console.log('Processing final transcript:', finalTranscript);
+    // Process final results immediately for better responsiveness
+    if (finalTranscript && finalTranscript.trim() !== lastProcessedTranscript.trim()) {
+      console.log('📝 Processing:', finalTranscript);
       setLastProcessedTranscript(finalTranscript);
       
       // Process the command
@@ -166,15 +135,24 @@ export const setupSpeechRecognition = ({
       
       // Show feedback
       if (command.type !== 'unknown') {
-        toast.success(`Voice command: ${command.type.replace('_', ' ')}`);
+        toast.success(`✅ ${command.type.replace('_', ' ')}`);
       } else {
-        toast.info(`Voice input: "${finalTranscript}"`);
+        toast.info(`📝 "${finalTranscript}"`);
       }
       
-      // Clear transcript after processing
+      // Auto-restart for continuous listening
       setTimeout(() => {
-        setTranscript("");
-      }, 2000);
+        if (conversationState?.isActive && recognitionRef.current) {
+          try {
+            setTranscript("");
+            recognitionRef.current.start();
+          } catch (error) {
+            console.log('Auto-restart after command failed:', error.message);
+          }
+        } else {
+          setTranscript("");
+        }
+      }, 1000);
     }
   };
   

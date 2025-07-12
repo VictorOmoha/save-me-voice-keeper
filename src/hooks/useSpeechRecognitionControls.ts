@@ -58,11 +58,7 @@ export const useSpeechRecognitionControls = ({
     }
     
     console.log('TTS not speaking, proceeding with speech recognition...');
-    console.log('recognitionRef.current:', !!recognitionRef.current);
-    console.log('isListening:', isListening);
-    
-    console.log('recognitionRef.current:', !!recognitionRef.current);
-    console.log('isListening:', isListening);
+    console.log('Recognition status - available:', !!recognitionRef.current, 'listening:', isListening);
     
     if (!recognitionRef.current) {
       console.error('No recognition reference available');

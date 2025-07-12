@@ -63,7 +63,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link to="/dashboard">
             <Button 
               variant={location.pathname === "/dashboard" ? "default" : "ghost"} 
-              className="w-full justify-start"
+              className="w-full justify-start transition-colors duration-200 hover:bg-muted"
+              onClick={() => {
+                console.log('Dashboard button clicked', { currentPath: location.pathname });
+              }}
             >
               <LayoutDashboard className="w-4 h-4 mr-3" />
               Dashboard

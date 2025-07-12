@@ -71,21 +71,6 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
         } else {
           toast.info(`📝 Heard: "${finalText}"`);
         }
-        
-        // Auto-restart for continuous listening instead of stopping
-        setTimeout(() => {
-          if (isListening) {
-            console.log('🔄 VOICE COMMAND: Auto-restarting for next command...');
-            try {
-              recognition.start();
-            } catch (error) {
-              console.log('Auto-restart failed:', error.message);
-              // If restart fails, user can manually restart
-              setIsListening(false);
-              toast.info('Voice ended. Click "Start Voice Commands" to continue.');
-            }
-          }
-        }, 1500);
       }
     };
 

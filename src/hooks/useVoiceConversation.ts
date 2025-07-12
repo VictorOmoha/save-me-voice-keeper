@@ -86,7 +86,9 @@ export const useVoiceConversation = ({
   });
 
   const startCreateEntryConversation = () => {
-    // First, open the Add Entry form
+    console.log('startCreateEntryConversation called - opening Add Entry form');
+    
+    // First, open the Add Entry form immediately
     setShowAddEntry(true);
     
     const newState: VoiceConversationState = {
@@ -97,11 +99,12 @@ export const useVoiceConversation = ({
     
     setConversationState(newState);
     
-    // Wait a moment for the form to open, then start speaking
+    // Force a small delay to ensure the UI has time to update
     setTimeout(() => {
+      console.log('Starting voice conversation for entry title');
       speak(CONVERSATION_STEPS.TITLE.question);
       toast.info("Voice conversation started - please speak the entry title");
-    }, 500);
+    }, 800); // Increased delay to ensure form is visible
   };
 
   const processConversationResponse = (transcript: string) => {

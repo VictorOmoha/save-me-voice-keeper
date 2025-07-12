@@ -115,6 +115,7 @@ export const useVoiceConversation = ({
 
   const processConversationResponse = (transcript: string) => {
     if (!conversationState.isActive || !conversationState.currentStep) {
+      console.log('Not in conversation mode, not processing as conversation response');
       return false; // Not in conversation mode
     }
 
@@ -123,8 +124,15 @@ export const useVoiceConversation = ({
 
     console.log('Processing conversation response:', {
       step: currentStep.type,
-      transcript: lowerTranscript
+      transcript: lowerTranscript,
+      entryDraft
     });
+    
+    // Skip processing if this looks like a command to start a new conversation
+    if (lowerTranscript.includes('create') && lowerTranscript.includes('entry') && currentStep.type === 'title') {
+      console.log('Detected new "create entry" command during title step - treating as entry title');
+      // Process it as the title rather than a new command
+    }
 
     switch (currentStep.type) {
       case 'title':
@@ -415,14 +423,24 @@ export const useVoiceConversation = ({
     });
     
     // First check if we're in conversation mode
-    if (conversationState.isActive && processConversationResponse(text)) {
+    if (conversationState.isActive && conversationState.currentStep) {
       console.log('Voice input handled by conversation system');
-      return; // Handled by conversation system
+      const handled = processConversationResponse(text);
+      if (handled) {
+        return; // Handled by conversation system
+      }
     }
     
-    // Otherwise process as a regular command
-    console.log('Processing as regular voice command');
+    // Otherwise process as a regular command - but NOT if we just started a conversation
     const command = processVoiceCommand(text);
+    
+    // If this is a "create entry" command and we're about to start a conversation, don't double-process
+    if (command.type === 'create_entry' && conversationState.isActive) {
+      console.log('Ignoring duplicate create_entry command during active conversation');
+      return;
+    }
+    
+    console.log('Processing as regular voice command');
     handleVoiceCommand(command);
   };
 

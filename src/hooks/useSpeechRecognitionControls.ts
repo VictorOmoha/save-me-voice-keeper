@@ -40,6 +40,7 @@ export const useSpeechRecognitionControls = ({
       return;
     }
     
+    console.log('Checking TTS speaking state...');
     // Check if TTS is currently speaking
     if ((window as any).__tts_is_speaking) {
       console.log('TTS is speaking, waiting before starting voice recognition...');
@@ -56,16 +57,22 @@ export const useSpeechRecognitionControls = ({
       return;
     }
     
+    console.log('TTS not speaking, proceeding with speech recognition...');
+    console.log('recognitionRef.current:', !!recognitionRef.current);
+    console.log('isListening:', isListening);
+    
     if (recognitionRef.current && !isListening) {
       try {
-        console.log('Starting speech recognition...');
+        console.log('Starting speech recognition process...');
         // Clean state before starting
         setTranscript("");
         setLastProcessedTranscript("");
+        console.log('State cleared, stopping any existing recognition...');
         
         // Stop first to ensure clean state
         try {
           recognitionRef.current.stop();
+          console.log('Stopped existing recognition (if any)');
         } catch (e) {
           console.log('Stop call failed (expected if not running):', e);
         }
@@ -73,10 +80,17 @@ export const useSpeechRecognitionControls = ({
         // Brief delay then start
         setTimeout(() => {
           try {
+            console.log('Attempting to start speech recognition now...');
             if (recognitionRef.current && !isListening) {
-              console.log('Actually starting speech recognition now...');
+              console.log('Conditions met, calling recognition.start()...');
               recognitionRef.current.start();
+              console.log('recognition.start() called successfully');
               toast.info('Voice recognition started - speak now');
+            } else {
+              console.log('Cannot start - conditions not met:', {
+                recognitionRef: !!recognitionRef.current,
+                isListening: isListening
+              });
             }
           } catch (startError) {
             console.error('Error starting speech recognition:', startError);

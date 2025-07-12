@@ -53,8 +53,24 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
       
       // Use a small delay to ensure component is fully mounted
       const timer = setTimeout(() => {
-        registerFormSetters(setTitle, setSelectedCategory);
-        console.log('🎯 DataEntryForm: Form setters registered with delay');
+        // Create enhanced addField function that can handle voice parameters
+        const voiceAddField = (fieldName?: string, fieldType?: string) => {
+          addField();
+          // If we have field details from voice, we'll set them after the field is added
+          if (fieldName) {
+            // The field will be added with empty name, so we'll update it after
+            setTimeout(() => {
+              const newFieldId = Date.now().toString();
+              updateField(newFieldId, 'name', fieldName);
+              if (fieldType && fieldType !== 'text') {
+                updateField(newFieldId, 'type', fieldType as any);
+              }
+            }, 100);
+          }
+        };
+        
+        registerFormSetters(setTitle, setSelectedCategory, voiceAddField);
+        console.log('🎯 DataEntryForm: Form setters registered with delay including addField');
       }, 100);
       
       return () => {

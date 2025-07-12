@@ -72,10 +72,20 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
           toast.info(`📝 Heard: "${finalText}"`);
         }
         
-        // Auto-stop after getting final result
+        // Auto-restart for continuous listening instead of stopping
         setTimeout(() => {
-          recognition.stop();
-        }, 500);
+          if (isListening) {
+            console.log('🔄 VOICE COMMAND: Auto-restarting for next command...');
+            try {
+              recognition.start();
+            } catch (error) {
+              console.log('Auto-restart failed:', error.message);
+              // If restart fails, user can manually restart
+              setIsListening(false);
+              toast.info('Voice ended. Click "Start Voice Commands" to continue.');
+            }
+          }
+        }, 1500);
       }
     };
 
@@ -98,13 +108,18 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
     }
   };
 
+  const stopVoice = () => {
+    setIsListening(false);
+    toast.info('Voice commands stopped');
+  };
+
   return (
     <Card className="w-full max-w-md border-blue-200">
       <CardHeader>
         <CardTitle className="text-blue-600">🎤 Voice Commands (Working)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-center">
+        <div className="text-center space-y-2">
           <Button 
             onClick={testVoice} 
             disabled={isListening}
@@ -113,6 +128,16 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
             <Mic className="h-4 w-4 mr-2" />
             {isListening ? 'Listening for Commands...' : 'Start Voice Commands'}
           </Button>
+          
+          {isListening && (
+            <Button 
+              onClick={stopVoice} 
+              variant="outline"
+              className="w-full"
+            >
+              Stop Listening
+            </Button>
+          )}
         </div>
 
         {lastHeard && (
@@ -127,6 +152,8 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
           <ul className="list-disc list-inside">
             <li><strong>"CREATE NEW ENTRY"</strong> - Opens new entry form</li>
             <li><strong>"TITLE MY DOCUMENT"</strong> - Sets title when form is open</li>
+            <li><strong>"ADD FIELD NAME"</strong> - Adds a field called "Name"</li>
+            <li><strong>"CREATE FIELD EMAIL"</strong> - Adds an email field</li>
             <li><strong>"SHOW ALL ENTRIES"</strong> - Shows all entries</li>
           </ul>
         </div>

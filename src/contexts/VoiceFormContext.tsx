@@ -4,9 +4,14 @@ interface VoiceFormContextType {
   // Form field setters that can be called from voice conversation
   formTitleSetter: ((title: string) => void) | null;
   formCategorySetter: ((category: string) => void) | null;
+  formAddFieldFunction: ((fieldName?: string, fieldType?: string) => void) | null;
   
   // Methods to register/unregister form setters
-  registerFormSetters: (titleSetter: (title: string) => void, categorySetter: (category: string) => void) => void;
+  registerFormSetters: (
+    titleSetter: (title: string) => void, 
+    categorySetter: (category: string) => void,
+    addFieldFunction?: (fieldName?: string, fieldType?: string) => void
+  ) => void;
   unregisterFormSetters: () => void;
 }
 
@@ -20,6 +25,7 @@ export const useVoiceFormContext = () => {
     return {
       formTitleSetter: null,
       formCategorySetter: null,
+      formAddFieldFunction: null,
       registerFormSetters: () => {},
       unregisterFormSetters: () => {},
     };
@@ -30,17 +36,24 @@ export const useVoiceFormContext = () => {
 export const VoiceFormProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [formTitleSetter, setFormTitleSetter] = useState<((title: string) => void) | null>(null);
   const [formCategorySetter, setFormCategorySetter] = useState<((category: string) => void) | null>(null);
+  const [formAddFieldFunction, setFormAddFieldFunction] = useState<((fieldName?: string, fieldType?: string) => void) | null>(null);
 
-  const registerFormSetters = (titleSetter: (title: string) => void, categorySetter: (category: string) => void) => {
+  const registerFormSetters = (
+    titleSetter: (title: string) => void, 
+    categorySetter: (category: string) => void,
+    addFieldFunction?: (fieldName?: string, fieldType?: string) => void
+  ) => {
     console.log('Registering form setters for voice input');
     setFormTitleSetter(() => titleSetter);
     setFormCategorySetter(() => categorySetter);
+    setFormAddFieldFunction(() => addFieldFunction);
   };
 
   const unregisterFormSetters = () => {
     console.log('Unregistering form setters');
     setFormTitleSetter(null);
     setFormCategorySetter(null);
+    setFormAddFieldFunction(null);
   };
 
   return (
@@ -48,6 +61,7 @@ export const VoiceFormProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       value={{
         formTitleSetter,
         formCategorySetter,
+        formAddFieldFunction,
         registerFormSetters,
         unregisterFormSetters,
       }}

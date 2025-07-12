@@ -38,7 +38,7 @@ export const useDashboard = () => {
     loadEntries,
   });
 
-  const { formTitleSetter, formCategorySetter } = useVoiceFormContext();
+  const { formTitleSetter, formCategorySetter, formAddFieldFunction } = useVoiceFormContext();
 
   const {
     handleVoiceCommand,
@@ -58,6 +58,7 @@ export const useDashboard = () => {
     saveEntry,
     formTitleSetter: formTitleSetter || undefined,
     formCategorySetter: formCategorySetter || undefined,
+    formAddFieldFunction: formAddFieldFunction || undefined,
   });
 
   // Enhanced voice input processing

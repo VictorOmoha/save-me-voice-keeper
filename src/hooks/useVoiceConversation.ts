@@ -37,6 +37,7 @@ interface UseVoiceConversationProps {
   // Add form field setters to communicate with the form
   formTitleSetter?: (title: string) => void;
   formCategorySetter?: (category: string) => void;
+  formAddFieldFunction?: (fieldName?: string, fieldType?: string) => void;
 }
 
 const CONVERSATION_STEPS = {
@@ -83,6 +84,7 @@ export const useVoiceConversation = ({
   saveEntry,
   formTitleSetter,
   formCategorySetter,
+  formAddFieldFunction,
 }: UseVoiceConversationProps) => {
   const [conversationState, setConversationState] = useState<VoiceConversationState>({
     isActive: false,
@@ -403,22 +405,32 @@ export const useVoiceConversation = ({
         const fieldName = command.params?.fieldName || 'New Field';
         const fieldType = command.params?.fieldType || 'text';
         
-        const newEntry = {
-          title: `${fieldName} Entry - ${new Date().toLocaleDateString()}`,
-          fields: {
-            category: 'Personal',
-            [fieldName]: ''
-          },
-          fieldDefinitions: [
-            { id: 'category', name: 'category', type: 'text' as const },
-            { id: Date.now().toString(), name: fieldName, type: fieldType as 'text' | 'number' | 'date' | 'textarea' }
-          ]
-        };
-        
-        saveEntry(newEntry);
-        const createFieldMessage = `Created entry with field \"${fieldName}\"`;
-        toast.success(createFieldMessage);
-        speak(createFieldMessage);
+        // Check if form is open and has addField function
+        if (formAddFieldFunction) {
+          console.log('🎯 Adding field to current form:', { fieldName, fieldType });
+          formAddFieldFunction(fieldName, fieldType);
+          const addFieldMessage = `Added field "${fieldName}" to the current form`;
+          toast.success(addFieldMessage);
+          speak(addFieldMessage);
+        } else {
+          // Fallback: create new entry with the field
+          const newEntry = {
+            title: `${fieldName} Entry - ${new Date().toLocaleDateString()}`,
+            fields: {
+              category: 'Personal',
+              [fieldName]: ''
+            },
+            fieldDefinitions: [
+              { id: 'category', name: 'category', type: 'text' as const },
+              { id: Date.now().toString(), name: fieldName, type: fieldType as 'text' | 'number' | 'date' | 'textarea' }
+            ]
+          };
+          
+          saveEntry(newEntry);
+          const createFieldMessage = `Created new entry with field "${fieldName}"`;
+          toast.success(createFieldMessage);
+          speak(createFieldMessage);
+        }
         break;
         
       case 'delete_entry':

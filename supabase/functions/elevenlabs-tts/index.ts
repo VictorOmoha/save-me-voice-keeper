@@ -21,8 +21,13 @@ Deno.serve(async (req) => {
     }
 
     // ElevenLabs has a character limit, let's check and truncate if needed
-    const maxLength = 1000; // Conservative limit
-    const processedText = text.length > maxLength ? text.substring(0, maxLength) : text;
+    const maxLength = 500; // More conservative limit
+    let processedText = text.length > maxLength ? text.substring(0, maxLength) : text;
+    
+    // Clean the text - remove any problematic characters
+    processedText = processedText.replace(/[^\w\s.,!?-]/g, ' ').trim();
+    
+    console.log('TTS Edge Function - Processed text:', processedText.substring(0, 100) + (processedText.length > 100 ? '...' : ''));
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
     if (!ELEVENLABS_API_KEY) {
@@ -32,6 +37,7 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log('TTS Edge Function - Making API call to ElevenLabs...');
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
@@ -50,6 +56,8 @@ Deno.serve(async (req) => {
         }
       })
     });
+
+    console.log('TTS Edge Function - API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -71,8 +79,13 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    console.error('TTS Edge Function - Unexpected error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Unexpected error in TTS function',
+        timestamp: new Date().toISOString()
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

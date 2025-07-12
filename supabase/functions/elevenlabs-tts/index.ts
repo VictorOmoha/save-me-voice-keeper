@@ -21,11 +21,17 @@ Deno.serve(async (req) => {
     }
 
     // ElevenLabs has a character limit, let's check and truncate if needed
-    const maxLength = 500; // More conservative limit
+    const maxLength = 400; // Conservative limit for stability
     let processedText = text.length > maxLength ? text.substring(0, maxLength) : text;
     
-    // Clean the text - remove any problematic characters
-    processedText = processedText.replace(/[^\w\s.,!?-]/g, ' ').trim();
+    // Aggressive text cleaning to prevent API failures
+    processedText = processedText
+      .replace(/\\"/g, '"') // Fix escaped quotes
+      .replace(/[""]/g, '"') // Normalize quotes
+      .replace(/['']/g, "'") // Normalize apostrophes
+      .replace(/[^\w\s.,!?'"()-]/g, ' ') // Remove problematic special characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
     
     console.log('TTS Edge Function - Processed text:', processedText.substring(0, 100) + (processedText.length > 100 ? '...' : ''));
 

@@ -111,12 +111,28 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
   try {
     const voiceId = voiceOption ? VOICE_OPTIONS[voiceOption] : VOICE_ID;
     
-    console.log('TTS: Calling ElevenLabs Edge Function with:', { text: text.length > 100 ? text.substring(0, 100) + '...' : text, voiceId });
+    // Pre-process text to prevent common failures
+    let processedText = text
+      .replace(/\\"/g, '"') // Fix escaped quotes
+      .replace(/[""]/g, '"') // Normalize quotes
+      .replace(/['']/g, "'") // Normalize apostrophes
+      .trim();
+    
+    // Conservative length limit
+    if (processedText.length > 400) {
+      processedText = processedText.substring(0, 400);
+    }
+    
+    console.log('TTS: Calling ElevenLabs Edge Function with:', { 
+      text: processedText.length > 100 ? processedText.substring(0, 100) + '...' : processedText, 
+      voiceId,
+      length: processedText.length 
+    });
     
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
       body: {
-        text: text,
+        text: processedText,
         voiceId: voiceId,
         modelId: 'eleven_multilingual_v2'
       }

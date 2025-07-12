@@ -36,18 +36,21 @@ export const setupSpeechRecognition = ({
   
   // Event handlers
   recognition.onstart = () => {
-    console.log('Speech recognition started');
+    console.log('Speech recognition started successfully');
     setIsListening(true);
     // Set global flag for tracking
     (window as any).__speech_recognition_active = true;
+    toast.success('🎤 Listening for voice commands - try saying "Create new entry"');
   };
   
   recognition.onresult = (event) => {
+    console.log('🎤 Voice input detected!', event);
     let finalTranscript = '';
     let interimTranscript = '';
     
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const transcript = event.results[i][0].transcript;
+      console.log(`Result ${i}: "${transcript}" (confidence: ${event.results[i][0].confidence}, final: ${event.results[i].isFinal})`);
       if (event.results[i].isFinal) {
         finalTranscript += transcript;
       } else {
@@ -56,6 +59,7 @@ export const setupSpeechRecognition = ({
     }
     
     const currentTranscript = finalTranscript || interimTranscript;
+    console.log('Current transcript:', currentTranscript);
     setTranscript(currentTranscript);
     
     // Process final results
@@ -92,7 +96,7 @@ export const setupSpeechRecognition = ({
   const maxRestartAttempts = 3;
   
   recognition.onerror = (event) => {
-    console.error('Speech recognition error:', event.error);
+    console.error('🚨 Speech recognition error:', event.error, event);
     
     // Don't show errors for common/expected issues
     const isTTSSpeaking = (window as any).__tts_is_speaking;
@@ -104,15 +108,26 @@ export const setupSpeechRecognition = ({
     
     // Don't show toast errors for no-speech - this is normal when user isn't speaking
     if (event.error === 'no-speech') {
-      console.log('No speech detected - this is normal');
+      console.log('No speech detected - this is normal, keep listening...');
+      toast.info('🔇 No speech detected - please speak louder or closer to microphone');
       restartAttempts++;
       setIsListening(false);
       return;
     }
     
+    // Show more specific error messages
+    let errorMessage = `Speech recognition error: ${event.error}`;
+    if (event.error === 'not-allowed') {
+      errorMessage = 'Microphone access denied. Please allow microphone access in your browser settings.';
+    } else if (event.error === 'network') {
+      errorMessage = 'Network error. Please check your internet connection.';
+    } else if (event.error === 'audio-capture') {
+      errorMessage = 'No microphone found. Please check your microphone connection.';
+    }
+    
     // Only show serious errors
     if (event.error !== 'aborted' && event.error !== 'no-speech') {
-      toast.error(`Speech recognition error: ${event.error}`);
+      toast.error(errorMessage);
     }
     
     setIsListening(false);

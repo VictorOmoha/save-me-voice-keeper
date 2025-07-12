@@ -76,22 +76,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
         <VoiceDiagnostic />
       </div>
 
-      {/* Simple Voice Component - New isolated implementation */}
-      <div className="mb-4">
-        <SimpleVoiceComponent onEnhancedVoiceInput={handleVoiceCommand} />
-      </div>
-
-      {/* Voice Debug Test */}
-      <div className="mb-4">
-        <VoiceDebugTest />
-      </div>
-
-      {/* Microphone Diagnostics */}
-      <div className="mb-4">
-        <MicrophoneTest />
-      </div>
-
-      {/* Original Voice Input - For comparison */}
+      {/* PRIMARY: SimpleVoiceInput - This is the main component */}
       <SimpleVoiceInput 
         onEnhancedVoiceInput={handleVoiceCommand}
         conversationState={conversationData}

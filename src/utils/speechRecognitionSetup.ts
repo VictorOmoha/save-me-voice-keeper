@@ -103,16 +103,23 @@ export const setupSpeechRecognition = ({
     // Process final results immediately
     if (finalTranscript && finalTranscript.trim() !== lastProcessedTranscript.trim()) {
       console.log('📝 Processing final transcript:', finalTranscript);
+      console.log('📝 setupSpeechRecognition: onVoiceCommand available:', !!onVoiceCommand);
+      console.log('📝 setupSpeechRecognition: onEnhancedVoiceInput available:', !!onEnhancedVoiceInput);
       setLastProcessedTranscript(finalTranscript);
       
       // Process the command
       const command = processVoiceCommand(finalTranscript);
+      console.log('📝 setupSpeechRecognition: Processed command:', command);
       
       // Call the appropriate handler
       if (onVoiceCommand) {
+        console.log('📝 setupSpeechRecognition: Calling onVoiceCommand');
         onVoiceCommand(command);
       } else if (onEnhancedVoiceInput) {
+        console.log('📝 setupSpeechRecognition: Calling onEnhancedVoiceInput with:', finalTranscript);
         onEnhancedVoiceInput(finalTranscript);
+      } else {
+        console.error('📝 setupSpeechRecognition: No handlers available!');
       }
       
       // Show feedback

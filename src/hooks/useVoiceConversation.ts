@@ -86,31 +86,33 @@ export const useVoiceConversation = ({
   });
 
   const startCreateEntryConversation = () => {
-    console.log('startCreateEntryConversation called - opening Add Entry form');
+    console.log('startCreateEntryConversation called - opening Add Entry form immediately');
     
-    // First, open the Add Entry form immediately
+    // CRITICAL: Open the Add Entry form immediately and synchronously
     setShowAddEntry(true);
-    console.log('Set showAddEntry to true');
+    console.log('Set showAddEntry to true immediately');
     
-    // Force a small delay to ensure the UI has time to update and state to propagate
+    // Clear any existing editing states to ensure clean form
+    setEditingEntry(null);
+    setFillingEntry(null);
+    console.log('Cleared existing editing states');
+    
+    // Start conversation state immediately 
+    const newState: VoiceConversationState = {
+      isActive: true,
+      currentStep: CONVERSATION_STEPS.TITLE,
+      entryDraft: { fields: [] },
+    };
+    
+    setConversationState(newState);
+    console.log('Conversation state set immediately:', newState);
+    
+    // Speak the first question after a brief delay to ensure UI has updated
     setTimeout(() => {
-      console.log('Starting conversation state');
-      const newState: VoiceConversationState = {
-        isActive: true,
-        currentStep: CONVERSATION_STEPS.TITLE,
-        entryDraft: { fields: [] },
-      };
-      
-      setConversationState(newState);
-      console.log('Conversation state set:', newState);
-      
-      // Speak the first question after a brief delay
-      setTimeout(() => {
-        console.log('Speaking first question:', CONVERSATION_STEPS.TITLE.question);
-        speak(CONVERSATION_STEPS.TITLE.question);
-        toast.info("Voice conversation started - please speak the entry title");
-      }, 300);
-    }, 500);
+      console.log('Speaking first question:', CONVERSATION_STEPS.TITLE.question);
+      speak(CONVERSATION_STEPS.TITLE.question);
+      toast.info("Voice conversation started - Add Entry form is now open");
+    }, 300);
   };
 
   const processConversationResponse = (transcript: string) => {
@@ -136,13 +138,24 @@ export const useVoiceConversation = ({
 
     switch (currentStep.type) {
       case 'title':
-        // Capture the title
+        // Capture the title and update the form immediately
         const newEntryDraft = { ...entryDraft, title: transcript };
         setConversationState({
           ...conversationState,
           currentStep: CONVERSATION_STEPS.CATEGORY,
           entryDraft: newEntryDraft,
         });
+        
+        // Update the form title field visually
+        setTimeout(() => {
+          const titleInput = document.querySelector('input[name="title"]') as HTMLInputElement;
+          if (titleInput) {
+            titleInput.value = transcript;
+            titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+            console.log('Updated title field in form:', transcript);
+          }
+        }, 100);
+        
         speak(CONVERSATION_STEPS.CATEGORY.question);
         toast.success(`Entry title set: \"${transcript}\"`);
         break;
@@ -164,6 +177,23 @@ export const useVoiceConversation = ({
           currentStep: CONVERSATION_STEPS.MORE_FIELDS,
           entryDraft: updatedDraft,
         });
+        
+        // Update the category field visually in the form
+        setTimeout(() => {
+          const categorySelect = document.querySelector('button[role="combobox"]') as HTMLButtonElement;
+          if (categorySelect) {
+            categorySelect.click();
+            setTimeout(() => {
+              const categoryOption = Array.from(document.querySelectorAll('[role="option"]'))
+                .find(option => option.textContent?.toLowerCase().includes(categoryName.toLowerCase()));
+              if (categoryOption) {
+                (categoryOption as HTMLElement).click();
+                console.log('Updated category field in form:', categoryName);
+              }
+            }, 100);
+          }
+        }, 100);
+        
         speak(CONVERSATION_STEPS.MORE_FIELDS.question);
         toast.success(`Category set: ${categoryName}`);
         break;
@@ -296,20 +326,20 @@ export const useVoiceConversation = ({
         // Clear any filling state to ensure we're in create mode
         setFillingEntry(null);
         setEditingEntry(null);
+        console.log('Cleared existing states for create mode');
         
-        // Ensure the add entry form opens
+        // CRITICAL: Ensure the form opens immediately and visibly
+        console.log('About to call setShowAddEntry(true)');
         setShowAddEntry(true);
+        console.log('Called setShowAddEntry(true)');
         
+        // Start the conversation
         startCreateEntryConversation();
         console.log('startCreateEntryConversation called');
         
-        // Fallback: if conversation doesn't start, at least show success message
-        setTimeout(() => {
-          if (!conversationState.isActive) {
-            toast.success('Add Entry form opened');
-            speak('Entry form is now open. You can fill it out manually or try the voice command again.');
-          }
-        }, 2000);
+        // Add visual feedback
+        toast.success('Add Entry form opened - Voice conversation starting...');
+        
         break;
         
       case 'open_entry':

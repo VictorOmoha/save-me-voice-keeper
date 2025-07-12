@@ -41,6 +41,7 @@ const Index = () => {
         }
       } catch (error) {
         console.error('Error fetching demo video:', error);
+        // Don't set error state, just log it
       }
     };
 

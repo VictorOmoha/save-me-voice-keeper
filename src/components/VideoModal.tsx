@@ -29,14 +29,20 @@ export const VideoModal = ({ open, onOpenChange, videoUrl, title }: VideoModalPr
         </DialogHeader>
         <div className="p-6 pt-2">
           <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-            <video
-              className="absolute inset-0 w-full h-full rounded-lg"
-              controls
-              autoPlay
-              src={videoUrl}
-            >
-              Your browser does not support the video tag.
-            </video>
+            {videoUrl ? (
+              <video
+                className="absolute inset-0 w-full h-full rounded-lg"
+                controls
+                autoPlay
+                src={videoUrl}
+              >
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <p className="text-muted-foreground">No video available</p>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

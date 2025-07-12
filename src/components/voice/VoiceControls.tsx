@@ -17,11 +17,24 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
 }) => {
   const handleStartStop = () => {
     console.log('VoiceControls: Button clicked, isListening:', isListening);
+    console.log('VoiceControls: onStart function type:', typeof onStart);
+    console.log('VoiceControls: onStop function type:', typeof onStop);
+    
     if (isListening) {
       console.log('VoiceControls: Calling onStop');
       onStop();
     } else {
       console.log('VoiceControls: Calling onStart');
+      
+      // Test browser compatibility
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      console.log('VoiceControls: SpeechRecognition available:', !!SpeechRecognition);
+      
+      if (!SpeechRecognition) {
+        console.error('VoiceControls: Speech recognition not supported in this browser');
+        return;
+      }
+      
       onStart();
     }
   };

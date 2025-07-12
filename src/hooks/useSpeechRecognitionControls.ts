@@ -18,7 +18,7 @@ export const useSpeechRecognitionControls = ({
   setIsListening,
 }: UseSpeechRecognitionControlsProps) => {
   const startListening = async () => {
-    console.log('useSpeechRecognitionControls: startListening called');
+    console.log('=== useSpeechRecognitionControls: startListening called ===');
     console.log('isSupported:', isSupported, 'isListening:', isListening);
     
     if (!isSupported) {

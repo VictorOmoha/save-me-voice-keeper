@@ -12,16 +12,23 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = await req.json()
+    console.log('ElevenLabs TTS Function called');
+    
+    const body = await req.json();
+    const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = body;
+
+    console.log('Request body:', { text: text?.substring(0, 50), voiceId, modelId });
 
     if (!text) {
+      console.error('No text provided');
       throw new Error('Text is required')
     }
 
-    console.log('TTS Request:', { text, voiceId, modelId })
-
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY')
+    console.log('API Key available:', !!ELEVENLABS_API_KEY);
+    
     if (!ELEVENLABS_API_KEY) {
+      console.error('ElevenLabs API key not configured');
       throw new Error('ElevenLabs API key not configured')
     }
 

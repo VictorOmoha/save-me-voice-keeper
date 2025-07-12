@@ -1,6 +1,6 @@
 
-// Enhanced text-to-speech utility with ElevenLabs premium voices
-let ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
+// Enhanced text-to-speech utility with ElevenLabs premium voices via Supabase Edge Function
+import { supabase } from "@/integrations/supabase/client";
 
 // Premium voice options
 export const VOICE_OPTIONS = {
@@ -96,20 +96,12 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
     isSpeaking = true;
     (window as any).__tts_is_speaking = true;
     
-    // Refresh API key from localStorage in case it was updated
-    ELEVENLABS_API_KEY = localStorage.getItem('elevenlabs_api_key');
-    
-    // Try ElevenLabs first if API key is available
-    if (ELEVENLABS_API_KEY) {
-      console.log('TTS: Using ElevenLabs TTS for high-quality speech');
-      await speakWithElevenLabs(text, voiceOption);
-    } else {
-      console.log('TTS: Using browser speech synthesis (fallback)');
-      await speakWithBrowser(text);
-    }
+    // Try ElevenLabs via Edge Function first
+    console.log('TTS: Using ElevenLabs TTS via Supabase Edge Function');
+    await speakWithElevenLabs(text, voiceOption);
     
   } catch (error) {
-    console.error('TTS: Error with primary speech method, falling back:', error);
+    console.error('TTS: Error with ElevenLabs, falling back to browser TTS:', error);
     // Fallback to browser TTS
     await speakWithBrowser(text);
   }
@@ -119,31 +111,31 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
   try {
     const voiceId = voiceOption ? VOICE_OPTIONS[voiceOption] : VOICE_ID;
     
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': ELEVENLABS_API_KEY || ''
-      },
-      body: JSON.stringify({
+    // Call the Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+      body: {
         text: text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-          style: 0.0,
-          use_speaker_boost: true
-        }
-      })
+        voiceId: voiceId,
+        modelId: 'eleven_multilingual_v2'
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+    if (error) {
+      throw new Error(`Edge Function error: ${error.message}`);
     }
 
-    const audioBuffer = await response.arrayBuffer();
-    const audioBlob = new Blob([audioBuffer], { type: 'audio/mpeg' });
+    if (!data?.audioContent) {
+      throw new Error('No audio content returned from Edge Function');
+    }
+
+    // Convert base64 to audio blob
+    const binaryString = atob(data.audioContent);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
     const audioUrl = URL.createObjectURL(audioBlob);
     
     currentAudio = new Audio(audioUrl);
@@ -259,11 +251,14 @@ const speakWithBrowser = async (text: string): Promise<void> => {
 };
 
 export const setElevenLabsApiKey = (apiKey: string) => {
+  // Note: This function is kept for backward compatibility
+  // The system now uses Supabase Edge Function with secure API key
   localStorage.setItem('elevenlabs_api_key', apiKey);
-  ELEVENLABS_API_KEY = apiKey;
 };
 
 export const getElevenLabsApiKey = (): string | null => {
+  // Note: This function is kept for backward compatibility
+  // The system now uses Supabase Edge Function with secure API key
   return localStorage.getItem('elevenlabs_api_key');
 };
 

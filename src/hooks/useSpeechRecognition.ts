@@ -91,23 +91,17 @@ export const useSpeechRecognition = ({
     setIsListening,
   });
 
-  // Add debugging wrapper for startListening
-  const debugStartListening = () => {
-    console.log('useSpeechRecognition: debugStartListening called');
-    console.log('controls.startListening:', typeof controls.startListening);
-    if (controls.startListening) {
-      console.log('useSpeechRecognition: Calling controls.startListening');
-      controls.startListening();
-    } else {
-      console.error('useSpeechRecognition: controls.startListening is undefined!');
-    }
-  };
+  console.log('useSpeechRecognition: Hook initialized, controls:', {
+    startListening: typeof controls.startListening,
+    stopListening: typeof controls.stopListening,
+    resetListening: typeof controls.resetListening
+  });
 
   return {
     isListening,
     transcript,
     isSupported,
-    startListening: debugStartListening,
+    startListening: controls.startListening,
     stopListening: controls.stopListening,
     resetListening: controls.resetListening,
   };

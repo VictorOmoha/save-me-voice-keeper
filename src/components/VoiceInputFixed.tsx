@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Volume2 } from "lucide-react";
 import { SimpleVoiceInput } from "./SimpleVoiceInput";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
+import { VoiceDiagnostic } from "./VoiceDiagnostic";
 import { SimpleVoiceComponent } from "./SimpleVoiceComponent";
 import { VoiceDebugTest } from "./VoiceDebugTest";
 import { MicrophoneTest } from "./MicrophoneTest";
@@ -68,6 +69,11 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
           <Settings className="h-3 w-3 mr-1" />
           Settings
         </Button>
+      </div>
+
+      {/* PRIORITY: Voice Diagnostic - Use this first! */}
+      <div className="mb-4">
+        <VoiceDiagnostic />
       </div>
 
       {/* Simple Voice Component - New isolated implementation */}

@@ -11,6 +11,8 @@ import { VideoModal } from "@/components/VideoModal";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
+  console.log("Index component rendering...");
+  
   const { theme, setTheme } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +22,7 @@ const Index = () => {
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
+    console.log("Auth check:", { isAuthenticated });
     if (isAuthenticated) {
       navigate("/dashboard", { replace: true });
     }
@@ -29,6 +32,7 @@ const Index = () => {
   useEffect(() => {
     const fetchActiveDemoVideo = async () => {
       try {
+        console.log("Fetching demo video...");
         const { data, error } = await supabase
           .from('demo_videos')
           .select('video_url, title')
@@ -37,11 +41,13 @@ const Index = () => {
           .single();
 
         if (data && !error) {
+          console.log("Demo video found:", data);
           setActiveDemoVideo({ url: data.video_url, title: data.title });
+        } else {
+          console.log("No demo video found or error:", error);
         }
       } catch (error) {
         console.error('Error fetching demo video:', error);
-        // Don't set error state, just log it
       }
     };
 
@@ -111,6 +117,8 @@ const Index = () => {
       popular: false
     }
   ];
+
+  console.log("Rendering Index component");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">

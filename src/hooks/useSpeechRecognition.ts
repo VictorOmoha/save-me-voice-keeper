@@ -84,7 +84,12 @@ export const useSpeechRecognition = ({
       
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
-        if (event.error !== 'aborted') {
+        
+        // Don't show error for aborted recognition if TTS is speaking
+        const isTTSSpeaking = (window as any).__tts_is_speaking;
+        if (event.error === 'aborted' && isTTSSpeaking) {
+          console.log('Speech recognition aborted due to TTS speaking - this is expected');
+        } else if (event.error !== 'aborted') {
           toast.error(`Speech recognition error: ${event.error}`);
         }
         setIsListening(false);
@@ -94,21 +99,38 @@ export const useSpeechRecognition = ({
         console.log('Speech recognition ended');
         setIsListening(false);
         
+        // Check if TTS is currently speaking
+        const isTTSSpeaking = (window as any).__tts_is_speaking;
+        
         // Auto-restart if we're in an active conversation and not manually stopped
         if (conversationState?.isActive && recognitionRef.current) {
           console.log('Auto-restarting voice recognition for conversation');
-          setTimeout(() => {
+          
+          const attemptRestart = () => {
             try {
-              if (conversationState?.isActive && recognitionRef.current) {
+              // Double-check conversation state and TTS state before restarting
+              if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
                 recognitionRef.current.start();
                 setIsListening(true);
+                console.log('Voice recognition restarted successfully');
+              } else if ((window as any).__tts_is_speaking) {
+                console.log('TTS is speaking, delaying restart...');
+                setTimeout(attemptRestart, 500);
               }
             } catch (error) {
               console.error('Error restarting recognition:', error);
               // If restart fails, let user know they need to manually restart
               toast.info('Voice recognition stopped. Click "Start Voice Commands" to continue.');
             }
-          }, 1000); // Longer delay to ensure clean restart
+          };
+          
+          // If TTS is speaking, wait for it to finish
+          if (isTTSSpeaking) {
+            console.log('TTS is speaking, waiting for completion before restart...');
+            setTimeout(attemptRestart, 2000); // Wait longer if TTS is speaking
+          } else {
+            setTimeout(attemptRestart, 1000); // Normal restart delay
+          }
         }
       };
       
@@ -125,6 +147,23 @@ export const useSpeechRecognition = ({
   const startListening = () => {
     if (!isSupported) {
       toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+    
+    // Check if TTS is currently speaking
+    if ((window as any).__tts_is_speaking) {
+      console.log('TTS is speaking, waiting before starting voice recognition...');
+      toast.info('Waiting for system to finish speaking...');
+      
+      // Wait for TTS to finish, then start
+      const waitForTTS = () => {
+        if (!(window as any).__tts_is_speaking) {
+          startListening();
+        } else {
+          setTimeout(waitForTTS, 500);
+        }
+      };
+      setTimeout(waitForTTS, 1000);
       return;
     }
     

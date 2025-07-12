@@ -6,33 +6,37 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('Function called:', req.method, req.url);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    console.log('Handling CORS preflight');
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('=== ElevenLabs TTS Function called ===');
-    console.log('Request method:', req.method);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Processing POST request');
+    
+    // Parse request body
+    const requestText = await req.text();
+    console.log('Raw request body:', requestText);
     
     let body;
     try {
-      body = await req.json();
-    } catch (e) {
-      console.error('Failed to parse request body:', e);
+      body = JSON.parse(requestText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
       return new Response(
         JSON.stringify({ error: 'Invalid JSON in request body' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      )
+      );
     }
-    
-    const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = body;
 
-    console.log('Parsed request body:', { text: text?.substring(0, 50), voiceId, modelId });
+    const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = body;
+    console.log('Parsed request:', { text: text?.substring(0, 50), voiceId, modelId });
 
     if (!text) {
       console.error('No text provided');
@@ -42,24 +46,29 @@ serve(async (req) => {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      )
+      );
     }
 
-    const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY')
-    console.log('API Key available:', !!ELEVENLABS_API_KEY);
-    console.log('API Key first 10 chars:', ELEVENLABS_API_KEY?.substring(0, 10));
-    console.log('All env vars:', Object.keys(Deno.env.toObject()));
+    // Check for API key
+    const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+    console.log('API Key check:', {
+      hasKey: !!ELEVENLABS_API_KEY,
+      keyPrefix: ELEVENLABS_API_KEY?.substring(0, 10),
+      envKeys: Object.keys(Deno.env.toObject())
+    });
     
     if (!ELEVENLABS_API_KEY) {
-      console.error('ElevenLabs API key not configured');
+      console.error('No ElevenLabs API key found');
       return new Response(
-        JSON.stringify({ error: 'ElevenLabs API key not configured in Supabase secrets' }),
+        JSON.stringify({ error: 'ElevenLabs API key not configured' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
-      )
+      );
     }
+
+    console.log('Making request to ElevenLabs API');
 
     // Call ElevenLabs API
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -79,23 +88,32 @@ serve(async (req) => {
           use_speaker_boost: true
         }
       })
-    })
+    });
+
+    console.log('ElevenLabs API response:', response.status, response.statusText);
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('ElevenLabs API error:', response.status, errorText)
-      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`)
+      const errorText = await response.text();
+      console.error('ElevenLabs API error:', response.status, errorText);
+      return new Response(
+        JSON.stringify({ error: `ElevenLabs API error: ${response.status} - ${errorText}` }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Get the audio buffer
-    const audioBuffer = await response.arrayBuffer()
+    const audioBuffer = await response.arrayBuffer();
+    console.log('Audio buffer size:', audioBuffer.byteLength);
     
     // Convert to base64 for transmission
     const base64Audio = btoa(
       String.fromCharCode(...new Uint8Array(audioBuffer))
-    )
+    );
 
-    console.log('TTS Success - Audio length:', audioBuffer.byteLength)
+    console.log('TTS Success - Audio length:', audioBuffer.byteLength);
 
     return new Response(
       JSON.stringify({ 
@@ -105,15 +123,15 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   } catch (error) {
-    console.error('TTS Error:', error.message)
+    console.error('TTS Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || 'Unknown error' }),
       {
-        status: 400,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   }
-})
+});

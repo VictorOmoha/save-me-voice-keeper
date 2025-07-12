@@ -95,12 +95,21 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
           toast.info(`📝 Heard: "${finalTranscript}"`);
         }
         
-        // Auto-stop and allow restart
+        // Continue listening for more commands instead of stopping
         setTimeout(() => {
           setTranscript('');
-          setIsListening(false);
-          toast.info('Ready for next command!');
-        }, 2000);
+          if (recognitionRef.current && !isListening) {
+            try {
+              console.log('🔄 Auto-restarting for next command...');
+              recognitionRef.current.start();
+              toast.info('🎤 Ready for next command or form input');
+            } catch (error) {
+              console.log('Auto-restart failed:', error.message);
+              setIsListening(false);
+              toast.info('Click "Start Voice Commands" to continue');
+            }
+          }
+        }, 1500);
       }
     };
 
@@ -219,9 +228,10 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
         <div className="text-xs text-muted-foreground">
           <p className="font-medium">Try saying:</p>
           <ul className="list-disc list-inside space-y-1 mt-1">
-            <li>"CREATE NEW ENTRY"</li>
-            <li>"SHOW ALL ENTRIES"</li>
-            <li>"HELLO WORLD"</li>
+            <li>"CREATE NEW ENTRY" - Opens form</li>
+            <li>"TITLE: My Document" - Sets title</li>
+            <li>"CATEGORY: Personal" - Sets category</li>
+            <li>"SAVE ENTRY" - Saves the form</li>
           </ul>
         </div>
       </CardContent>

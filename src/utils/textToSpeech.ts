@@ -45,11 +45,11 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
       return;
     }
     
-    // TEMPORARILY DISABLED - Check against recent speech history
-    // if (recentSpeechHistory.includes(lowerText)) {
-    //   console.log('TTS: Text recently spoken, skipping to prevent loop');
-    //   return;
-    // }
+    // Check against recent speech history
+    if (recentSpeechHistory.includes(lowerText)) {
+      console.log('TTS: Text recently spoken, skipping to prevent loop');
+      return;
+    }
     
     // Filter out system/error messages that could cause loops
     const systemPatterns = [

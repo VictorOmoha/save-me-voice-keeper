@@ -12,21 +12,43 @@ serve(async (req) => {
   }
 
   try {
-    console.log('ElevenLabs TTS Function called');
+    console.log('=== ElevenLabs TTS Function called ===');
+    console.log('Request method:', req.method);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error('Failed to parse request body:', e);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+    
     const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = body;
 
-    console.log('Request body:', { text: text?.substring(0, 50), voiceId, modelId });
+    console.log('Parsed request body:', { text: text?.substring(0, 50), voiceId, modelId });
 
     if (!text) {
       console.error('No text provided');
-      throw new Error('Text is required')
+      return new Response(
+        JSON.stringify({ error: 'Text is required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
     }
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY')
     console.log('API Key available:', !!ELEVENLABS_API_KEY);
     console.log('API Key first 10 chars:', ELEVENLABS_API_KEY?.substring(0, 10));
+    console.log('All env vars:', Object.keys(Deno.env.toObject()));
     
     if (!ELEVENLABS_API_KEY) {
       console.error('ElevenLabs API key not configured');

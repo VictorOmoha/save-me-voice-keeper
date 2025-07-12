@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Volume2 } from "lucide-react";
 import { SimpleVoiceInput } from "./SimpleVoiceInput";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
+import { SimpleVoiceComponent } from "./SimpleVoiceComponent";
 import { VoiceDebugTest } from "./VoiceDebugTest";
 import { MicrophoneTest } from "./MicrophoneTest";
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
@@ -69,6 +70,11 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
         </Button>
       </div>
 
+      {/* Simple Voice Component - New isolated implementation */}
+      <div className="mb-4">
+        <SimpleVoiceComponent onEnhancedVoiceInput={handleVoiceCommand} />
+      </div>
+
       {/* Voice Debug Test */}
       <div className="mb-4">
         <VoiceDebugTest />
@@ -79,7 +85,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
         <MicrophoneTest />
       </div>
 
-      {/* Simple Voice Input */}
+      {/* Original Voice Input - For comparison */}
       <SimpleVoiceInput 
         onEnhancedVoiceInput={handleVoiceCommand}
         conversationState={conversationData}

@@ -18,24 +18,33 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   
   // Form field commands - check these first for active forms
   
-  // Title setting commands: "TITLE: My Document" or "SET TITLE My Document"
-  if (lowerTranscript.includes('title:') || lowerTranscript.includes('title ')) {
-    const titleValue = extractFormValue(lowerTranscript, 'title');
-    console.log('Detected set title command:', { titleValue });
-    return {
-      type: 'set_title',
-      params: { titleValue }
-    };
+  // Title setting commands - more natural speech patterns
+  if ((lowerTranscript.includes('title') || lowerTranscript.includes('call')) && 
+      (lowerTranscript.includes('my') || lowerTranscript.includes('document') || 
+       lowerTranscript.includes('entry') || lowerTranscript.includes('name'))) {
+    const titleValue = extractTitleFromSpeech(lowerTranscript);
+    if (titleValue) {
+      console.log('Detected set title command:', { titleValue });
+      return {
+        type: 'set_title',
+        params: { titleValue }
+      };
+    }
   }
   
-  // Category setting commands: "CATEGORY: Personal" or "SET CATEGORY Personal"
-  if (lowerTranscript.includes('category:') || lowerTranscript.includes('category ')) {
-    const categoryValue = extractFormValue(lowerTranscript, 'category');
-    console.log('Detected set category command:', { categoryValue });
-    return {
-      type: 'set_category',
-      params: { categoryValue }
-    };
+  // Category setting commands - natural speech patterns  
+  if (lowerTranscript.includes('category') || 
+      (lowerTranscript.includes('set') && (lowerTranscript.includes('personal') || 
+       lowerTranscript.includes('documents') || lowerTranscript.includes('health') || 
+       lowerTranscript.includes('finance') || lowerTranscript.includes('contacts')))) {
+    const categoryValue = extractCategoryFromSpeech(lowerTranscript);
+    if (categoryValue) {
+      console.log('Detected set category command:', { categoryValue });
+      return {
+        type: 'set_category',
+        params: { categoryValue }
+      };
+    }
   }
   
   // Enhanced pattern matching for better command recognition
@@ -229,6 +238,43 @@ const extractFormValue = (transcript: string, fieldType: string): string => {
   const setMatch = transcript.match(setPattern);
   if (setMatch && setMatch[1]) {
     return setMatch[1].trim();
+  }
+  
+  return '';
+};
+
+const extractTitleFromSpeech = (transcript: string): string => {
+  // Handle speech recognition variations like "title call on my document" -> "My Document"
+  const patterns = [
+    /title.*?(?:call|called|is|named|should be).*?(?:on|for)?\s*(.+)/i,
+    /(?:call|name)\s+(?:it|this|the\s+(?:entry|document))?\s*(.+)/i,
+    /title\s+(.+)/i,
+    /(?:set|make)\s+(?:the\s+)?title\s+(.+)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = transcript.match(pattern);
+    if (match && match[1]) {
+      let title = match[1].trim();
+      // Clean up common speech recognition artifacts
+      title = title.replace(/\b(my|the|a|an|document|entry)\b/gi, '').trim();
+      if (title.length > 2) {
+        return title;
+      }
+    }
+  }
+  
+  return '';
+};
+
+const extractCategoryFromSpeech = (transcript: string): string => {
+  const categories = ['personal', 'documents', 'health', 'finance', 'contacts'];
+  const lowerTranscript = transcript.toLowerCase();
+  
+  for (const category of categories) {
+    if (lowerTranscript.includes(category)) {
+      return category.charAt(0).toUpperCase() + category.slice(1);
+    }
   }
   
   return '';

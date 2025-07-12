@@ -250,8 +250,8 @@ export const SimpleVoiceComponent: React.FC<SimpleVoiceComponentProps> = ({
           <p className="font-medium">Try saying:</p>
           <ul className="list-disc list-inside space-y-1 mt-1">
             <li>"CREATE NEW ENTRY" - Opens form</li>
-            <li>"TITLE: My Document" - Sets title</li>
-            <li>"CATEGORY: Personal" - Sets category</li>
+            <li>"CALL IT My Document" - Sets title</li>
+            <li>"CATEGORY Personal" - Sets category</li>
             <li>"SAVE ENTRY" - Saves the form</li>
           </ul>
         </div>

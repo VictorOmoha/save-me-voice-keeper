@@ -15,6 +15,11 @@ interface DashboardLayoutProps {
   onCategorySelect: (category: string) => void;
   onAllEntriesSelect: () => void;
   onEnhancedVoiceInput?: (text: string) => void;
+  isVoiceProcessing?: boolean;
+  lastVoiceCommand?: any;
+  conversationState?: 'listening' | 'confirming' | 'idle';
+  hasPendingConfirmation?: boolean;
+  onCancelVoice?: () => void;
 }
 
 export const DashboardLayout = ({
@@ -27,6 +32,11 @@ export const DashboardLayout = ({
   onCategorySelect,
   onAllEntriesSelect,
   onEnhancedVoiceInput,
+  isVoiceProcessing,
+  lastVoiceCommand,
+  conversationState,
+  hasPendingConfirmation,
+  onCancelVoice,
 }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex">
@@ -44,6 +54,11 @@ export const DashboardLayout = ({
           onSearchChange={onSearchChange}
           userName={userName}
           onEnhancedVoiceInput={onEnhancedVoiceInput}
+          isVoiceProcessing={isVoiceProcessing}
+          lastVoiceCommand={lastVoiceCommand}
+          conversationState={conversationState}
+          hasPendingConfirmation={hasPendingConfirmation}
+          onCancelVoice={onCancelVoice}
         />
         
         <main className="flex-1 p-6 overflow-auto">

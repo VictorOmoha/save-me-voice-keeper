@@ -14,7 +14,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
-import { VoiceInput } from "@/components/VoiceInput";
+import { EnhancedVoiceInput } from "@/components/EnhancedVoiceInput";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 
 interface DashboardHeaderProps {
@@ -22,6 +22,11 @@ interface DashboardHeaderProps {
   onSearchChange: (query: string) => void;
   userName?: string;
   onEnhancedVoiceInput?: (text: string) => void;
+  isVoiceProcessing?: boolean;
+  lastVoiceCommand?: any;
+  conversationState?: 'listening' | 'confirming' | 'idle';
+  hasPendingConfirmation?: boolean;
+  onCancelVoice?: () => void;
 }
 
 export const DashboardHeader = ({
@@ -29,6 +34,11 @@ export const DashboardHeader = ({
   onSearchChange,
   userName,
   onEnhancedVoiceInput,
+  isVoiceProcessing,
+  lastVoiceCommand,
+  conversationState,
+  hasPendingConfirmation,
+  onCancelVoice,
 }: DashboardHeaderProps) => {
   const { theme, setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -142,8 +152,13 @@ export const DashboardHeader = ({
                 ✕
               </Button>
             </div>
-            <VoiceInput 
-              onEnhancedVoiceInput={onEnhancedVoiceInput}
+            <EnhancedVoiceInput 
+              onVoiceInput={onEnhancedVoiceInput || (() => {})}
+              isProcessing={isVoiceProcessing || false}
+              lastCommand={lastVoiceCommand}
+              conversationState={conversationState || 'idle'}
+              hasPendingConfirmation={hasPendingConfirmation || false}
+              onCancel={onCancelVoice || (() => {})}
             />
           </div>
         </div>

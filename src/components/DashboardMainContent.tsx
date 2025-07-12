@@ -30,6 +30,11 @@ interface DashboardMainContentProps {
   onEnhancedVoiceInput: (text: string) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
+  isVoiceProcessing?: boolean;
+  lastVoiceCommand?: any;
+  conversationState?: 'listening' | 'confirming' | 'idle';
+  hasPendingConfirmation?: boolean;
+  onCancelVoice?: () => void;
 }
 
 const categories = [
@@ -60,6 +65,11 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onEnhancedVoiceInput,
   onEditEntry,
   onFillEntry,
+  isVoiceProcessing,
+  lastVoiceCommand,
+  conversationState,
+  hasPendingConfirmation,
+  onCancelVoice,
 }) => {
   if (showDocumentCreator) {
     return (
@@ -105,6 +115,11 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         onVoiceInput={() => {}}
         onEnhancedVoiceInput={onEnhancedVoiceInput}
         onCreateDocument={onCreateDocument}
+        isVoiceProcessing={isVoiceProcessing}
+        lastVoiceCommand={lastVoiceCommand}
+        conversationState={conversationState}
+        hasPendingConfirmation={hasPendingConfirmation}
+        onCancelVoice={onCancelVoice}
       />
 
       {/* Stats Cards */}

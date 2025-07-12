@@ -124,6 +124,11 @@ const Dashboard = () => {
       onCategorySelect={wrappedCategorySelect}
       onAllEntriesSelect={wrappedAllEntriesSelect}
       onEnhancedVoiceInput={handleEnhancedVoiceInput}
+      isVoiceProcessing={isVoiceProcessing}
+      lastVoiceCommand={lastVoiceCommand}
+      conversationState={conversationState}
+      hasPendingConfirmation={hasPendingConfirmation}
+      onCancelVoice={cancelCurrentOperation}
     >
       {showAllEntries ? (
         <AllEntriesView
@@ -181,6 +186,11 @@ const Dashboard = () => {
           onEnhancedVoiceInput={handleEnhancedVoiceInput}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
+          isVoiceProcessing={isVoiceProcessing}
+          lastVoiceCommand={lastVoiceCommand}
+          conversationState={conversationState}
+          hasPendingConfirmation={hasPendingConfirmation}
+          onCancelVoice={cancelCurrentOperation}
         />
       )}
     </DashboardLayout>

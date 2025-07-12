@@ -7,12 +7,16 @@ import { Check, Sun, Moon, Mic, RefreshCcw, Zap } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListModal } from "@/components/WaitingListModal";
+import { VideoModal } from "@/components/VideoModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [activeDemoVideo, setActiveDemoVideo] = useState<{ url: string; title: string } | null>(null);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -20,7 +24,29 @@ const Index = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
-  
+
+  // Fetch active demo video
+  useEffect(() => {
+    const fetchActiveDemoVideo = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('demo_videos')
+          .select('video_url, title')
+          .eq('is_active', true)
+          .limit(1)
+          .single();
+
+        if (data && !error) {
+          setActiveDemoVideo({ url: data.video_url, title: data.title });
+        }
+      } catch (error) {
+        console.error('Error fetching demo video:', error);
+      }
+    };
+
+    fetchActiveDemoVideo();
+  }, []);
+
   const toggleTheme = () => {
     if (theme === "light") {
       setTheme("dark");
@@ -35,6 +61,12 @@ const Index = () => {
     if (theme === "light") return <Sun className="h-4 w-4" />;
     if (theme === "dark") return <Moon className="h-4 w-4" />;
     return <Sun className="h-4 w-4" />; // system default to sun icon
+  };
+
+  const handleWatchDemo = () => {
+    if (activeDemoVideo) {
+      setIsVideoModalOpen(true);
+    }
   };
 
   const plans = [
@@ -135,8 +167,14 @@ const Index = () => {
             >
               Join Waiting List
             </Button>
-            <Button size="lg" variant="outline" className="px-8 py-3 text-lg border-gray-300 dark:border-gray-600 text-foreground hover:bg-accent">
-              Watch Demo
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="px-8 py-3 text-lg border-gray-300 dark:border-gray-600 text-foreground hover:bg-accent"
+              onClick={handleWatchDemo}
+              disabled={!activeDemoVideo}
+            >
+              {activeDemoVideo ? "Watch Demo" : "Demo Coming Soon"}
             </Button>
           </div>
         </div>
@@ -345,6 +383,15 @@ const Index = () => {
         open={isWaitingListModalOpen} 
         onOpenChange={setIsWaitingListModalOpen} 
       />
+
+      {activeDemoVideo && (
+        <VideoModal
+          open={isVideoModalOpen}
+          onOpenChange={setIsVideoModalOpen}
+          videoUrl={activeDemoVideo.url}
+          title={activeDemoVideo.title}
+        />
+      )}
     </div>
   );
 };

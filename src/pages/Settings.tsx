@@ -10,9 +10,10 @@ import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings
 import { AutomationSettings } from "@/components/settings/AutomationSettings";
 import { DataManagementSettings } from "@/components/settings/DataManagementSettings";
 import { HelpSupportSettings } from "@/components/settings/HelpSupportSettings";
+import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle } from "lucide-react";
+import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 
@@ -72,6 +73,10 @@ const Settings = () => {
               <CreditCard className="w-4 h-4 mr-2" />
               Subscription
             </TabsTrigger>
+            <TabsTrigger value="admin-videos" className="w-full justify-start">
+              <Video className="w-4 h-4 mr-2" />
+              Demo Videos
+            </TabsTrigger>
             <TabsTrigger value="help" className="w-full justify-start">
               <HelpCircle className="w-4 h-4 mr-2" />
               Help & Support
@@ -96,6 +101,9 @@ const Settings = () => {
             </TabsContent>
             <TabsContent value="subscription">
               <SubscriptionSettings />
+            </TabsContent>
+            <TabsContent value="admin-videos">
+              <VideoUpload />
             </TabsContent>
             <TabsContent value="help">
               <HelpSupportSettings />

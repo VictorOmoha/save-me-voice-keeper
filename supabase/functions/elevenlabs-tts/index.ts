@@ -26,10 +26,17 @@ serve(async (req) => {
 
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY')
     console.log('API Key available:', !!ELEVENLABS_API_KEY);
+    console.log('API Key first 10 chars:', ELEVENLABS_API_KEY?.substring(0, 10));
     
     if (!ELEVENLABS_API_KEY) {
       console.error('ElevenLabs API key not configured');
-      throw new Error('ElevenLabs API key not configured')
+      return new Response(
+        JSON.stringify({ error: 'ElevenLabs API key not configured in Supabase secrets' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
     }
 
     // Call ElevenLabs API

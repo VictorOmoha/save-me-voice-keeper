@@ -54,17 +54,22 @@ export const setupSpeechRecognition = ({
   (window as any).__global_recognition = recognition; // Track globally
   (window as any).__creating_recognition = false;
   
-  // Configure recognition with more sensitive settings
+  // Configure recognition with maximum sensitivity
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = localStorage.getItem('speech_language') || 'en-US';
-  recognition.maxAlternatives = 1;
+  recognition.maxAlternatives = 3; // Try more alternatives
   
-  // Add more sensitive audio settings if available
+  // Additional Chrome/Edge optimizations
   if ('webkitSpeechRecognition' in window) {
-    // Chrome-specific optimizations
-    (recognition as any).serviceURI = 'wss://www.google.com/speech-api/v2/recognize';
+    // Force Chrome to be more sensitive
+    (recognition as any).serviceURI = undefined; // Use default service
+    (recognition as any).grammars = undefined; // No grammar restrictions
   }
+  
+  // Try to make it more sensitive to quiet speech
+  (recognition as any).audioTrack = true;
+  (recognition as any).audioDevice = undefined; // Use default device
   
   console.log('Speech recognition configured:', {
     continuous: recognition.continuous,

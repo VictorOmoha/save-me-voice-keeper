@@ -27,6 +27,8 @@ export const useSpeechRecognitionControls = ({
       return;
     }
     
+    console.log('About to request microphone permissions...');
+    
     // Check for microphone permissions first
     try {
       console.log('Requesting microphone permissions...');

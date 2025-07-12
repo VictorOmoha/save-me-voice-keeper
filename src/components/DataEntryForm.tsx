@@ -38,7 +38,8 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     removeField,
     moveField,
     prepareSubmissionData,
-    categories
+    categories,
+    isDirty
   } = useFormLogic({ editEntry, templateEntry, mode, preselectedCategory });
 
   const { registerFormSetters, unregisterFormSetters } = useVoiceFormContext();
@@ -93,8 +94,10 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   const isCategoryReadonly = !!preselectedCategory || (templateEntry && mode === 'fill');
 
   return (
-    <div className="bg-background text-foreground">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div className={`bg-background text-foreground transition-all duration-300 ${
+      isDirty ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20 bg-primary/5' : ''
+    }`}>
+      <form onSubmit={handleSubmit} className="space-y-6 p-6">
         <div className="space-y-2">
           <Label htmlFor="title" className="text-foreground">Entry Title</Label>
           <Input

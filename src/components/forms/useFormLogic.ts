@@ -22,10 +22,31 @@ export const useFormLogic = ({
     { id: '1', name: 'Description', type: 'textarea', value: '' }
   ]);
 
+  // Track initial state to detect changes
+  const [initialState, setInitialState] = useState<{
+    title: string;
+    selectedCategory: string;
+    fields: CustomField[];
+  }>({
+    title: "",
+    selectedCategory: preselectedCategory || "",
+    fields: [{ id: '1', name: 'Description', type: 'textarea', value: '' }]
+  });
+  
+  // Calculate if form is dirty (has changes)
+  const isDirty = 
+    title !== initialState.title ||
+    selectedCategory !== initialState.selectedCategory ||
+    JSON.stringify(fields) !== JSON.stringify(initialState.fields);
+
   useEffect(() => {
+    let newTitle = "";
+    let newCategory = preselectedCategory || "";
+    let newFields: CustomField[] = [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
+
     if (editEntry) {
-      setTitle(editEntry.title);
-      setSelectedCategory(editEntry.fields.category || "");
+      newTitle = editEntry.title;
+      newCategory = editEntry.fields.category || "";
       if (editEntry.fieldDefinitions && editEntry.fieldDefinitions.length > 0) {
         const editFields: CustomField[] = editEntry.fieldDefinitions
           .filter(fieldDef => fieldDef.name !== 'category')
@@ -33,21 +54,21 @@ export const useFormLogic = ({
             ...fieldDef,
             value: editEntry.fields[fieldDef.name] || ''
           }));
-        setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+        newFields = editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
       } else {
         const editFields: CustomField[] = Object.entries(editEntry.fields)
           .filter(([name]) => name !== 'category')
           .map(([name, value], index) => ({
             id: (index + 1).toString(),
             name,
-            type: typeof value === 'number' ? 'number' : 'text',
+            type: (typeof value === 'number' ? 'number' : 'text') as CustomField['type'],
             value
           }));
-        setFields(editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+        newFields = editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
       }
     } else if (templateEntry && mode === 'fill') {
-      setTitle(`${templateEntry.title} - ${new Date().toLocaleDateString()}`);
-      setSelectedCategory(templateEntry.fields.category || preselectedCategory || "");
+      newTitle = `${templateEntry.title} - ${new Date().toLocaleDateString()}`;
+      newCategory = templateEntry.fields.category || preselectedCategory || "";
       if (templateEntry.fieldDefinitions && templateEntry.fieldDefinitions.length > 0) {
         const templateFields: CustomField[] = templateEntry.fieldDefinitions
           .filter(fieldDef => fieldDef.name !== 'category')
@@ -55,21 +76,31 @@ export const useFormLogic = ({
             ...fieldDef,
             value: ''
           }));
-        setFields(templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+        newFields = templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
       } else {
         const templateFields: CustomField[] = Object.entries(templateEntry.fields)
           .filter(([name]) => name !== 'category')
           .map(([name, value], index) => ({
             id: (index + 1).toString(),
             name,
-            type: typeof value === 'number' ? 'number' : 'text',
+            type: (typeof value === 'number' ? 'number' : 'text') as CustomField['type'],
             value: ''
           }));
-        setFields(templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }]);
+        newFields = templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
       }
-    } else if (preselectedCategory) {
-      setSelectedCategory(preselectedCategory);
     }
+
+    // Set form state
+    setTitle(newTitle);
+    setSelectedCategory(newCategory);
+    setFields(newFields);
+
+    // Set initial state for dirty tracking
+    setInitialState({
+      title: newTitle,
+      selectedCategory: newCategory,
+      fields: newFields
+    });
   }, [editEntry, templateEntry, mode, preselectedCategory]);
 
   const addField = () => {
@@ -143,6 +174,7 @@ export const useFormLogic = ({
     removeField,
     moveField,
     prepareSubmissionData,
-    categories: CATEGORIES
+    categories: CATEGORIES,
+    isDirty
   };
 };

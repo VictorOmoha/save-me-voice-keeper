@@ -377,6 +377,64 @@ export const useVoiceConversation = ({
     }
   };
 
+  const handleSmartDelete = (searchTerm: string) => {
+    console.log('Processing smart delete command for:', searchTerm);
+    
+    // Enhanced search across all entries with fuzzy matching
+    const searchResults = savedEntries.filter(entry => {
+      const searchLower = searchTerm.toLowerCase();
+      const titleMatch = entry.title.toLowerCase().includes(searchLower);
+      const fieldMatch = Object.values(entry.fields).some(value => 
+        typeof value === 'string' && value.toLowerCase().includes(searchLower)
+      );
+      return titleMatch || fieldMatch;
+    });
+    
+    if (searchResults.length === 1) {
+      // Single match - ask for confirmation before deleting
+      const entryToDelete = searchResults[0];
+      const confirmMessage = `Are you sure you want to delete "${entryToDelete.title}"? Say "confirm delete" to proceed.`;
+      toast.info(confirmMessage);
+      speak(confirmMessage);
+      
+      // Set up a temporary listener for confirmation
+      const handleDeleteConfirmation = (event: any) => {
+        const text = event.detail?.text?.toLowerCase() || '';
+        if (text.includes('confirm') && text.includes('delete')) {
+          deleteEntry(entryToDelete.id);
+          const deleteMessage = `Deleted: ${entryToDelete.title}`;
+          toast.success(deleteMessage);
+          speak(deleteMessage);
+          window.removeEventListener('voice-delete-confirmation', handleDeleteConfirmation);
+        } else if (text.includes('cancel') || text.includes('no')) {
+          const cancelMessage = 'Delete cancelled';
+          toast.info(cancelMessage);
+          speak(cancelMessage);
+          window.removeEventListener('voice-delete-confirmation', handleDeleteConfirmation);
+        }
+      };
+      
+      window.addEventListener('voice-delete-confirmation', handleDeleteConfirmation);
+      
+      // Auto-remove listener after 30 seconds
+      setTimeout(() => {
+        window.removeEventListener('voice-delete-confirmation', handleDeleteConfirmation);
+      }, 30000);
+      
+    } else if (searchResults.length > 1) {
+      // Multiple matches - show options
+      const matches = searchResults.slice(0, 3).map(entry => entry.title).join(', ');
+      const multipleMessage = `Found ${searchResults.length} entries matching "${searchTerm}": ${matches}. Please be more specific about which one to delete.`;
+      toast.info(multipleMessage);
+      speak(multipleMessage);
+    } else {
+      // No matches - suggest alternatives
+      const noMatchMessage = `No entries found matching "${searchTerm}". Try "show all entries" to see what's available.`;
+      toast.info(noMatchMessage);
+      speak(noMatchMessage);
+    }
+  };
+
   const handleVoiceCommand = (command: VoiceCommand) => {
     console.log('Executing voice command:', command);
     
@@ -410,6 +468,13 @@ export const useVoiceConversation = ({
         // Add visual feedback
         toast.success('Add Entry form opened - Voice conversation starting...');
         
+        break;
+        
+      case 'confirm_delete':
+        // Trigger the custom event for delete confirmation
+        window.dispatchEvent(new CustomEvent('voice-delete-confirmation', { 
+          detail: { text: 'confirm delete', timestamp: Date.now() } 
+        }));
         break;
         
       case 'open_entry':
@@ -472,19 +537,11 @@ export const useVoiceConversation = ({
         
       case 'delete_entry':
         if (command.params?.entryTitle) {
-          const entryToDelete = savedEntries.find(entry => 
-            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
-          );
-          if (entryToDelete) {
-            deleteEntry(entryToDelete.id);
-            const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
-            toast.success(deleteMessage);
-            speak(deleteMessage);
-          } else {
-            const errorMessage = `Entry \"${command.params.entryTitle}\" not found`;
-            toast.error(errorMessage);
-            speak(errorMessage);
-          }
+          handleSmartDelete(command.params.entryTitle);
+        } else {
+          const noTargetMessage = 'Please specify what to delete. Try "delete medical records" or "delete invoice".';
+          toast.info(noTargetMessage);
+          speak(noTargetMessage);
         }
         break;
         

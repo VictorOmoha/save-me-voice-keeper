@@ -124,19 +124,34 @@ export const useDashboardVoice = ({
         
       case 'delete_entry':
         if (command.params?.entryTitle) {
-          const entryToDelete = savedEntries.find(entry => 
-            entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
+          // Enhanced delete with confirmation
+          const searchTerm = command.params.entryTitle;
+          const matchingEntries = savedEntries.filter(entry => 
+            entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            Object.values(entry.fields).some(value => 
+              typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
+            )
           );
-          if (entryToDelete) {
-            deleteEntry(entryToDelete.id);
-            const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
-            toast.success(deleteMessage);
-            speak(deleteMessage);
+          
+          if (matchingEntries.length === 1) {
+            const entryToDelete = matchingEntries[0];
+            const confirmMessage = `Are you sure you want to delete "${entryToDelete.title}"? Say "confirm delete" to proceed or "cancel" to abort.`;
+            toast.info(confirmMessage);
+            speak(confirmMessage);
+          } else if (matchingEntries.length > 1) {
+            const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
+            const multipleMessage = `Found ${matchingEntries.length} entries: ${matches}. Please be more specific.`;
+            toast.info(multipleMessage);
+            speak(multipleMessage);
           } else {
-            const errorMessage = `Entry "${command.params.entryTitle}" not found`;
-            toast.error(errorMessage);
-            speak(errorMessage);
+            const notFoundMessage = `No entries found matching "${searchTerm}". Try "show all entries" to see available items.`;
+            toast.info(notFoundMessage);
+            speak(notFoundMessage);
           }
+        } else {
+          const noTargetMessage = 'Please specify what to delete. Try "delete medical records" or "delete invoice".';
+          toast.info(noTargetMessage);
+          speak(noTargetMessage);
         }
         break;
         

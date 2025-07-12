@@ -1,6 +1,6 @@
 
 export interface VoiceCommand {
-  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'unknown';
+  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'confirm_delete' | 'unknown';
   params?: {
     fieldName?: string;
     fieldType?: 'text' | 'number' | 'date' | 'textarea';
@@ -45,6 +45,13 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
         params: { categoryValue }
       };
     }
+  }
+  
+  // Delete confirmation commands
+  if ((lowerTranscript.includes('confirm') || lowerTranscript.includes('yes')) && 
+      lowerTranscript.includes('delete')) {
+    console.log('Detected delete confirmation');
+    return { type: 'confirm_delete' };
   }
   
   // Enhanced pattern matching for better command recognition
@@ -97,13 +104,16 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
   
-  // Delete entry commands
-  if (lowerTranscript.includes('delete') || lowerTranscript.includes('remove')) {
-    const entryTitle = extractEntryTitle(lowerTranscript, 'delete');
-    console.log('Detected delete command:', { entryTitle });
+  // Delete entry commands - enhanced patterns
+  if (lowerTranscript.includes('delete') || 
+      lowerTranscript.includes('remove') || 
+      lowerTranscript.includes('erase') ||
+      lowerTranscript.includes('trash')) {
+    const searchTerm = extractDeleteTarget(lowerTranscript);
+    console.log('Detected delete command:', { searchTerm });
     return {
       type: 'delete_entry',
-      params: { entryTitle }
+      params: { entryTitle: searchTerm }
     };
   }
   
@@ -338,6 +348,40 @@ const extractOpenTarget = (transcript: string): string => {
       // Clean up common words but preserve the core search term
       target = target.replace(/\b(document|entry|record|item|information)\b/gi, '').trim();
       target = target.replace(/\b(the|a|an|my|our|your)\b/gi, '').trim();
+      
+      // If we still have meaningful content, return it
+      if (target.length > 1) {
+        return target;
+      }
+    }
+  }
+  
+  return '';
+};
+
+const extractDeleteTarget = (transcript: string): string => {
+  const lowerTranscript = transcript.toLowerCase();
+  
+  // Enhanced patterns for delete commands
+  const patterns = [
+    // Direct patterns: "delete my medical records", "remove file invoice"
+    /delete\s+(?:my\s+|the\s+|file\s+)?(.+?)(?:\.|$)/i,
+    /remove\s+(?:my\s+|the\s+|file\s+)?(.+?)(?:\.|$)/i,
+    /erase\s+(?:my\s+|the\s+|file\s+)?(.+?)(?:\.|$)/i,
+    /trash\s+(?:my\s+|the\s+|file\s+)?(.+?)(?:\.|$)/i,
+    // Handle "delete" followed by anything
+    /delete\s+(.+)/i,
+    /remove\s+(.+)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = transcript.match(pattern);
+    if (match && match[1]) {
+      let target = match[1].trim();
+      
+      // Clean up common words but preserve the core search term
+      target = target.replace(/\b(document|entry|record|item|information|file)\b/gi, '').trim();
+      target = target.replace(/\b(the|a|an|my|our|your|this|that)\b/gi, '').trim();
       
       // If we still have meaningful content, return it
       if (target.length > 1) {

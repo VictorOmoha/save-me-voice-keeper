@@ -149,11 +149,11 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
           <ul className="list-disc list-inside">
             <li><strong>"CREATE NEW ENTRY"</strong> - Opens new entry form</li>
             <li><strong>"OPEN [filename]"</strong> - Opens any file/entry by name</li>
+            <li><strong>"DELETE [filename]"</strong> - Safely deletes entries with confirmation</li>
             <li><strong>"CLOSE" / "CANCEL"</strong> - Closes current form or dialog</li>
             <li><strong>"SHOW ALL ENTRIES"</strong> - View all your entries</li>
             <li><strong>"TITLE MY DOCUMENT"</strong> - Sets title when form is open</li>
             <li><strong>"ADD FIELD NAME"</strong> - Adds a field called "Name"</li>
-            <li><strong>"CREATE FIELD EMAIL"</strong> - Adds an email field</li>
             <li><strong>"CREATE FIELD EMAIL"</strong> - Adds an email field</li>
             <li><strong>"SHOW ALL ENTRIES"</strong> - Shows all entries</li>
           </ul>

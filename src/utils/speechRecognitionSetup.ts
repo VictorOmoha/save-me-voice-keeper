@@ -60,17 +60,6 @@ export const setupSpeechRecognition = ({
   recognition.lang = localStorage.getItem('speech_language') || 'en-US';
   recognition.maxAlternatives = 3; // Try more alternatives
   
-  // Additional Chrome/Edge optimizations
-  if ('webkitSpeechRecognition' in window) {
-    // Force Chrome to be more sensitive
-    (recognition as any).serviceURI = undefined; // Use default service
-    (recognition as any).grammars = undefined; // No grammar restrictions
-  }
-  
-  // Try to make it more sensitive to quiet speech
-  (recognition as any).audioTrack = true;
-  (recognition as any).audioDevice = undefined; // Use default device
-  
   console.log('Speech recognition configured:', {
     continuous: recognition.continuous,
     interimResults: recognition.interimResults,

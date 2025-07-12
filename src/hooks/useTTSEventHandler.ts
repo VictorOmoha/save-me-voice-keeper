@@ -31,28 +31,66 @@ export const useTTSEventHandler = ({
             if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
               console.log('Attempting to restart speech recognition...');
               
-              // Stop any existing recognition first
-              if (isListening) {
+              // Stop any existing recognition first - MUST be synchronous
+              if (isListening && recognitionRef.current) {
                 try {
+                  console.log('Stopping existing recognition...');
                   recognitionRef.current.abort();
                   setIsListening(false);
                   console.log('Stopped existing recognition before restart');
+                  
+                  // Wait for the abort to complete before starting new recognition
+                  setTimeout(() => {
+                    try {
+                      if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
+                        console.log('Starting fresh recognition after abort...');
+                        recognitionRef.current.start();
+                        setIsListening(true);
+                        console.log('Speech recognition force-restarted after TTS completion');
+                      }
+                    } catch (startError) {
+                      console.error('Error starting recognition after abort:', startError);
+                      // Try one more time after longer delay
+                      setTimeout(() => {
+                        try {
+                          if (conversationState?.isActive && recognitionRef.current && !isListening && !(window as any).__tts_is_speaking) {
+                            recognitionRef.current.start();
+                            setIsListening(true);
+                            console.log('Speech recognition restarted on final retry');
+                          }
+                        } catch (finalError) {
+                          console.error('Final recognition restart failed:', finalError);
+                        }
+                      }, 1000);
+                    }
+                  }, 750); // Wait for abort to complete
+                  
                 } catch (stopError) {
                   console.log('Error stopping existing recognition:', stopError);
+                  // If we can't stop cleanly, wait longer and try fresh start
+                  setTimeout(() => {
+                    try {
+                      if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
+                        recognitionRef.current.start();
+                        setIsListening(true);
+                        console.log('Speech recognition started after stop error');
+                      }
+                    } catch (startError) {
+                      console.error('Error starting recognition after stop error:', startError);
+                    }
+                  }, 1500);
                 }
-              }
-              
-              // Start fresh recognition
-              setTimeout(() => {
+              } else {
+                // No existing recognition, start fresh
                 try {
+                  console.log('Starting fresh recognition (no existing one)...');
                   recognitionRef.current.start();
                   setIsListening(true);
-                  console.log('Speech recognition force-restarted after TTS completion');
+                  console.log('Speech recognition started fresh');
                 } catch (startError) {
-                  console.error('Error starting recognition:', startError);
-                  throw startError;
+                  console.error('Error starting fresh recognition:', startError);
                 }
-              }, 500); // Small delay for cleanup
+              }
             } else {
               console.log('Conditions not met for restart:', {
                 conversationActive: conversationState?.isActive,
@@ -61,19 +99,7 @@ export const useTTSEventHandler = ({
               });
             }
           } catch (error) {
-            console.error('Error restarting recognition after TTS:', error);
-            // Try again after a longer delay
-            setTimeout(() => {
-              try {
-                if (conversationState?.isActive && recognitionRef.current && !isListening && !(window as any).__tts_is_speaking) {
-                  recognitionRef.current.start();
-                  setIsListening(true);
-                  console.log('Speech recognition restarted on retry');
-                }
-              } catch (retryError) {
-                console.error('Failed to restart recognition after retry:', retryError);
-              }
-            }, 2000);
+            console.error('Error in TTS restart logic:', error);
           }
         }, 2000); // Increased delay to 2 seconds for better reliability
       }

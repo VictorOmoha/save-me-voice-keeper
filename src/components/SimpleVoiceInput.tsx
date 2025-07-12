@@ -62,9 +62,19 @@ export const SimpleVoiceInput: React.FC<SimpleVoiceInputProps> = ({
           {/* Controls */}
           <VoiceControls
             isListening={isListening}
-            onStart={startListening}
-            onStop={stopListening}
-            onReset={resetListening}
+            onStart={() => {
+              console.log('SimpleVoiceInput: onStart called, about to call startListening');
+              console.log('SimpleVoiceInput: startListening function type:', typeof startListening);
+              startListening();
+            }}
+            onStop={() => {
+              console.log('SimpleVoiceInput: onStop called, about to call stopListening');
+              stopListening();
+            }}
+            onReset={() => {
+              console.log('SimpleVoiceInput: onReset called, about to call resetListening');
+              resetListening();
+            }}
           />
 
           {/* Conversation Status */}

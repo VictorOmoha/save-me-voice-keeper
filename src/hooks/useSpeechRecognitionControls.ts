@@ -28,7 +28,6 @@ export const useSpeechRecognitionControls = ({
       console.log('TTS is speaking, waiting before starting voice recognition...');
       toast.info('Waiting for system to finish speaking...');
       
-      // Wait for TTS to finish, then start
       const waitForTTS = () => {
         if (!(window as any).__tts_is_speaking) {
           startListening();
@@ -42,12 +41,32 @@ export const useSpeechRecognitionControls = ({
     
     if (recognitionRef.current && !isListening) {
       try {
+        // Clean state before starting
         setTranscript("");
         setLastProcessedTranscript("");
-        recognitionRef.current.start();
-        toast.info('Voice recognition started - speak now');
+        
+        // Stop first to ensure clean state
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore stop errors
+        }
+        
+        // Brief delay then start
+        setTimeout(() => {
+          try {
+            if (recognitionRef.current && !isListening) {
+              recognitionRef.current.start();
+              toast.info('Voice recognition started - speak now');
+            }
+          } catch (startError) {
+            console.error('Error starting speech recognition:', startError);
+            toast.error('Failed to start voice recognition');
+          }
+        }, 200);
+        
       } catch (error) {
-        console.error('Error starting speech recognition:', error);
+        console.error('Error in startListening:', error);
         toast.error('Failed to start voice recognition');
       }
     }

@@ -120,65 +120,45 @@ export const setupSpeechRecognition = ({
     console.log('Speech recognition ended');
     setIsListening(false);
     
-    // Check if TTS is currently speaking
-    const isTTSSpeaking = (window as any).__tts_is_speaking;
-    
-    // Only auto-restart if we're in an active conversation AND we haven't had too many restart attempts
+    // Simple restart logic for conversation mode
     if (conversationState?.isActive && restartAttempts < maxRestartAttempts && recognitionRef.current) {
-      console.log('Auto-restarting voice recognition for conversation (attempt', restartAttempts + 1, 'of', maxRestartAttempts, ')');
+      console.log('Auto-restarting for conversation (attempt', restartAttempts + 1, 'of', maxRestartAttempts, ')');
+      
+      restartAttempts++;
       
       const attemptRestart = () => {
         try {
-          // Critical: Check microphone availability before restart
-          const isTTSSpeaking = (window as any).__tts_is_speaking;
-          
-          if (conversationState?.isActive && recognitionRef.current && !isTTSSpeaking) {
-            console.log('Conditions met, starting voice recognition...');
+          // Check if we should still restart
+          if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
+            console.log('Restarting voice recognition...');
             recognitionRef.current.start();
-            setIsListening(true);
             console.log('Voice recognition restarted successfully');
-            // Reset restart attempts on successful restart
-            restartAttempts = 0;
-          } else if (isTTSSpeaking) {
-            console.log('TTS is still speaking, waiting longer...');
-            setTimeout(attemptRestart, 2000); // Wait even longer
+            restartAttempts = 0; // Reset on success
+          } else if ((window as any).__tts_is_speaking) {
+            console.log('TTS speaking, will wait for TTS completion event');
           } else {
-            console.log('Conversation no longer active or recognition unavailable');
+            console.log('Conversation ended or recognition unavailable');
           }
         } catch (error) {
-          console.error('Error restarting recognition:', error);
-          restartAttempts++;
+          console.log('Restart failed:', error.message);
           
-          // Only try final retry if we haven't exceeded max attempts
           if (restartAttempts < maxRestartAttempts) {
-            setTimeout(() => {
-              try {
-                if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
-                  recognitionRef.current.start();
-                  setIsListening(true);
-                  console.log('Voice recognition restarted on retry');
-                  restartAttempts = 0;
-                }
-              } catch (retryError) {
-                console.error('Retry failed:', retryError);
-                restartAttempts++;
-              }
-            }, 3000 * restartAttempts); // Exponential backoff
+            // Try again with longer delay
+            setTimeout(attemptRestart, 2000 * restartAttempts);
           } else {
-            console.log('Max restart attempts reached, stopping auto-restart');
+            console.log('Max restart attempts reached');
             toast.info('Voice recognition stopped. Click "Start Voice Commands" to continue.');
+            restartAttempts = 0;
           }
         }
       };
       
-      // Calculate delay with exponential backoff
-      const delay = isTTSSpeaking ? 3000 : Math.min(1500 * Math.pow(2, restartAttempts), 10000);
-      
-      console.log('Scheduling restart with delay:', delay);
+      // Wait for any audio cleanup before restart
+      const delay = (window as any).__tts_is_speaking ? 500 : 1000;
       setTimeout(attemptRestart, delay);
     } else if (restartAttempts >= maxRestartAttempts) {
-      console.log('Max restart attempts reached, not auto-restarting');
-      restartAttempts = 0; // Reset for next manual start
+      console.log('Max restart attempts reached, resetting counter');
+      restartAttempts = 0;
     }
   };
   

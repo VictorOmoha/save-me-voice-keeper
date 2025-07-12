@@ -16,12 +16,27 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   
   // Enhanced pattern matching for better command recognition
   
-  // Create entry commands - more flexible patterns
+  // Create entry commands - prioritize conversation mode over title extraction
   if ((lowerTranscript.includes('create') || lowerTranscript.includes('add') || lowerTranscript.includes('new')) && 
       (lowerTranscript.includes('entry') || lowerTranscript.includes('record') || lowerTranscript.includes('item'))) {
-    const entryTitle = extractEntryTitle(lowerTranscript, 'create');
+    
+    // Don't extract titles for generic "create entry" commands - start conversation instead
+    const isGenericCommand = lowerTranscript.includes('new entry') || 
+                           lowerTranscript.includes('create entry') ||
+                           lowerTranscript.includes('add entry') ||
+                           lowerTranscript === 'create' ||
+                           lowerTranscript === 'new';
+    
+    const entryTitle = isGenericCommand ? '' : extractEntryTitle(lowerTranscript, 'create');
     const entryCategory = extractCategory(lowerTranscript);
-    console.log('Detected create entry command:', { entryTitle, entryCategory });
+    
+    console.log('Detected create entry command:', { 
+      entryTitle, 
+      entryCategory, 
+      isGenericCommand,
+      originalTranscript: lowerTranscript 
+    });
+    
     return {
       type: 'create_entry',
       params: { entryTitle, entryCategory }
@@ -126,24 +141,36 @@ const extractFieldType = (transcript: string): 'text' | 'number' | 'date' | 'tex
 };
 
 const extractEntryTitle = (transcript: string, action: string): string => {
-  // More flexible patterns to capture various ways of naming entries
+  // Don't extract titles from generic commands
+  const genericPhrases = ['new entry', 'entry', 'record', 'item', 'information'];
+  const lowerTranscript = transcript.toLowerCase();
+  
+  // If the transcript is mostly just generic words, return empty string
+  for (const phrase of genericPhrases) {
+    if (lowerTranscript.includes(action) && lowerTranscript.includes(phrase)) {
+      const remaining = lowerTranscript.replace(action, '').replace(phrase, '').trim();
+      if (remaining.length < 3 || remaining.match(/^\s*(new|a|an|the)\s*$/)) {
+        console.log('Skipping title extraction for generic command:', transcript);
+        return '';
+      }
+    }
+  }
+  
+  // More specific patterns for actual titles
   const patterns = [
-    // Specific patterns first
-    new RegExp(`${action}\\s+([^.]+?)\\s+(?:entry|information)`, 'i'),
     new RegExp(`${action}\\s+(?:entry|information)\\s+(?:called|named)\\s+([^.]+)`, 'i'),
     new RegExp(`${action}\\s+(?:entry|information)\\s+about\\s+([^.]+)`, 'i'),
-    new RegExp(`${action}\\s+(?:entry|information)\\s+([^.]+)`, 'i'),
-    // More general patterns - capture anything after the action word
-    new RegExp(`${action}\\s+([^.]+)`, 'i')
+    new RegExp(`${action}\\s+([^.]+?)\\s+(?:entry|information)`, 'i'),
   ];
   
   for (const pattern of patterns) {
     const match = transcript.match(pattern);
     if (match && match[1]) {
       const title = match[1].trim().replace(/\.$/, '');
-      // Clean up common words that might be captured
-      const cleanTitle = title.replace(/\b(the|a|an|my|our|your)\b/gi, '').trim();
-      return cleanTitle || title;
+      const cleanTitle = title.replace(/\b(the|a|an|my|our|your|new)\b/gi, '').trim();
+      if (cleanTitle.length > 2) {
+        return cleanTitle;
+      }
     }
   }
   

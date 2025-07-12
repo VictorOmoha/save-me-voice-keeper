@@ -47,7 +47,7 @@ const CONVERSATION_STEPS = {
   },
   CATEGORY: {
     type: 'category' as const,
-    question: "What category should this entry be in? You can say Documents, Health, Contacts, Finance, or Personal.",
+    question: "What category should this entry be in?",
     expectedResponse: ['Documents', 'Health', 'Contacts', 'Finance', 'Personal']
   },
   MORE_FIELDS: {

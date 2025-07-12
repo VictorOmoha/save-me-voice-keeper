@@ -411,7 +411,7 @@ export const useVoiceConversation = ({
           formAddFieldFunction(fieldName, fieldType);
           const addFieldMessage = `Added field "${fieldName}" to the current form`;
           toast.success(addFieldMessage);
-          speak(addFieldMessage);
+          // Removed speak() to prevent interference with voice input
         } else {
           // Fallback: create new entry with the field
           const newEntry = {
@@ -429,7 +429,7 @@ export const useVoiceConversation = ({
           saveEntry(newEntry);
           const createFieldMessage = `Created new entry with field "${fieldName}"`;
           toast.success(createFieldMessage);
-          speak(createFieldMessage);
+          // Removed speak() to prevent interference with voice input
         }
         break;
         
@@ -497,9 +497,9 @@ export const useVoiceConversation = ({
         break;
         
       default:
-        const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, or Fill form. Try saying \"create a new entry\" or \"show all my documents\".';
-        toast.info('Voice command not recognized');
-        speak(helpMessage);
+        const helpMessage = 'Voice command not recognized. Try: CREATE NEW ENTRY, TITLE MY DOCUMENT, ADD FIELD NAME';
+        toast.info(helpMessage);
+        // Removed speak() to prevent interference with voice input
     }
   };
 

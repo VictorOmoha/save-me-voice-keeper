@@ -25,7 +25,7 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = false;  // Changed to false - process one command at a time
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
@@ -97,7 +97,19 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({ onVoiceCommand
 
     recognition.onend = () => {
       console.log('🔚 VOICE COMMAND: Voice ended');
-      setIsListening(false);
+      // Auto-restart if still supposed to be listening
+      if (isListening) {
+        setTimeout(() => {
+          try {
+            recognition.start();
+            console.log('🔄 VOICE COMMAND: Auto-restarted for next command');
+          } catch (error) {
+            console.log('Auto-restart failed:', error.message);
+            setIsListening(false);
+            toast.info('Voice ended. Click "Start Voice Commands" to continue.');
+          }
+        }, 500);
+      }
     };
 
     try {

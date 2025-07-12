@@ -91,20 +91,24 @@ export const useVoiceConversation = ({
     // First, open the Add Entry form immediately
     setShowAddEntry(true);
     
-    const newState: VoiceConversationState = {
-      isActive: true,
-      currentStep: CONVERSATION_STEPS.TITLE,
-      entryDraft: { fields: [] },
-    };
-    
-    setConversationState(newState);
-    
-    // Force a small delay to ensure the UI has time to update
+    // Force a small delay to ensure the UI has time to update and state to propagate
     setTimeout(() => {
-      console.log('Starting voice conversation for entry title');
-      speak(CONVERSATION_STEPS.TITLE.question);
-      toast.info("Voice conversation started - please speak the entry title");
-    }, 800); // Increased delay to ensure form is visible
+      const newState: VoiceConversationState = {
+        isActive: true,
+        currentStep: CONVERSATION_STEPS.TITLE,
+        entryDraft: { fields: [] },
+      };
+      
+      setConversationState(newState);
+      console.log('Conversation state set to active:', newState);
+      
+      // Give another moment for state to propagate before starting TTS
+      setTimeout(() => {
+        console.log('Starting voice conversation for entry title');
+        speak(CONVERSATION_STEPS.TITLE.question);
+        toast.info("Voice conversation started - please speak the entry title");
+      }, 300);
+    }, 500);
   };
 
   const processConversationResponse = (transcript: string) => {

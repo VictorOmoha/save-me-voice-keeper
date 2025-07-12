@@ -27,19 +27,32 @@ export const setupSpeechRecognition = ({
     return null;
   }
 
-  // Stop any existing global recognition first
+  // Stop any existing global recognition first and wait
   if ((window as any).__global_recognition) {
     console.log('Stopping existing global recognition...');
     try {
       (window as any).__global_recognition.abort();
+      (window as any).__global_recognition.onend = null;
+      (window as any).__global_recognition.onerror = null;
+      (window as any).__global_recognition.onresult = null;
+      (window as any).__global_recognition.onstart = null;
     } catch (e) {
       console.log('Stop existing global recognition failed (expected):', e);
     }
     (window as any).__global_recognition = null;
   }
 
+  // Ensure only one recognition instance exists globally
+  if ((window as any).__creating_recognition) {
+    console.log('Already creating recognition, waiting...');
+    return null;
+  }
+  
+  (window as any).__creating_recognition = true;
+  
   const recognition = new SpeechRecognition();
   (window as any).__global_recognition = recognition; // Track globally
+  (window as any).__creating_recognition = false;
   
   // Configure recognition with more sensitive settings
   recognition.continuous = true;

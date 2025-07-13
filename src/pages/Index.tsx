@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -143,16 +142,12 @@ const Index = () => {
                   </Button>
                 </Link>
               ) : (
-                <>
-                  <Link to="/login">
-                    <Button variant="ghost" className="text-foreground hover:text-foreground">Login</Button>
-                  </Link>
-                  <Link to="/signup">
-                    <Button variant="gradient">
-                      Sign Up
-                    </Button>
-                  </Link>
-                </>
+                <Button 
+                  variant="gradient"
+                  onClick={() => setIsWaitingListModalOpen(true)}
+                >
+                  Join Waiting List
+                </Button>
               )}
             </div>
           </div>

@@ -33,6 +33,14 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   const canMoveUp = index > 0;
   const canMoveDown = index < fieldsLength - 1;
 
+  console.log('CustomFieldItem render:', {
+    fieldName: field.name,
+    fieldValue: field.value,
+    fieldType: field.type,
+    isEditMode,
+    isFillMode
+  });
+
   const renderFieldInput = () => {
     if (isFillMode) {
       // In fill mode, show the appropriate input based on field type
@@ -133,6 +141,15 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               </SelectContent>
             </Select>
           </div>
+          {/* Show current value in edit mode for reference */}
+          {field.value && (
+            <div>
+              <Label className="text-foreground text-sm text-muted-foreground">Current Value</Label>
+              <div className="p-2 bg-muted rounded text-sm">
+                {Array.isArray(field.value) ? field.value.join(', ') : String(field.value)}
+              </div>
+            </div>
+          )}
         </div>
       );
     }

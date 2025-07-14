@@ -1,8 +1,8 @@
-
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceConversation } from "./useVoiceConversation";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
+import { SavedEntry } from "@/types/dashboard";
 
 export const useDashboard = () => {
   const {

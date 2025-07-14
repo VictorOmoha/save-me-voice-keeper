@@ -33,14 +33,21 @@ export const zapierService = {
   },
 
   sendEntryCreatedWebhook: async (webhookUrl: string, entry: any, userEmail: string) => {
+    // Extract expiration date from various possible field names
+    const expirationDate = entry.fields?.expirationDate || 
+                          entry.fields?.['Expiration Date'] || 
+                          entry.fields?.['expiration_date'] ||
+                          new Date().toISOString().split('T')[0];
+
     const payload = {
       entryTitle: entry.title,
-      expirationDate: entry.fields?.expirationDate || new Date().toISOString().split('T')[0],
+      expirationDate: expirationDate,
       userEmail: userEmail,
       entryData: entry,
       eventType: 'entry.created'
     };
 
+    console.log('Sending entry webhook with payload:', payload);
     return zapierService.sendWebhook(webhookUrl, payload, false);
   }
 };

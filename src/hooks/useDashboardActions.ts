@@ -1,7 +1,8 @@
-
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { zapierService } from "@/services/zapierService";
+import { webhookService } from "@/services/webhookService";
 
 interface UseDashboardActionsProps {
   savedEntries: SavedEntry[];
@@ -12,6 +13,17 @@ interface UseDashboardActionsProps {
   setShowAddEntry: (show: boolean) => void;
   loadEntries: () => Promise<void>;
 }
+
+// Get webhook URL from localStorage or settings
+const getWebhookUrl = () => {
+  return localStorage.getItem('zapierWebhookUrl') || 'https://hooks.zapier.com/hooks/catch/23790183/u2t2vvq/';
+};
+
+// Get user email from auth context
+const getUserEmail = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.email || 'omohavictor@gmail.com';
+};
 
 export const useDashboardActions = ({
   savedEntries,
@@ -37,9 +49,11 @@ export const useDashboardActions = ({
       console.log('Saving entry:', entry);
       console.log('Filling entry:', fillingEntry);
 
+      let savedEntryData: SavedEntry | null = null;
+
       if (editingEntry) {
         // Update existing entry
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('entries')
           .update({
             title: entry.title,
@@ -47,7 +61,9 @@ export const useDashboardActions = ({
             field_definitions: entry.fieldDefinitions as any,
             updated_at: new Date().toISOString()
           })
-          .eq('id', editingEntry.id);
+          .eq('id', editingEntry.id)
+          .select()
+          .single();
 
         if (error) {
           console.error('Error updating entry:', error);
@@ -55,11 +71,32 @@ export const useDashboardActions = ({
           return;
         }
 
+        savedEntryData = {
+          id: data.id,
+          title: data.title,
+          fields: data.fields as Record<string, any>,
+          fieldDefinitions: data.field_definitions as any,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at)
+        };
+
+        // Trigger webhook for entry update
+        try {
+          const webhookUrl = getWebhookUrl();
+          const userEmail = await getUserEmail();
+          
+          await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
+          console.log('Webhook triggered for entry update');
+        } catch (webhookError) {
+          console.error('Failed to trigger webhook for entry update:', webhookError);
+          // Don't show error to user as the main operation succeeded
+        }
+
         toast.success("Entry updated successfully!");
         setEditingEntry(null);
       } else if (fillingEntry) {
         // When filling, update the template entry instead of creating a new one
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('entries')
           .update({
             title: entry.title,
@@ -67,12 +104,34 @@ export const useDashboardActions = ({
             field_definitions: entry.fieldDefinitions as any,
             updated_at: new Date().toISOString()
           })
-          .eq('id', fillingEntry.id);
+          .eq('id', fillingEntry.id)
+          .select()
+          .single();
 
         if (error) {
           console.error('Error updating filled entry:', error);
           toast.error("Failed to update entry: " + error.message);
           return;
+        }
+
+        savedEntryData = {
+          id: data.id,
+          title: data.title,
+          fields: data.fields as Record<string, any>,
+          fieldDefinitions: data.field_definitions as any,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at)
+        };
+
+        // Trigger webhook for entry fill/update
+        try {
+          const webhookUrl = getWebhookUrl();
+          const userEmail = await getUserEmail();
+          
+          await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
+          console.log('Webhook triggered for entry fill');
+        } catch (webhookError) {
+          console.error('Failed to trigger webhook for entry fill:', webhookError);
         }
 
         console.log('Entry updated successfully (fill mode)');
@@ -95,6 +154,26 @@ export const useDashboardActions = ({
           console.error('Error creating entry:', error);
           toast.error("Failed to save entry: " + error.message);
           return;
+        }
+
+        savedEntryData = {
+          id: data.id,
+          title: data.title,
+          fields: data.fields as Record<string, any>,
+          fieldDefinitions: data.field_definitions as any,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at)
+        };
+
+        // Trigger webhook for new entry creation
+        try {
+          const webhookUrl = getWebhookUrl();
+          const userEmail = await getUserEmail();
+          
+          await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
+          console.log('Webhook triggered for new entry creation');
+        } catch (webhookError) {
+          console.error('Failed to trigger webhook for new entry:', webhookError);
         }
 
         console.log('Entry created successfully:', data);

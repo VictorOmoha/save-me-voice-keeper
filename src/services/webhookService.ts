@@ -11,10 +11,18 @@ export const webhookService = {
   // Trigger a webhook event (can be called when entries are created/updated)
   triggerWebhook: async (event: WebhookEvent): Promise<{ success: boolean; error?: string }> => {
     try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: 'User not authenticated' };
+      }
+
       // Store the webhook event in the database
       const { error: dbError } = await supabase
         .from('webhook_events')
         .insert({
+          user_id: user.id,
           event_type: event.event_type,
           payload: event.payload,
           webhook_url: event.webhook_url,
@@ -51,6 +59,7 @@ export const webhookService = {
               last_attempt_at: new Date().toISOString(),
               attempts: 1
             })
+            .eq('user_id', user.id)
             .eq('event_type', event.event_type)
             .eq('webhook_url', event.webhook_url)
             .order('created_at', { ascending: false })
@@ -68,6 +77,7 @@ export const webhookService = {
               last_attempt_at: new Date().toISOString(),
               attempts: 1
             })
+            .eq('user_id', user.id)
             .eq('event_type', event.event_type)
             .eq('webhook_url', event.webhook_url)
             .order('created_at', { ascending: false })

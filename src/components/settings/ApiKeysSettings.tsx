@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Key, Plus, Copy, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Json } from "@/integrations/supabase/types";
 
 interface ApiKey {
   id: string;
@@ -44,7 +44,16 @@ export const ApiKeysSettings = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setApiKeys(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        permissions: Array.isArray(item.permissions) ? item.permissions as string[] : 
+                    typeof item.permissions === 'string' ? [item.permissions] : 
+                    ['read', 'write']
+      }));
+      
+      setApiKeys(transformedData);
     } catch (error) {
       console.error('Error fetching API keys:', error);
       toast.error('Failed to load API keys');
@@ -76,6 +85,11 @@ export const ApiKeysSettings = () => {
       return;
     }
 
+    if (!user) {
+      toast.error('You must be logged in to create API keys');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const apiKey = generateApiKey();
@@ -85,10 +99,11 @@ export const ApiKeysSettings = () => {
       const { error } = await supabase
         .from('api_keys')
         .insert({
+          user_id: user.id,
           name: newKeyName.trim(),
           key_hash: keyHash,
           key_prefix: keyPrefix,
-          permissions: ['read', 'write']
+          permissions: ['read', 'write'] as Json
         });
 
       if (error) throw error;

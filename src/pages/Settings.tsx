@@ -13,7 +13,7 @@ import { HelpSupportSettings } from "@/components/settings/HelpSupportSettings";
 import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video } from "lucide-react";
+import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Key } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 
@@ -67,7 +67,7 @@ const Settings = () => {
             </TabsTrigger>
             <TabsTrigger value="automation" className="w-full justify-start">
               <Zap className="w-4 h-4 mr-2" />
-              Automation
+              Automation & API
             </TabsTrigger>
             <TabsTrigger value="subscription" className="w-full justify-start">
               <CreditCard className="w-4 h-4 mr-2" />

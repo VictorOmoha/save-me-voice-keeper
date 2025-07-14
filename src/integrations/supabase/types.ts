@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          permissions: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          permissions?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       demo_videos: {
         Row: {
           created_at: string
@@ -122,6 +161,42 @@ export type Database = {
           email?: string
           id?: string
           name?: string | null
+        }
+        Relationships: []
+      }
+      webhook_events: {
+        Row: {
+          attempts: number
+          created_at: string
+          event_type: string
+          id: string
+          last_attempt_at: string | null
+          payload: Json
+          status: string
+          user_id: string
+          webhook_url: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          last_attempt_at?: string | null
+          payload: Json
+          status?: string
+          user_id: string
+          webhook_url?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_attempt_at?: string | null
+          payload?: Json
+          status?: string
+          user_id?: string
+          webhook_url?: string | null
         }
         Relationships: []
       }

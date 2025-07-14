@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Zap, Plus, Settings, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { ApiKeysSettings } from "./ApiKeysSettings";
+import { WebhookTesting } from "./WebhookTesting";
 
 interface Platform {
   id: string;
@@ -66,6 +67,9 @@ export const AutomationSettings = () => {
     <div className="space-y-6">
       {/* API Keys Section */}
       <ApiKeysSettings />
+
+      {/* Webhook Testing Section */}
+      <WebhookTesting />
 
       {/* Platform Connections */}
       <Card>

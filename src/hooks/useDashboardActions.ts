@@ -1,3 +1,4 @@
+
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +22,7 @@ export const useDashboardActions = ({
   setShowAddEntry,
   loadEntries,
 }: UseDashboardActionsProps) => {
-  const saveEntry = async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const saveEntry = async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, fillingEntry?: SavedEntry | null) => {
     try {
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -34,6 +35,7 @@ export const useDashboardActions = ({
 
       console.log('Authenticated user:', user.id);
       console.log('Saving entry:', entry);
+      console.log('Filling entry:', fillingEntry);
 
       if (editingEntry) {
         // Update existing entry
@@ -55,6 +57,27 @@ export const useDashboardActions = ({
 
         toast.success("Entry updated successfully!");
         setEditingEntry(null);
+      } else if (fillingEntry) {
+        // When filling, update the template entry instead of creating a new one
+        const { error } = await supabase
+          .from('entries')
+          .update({
+            title: entry.title,
+            fields: entry.fields as any,
+            field_definitions: entry.fieldDefinitions as any,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', fillingEntry.id);
+
+        if (error) {
+          console.error('Error updating filled entry:', error);
+          toast.error("Failed to update entry: " + error.message);
+          return;
+        }
+
+        console.log('Entry updated successfully (fill mode)');
+        toast.success("Entry data updated successfully!");
+        setFillingEntry(null);
       } else {
         // Create new entry - explicitly set user_id and let trigger handle validation
         const { data, error } = await supabase

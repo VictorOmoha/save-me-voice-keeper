@@ -1,3 +1,4 @@
+
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceConversation } from "./useVoiceConversation";
@@ -67,6 +68,11 @@ export const useDashboard = () => {
     handleVoiceResult(text);
   };
 
+  // Enhanced saveEntry function that passes fillingEntry context
+  const enhancedSaveEntry = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    saveEntry(entry, fillingEntry);
+  };
+
   const getFormMode = () => {
     if (editingEntry) return 'edit';
     if (fillingEntry) return 'fill';
@@ -89,7 +95,7 @@ export const useDashboard = () => {
     setEditingEntry,
     fillingEntry,
     setFillingEntry,
-    saveEntry,
+    saveEntry: enhancedSaveEntry,
     deleteEntry,
     bulkDeleteEntries,
     editEntry,

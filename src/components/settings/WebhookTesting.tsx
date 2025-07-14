@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Send, TestTube, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { SavedWebhookConfigs } from "./SavedWebhookConfigs";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TestField {
   key: string;
@@ -25,11 +26,21 @@ interface SavedEntry {
   updated_at: string;
 }
 
+interface SavedWebhookConfig {
+  id: string;
+  name: string;
+  webhookUrl: string;
+  fields: TestField[];
+  createdAt: string;
+}
+
 export const WebhookTesting = () => {
+  const { user } = useAuth();
   const [webhookUrl, setWebhookUrl] = useState("https://hooks.zapier.com/hooks/catch/23790183/u2t2vvq/");
   const [isLoading, setIsLoading] = useState(false);
   const [latestEntry, setLatestEntry] = useState<SavedEntry | null>(null);
   const [userEmail, setUserEmail] = useState("omohavictor@gmail.com");
+  const [currentConfigName, setCurrentConfigName] = useState("Default Configuration");
   const [testFields, setTestFields] = useState<TestField[]>([
     { key: 'entryTitle', type: 'text', value: 'Sample Car Warranty', label: 'Entry Title' },
     { key: 'expirationDate', type: 'date', value: '2026-08-01', label: 'Expiration Date' },
@@ -135,6 +146,13 @@ export const WebhookTesting = () => {
     ));
   };
 
+  // Load a saved configuration
+  const handleLoadConfig = (config: SavedWebhookConfig) => {
+    setWebhookUrl(config.webhookUrl);
+    setTestFields(config.fields);
+    setCurrentConfigName(config.name);
+  };
+
   // Build test payload from fields
   const buildTestPayload = () => {
     const payload: Record<string, any> = {};
@@ -145,7 +163,8 @@ export const WebhookTesting = () => {
       ...payload,
       timestamp: new Date().toISOString(),
       source: "Save Me",
-      testMode: true
+      testMode: true,
+      configurationName: currentConfigName
     };
   };
 
@@ -237,177 +256,188 @@ export const WebhookTesting = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TestTube className="w-5 h-5" />
-          Webhook Testing
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Test your webhook integration by sending customizable test payloads or actual data
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Webhook URL Configuration */}
-        <div className="space-y-2">
-          <Label htmlFor="webhook-url">Webhook URL</Label>
-          <div className="flex gap-2">
-            <Input
-              id="webhook-url"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              placeholder="https://hooks.zapier.com/hooks/catch/..."
-              className="flex-1"
-            />
-            <Button onClick={handleSaveWebhookUrl} variant="outline" size="sm">
-              <Save className="w-4 h-4 mr-1" />
-              Save
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Saved Configurations */}
+      <SavedWebhookConfigs
+        currentFields={testFields}
+        currentWebhookUrl={webhookUrl}
+        onLoadConfig={handleLoadConfig}
+        userTier={user?.subscriptionTier || 'free'}
+      />
 
-        {/* Latest Entry Info */}
-        {latestEntry && (
-          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Latest Entry Data</h3>
-              <Button onClick={handleRefreshData} variant="outline" size="sm">
-                Refresh
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TestTube className="w-5 h-5" />
+            Webhook Testing - {currentConfigName}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Test your webhook integration by sending customizable test payloads or actual data
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Webhook URL Configuration */}
+          <div className="space-y-2">
+            <Label htmlFor="webhook-url">Webhook URL</Label>
+            <div className="flex gap-2">
+              <Input
+                id="webhook-url"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://hooks.zapier.com/hooks/catch/..."
+                className="flex-1"
+              />
+              <Button onClick={handleSaveWebhookUrl} variant="outline" size="sm">
+                <Save className="w-4 h-4 mr-1" />
+                Save
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              <strong>Title:</strong> {latestEntry.title}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <strong>Last Updated:</strong> {new Date(latestEntry.updated_at).toLocaleString()}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <strong>Expiration Date:</strong> {latestEntry.fields?.expirationDate || latestEntry.fields?.['Expiration Date'] || 'Not set'}
-            </p>
           </div>
-        )}
 
-        {/* Customizable Test Fields */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium">Test Payload Fields</h3>
-            <Button onClick={handleAddField} variant="outline" size="sm">
-              <Plus className="w-4 h-4 mr-1" />
-              Add Field
+          {/* Latest Entry Info */}
+          {latestEntry && (
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Latest Entry Data</h3>
+                <Button onClick={handleRefreshData} variant="outline" size="sm">
+                  Refresh
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                <strong>Title:</strong> {latestEntry.title}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Last Updated:</strong> {new Date(latestEntry.updated_at).toLocaleString()}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                <strong>Expiration Date:</strong> {latestEntry.fields?.expirationDate || latestEntry.fields?.['Expiration Date'] || 'Not set'}
+              </p>
+            </div>
+          )}
+
+          {/* Customizable Test Fields */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">Test Payload Fields</h3>
+              <Button onClick={handleAddField} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Add Field
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              {testFields.map((field, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Field Key</Label>
+                    <Input
+                      value={field.key}
+                      onChange={(e) => handleUpdateField(index, { key: e.target.value })}
+                      placeholder="fieldName"
+                      className="text-sm"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Label</Label>
+                    <Input
+                      value={field.label}
+                      onChange={(e) => handleUpdateField(index, { label: e.target.value })}
+                      placeholder="Field Label"
+                      className="text-sm"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Type</Label>
+                    <Select 
+                      value={field.type} 
+                      onValueChange={(value: 'text' | 'email' | 'date' | 'number') => 
+                        handleUpdateField(index, { type: value })
+                      }
+                    >
+                      <SelectTrigger className="text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="number">Number</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <Label className="text-xs">Value</Label>
+                    <Input
+                      type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : field.type}
+                      value={field.value}
+                      onChange={(e) => handleUpdateField(index, { value: e.target.value })}
+                      placeholder="Field value"
+                      className="text-sm"
+                    />
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <Button
+                      onClick={() => handleRemoveField(index)}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled={testFields.length === 1}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Payload Preview */}
+          <div className="space-y-2">
+            <Label>Payload Preview</Label>
+            <Textarea
+              readOnly
+              value={JSON.stringify(buildTestPayload(), null, 2)}
+              rows={8}
+              className="font-mono text-sm"
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={handleSendTestPayload}
+              disabled={isLoading}
+              className="flex-1"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {isLoading ? "Sending..." : "Send Test Payload"}
+            </Button>
+            
+            <Button
+              onClick={handleSendActualEntry}
+              disabled={isLoading || !latestEntry}
+              variant="outline"
+              className="flex-1"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Send Latest Entry Data
             </Button>
           </div>
-          
-          <div className="space-y-3">
-            {testFields.map((field, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 p-3 border rounded-lg">
-                <div className="space-y-1">
-                  <Label className="text-xs">Field Key</Label>
-                  <Input
-                    value={field.key}
-                    onChange={(e) => handleUpdateField(index, { key: e.target.value })}
-                    placeholder="fieldName"
-                    className="text-sm"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label className="text-xs">Label</Label>
-                  <Input
-                    value={field.label}
-                    onChange={(e) => handleUpdateField(index, { label: e.target.value })}
-                    placeholder="Field Label"
-                    className="text-sm"
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label className="text-xs">Type</Label>
-                  <Select 
-                    value={field.type} 
-                    onValueChange={(value: 'text' | 'email' | 'date' | 'number') => 
-                      handleUpdateField(index, { type: value })
-                    }
-                  >
-                    <SelectTrigger className="text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="date">Date</SelectItem>
-                      <SelectItem value="number">Number</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-1">
-                  <Label className="text-xs">Value</Label>
-                  <Input
-                    type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : field.type}
-                    value={field.value}
-                    onChange={(e) => handleUpdateField(index, { value: e.target.value })}
-                    placeholder="Field value"
-                    className="text-sm"
-                  />
-                </div>
-                
-                <div className="flex items-end">
-                  <Button
-                    onClick={() => handleRemoveField(index)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    disabled={testFields.length === 1}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+
+          <div className="text-xs text-muted-foreground">
+            <p>• Configure custom fields above to match your webhook requirements</p>
+            <p>• Test payload sends the configured sample data above</p>
+            <p>• Latest Entry Data sends your most recent saved entry</p>
+            <p>• Webhooks are automatically triggered when you create or update entries</p>
+            <p>• Check your webhook destination to see received data</p>
+            <p>• Save different configurations for various webhook testing scenarios</p>
           </div>
-        </div>
-
-        {/* Payload Preview */}
-        <div className="space-y-2">
-          <Label>Payload Preview</Label>
-          <Textarea
-            readOnly
-            value={JSON.stringify(buildTestPayload(), null, 2)}
-            rows={8}
-            className="font-mono text-sm"
-          />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            onClick={handleSendTestPayload}
-            disabled={isLoading}
-            className="flex-1"
-          >
-            <Send className="w-4 h-4 mr-2" />
-            {isLoading ? "Sending..." : "Send Test Payload"}
-          </Button>
-          
-          <Button
-            onClick={handleSendActualEntry}
-            disabled={isLoading || !latestEntry}
-            variant="outline"
-            className="flex-1"
-          >
-            <Send className="w-4 h-4 mr-2" />
-            Send Latest Entry Data
-          </Button>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          <p>• Configure custom fields above to match your webhook requirements</p>
-          <p>• Test payload sends the configured sample data above</p>
-          <p>• Latest Entry Data sends your most recent saved entry</p>
-          <p>• Webhooks are automatically triggered when you create or update entries</p>
-          <p>• Check your webhook destination to see received data</p>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

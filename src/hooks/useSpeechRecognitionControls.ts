@@ -19,19 +19,15 @@ export const useSpeechRecognitionControls = ({
   setIsListening,
 }: UseSpeechRecognitionControlsProps) => {
   const startListening = async () => {
-    console.log('=== Starting voice recognition ===');
-    console.log('Browser support:', isSupported);
-    console.log('Currently listening:', isListening);
+    console.log('=== Starting continuous voice recognition ===');
     
     if (!isSupported) {
-      const errorMsg = 'Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.';
-      console.error(errorMsg);
-      toast.error(errorMsg);
+      toast.error('Speech recognition not supported in this browser');
       return;
     }
     
     if (isListening) {
-      console.log('Already listening, ignoring start request');
+      console.log('Already listening');
       return;
     }
     
@@ -43,23 +39,21 @@ export const useSpeechRecognitionControls = ({
     
     // Check microphone permissions
     try {
-      console.log('Requesting microphone access...');
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone access granted');
     } catch (error) {
       console.error('Microphone access error:', error);
-      toast.error('Unable to access microphone. Please check your permissions and try again.');
+      toast.error('Unable to access microphone. Please check your permissions.');
       return;
     }
     
     // Wait for TTS to finish if speaking
     if ((window as any).__tts_is_speaking) {
-      console.log('TTS is speaking, waiting for completion...');
+      console.log('Waiting for TTS to finish...');
       toast.info('Waiting for system to finish speaking...');
       
       const waitForTTS = () => {
         if (!(window as any).__tts_is_speaking) {
-          startListening(); // Retry after TTS completes
+          startListening();
         } else {
           setTimeout(waitForTTS, 500);
         }
@@ -69,37 +63,26 @@ export const useSpeechRecognitionControls = ({
     }
     
     try {
-      console.log('Starting speech recognition...');
+      console.log('Starting continuous speech recognition...');
       
-      // Clean state before starting
+      // Clear manual stop flag and reset state
+      (window as any).__manual_stop = false;
       setTranscript("");
       setLastProcessedTranscript("");
       
       // Start recognition
       recognitionRef.current.start();
-      console.log('Speech recognition start() called');
+      console.log('Speech recognition started for continuous listening');
       
-      // Immediate user feedback
-      toast.success('🎤 Voice recognition starting...');
+      toast.success('🎤 Voice recognition active - say your commands!');
       
     } catch (error) {
       console.error('Error starting speech recognition:', error);
       
-      // Handle specific error cases
       if (error.name === 'InvalidStateError') {
-        console.log('Recognition already running, attempting restart...');
-        try {
-          recognitionRef.current.stop();
-          setTimeout(() => {
-            if (recognitionRef.current) {
-              recognitionRef.current.start();
-              toast.success('🎤 Voice recognition restarted');
-            }
-          }, 500);
-        } catch (restartError) {
-          console.error('Failed to restart recognition:', restartError);
-          toast.error('Failed to restart voice recognition. Please try again.');
-        }
+        console.log('Recognition already running, continuing...');
+        setIsListening(true);
+        toast.success('🎤 Voice recognition already active');
       } else {
         toast.error(`Failed to start voice recognition: ${error.message}`);
       }
@@ -109,10 +92,13 @@ export const useSpeechRecognitionControls = ({
   const stopListening = () => {
     console.log('=== Stopping voice recognition ===');
     
+    // Set manual stop flag to prevent auto-restart
+    (window as any).__manual_stop = true;
+    
     if (recognitionRef.current && isListening) {
       try {
         recognitionRef.current.stop();
-        console.log('Speech recognition stopped');
+        console.log('Speech recognition stopped manually');
         toast.info('🔇 Voice recognition stopped');
       } catch (error) {
         console.error('Error stopping recognition:', error);
@@ -121,10 +107,14 @@ export const useSpeechRecognitionControls = ({
     
     // Clean up global flags
     (window as any).__speech_recognition_active = false;
+    setIsListening(false);
   };
 
   const resetListening = () => {
     console.log('=== Resetting voice recognition ===');
+    
+    // Set manual stop flag and abort
+    (window as any).__manual_stop = true;
     
     if (recognitionRef.current) {
       try {
@@ -140,7 +130,12 @@ export const useSpeechRecognitionControls = ({
     setIsListening(false);
     (window as any).__speech_recognition_active = false;
     
-    toast.success('Voice recognition reset');
+    // Clear manual stop flag after reset
+    setTimeout(() => {
+      (window as any).__manual_stop = false;
+    }, 1000);
+    
+    toast.success('Voice recognition reset - ready to start again');
   };
 
   return {

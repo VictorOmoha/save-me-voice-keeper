@@ -1,4 +1,3 @@
-
 import { processVoiceCommand, VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { toast } from "sonner";
 
@@ -41,53 +40,42 @@ export const setupSpeechRecognition = ({
   const recognition = new SpeechRecognition();
   (window as any).__global_recognition = recognition;
   
-  // Optimized configuration for better accuracy
+  // Optimized configuration for continuous listening
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
   recognition.maxAlternatives = 1;
   
-  console.log('🔧 Speech recognition configured with optimized settings');
+  console.log('🔧 Speech recognition configured with continuous listening');
   
-  let restartAttempts = 0;
-  const maxRestartAttempts = 3;
+  let restartTimeout: NodeJS.Timeout | null = null;
   let isProcessingCommand = false;
   
   // Event handlers
   recognition.onstart = () => {
-    console.log('🎤 Speech recognition started successfully');
+    console.log('🎤 Speech recognition started - ready for commands');
     setIsListening(true);
     (window as any).__speech_recognition_active = true;
-    restartAttempts = 0; // Reset on successful start
-    toast.success('🎤 Voice recognition active - speak your command');
+    
+    // Clear any pending restarts
+    if (restartTimeout) {
+      clearTimeout(restartTimeout);
+      restartTimeout = null;
+    }
   };
   
   recognition.onresult = (event) => {
-    if (isProcessingCommand) {
-      console.log('Already processing a command, ignoring new results');
-      return;
-    }
-
-    console.log('🎤 Voice detected! Processing results...');
+    console.log('🎤 Voice result received, processing:', event.results.length, 'results');
     
     let finalTranscript = '';
     let interimTranscript = '';
-    let maxConfidence = 0;
     
     for (let i = 0; i < event.results.length; i++) {
       const result = event.results[i];
       const transcript = result[0].transcript;
-      const confidence = result[0].confidence || 0;
-      
-      console.log(`Result ${i}:`, {
-        transcript: `"${transcript}"`,
-        confidence: confidence,
-        isFinal: result.isFinal
-      });
       
       if (result.isFinal) {
         finalTranscript += transcript;
-        maxConfidence = Math.max(maxConfidence, confidence);
       } else {
         interimTranscript += transcript;
       }
@@ -98,10 +86,14 @@ export const setupSpeechRecognition = ({
     
     // Process final results
     if (finalTranscript && finalTranscript.trim() !== lastProcessedTranscript.trim()) {
-      console.log('📝 Processing final transcript:', finalTranscript);
-      console.log('📝 Confidence level:', maxConfidence);
+      console.log('📝 Processing final command:', finalTranscript);
       
-      // Set processing flag to prevent duplicate processing
+      // Prevent duplicate processing
+      if (isProcessingCommand) {
+        console.log('📝 Already processing, skipping duplicate');
+        return;
+      }
+      
       isProcessingCommand = true;
       setLastProcessedTranscript(finalTranscript);
       
@@ -116,78 +108,62 @@ export const setupSpeechRecognition = ({
       } else if (onEnhancedVoiceInput) {
         console.log('📝 Calling onEnhancedVoiceInput with:', finalTranscript);
         onEnhancedVoiceInput(finalTranscript);
-      } else {
-        console.error('📝 No handlers available!');
       }
       
-      // Show feedback based on command recognition
+      // Show feedback
       if (command.type !== 'unknown') {
-        toast.success(`✅ Command recognized: ${command.type.replace('_', ' ')}`);
+        toast.success(`✅ Command executed: ${command.type.replace('_', ' ')}`);
       } else {
-        toast.info(`📝 Heard: "${finalTranscript}" - trying to interpret...`);
+        toast.info(`📝 Processing: "${finalTranscript}"`);
       }
       
-      // Reset processing flag and restart for next command
+      // Reset for next command after a short delay
       setTimeout(() => {
+        console.log('🔄 Resetting for next command');
         isProcessingCommand = false;
         setTranscript("");
         
-        // Auto-restart for continuous listening
-        if (recognitionRef.current && (window as any).__speech_recognition_active) {
-          try {
-            console.log('🔄 Restarting for next command...');
-            recognitionRef.current.start();
-          } catch (error) {
-            console.log('Restart failed:', error.message);
-            // Don't spam with error messages for expected restart failures
-            if (error.message.includes('already started')) {
-              console.log('Recognition already running, continuing...');
-            } else {
-              setIsListening(false);
-              (window as any).__speech_recognition_active = false;
-              toast.info('Voice recognition stopped. Click to restart.');
-            }
-          }
+        // Continue listening immediately if recognition is still active
+        if ((window as any).__speech_recognition_active && recognitionRef.current) {
+          console.log('🔄 Continuing to listen for next command...');
+          // No need to restart - continuous mode should keep listening
         }
-      }, 2000);
+      }, 1000);
     }
   };
   
   recognition.onerror = (event) => {
     console.error('🚨 Speech recognition error:', event.error);
     
-    // Handle different error types appropriately
+    // Handle different error types
     switch (event.error) {
       case 'no-speech':
-        console.log('No speech detected - this is normal');
-        // Don't show error for no-speech, just continue
+        console.log('No speech detected - continuing to listen...');
+        // Don't treat this as an error, just continue
         break;
         
       case 'aborted':
-        console.log('Speech recognition aborted - this may be intentional');
+        console.log('Speech recognition aborted');
+        setIsListening(false);
         break;
         
       case 'not-allowed':
-        toast.error('Microphone access denied. Please allow microphone access in your browser settings.');
+        toast.error('Microphone access denied. Please allow microphone access.');
         setIsListening(false);
+        (window as any).__speech_recognition_active = false;
         break;
         
       case 'network':
-        toast.error('Network error. Please check your internet connection.');
-        setIsListening(false);
-        break;
-        
-      case 'audio-capture':
-        toast.error('No microphone found. Please check your microphone connection.');
-        setIsListening(false);
+        toast.error('Network error. Retrying...');
+        // Try to restart after network error
+        scheduleRestart();
         break;
         
       default:
-        // Only show error toast for serious issues
+        console.log('Speech recognition error:', event.error);
         if (!['no-speech', 'aborted'].includes(event.error)) {
-          toast.error(`Voice recognition error: ${event.error}`);
+          scheduleRestart();
         }
-        setIsListening(false);
     }
   };
   
@@ -195,41 +171,37 @@ export const setupSpeechRecognition = ({
     console.log('🔚 Speech recognition ended');
     setIsListening(false);
     (window as any).__speech_recognition_active = false;
-    (window as any).__global_recognition = null;
     
-    // Smart restart logic
-    const shouldRestart = conversationState?.isActive && 
-                         restartAttempts < maxRestartAttempts && 
-                         recognitionRef.current &&
-                         !(window as any).__tts_is_speaking;
+    // Auto-restart for continuous listening
+    if (recognitionRef.current && !(window as any).__manual_stop) {
+      console.log('🔄 Auto-restarting speech recognition for continuous listening');
+      scheduleRestart();
+    }
+  };
+  
+  // Helper function to schedule restart with backoff
+  const scheduleRestart = () => {
+    if (restartTimeout) {
+      clearTimeout(restartTimeout);
+    }
     
-    if (shouldRestart) {
-      console.log(`Auto-restarting voice recognition (attempt ${restartAttempts + 1}/${maxRestartAttempts})`);
-      restartAttempts++;
-      
-      const attemptRestart = () => {
+    restartTimeout = setTimeout(() => {
+      if (recognitionRef.current && !(window as any).__manual_stop) {
         try {
-          if (conversationState?.isActive && recognitionRef.current) {
-            console.log('Restarting voice recognition...');
-            recognitionRef.current.start();
-          }
+          console.log('🔄 Restarting speech recognition...');
+          recognitionRef.current.start();
         } catch (error) {
           console.log('Restart failed:', error.message);
           
-          if (restartAttempts < maxRestartAttempts) {
-            // Exponential backoff for retries
-            setTimeout(attemptRestart, 1000 * Math.pow(2, restartAttempts));
+          // If restart fails, try again with longer delay
+          if (error.message.includes('already started')) {
+            console.log('Recognition already running');
           } else {
-            console.log('Max restart attempts reached');
-            toast.info('Voice recognition stopped. Click "Start Voice Commands" to continue.');
-            restartAttempts = 0;
+            setTimeout(() => scheduleRestart(), 2000);
           }
         }
-      };
-      
-      // Wait before restart to allow cleanup
-      setTimeout(attemptRestart, 1000);
-    }
+      }
+    }, 500);
   };
   
   return recognition;

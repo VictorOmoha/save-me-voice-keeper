@@ -1,14 +1,12 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Volume2 } from "lucide-react";
-import { SimpleVoiceInput } from "./SimpleVoiceInput";
-import { VoiceSettingsModal } from "./VoiceSettingsModal";
+import { Settings, Volume2, AlertCircle } from "lucide-react";
 import { VoiceDiagnostic } from "./VoiceDiagnostic";
-import { SimpleVoiceComponent } from "./SimpleVoiceComponent";
-import { VoiceDebugTest } from "./VoiceDebugTest";
-import { MicrophoneTest } from "./MicrophoneTest";
+import { VoiceSettingsModal } from "./VoiceSettingsModal";
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
+import { toast } from "sonner";
 
 interface VoiceInputFixedProps {
   onEnhancedVoiceInput: (text: string) => void;
@@ -30,11 +28,21 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   conversationData,
 }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
 
   const handleVoiceCommand = (transcript: string) => {
     console.log('🔊 VoiceInputFixed: Voice command received:', transcript);
+    
+    if (!transcript || transcript.trim().length === 0) {
+      console.log('🔊 Empty transcript, ignoring');
+      return;
+    }
+    
     const command = processVoiceCommand(transcript);
     console.log('🔊 VoiceInputFixed: Processed command:', command);
+    
+    // Update connection status
+    setConnectionStatus('connected');
     
     // Pass the transcript to the dashboard for processing
     if (onEnhancedVoiceInput) {
@@ -42,27 +50,75 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
       onEnhancedVoiceInput(transcript);
     } else {
       console.error('🔊 VoiceInputFixed: onEnhancedVoiceInput is not available!');
+      toast.error('Voice input handler not available');
+    }
+  };
+
+  const handleVoiceError = (error: string) => {
+    console.error('🔊 VoiceInputFixed: Voice error:', error);
+    setConnectionStatus('error');
+    toast.error(`Voice recognition error: ${error}`);
+  };
+
+  const handleVoiceStart = () => {
+    console.log('🔊 VoiceInputFixed: Voice recognition started');
+    setConnectionStatus('connected');
+  };
+
+  const handleVoiceEnd = () => {
+    console.log('🔊 VoiceInputFixed: Voice recognition ended');
+    setConnectionStatus('disconnected');
+  };
+
+  const getStatusColor = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'bg-green-500';
+      case 'error':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  const getStatusText = () => {
+    if (isVoiceProcessing) return 'Processing...';
+    
+    switch (connectionStatus) {
+      case 'connected':
+        return 'Listening';
+      case 'error':
+        return 'Error';
+      default:
+        return 'Ready';
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Status Display */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Volume2 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Voice Input</span>
-          {isVoiceProcessing && (
-            <Badge variant="secondary" className="text-xs">
-              Processing
-            </Badge>
-          )}
+    <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
+      {/* Header with status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${getStatusColor()} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`} />
+            <Volume2 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Voice Commands</span>
+          </div>
+          
+          <Badge 
+            variant={connectionStatus === 'connected' ? "default" : connectionStatus === 'error' ? "destructive" : "secondary"} 
+            className="text-xs"
+          >
+            {getStatusText()}
+          </Badge>
+          
           {lastVoiceCommand && (
-            <Badge variant="default" className="text-xs">
-              {lastVoiceCommand.intent || 'Ready'}
+            <Badge variant="outline" className="text-xs">
+              {lastVoiceCommand.intent || lastVoiceCommand.type || 'Command'}
             </Badge>
           )}
         </div>
+        
         <Button
           onClick={() => setShowSettingsModal(true)}
           variant="ghost"
@@ -74,10 +130,21 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
         </Button>
       </div>
 
-      {/* WORKING: Voice Commands using clean implementation */}
-      <div className="mb-4">
-        <VoiceDiagnostic onVoiceCommand={handleVoiceCommand} />
-      </div>
+      {/* Connection status message */}
+      {connectionStatus === 'error' && (
+        <div className="flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded text-sm">
+          <AlertCircle className="h-4 w-4" />
+          <span>Voice recognition encountered an error. Try refreshing or check your microphone permissions.</span>
+        </div>
+      )}
+
+      {/* Voice diagnostic component */}
+      <VoiceDiagnostic 
+        onVoiceCommand={handleVoiceCommand}
+        onVoiceError={handleVoiceError}
+        onVoiceStart={handleVoiceStart}
+        onVoiceEnd={handleVoiceEnd}
+      />
 
       {/* Voice Settings Modal */}
       <VoiceSettingsModal 

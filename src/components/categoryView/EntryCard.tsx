@@ -41,7 +41,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({
               variant="outline"
               size="sm"
               disabled={isDownloading}
-              className="text-green-600 hover:text-green-700"
+              className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
             >
               <Download className="w-4 h-4" />
             </Button>
@@ -53,7 +53,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({
             }}
             variant="outline" 
             size="sm"
-            className="text-green-600 hover:text-green-700"
+            className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
           >
             Fill Form
           </Button>
@@ -64,7 +64,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({
             }}
             variant="outline" 
             size="sm"
-            className="text-blue-600 hover:text-blue-700"
+            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
             Edit
           </Button>
@@ -75,7 +75,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({
             }}
             variant="outline" 
             size="sm"
-            className="text-red-600 hover:text-red-700"
+            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
           >
             Delete
           </Button>
@@ -85,10 +85,10 @@ export const EntryCard: React.FC<EntryCardProps> = ({
         <div className="grid gap-3">
           {Object.entries(entry.fields).map(([key, value]) => (
             <div key={key} className="flex flex-col sm:flex-row sm:items-center">
-              <span className="font-medium text-gray-700 mb-1 sm:mb-0 sm:w-1/3">
+              <span className="font-medium text-foreground mb-1 sm:mb-0 sm:w-1/3">
                 {key}:
               </span>
-              <span className="text-gray-900 sm:w-2/3">
+              <span className="text-foreground sm:w-2/3">
                 {key === 'fileSize' && typeof value === 'number' 
                   ? `${(value / 1024).toFixed(1)} KB`
                   : String(value)

@@ -26,6 +26,7 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const lastProcessedCommandRef = useRef<string>('');
   const commandCounterRef = useRef<number>(0);
+  const processedTranscriptRef = useRef<string>('');
 
   const addDebugInfo = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -35,8 +36,8 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
   };
 
   const startVoiceRecognition = () => {
-    console.log('🧪 DIAGNOSTIC: Starting voice recognition with enhanced debugging...');
-    addDebugInfo('Starting voice recognition...');
+    console.log('🧪 DIAGNOSTIC: Starting segmented voice recognition...');
+    addDebugInfo('Starting segmented voice recognition...');
     
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
@@ -49,7 +50,6 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
       return;
     }
 
-    // Stop any existing recognition
     if (recognitionRef.current) {
       recognitionRef.current.abort();
       addDebugInfo('Stopped existing recognition');
@@ -58,7 +58,6 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     
-    // Configure for continuous listening
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
@@ -69,7 +68,7 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
       addDebugInfo('Voice recognition started successfully');
       setIsListening(true);
       onVoiceStart?.();
-      toast.success('🎤 Diagnostic listening started - speak commands!');
+      toast.success('🎤 Diagnostic listening started - speak individual commands!');
     };
 
     recognition.onresult = (event) => {
@@ -91,46 +90,60 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
       setLastHeard(currentText);
       
       if (finalText && finalText.trim().length > 0) {
-        const commandNum = ++commandCounterRef.current;
-        addDebugInfo(`Command ${commandNum}: "${finalText}"`);
+        // Segment commands from the final text
+        const newText = finalText.startsWith(processedTranscriptRef.current) 
+          ? finalText.substring(processedTranscriptRef.current.length).trim()
+          : finalText;
         
-        // Strict duplicate prevention
-        if (finalText.trim() === lastProcessedCommandRef.current.trim()) {
-          addDebugInfo(`DUPLICATE DETECTED - skipping command ${commandNum}`);
-          console.log('🚫 DIAGNOSTIC: Duplicate command detected, skipping');
-          return;
-        }
+        if (!newText) return;
         
-        console.log(`🎯 DIAGNOSTIC: Processing new command ${commandNum}:`, finalText);
-        lastProcessedCommandRef.current = finalText.trim();
+        // Split into individual commands
+        const commands = newText.split(/[.!?]+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 2)
+          .filter(s => !s.toLowerCase().includes('this is a test'));
         
-        // Add to command history
-        setCommandHistory(prev => [...prev.slice(-4), `${commandNum}: ${finalText}`]);
+        if (commands.length === 0) return;
         
-        // Process the voice command
-        const command = processVoiceCommand(finalText);
-        console.log(`🎯 DIAGNOSTIC: Processed command ${commandNum}:`, command);
-        addDebugInfo(`Processed as: ${command.type}`);
+        addDebugInfo(`Found ${commands.length} commands: ${commands.join(', ')}`);
+        processedTranscriptRef.current = finalText;
         
-        // Send to parent component for processing
-        if (onVoiceCommand) {
-          console.log(`🎯 DIAGNOSTIC: Calling onVoiceCommand for command ${commandNum}`);
-          addDebugInfo(`Executing command ${commandNum}`);
-          onVoiceCommand(finalText);
-        }
+        // Process each command
+        commands.forEach((commandText, index) => {
+          setTimeout(() => {
+            const commandNum = ++commandCounterRef.current;
+            console.log(`🎯 DIAGNOSTIC: Processing command ${commandNum}:`, commandText);
+            addDebugInfo(`Command ${commandNum}: "${commandText}"`);
+            
+            // Add to command history
+            setCommandHistory(prev => [...prev.slice(-4), `${commandNum}: ${commandText}`]);
+            
+            // Process the voice command
+            const command = processVoiceCommand(commandText);
+            console.log(`🎯 DIAGNOSTIC: Processed command ${commandNum}:`, command);
+            addDebugInfo(`Processed as: ${command.type}`);
+            
+            // Send to parent component for processing
+            if (onVoiceCommand) {
+              console.log(`🎯 DIAGNOSTIC: Executing command ${commandNum}`);
+              addDebugInfo(`Executing command ${commandNum}`);
+              onVoiceCommand(commandText);
+            }
+            
+            // Show command feedback
+            if (command.type !== 'unknown') {
+              toast.success(`✅ Command ${commandNum}: ${command.type.replace('_', ' ')}`);
+            } else {
+              toast.info(`📝 Command ${commandNum}: "${commandText}"`);
+            }
+          }, index * 300); // Stagger command processing
+        });
         
-        // Show command feedback with unique identifier
-        if (command.type !== 'unknown') {
-          toast.success(`✅ Command ${commandNum}: ${command.type.replace('_', ' ')}`);
-        } else {
-          toast.info(`📝 Command ${commandNum}: "${finalText}" - processing...`);
-        }
-        
-        // Clear transcript and prepare for next command
+        // Clear transcript after processing
         setTimeout(() => {
           setLastHeard('');
-          addDebugInfo(`Ready for next command after ${commandNum}`);
-        }, 2000);
+          addDebugInfo(`Ready for next commands after batch`);
+        }, commands.length * 300 + 1000);
       }
     };
 
@@ -138,7 +151,6 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
       console.error('❌ DIAGNOSTIC: Recognition error:', event.error);
       addDebugInfo(`ERROR: ${event.error}`);
       
-      // Handle different error types
       switch (event.error) {
         case 'no-speech':
           addDebugInfo('No speech detected - continuing...');
@@ -178,7 +190,6 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
       console.log('🔚 DIAGNOSTIC: Voice recognition ended');
       addDebugInfo('Voice recognition ended - attempting restart');
       
-      // Auto-restart for continuous listening unless manually stopped
       if (isListening) {
         setTimeout(() => {
           try {
@@ -233,7 +244,8 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
     setLastHeard('');
     commandCounterRef.current = 0;
     lastProcessedCommandRef.current = '';
-    addDebugInfo('Diagnostics cleared');
+    processedTranscriptRef.current = '';
+    addDebugInfo('Diagnostics cleared - ready for segmented commands');
   };
 
   return (
@@ -241,7 +253,7 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
       <CardHeader>
         <CardTitle className="text-blue-600 flex items-center gap-2">
           <Mic className="h-5 w-5" />
-          Voice Diagnostic Tool
+          Voice Diagnostic Tool (Segmented)
           {isListening && <span className="text-green-500 text-sm">(Active)</span>}
         </CardTitle>
       </CardHeader>
@@ -254,7 +266,7 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
               size="lg"
             >
               <Mic className="h-4 w-4 mr-2" />
-              Start Diagnostic Listening
+              Start Segmented Listening
             </Button>
           ) : (
             <Button 
@@ -326,12 +338,13 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
 
         {/* Test commands */}
         <div className="text-xs text-muted-foreground space-y-1">
-          <p className="font-medium">Test Commands:</p>
+          <p className="font-medium">Test Commands (speak separately):</p>
           <ul className="list-disc list-inside space-y-1">
-            <li><strong>"create new entry"</strong></li>
             <li><strong>"open insurance"</strong></li>
+            <li><strong>"create new entry"</strong></li>
             <li><strong>"show all entries"</strong></li>
           </ul>
+          <p className="text-orange-600 font-medium">Note: Speak each command separately and clearly</p>
         </div>
       </CardContent>
     </Card>

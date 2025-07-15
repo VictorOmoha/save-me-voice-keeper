@@ -42,25 +42,45 @@ export const setupSpeechRecognition = ({
   const recognition = new SpeechRecognition();
   (window as any).__global_recognition = recognition;
   
-  // Configuration for reliable continuous listening
+  // Configuration for individual command processing
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
   recognition.maxAlternatives = 1;
   
-  console.log('🔧 SETUP: Speech recognition configured');
+  console.log('🔧 SETUP: Speech recognition configured for individual commands');
   
   let restartTimeout: NodeJS.Timeout | null = null;
   let isProcessingCommand = false;
   let commandCounter = 0;
+  let lastCompleteTranscript = '';
+  
+  // Function to segment commands from transcript
+  const segmentCommands = (transcript: string): string[] => {
+    // Remove the transcript we've already processed
+    let newText = transcript;
+    if (lastCompleteTranscript && transcript.startsWith(lastCompleteTranscript)) {
+      newText = transcript.substring(lastCompleteTranscript.length).trim();
+    }
+    
+    if (!newText) return [];
+    
+    // Split on sentence endings and command boundaries
+    const segments = newText.split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 2)
+      .filter(s => !s.toLowerCase().includes('this is a test')); // Filter out test audio
+    
+    console.log('🔍 SEGMENTED:', { originalTranscript: transcript, newText, segments });
+    return segments;
+  };
   
   // Event handlers
   recognition.onstart = () => {
-    console.log('🎤 SETUP: Speech recognition started - ready for commands');
+    console.log('🎤 SETUP: Speech recognition started - ready for individual commands');
     setIsListening(true);
     (window as any).__speech_recognition_active = true;
     
-    // Clear any pending restarts
     if (restartTimeout) {
       clearTimeout(restartTimeout);
       restartTimeout = null;
@@ -68,7 +88,7 @@ export const setupSpeechRecognition = ({
   };
   
   recognition.onresult = (event) => {
-    console.log(`🎤 SETUP: Voice result received - ${event.results.length} results, processing: ${isProcessingCommand}`);
+    console.log(`🎤 SETUP: Voice result received - ${event.results.length} results`);
     
     let finalTranscript = '';
     let interimTranscript = '';
@@ -87,76 +107,80 @@ export const setupSpeechRecognition = ({
     const currentTranscript = finalTranscript || interimTranscript;
     setTranscript(currentTranscript);
     
-    // Process final results with strict duplicate prevention
+    // Process final results with command segmentation
     if (finalTranscript && finalTranscript.trim() !== lastProcessedTranscript.trim()) {
-      console.log(`📝 SETUP: Processing final command [${++commandCounter}]:`, finalTranscript);
-      console.log(`📝 SETUP: Last processed was:`, lastProcessedTranscript);
+      console.log(`📝 SETUP: Processing final transcript:`, finalTranscript);
       
-      // Strict duplicate and processing check
       if (isProcessingCommand) {
-        console.log('⚠️ SETUP: Already processing command, skipping duplicate');
+        console.log('⚠️ SETUP: Already processing command, queuing...');
         return;
       }
       
-      // Check if this is too similar to recent command
-      const similarity = calculateSimilarity(finalTranscript.trim(), lastProcessedTranscript.trim());
-      if (similarity > 0.8 && lastProcessedTranscript.length > 0) {
-        console.log(`⚠️ SETUP: Command too similar (${similarity}), skipping:`, finalTranscript);
+      // Segment the transcript into individual commands
+      const commands = segmentCommands(finalTranscript);
+      
+      if (commands.length === 0) {
+        console.log('📝 SETUP: No new commands found');
         return;
       }
+      
+      console.log(`📝 SETUP: Found ${commands.length} commands:`, commands);
       
       isProcessingCommand = true;
       setLastProcessedTranscript(finalTranscript);
-      console.log(`🔒 SETUP: Locked processing for command [${commandCounter}]`);
+      lastCompleteTranscript = finalTranscript;
       
-      // Process the command
-      try {
-        const command = processVoiceCommand(finalTranscript);
-        console.log(`📝 SETUP: Processed command [${commandCounter}]:`, command);
-        
-        // Call the appropriate handler
-        if (onVoiceCommand) {
-          console.log(`📝 SETUP: Calling onVoiceCommand [${commandCounter}]`);
-          onVoiceCommand(command);
-        } else if (onEnhancedVoiceInput) {
-          console.log(`📝 SETUP: Calling onEnhancedVoiceInput [${commandCounter}] with:`, finalTranscript);
-          onEnhancedVoiceInput(finalTranscript);
-        }
-        
-        // Show feedback only once
-        if (command.type !== 'unknown') {
-          console.log(`✅ SETUP: Showing success toast for command [${commandCounter}]`);
-          toast.success(`✅ Command ${commandCounter}: ${command.type.replace('_', ' ')}`);
-        } else {
-          console.log(`ℹ️ SETUP: Showing info toast for command [${commandCounter}]`);
-          toast.info(`📝 Processing: "${finalTranscript}"`);
-        }
-      } catch (error) {
-        console.error(`🚨 SETUP: Error processing command [${commandCounter}]:`, error);
-        toast.error('Failed to process voice command');
-      }
-      
-      // Reset for next command with longer delay to prevent duplicates
-      setTimeout(() => {
-        console.log(`🔓 SETUP: Unlocking processing after command [${commandCounter}]`);
-        isProcessingCommand = false;
-        setTranscript("");
-        
-        // Continue listening for next command
-        if ((window as any).__speech_recognition_active && recognitionRef.current) {
-          console.log(`🔄 SETUP: Ready for next command after [${commandCounter}]`);
-        }
-      }, 2000); // Increased delay to prevent duplicates
+      // Process each command sequentially
+      commands.forEach((commandText, index) => {
+        setTimeout(() => {
+          const commandNum = ++commandCounter;
+          console.log(`🔒 SETUP: Processing command ${commandNum}: "${commandText}"`);
+          
+          try {
+            const command = processVoiceCommand(commandText);
+            console.log(`📝 SETUP: Processed command ${commandNum}:`, command);
+            
+            // Call the appropriate handler
+            if (onVoiceCommand) {
+              console.log(`📝 SETUP: Calling onVoiceCommand [${commandNum}]`);
+              onVoiceCommand(command);
+            } else if (onEnhancedVoiceInput) {
+              console.log(`📝 SETUP: Calling onEnhancedVoiceInput [${commandNum}] with:`, commandText);
+              onEnhancedVoiceInput(commandText);
+            }
+            
+            // Show feedback for each command
+            if (command.type !== 'unknown') {
+              console.log(`✅ SETUP: Command ${commandNum} executed: ${command.type}`);
+              toast.success(`✅ Command ${commandNum}: ${command.type.replace('_', ' ')}`);
+            } else {
+              console.log(`ℹ️ SETUP: Processing command ${commandNum}: "${commandText}"`);
+              toast.info(`📝 Command ${commandNum}: "${commandText}"`);
+            }
+          } catch (error) {
+            console.error(`🚨 SETUP: Error processing command ${commandNum}:`, error);
+            toast.error(`Failed to process command: "${commandText}"`);
+          }
+          
+          // Reset processing flag after the last command
+          if (index === commands.length - 1) {
+            setTimeout(() => {
+              console.log(`🔓 SETUP: Finished processing ${commands.length} commands`);
+              isProcessingCommand = false;
+              setTranscript("");
+            }, 1000);
+          }
+        }, index * 500); // Stagger command processing
+      });
     }
   };
   
   recognition.onerror = (event) => {
-    console.error(`🚨 SETUP: Speech recognition error [${commandCounter}]:`, event.error);
+    console.error(`🚨 SETUP: Speech recognition error:`, event.error);
     
-    // Handle different error types
     switch (event.error) {
       case 'no-speech':
-        console.log('🔇 SETUP: No speech detected - continuing to listen...');
+        console.log('🔇 SETUP: No speech detected - continuing...');
         break;
         
       case 'aborted':
@@ -180,7 +204,7 @@ export const setupSpeechRecognition = ({
         break;
         
       default:
-        console.log(`🚨 SETUP: Speech recognition error [${commandCounter}]:`, event.error);
+        console.log(`🚨 SETUP: Speech recognition error:`, event.error);
         if (!['no-speech', 'aborted'].includes(event.error)) {
           scheduleRestart();
         }
@@ -188,20 +212,20 @@ export const setupSpeechRecognition = ({
   };
   
   recognition.onend = () => {
-    console.log(`🔚 SETUP: Speech recognition ended [${commandCounter}]`);
+    console.log(`🔚 SETUP: Speech recognition ended`);
     setIsListening(false);
     (window as any).__speech_recognition_active = false;
     
     // Auto-restart for continuous listening if not manually stopped
     if (recognitionRef.current && !(window as any).__manual_stop && !isProcessingCommand) {
-      console.log(`🔄 SETUP: Auto-restarting after command [${commandCounter}]`);
+      console.log(`🔄 SETUP: Auto-restarting for continuous listening`);
       scheduleRestart();
     } else {
       console.log(`🚫 SETUP: Not restarting - manual stop: ${!!(window as any).__manual_stop}, processing: ${isProcessingCommand}`);
     }
   };
   
-  // Helper function to schedule restart with backoff
+  // Helper function to schedule restart
   const scheduleRestart = () => {
     if (restartTimeout) {
       clearTimeout(restartTimeout);
@@ -210,16 +234,15 @@ export const setupSpeechRecognition = ({
     restartTimeout = setTimeout(() => {
       if (recognitionRef.current && !(window as any).__manual_stop && !isProcessingCommand) {
         try {
-          console.log(`🔄 SETUP: Attempting restart after command [${commandCounter}]`);
+          console.log(`🔄 SETUP: Attempting restart`);
           recognitionRef.current.start();
         } catch (error) {
-          console.log(`❌ SETUP: Restart failed [${commandCounter}]:`, error.message);
+          console.log(`❌ SETUP: Restart failed:`, error.message);
           
           if (error.message.includes('already started')) {
             console.log('✅ SETUP: Recognition already running');
             setIsListening(true);
           } else {
-            // Retry with longer delay
             setTimeout(() => scheduleRestart(), 2000);
           }
         }
@@ -229,45 +252,3 @@ export const setupSpeechRecognition = ({
   
   return recognition;
 };
-
-// Helper function to calculate string similarity
-function calculateSimilarity(str1: string, str2: string): number {
-  if (str1 === str2) return 1;
-  if (str1.length === 0 || str2.length === 0) return 0;
-  
-  const longer = str1.length > str2.length ? str1 : str2;
-  const shorter = str1.length > str2.length ? str2 : str1;
-  
-  if (longer.length === 0) return 1;
-  
-  const distance = levenshteinDistance(longer, shorter);
-  return (longer.length - distance) / longer.length;
-}
-
-function levenshteinDistance(str1: string, str2: string): number {
-  const matrix = [];
-  
-  for (let i = 0; i <= str2.length; i++) {
-    matrix[i] = [i];
-  }
-  
-  for (let j = 0; j <= str1.length; j++) {
-    matrix[0][j] = j;
-  }
-  
-  for (let i = 1; i <= str2.length; i++) {
-    for (let j = 1; j <= str1.length; j++) {
-      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
-        );
-      }
-    }
-  }
-  
-  return matrix[str2.length][str1.length];
-}

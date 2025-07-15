@@ -18,6 +18,7 @@ export const SubscriptionSettings = () => {
     {
       name: 'Free',
       price: '$0',
+      period: 'Forever',
       storage: '500 MB',
       features: ['Basic data entry', 'CSV export', 'Limited templates'],
       icon: CreditCard,
@@ -25,7 +26,8 @@ export const SubscriptionSettings = () => {
     },
     {
       name: 'Basic',
-      price: '$9.99/month',
+      price: '$9',
+      period: 'per month',
       storage: '5 GB',
       features: ['Advanced forms', 'Voice input', 'Custom fields', 'Priority support'],
       icon: Zap,
@@ -33,7 +35,8 @@ export const SubscriptionSettings = () => {
     },
     {
       name: 'Premium',
-      price: '$19.99/month',
+      price: '$19',
+      period: 'per month',
       storage: '50 GB',
       features: ['Automation', 'API access', 'Advanced analytics', 'Custom branding'],
       icon: Crown,
@@ -42,6 +45,7 @@ export const SubscriptionSettings = () => {
     {
       name: 'Enterprise',
       price: 'Contact us',
+      period: 'Custom billing',
       storage: '500 GB',
       features: ['SSO', 'Admin controls', 'Custom integrations', 'Dedicated support'],
       icon: Building,
@@ -70,7 +74,12 @@ export const SubscriptionSettings = () => {
           <div>
             <p className="font-medium text-sm">{currentPlan.name} Plan</p>
             <p className="text-xs text-muted-foreground">
-              {currentPlan.price} • Storage: {currentPlan.storage}
+              {currentPlan.price}{currentPlan.period !== 'Forever' && currentPlan.period !== 'Custom billing' ? `/${currentPlan.period.replace('per ', '')}` : ''} • Storage: {currentPlan.storage}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {currentPlan.period === 'Forever' ? 'No recurring charges' : 
+               currentPlan.period === 'Custom billing' ? 'Custom billing terms' : 
+               'Monthly billing'}
             </p>
           </div>
           <Badge className="bg-primary text-primary-foreground">Current</Badge>
@@ -86,6 +95,9 @@ export const SubscriptionSettings = () => {
             <DialogContent className="max-w-4xl">
               <DialogHeader>
                 <DialogTitle>Choose Your Plan</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  Clear pricing • Monthly billing • Cancel anytime • 14-day free trial on paid plans
+                </p>
               </DialogHeader>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {plans.map((plan) => {
@@ -100,7 +112,17 @@ export const SubscriptionSettings = () => {
                         <h3 className="font-semibold">{plan.name}</h3>
                         {plan.current && <Badge variant="secondary">Current</Badge>}
                       </div>
-                      <p className="text-lg font-bold mb-2">{plan.price}</p>
+                      <div className="flex items-baseline mb-2">
+                        <span className="text-lg font-bold">{plan.price}</span>
+                        {plan.period !== 'Forever' && plan.period !== 'Custom billing' && (
+                          <span className="text-sm text-muted-foreground ml-1">/{plan.period.replace('per ', '')}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {plan.period === 'Forever' ? 'No recurring charges' : 
+                         plan.period === 'Custom billing' ? 'Custom terms' : 
+                         'Billed monthly'}
+                      </p>
                       <p className="text-sm text-muted-foreground mb-3">Storage: {plan.storage}</p>
                       <ul className="space-y-1 mb-4">
                         {plan.features.map((feature, index) => (
@@ -116,6 +138,11 @@ export const SubscriptionSettings = () => {
                       >
                         {plan.current ? 'Current Plan' : 'Select Plan'}
                       </Button>
+                      {!plan.current && plan.name !== "Free" && plan.name !== "Enterprise" && (
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                          14-day free trial
+                        </p>
+                      )}
                     </div>
                   );
                 })}

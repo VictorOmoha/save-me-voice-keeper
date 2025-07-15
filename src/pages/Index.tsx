@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ const Index = () => {
     {
       name: "Free",
       price: "$0",
+      period: "Forever",
       description: "Perfect for getting started",
       features: [
         "Up to 50 entries",
@@ -82,6 +84,7 @@ const Index = () => {
     {
       name: "Basic",
       price: "$9",
+      period: "per month",
       description: "For personal power users",
       features: [
         "Unlimited entries",
@@ -95,6 +98,7 @@ const Index = () => {
     {
       name: "Premium",
       price: "$19",
+      period: "per month",
       description: "For teams and professionals",
       features: [
         "Everything in Basic",
@@ -335,8 +339,11 @@ const Index = () => {
       {/* Pricing Section */}
       <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900/50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Choose Your Plan</h2>
-          <p className="text-muted-foreground text-center mb-12">Start free, upgrade when you need more power</p>
+          <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Simple, Transparent Pricing</h2>
+          <p className="text-muted-foreground text-center mb-2">Choose the plan that works for you</p>
+          <p className="text-sm text-muted-foreground text-center mb-12">
+            • Monthly billing • Cancel anytime • No hidden fees • 14-day free trial on paid plans
+          </p>
           
           <div className="grid md:grid-cols-3 gap-8">
             {plans.map((plan, index) => (
@@ -350,8 +357,14 @@ const Index = () => {
                 )}
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl text-card-foreground">{plan.name}</CardTitle>
-                  <div className="text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">{plan.price}</div>
-                  <CardDescription className="text-muted-foreground">{plan.description}</CardDescription>
+                  <div className="flex items-baseline justify-center mb-2">
+                    <span className="text-4xl font-bold text-blue-600 dark:text-blue-400">{plan.price}</span>
+                    <span className="text-lg text-muted-foreground ml-1">/{plan.period === "Forever" ? "forever" : "month"}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground font-medium">
+                    {plan.period === "Forever" ? "No recurring charges" : "Billed monthly"}
+                  </div>
+                  <CardDescription className="text-muted-foreground mt-2">{plan.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 mb-6">
@@ -367,11 +380,25 @@ const Index = () => {
                     variant={plan.popular ? 'gradient' : 'outline'}
                     onClick={() => setIsWaitingListModalOpen(true)}
                   >
-                    Join Waiting List
+                    {plan.name === "Free" ? "Get Started Free" : `Start ${plan.name} Plan`}
                   </Button>
+                  {plan.name !== "Free" && (
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      14-day free trial included
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             ))}
+          </div>
+          
+          <div className="text-center mt-12">
+            <p className="text-sm text-muted-foreground mb-4">
+              All paid plans include a 14-day free trial. No credit card required to start.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Need something custom? <a href="mailto:contact@saveme.app" className="text-blue-600 dark:text-blue-400 hover:underline">Contact us</a> for enterprise solutions.
+            </p>
           </div>
         </div>
       </section>

@@ -19,6 +19,7 @@ const Subscription = () => {
     {
       name: "Free",
       price: "$0",
+      period: "Forever",
       description: "Perfect for getting started",
       features: [
         "Up to 50 entries",
@@ -31,6 +32,7 @@ const Subscription = () => {
     {
       name: "Basic",
       price: "$9",
+      period: "per month",
       description: "For personal power users",
       features: [
         "Unlimited entries",
@@ -44,6 +46,7 @@ const Subscription = () => {
     {
       name: "Premium",
       price: "$19",
+      period: "per month",
       description: "For teams and professionals",
       features: [
         "Everything in Basic",
@@ -130,8 +133,14 @@ const Subscription = () => {
               )}
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                <div className="text-4xl font-bold text-blue-600 mb-2">{plan.price}</div>
-                <CardDescription>{plan.description}</CardDescription>
+                <div className="flex items-baseline justify-center mb-2">
+                  <span className="text-4xl font-bold text-blue-600">{plan.price}</span>
+                  <span className="text-lg text-gray-500 ml-1">/{plan.period === "Forever" ? "forever" : "month"}</span>
+                </div>
+                <div className="text-sm text-gray-500 font-medium">
+                  {plan.period === "Forever" ? "No recurring charges" : "Billed monthly"}
+                </div>
+                <CardDescription className="mt-2">{plan.description}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
@@ -149,10 +158,43 @@ const Subscription = () => {
                 >
                   {plan.current ? 'Current Plan' : `Upgrade to ${plan.name}`}
                 </Button>
+                {!plan.current && plan.name !== "Free" && (
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    14-day free trial included
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
+
+        {/* Billing Information */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Billing Information</CardTitle>
+            <CardDescription>Pricing details and payment terms</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 text-sm text-gray-600">
+              <div className="flex justify-between">
+                <span>Billing Cycle:</span>
+                <span className="font-medium">Monthly (cancel anytime)</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Free Trial:</span>
+                <span className="font-medium">14 days on paid plans</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Payment Methods:</span>
+                <span className="font-medium">Credit/Debit Cards, PayPal</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Refund Policy:</span>
+                <span className="font-medium">Pro-rated refunds available</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Billing History */}
         <Card className="mt-8">

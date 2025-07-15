@@ -339,8 +339,13 @@ const Index = () => {
       {/* Pricing Section */}
       <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900/50">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Simple, Transparent Pricing</h2>
-          <p className="text-muted-foreground text-center mb-2">Choose the plan that works for you</p>
+          <h2 className="text-3xl font-bold text-center mb-4 text-foreground">Planned Pricing</h2>
+          <p className="text-muted-foreground text-center mb-2">Join our waiting list to get early access when we launch</p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-8 max-w-2xl mx-auto">
+            <p className="text-sm text-blue-800 dark:text-blue-200 text-center">
+              🚀 <strong>Save Me is coming soon!</strong> These are our planned pricing tiers. Join the waiting list to be notified when we launch and get early access to these features.
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground text-center mb-12">
             • Monthly billing • Cancel anytime • No hidden fees • 14-day free trial on paid plans
           </p>
@@ -380,13 +385,11 @@ const Index = () => {
                     variant={plan.popular ? 'gradient' : 'outline'}
                     onClick={() => setIsWaitingListModalOpen(true)}
                   >
-                    {plan.name === "Free" ? "Get Started Free" : `Start ${plan.name} Plan`}
+                    Join Waiting List
                   </Button>
-                  {plan.name !== "Free" && (
-                    <p className="text-xs text-muted-foreground text-center mt-2">
-                      14-day free trial included
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Get notified when Save Me launches
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -394,10 +397,10 @@ const Index = () => {
           
           <div className="text-center mt-12">
             <p className="text-sm text-muted-foreground mb-4">
-              All paid plans include a 14-day free trial. No credit card required to start.
+              Join our waiting list to be the first to know when Save Me launches with these pricing plans.
             </p>
             <p className="text-xs text-muted-foreground">
-              Need something custom? <a href="mailto:contact@saveme.app" className="text-blue-600 dark:text-blue-400 hover:underline">Contact us</a> for enterprise solutions.
+              Have questions? <a href="mailto:contact@saveme.app" className="text-blue-600 dark:text-blue-400 hover:underline">Contact us</a> for more information.
             </p>
           </div>
         </div>

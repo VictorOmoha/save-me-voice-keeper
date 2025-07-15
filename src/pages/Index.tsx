@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sun, Moon, Mic, RefreshCcw, Zap } from "lucide-react";
+import { Check, Sun, Moon, Mic, RefreshCcw, Zap, Users, Briefcase, User, Brain } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListModal } from "@/components/WaitingListModal";
@@ -197,6 +196,169 @@ const Index = () => {
             >
               {activeDemoVideo ? "Watch Demo" : "Demo Coming Soon"}
             </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Who Is This For Section */}
+      <section className="py-20 px-4 bg-white dark:bg-gray-900/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+              Who Is Save Me For?
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Save Me is designed for anyone who struggles to keep track of important information across their personal and professional life
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Busy Professionals */}
+            <Card className="text-center hover:shadow-lg transition-shadow bg-card border-border">
+              <CardHeader>
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Briefcase className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <CardTitle className="text-lg text-card-foreground">Busy Professionals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Executives, consultants, and managers who need to remember client details, meeting notes, and project information on-the-go.
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1 text-left">
+                  <li>• Client contact details</li>
+                  <li>• Meeting action items</li>
+                  <li>• Project milestones</li>
+                  <li>• Travel information</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Entrepreneurs & Freelancers */}
+            <Card className="text-center hover:shadow-lg transition-shadow bg-card border-border">
+              <CardHeader>
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <User className="w-8 h-8 text-green-600 dark:text-green-400" />
+                </div>
+                <CardTitle className="text-lg text-card-foreground">Entrepreneurs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Solo entrepreneurs and freelancers juggling multiple clients, projects, and business ideas without a team to help organize.
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1 text-left">
+                  <li>• Business ideas</li>
+                  <li>• Client requirements</li>
+                  <li>• Financial records</li>
+                  <li>• Network contacts</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Students & Researchers */}
+            <Card className="text-center hover:shadow-lg transition-shadow bg-card border-border">
+              <CardHeader>
+                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Brain className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                </div>
+                <CardTitle className="text-lg text-card-foreground">Students & Researchers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Students, academics, and researchers who need to organize vast amounts of information, references, and ideas.
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1 text-left">
+                  <li>• Research notes</li>
+                  <li>• Book references</li>
+                  <li>• Study materials</li>
+                  <li>• Assignment deadlines</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Families & Personal Users */}
+            <Card className="text-center hover:shadow-lg transition-shadow bg-card border-border">
+              <CardHeader>
+                <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                </div>
+                <CardTitle className="text-lg text-card-foreground">Families & Personal Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Parents, caregivers, and individuals managing household information, family schedules, and personal interests.
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1 text-left">
+                  <li>• Family schedules</li>
+                  <li>• Medical information</li>
+                  <li>• Recipe collections</li>
+                  <li>• Home maintenance</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Common Pain Points */}
+          <div className="mt-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-center mb-8 text-foreground">
+              Do Any of These Sound Familiar?
+            </h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-muted-foreground">
+                    <strong className="text-foreground">Information scattered everywhere:</strong> Notes in different apps, emails, sticky notes, and scraps of paper
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-muted-foreground">
+                    <strong className="text-foreground">Can't find what you need:</strong> Spending precious time searching through multiple apps and folders
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-muted-foreground">
+                    <strong className="text-foreground">Device switching frustration:</strong> Information saved on one device but needed on another
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-muted-foreground">
+                    <strong className="text-foreground">No time to organize:</strong> Too busy to set up complex systems or learn new tools
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-muted-foreground">
+                    <strong className="text-foreground">Information overload:</strong> Drowning in data with no good way to make sense of it all
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-muted-foreground">
+                    <strong className="text-foreground">Forgetting important details:</strong> Missing deadlines, appointments, or key information when you need it most
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center mt-8">
+              <p className="text-lg text-foreground font-semibold mb-4">
+                If you nodded along to any of these, Save Me is built for you.
+              </p>
+              <Button 
+                size="lg" 
+                variant="gradient"
+                className="px-8 py-3"
+                onClick={() => setIsWaitingListModalOpen(true)}
+              >
+                Join the Waiting List
+              </Button>
+            </div>
           </div>
         </div>
       </section>

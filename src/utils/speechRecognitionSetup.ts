@@ -44,7 +44,7 @@ export const setupSpeechRecognition = ({
   
   // Configuration for individual command processing
   recognition.continuous = true;
-  recognition.interimResults = true;
+  recognition.interimResults = false; // Only process final results
   recognition.lang = 'en-US';
   recognition.maxAlternatives = 1;
   
@@ -53,25 +53,33 @@ export const setupSpeechRecognition = ({
   let restartTimeout: NodeJS.Timeout | null = null;
   let isProcessingCommand = false;
   let commandCounter = 0;
-  let lastCompleteTranscript = '';
+  let processedCommands = new Set<string>();
   
-  // Function to segment commands from transcript
-  const segmentCommands = (transcript: string): string[] => {
-    // Remove the transcript we've already processed
-    let newText = transcript;
-    if (lastCompleteTranscript && transcript.startsWith(lastCompleteTranscript)) {
-      newText = transcript.substring(lastCompleteTranscript.length).trim();
+  // Clear processed commands periodically to allow repeated commands
+  setInterval(() => {
+    processedCommands.clear();
+    console.log('🧹 SETUP: Cleared processed commands cache');
+  }, 30000); // Clear every 30 seconds
+  
+  // Function to segment and clean commands
+  const processCommand = (transcript: string): string[] => {
+    console.log('🔍 SETUP: Raw transcript:', transcript);
+    
+    // Filter out test audio immediately
+    if (transcript.toLowerCase().includes('this is a test of your voice settings')) {
+      console.log('🎭 SETUP: Filtering out test audio');
+      return [];
     }
     
-    if (!newText) return [];
-    
-    // Split on sentence endings and command boundaries
-    const segments = newText.split(/[.!?]+/)
+    // Split on sentence boundaries and clean up
+    const segments = transcript
+      .split(/[.!?]+/)
       .map(s => s.trim())
       .filter(s => s.length > 2)
-      .filter(s => !s.toLowerCase().includes('this is a test')); // Filter out test audio
+      .filter(s => !s.toLowerCase().includes('this is a test'))
+      .filter(s => !processedCommands.has(s.toLowerCase()));
     
-    console.log('🔍 SEGMENTED:', { originalTranscript: transcript, newText, segments });
+    console.log('🔍 SETUP: Segmented commands:', segments);
     return segments;
   };
   
@@ -90,89 +98,88 @@ export const setupSpeechRecognition = ({
   recognition.onresult = (event) => {
     console.log(`🎤 SETUP: Voice result received - ${event.results.length} results`);
     
-    let finalTranscript = '';
-    let interimTranscript = '';
-    
-    for (let i = 0; i < event.results.length; i++) {
-      const result = event.results[i];
-      const transcript = result[0].transcript;
-      
-      if (result.isFinal) {
-        finalTranscript += transcript;
-      } else {
-        interimTranscript += transcript;
-      }
+    // Only process the latest final result
+    const latestResult = event.results[event.results.length - 1];
+    if (!latestResult.isFinal) {
+      return;
     }
     
-    const currentTranscript = finalTranscript || interimTranscript;
-    setTranscript(currentTranscript);
+    const transcript = latestResult[0].transcript.trim();
+    console.log(`📝 SETUP: Final transcript: "${transcript}"`);
     
-    // Process final results with command segmentation
-    if (finalTranscript && finalTranscript.trim() !== lastProcessedTranscript.trim()) {
-      console.log(`📝 SETUP: Processing final transcript:`, finalTranscript);
-      
-      if (isProcessingCommand) {
-        console.log('⚠️ SETUP: Already processing command, queuing...');
-        return;
-      }
-      
-      // Segment the transcript into individual commands
-      const commands = segmentCommands(finalTranscript);
-      
-      if (commands.length === 0) {
-        console.log('📝 SETUP: No new commands found');
-        return;
-      }
-      
-      console.log(`📝 SETUP: Found ${commands.length} commands:`, commands);
-      
-      isProcessingCommand = true;
-      setLastProcessedTranscript(finalTranscript);
-      lastCompleteTranscript = finalTranscript;
-      
-      // Process each command sequentially
-      commands.forEach((commandText, index) => {
-        setTimeout(() => {
-          const commandNum = ++commandCounter;
-          console.log(`🔒 SETUP: Processing command ${commandNum}: "${commandText}"`);
-          
-          try {
-            const command = processVoiceCommand(commandText);
-            console.log(`📝 SETUP: Processed command ${commandNum}:`, command);
-            
-            // Call the appropriate handler
-            if (onVoiceCommand) {
-              console.log(`📝 SETUP: Calling onVoiceCommand [${commandNum}]`);
-              onVoiceCommand(command);
-            } else if (onEnhancedVoiceInput) {
-              console.log(`📝 SETUP: Calling onEnhancedVoiceInput [${commandNum}] with:`, commandText);
-              onEnhancedVoiceInput(commandText);
-            }
-            
-            // Show feedback for each command
-            if (command.type !== 'unknown') {
-              console.log(`✅ SETUP: Command ${commandNum} executed: ${command.type}`);
-              toast.success(`✅ Command ${commandNum}: ${command.type.replace('_', ' ')}`);
-            } else {
-              console.log(`ℹ️ SETUP: Processing command ${commandNum}: "${commandText}"`);
-              toast.info(`📝 Command ${commandNum}: "${commandText}"`);
-            }
-          } catch (error) {
-            console.error(`🚨 SETUP: Error processing command ${commandNum}:`, error);
-            toast.error(`Failed to process command: "${commandText}"`);
-          }
-          
-          // Reset processing flag after the last command
-          if (index === commands.length - 1) {
-            setTimeout(() => {
-              console.log(`🔓 SETUP: Finished processing ${commands.length} commands`);
-              isProcessingCommand = false;
-              setTranscript("");
-            }, 1000);
-          }
-        }, index * 500); // Stagger command processing
-      });
+    if (!transcript || transcript === lastProcessedTranscript) {
+      console.log('📝 SETUP: Skipping empty or duplicate transcript');
+      return;
     }
+    
+    if (isProcessingCommand) {
+      console.log('⚠️ SETUP: Already processing command, skipping...');
+      return;
+    }
+    
+    // Process the command
+    const commands = processCommand(transcript);
+    
+    if (commands.length === 0) {
+      console.log('📝 SETUP: No valid commands found');
+      return;
+    }
+    
+    isProcessingCommand = true;
+    setLastProcessedTranscript(transcript);
+    
+    // Process each command individually
+    commands.forEach((commandText, index) => {
+      setTimeout(() => {
+        const commandNum = ++commandCounter;
+        console.log(`🔒 SETUP: Processing command ${commandNum}: "${commandText}"`);
+        
+        // Mark as processed to prevent duplicates
+        processedCommands.add(commandText.toLowerCase());
+        
+        // Dispatch to diagnostic
+        window.dispatchEvent(new CustomEvent('voice-command-processed', {
+          detail: { 
+            commandNumber: commandNum,
+            command: commandText,
+            timestamp: new Date().toLocaleTimeString()
+          }
+        }));
+        
+        try {
+          const command = processVoiceCommand(commandText);
+          console.log(`📝 SETUP: Processed command ${commandNum}:`, command);
+          
+          // Call the appropriate handler
+          if (onEnhancedVoiceInput) {
+            console.log(`📝 SETUP: Calling onEnhancedVoiceInput [${commandNum}] with:`, commandText);
+            onEnhancedVoiceInput(commandText);
+          } else if (onVoiceCommand) {
+            console.log(`📝 SETUP: Calling onVoiceCommand [${commandNum}]`);
+            onVoiceCommand(command);
+          }
+          
+          // Show feedback for each command
+          if (command.type !== 'unknown') {
+            console.log(`✅ SETUP: Command ${commandNum} executed: ${command.type}`);
+          } else {
+            console.log(`ℹ️ SETUP: Processing command ${commandNum}: "${commandText}"`);
+          }
+        } catch (error) {
+          console.error(`🚨 SETUP: Error processing command ${commandNum}:`, error);
+          toast.error(`Failed to process command: "${commandText}"`);
+        }
+        
+        // Reset processing flag after the last command
+        if (index === commands.length - 1) {
+          setTimeout(() => {
+            console.log(`🔓 SETUP: Finished processing ${commands.length} commands`);
+            isProcessingCommand = false;
+            setTranscript("");
+          }, 1000);
+        }
+      }, index * 200); // Reduced delay for faster processing
+    });
   };
   
   recognition.onerror = (event) => {

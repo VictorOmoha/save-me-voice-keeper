@@ -15,6 +15,8 @@ interface UseDashboardVoiceProps {
   fillEntry: (entry: SavedEntry) => void;
   handleCancelEdit: () => void;
   saveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  editingEntry?: SavedEntry | null;
+  fillingEntry?: SavedEntry | null;
 }
 
 export const useDashboardVoice = ({
@@ -28,6 +30,8 @@ export const useDashboardVoice = ({
   fillEntry,
   handleCancelEdit,
   saveEntry,
+  editingEntry,
+  fillingEntry,
 }: UseDashboardVoiceProps) => {
   const handleVoiceCommand = (command: VoiceCommand) => {
     console.log('Executing voice command:', command);
@@ -188,14 +192,35 @@ export const useDashboardVoice = ({
       case 'cancel':
         console.log('Close/Cancel command received in dashboard');
         
-        // Comprehensive close functionality for dashboard
+        // Enhanced close functionality - check for any open forms
+        let formClosed = false;
+        let closeMessage = '';
+        
         if (showAddEntry) {
-          handleCancelEdit(); // Close any edit forms
-          const closeFormMessage = 'Form closed';
-          toast.success(closeFormMessage);
-          speak(closeFormMessage);
+          console.log('Closing add entry form');
+          setShowAddEntry(false);
+          closeMessage = 'Add entry form closed';
+          formClosed = true;
+        } else if (editingEntry) {
+          console.log('Closing edit entry form');
+          setEditingEntry(null);
+          closeMessage = 'Edit entry form closed';
+          formClosed = true;
+        } else if (fillingEntry) {
+          console.log('Closing fill entry form');
+          setFillingEntry(null);
+          closeMessage = 'Fill entry form closed';
+          formClosed = true;
+        }
+        
+        // If we found and closed a form, use handleCancelEdit to ensure proper cleanup
+        if (formClosed) {
+          handleCancelEdit();
+          toast.success(closeMessage);
+          speak(closeMessage);
         } else {
-          const generalCloseMessage = 'Closing current view';
+          // No specific form to close, general close action
+          const generalCloseMessage = 'Nothing to close';
           toast.info(generalCloseMessage);
           speak(generalCloseMessage);
         }

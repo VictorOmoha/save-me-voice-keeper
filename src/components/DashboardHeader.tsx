@@ -1,9 +1,7 @@
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
-  Search,
   Mic, 
   Bell, 
   Sun, 
@@ -15,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import { VoiceInputFixed } from "@/components/VoiceInputFixed";
-import { VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { SmartSearch } from "@/components/SmartSearch";
+import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardHeaderProps {
   searchQuery: string;
@@ -28,6 +27,7 @@ interface DashboardHeaderProps {
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
   conversationData?: { isActive: boolean; currentStep?: { question: string } };
+  savedEntries?: SavedEntry[];
 }
 
 export const DashboardHeader = ({
@@ -41,6 +41,7 @@ export const DashboardHeader = ({
   hasPendingConfirmation,
   onCancelVoice,
   conversationData,
+  savedEntries = [],
 }: DashboardHeaderProps) => {
   const { theme, setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -70,21 +71,25 @@ export const DashboardHeader = ({
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'U';
 
+  const handleSuggestionSelect = (suggestion: any) => {
+    console.log('Selected suggestion:', suggestion);
+    // You can add additional logic here if needed
+  };
+
   return (
     <>
       <header className="bg-background border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* Search Bar */}
+          {/* Smart Search Bar */}
           <div className="flex items-center flex-1 max-w-md">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search your entries..."
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-10 bg-muted/50 border-0 focus-visible:ring-1"
-              />
-            </div>
+            <SmartSearch
+              entries={savedEntries}
+              searchQuery={searchQuery}
+              onSearchChange={onSearchChange}
+              onSuggestionSelect={handleSuggestionSelect}
+              placeholder="Search your entries..."
+              className="w-full"
+            />
           </div>
 
           {/* Right Side Icons */}

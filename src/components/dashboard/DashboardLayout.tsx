@@ -55,6 +55,7 @@ export const DashboardLayout = ({
           searchQuery={searchQuery}
           onSearchChange={onSearchChange}
           userName={userName}
+          savedEntries={savedEntries}
           onEnhancedVoiceInput={onEnhancedVoiceInput}
           isVoiceProcessing={isVoiceProcessing}
           lastVoiceCommand={lastVoiceCommand}

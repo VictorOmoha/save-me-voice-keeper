@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Volume2, AlertCircle } from "lucide-react";
+import { Settings, Volume2, AlertCircle, RefreshCw } from "lucide-react";
 import { VoiceDiagnostic } from "./VoiceDiagnostic";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
@@ -22,13 +22,14 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   onEnhancedVoiceInput,
   isVoiceProcessing,
   lastVoiceCommand,
-  conversationState,
+  conversationState = 'idle',
   hasPendingConfirmation,
   onCancelVoice,
   conversationData,
 }) => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
+  const [lastProcessedCommand, setLastProcessedCommand] = useState<string>('');
 
   const handleVoiceCommand = (transcript: string) => {
     console.log('🔊 VoiceInputFixed: Voice command received:', transcript);
@@ -38,10 +39,18 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
       return;
     }
     
+    // Prevent processing duplicate commands
+    if (transcript === lastProcessedCommand) {
+      console.log('🔊 Duplicate command, ignoring');
+      return;
+    }
+    
+    setLastProcessedCommand(transcript);
+    
     const command = processVoiceCommand(transcript);
     console.log('🔊 VoiceInputFixed: Processed command:', command);
     
-    // Update connection status
+    // Update connection status to show activity
     setConnectionStatus('connected');
     
     // Pass the transcript to the dashboard for processing
@@ -52,6 +61,11 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
       console.error('🔊 VoiceInputFixed: onEnhancedVoiceInput is not available!');
       toast.error('Voice input handler not available');
     }
+    
+    // Clear the processed command after a delay to allow new commands
+    setTimeout(() => {
+      setLastProcessedCommand('');
+    }, 3000);
   };
 
   const handleVoiceError = (error: string) => {
@@ -67,7 +81,17 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
 
   const handleVoiceEnd = () => {
     console.log('🔊 VoiceInputFixed: Voice recognition ended');
+    // Don't immediately set to disconnected as it might restart
+    setTimeout(() => {
+      setConnectionStatus('disconnected');
+    }, 1000);
+  };
+
+  const handleReset = () => {
+    console.log('🔊 VoiceInputFixed: Resetting voice system');
     setConnectionStatus('disconnected');
+    setLastProcessedCommand('');
+    toast.info('Voice system reset');
   };
 
   const getStatusColor = () => {
@@ -119,22 +143,48 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
           )}
         </div>
         
-        <Button
-          onClick={() => setShowSettingsModal(true)}
-          variant="ghost"
-          size="sm"
-          className="text-xs"
-        >
-          <Settings className="h-3 w-3 mr-1" />
-          Settings
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleReset}
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+            title="Reset voice system"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Reset
+          </Button>
+          
+          <Button
+            onClick={() => setShowSettingsModal(true)}
+            variant="ghost"
+            size="sm"
+            className="text-xs"
+          >
+            <Settings className="h-3 w-3 mr-1" />
+            Settings
+          </Button>
+        </div>
       </div>
 
       {/* Connection status message */}
       {connectionStatus === 'error' && (
         <div className="flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded text-sm">
           <AlertCircle className="h-4 w-4" />
-          <span>Voice recognition encountered an error. Try refreshing or check your microphone permissions.</span>
+          <span>Voice recognition encountered an error. Try clicking "Reset" or check your microphone permissions.</span>
+        </div>
+      )}
+
+      {/* Pending confirmation indicator */}
+      {hasPendingConfirmation && (
+        <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded text-sm">
+          <AlertCircle className="h-4 w-4" />
+          <span>Waiting for confirmation. Say "yes" to proceed or "no" to cancel.</span>
+          {onCancelVoice && (
+            <Button onClick={onCancelVoice} variant="outline" size="sm" className="ml-auto">
+              Cancel
+            </Button>
+          )}
         </div>
       )}
 

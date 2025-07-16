@@ -19,7 +19,7 @@ export const useSpeechRecognitionControls = ({
   setIsListening,
 }: UseSpeechRecognitionControlsProps) => {
   const startListening = async () => {
-    console.log('=== Starting continuous voice recognition ===');
+    console.log('=== Starting voice recognition ===');
     
     if (!isSupported) {
       toast.error('Speech recognition not supported in this browser');
@@ -63,7 +63,7 @@ export const useSpeechRecognitionControls = ({
     }
     
     try {
-      console.log('Starting continuous speech recognition...');
+      console.log('Starting speech recognition...');
       
       // Clear manual stop flag and reset state
       (window as any).__manual_stop = false;
@@ -72,9 +72,9 @@ export const useSpeechRecognitionControls = ({
       
       // Start recognition
       recognitionRef.current.start();
-      console.log('Speech recognition started for continuous listening');
+      console.log('Speech recognition started successfully');
       
-      toast.success('🎤 Voice recognition active - say your commands!');
+      toast.success('🎤 Voice recognition active - speak your command!');
       
     } catch (error) {
       console.error('Error starting speech recognition:', error);
@@ -97,6 +97,11 @@ export const useSpeechRecognitionControls = ({
     
     if (recognitionRef.current && isListening) {
       try {
+        // Call cleanup if available
+        if ((recognitionRef.current as any).cleanup) {
+          (recognitionRef.current as any).cleanup();
+        }
+        
         recognitionRef.current.stop();
         console.log('Speech recognition stopped manually');
         toast.info('🔇 Voice recognition stopped');
@@ -118,6 +123,11 @@ export const useSpeechRecognitionControls = ({
     
     if (recognitionRef.current) {
       try {
+        // Call cleanup if available
+        if ((recognitionRef.current as any).cleanup) {
+          (recognitionRef.current as any).cleanup();
+        }
+        
         recognitionRef.current.abort();
       } catch (error) {
         console.error('Error aborting recognition:', error);
@@ -129,6 +139,7 @@ export const useSpeechRecognitionControls = ({
     setLastProcessedTranscript("");
     setIsListening(false);
     (window as any).__speech_recognition_active = false;
+    (window as any).__processed_commands = new Set();
     
     // Clear manual stop flag after reset
     setTimeout(() => {

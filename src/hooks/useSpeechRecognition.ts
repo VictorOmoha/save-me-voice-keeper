@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { useTTSEventHandler } from './useTTSEventHandler';
@@ -21,6 +22,7 @@ export const useSpeechRecognition = ({
   const [isSupported, setIsSupported] = useState(false);
   const [lastProcessedTranscript, setLastProcessedTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const isInitialized = useRef(false);
 
   // Handle TTS completion events
   useTTSEventHandler({
@@ -30,12 +32,15 @@ export const useSpeechRecognition = ({
     setIsListening,
   });
 
-  // Set up speech recognition
+  // Set up speech recognition only once
   useEffect(() => {
+    if (isInitialized.current) return;
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       setIsSupported(true);
       
+      console.log('🔧 SETUP: Initializing speech recognition');
       const recognition = setupSpeechRecognition({
         onVoiceCommand,
         onEnhancedVoiceInput,
@@ -49,37 +54,46 @@ export const useSpeechRecognition = ({
       
       if (recognition) {
         recognitionRef.current = recognition;
+        isInitialized.current = true;
+        console.log('✅ SETUP: Speech recognition initialized successfully');
       }
+    } else {
+      console.warn('Speech recognition not supported in this browser');
     }
     
     // Add listener for forced voice restart when form opens
     const handleForceRestart = (event: CustomEvent) => {
       console.log('Force voice restart event received:', event.detail);
-      if (event.detail.conversationActive && recognitionRef.current) {
+      if (event.detail.conversationActive && recognitionRef.current && !isListening) {
         setTimeout(() => {
           try {
-            if (recognitionRef.current && !isListening) {
+            if (recognitionRef.current && !(window as any).__manual_stop) {
               console.log('Forcing speech recognition restart after form opened');
               recognitionRef.current.start();
-              setIsListening(true);
               toast.info('Voice recognition restarted - ready for your response');
             }
           } catch (error) {
             console.log('Force restart failed:', error);
           }
-        }, 500);
+        }, 1000); // Increased delay
       }
     };
     
     window.addEventListener('force-voice-restart', handleForceRestart as EventListener);
     
     return () => {
+      console.log('🧹 CLEANUP: Cleaning up speech recognition');
       if (recognitionRef.current) {
+        (window as any).__manual_stop = true;
+        if ((recognitionRef.current as any).cleanup) {
+          (recognitionRef.current as any).cleanup();
+        }
         recognitionRef.current.abort();
       }
       window.removeEventListener('force-voice-restart', handleForceRestart as EventListener);
+      isInitialized.current = false;
     };
-  }, [onVoiceCommand, onEnhancedVoiceInput, lastProcessedTranscript, conversationState?.isActive, isListening]);
+  }, []); // Remove dependencies to prevent re-initialization
 
   // Get control methods
   const controls = useSpeechRecognitionControls({

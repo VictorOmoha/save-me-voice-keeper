@@ -42,12 +42,14 @@ export const setupSpeechRecognition = ({
   let isRestarting = false;
   let restartTimeout: NodeJS.Timeout | null = null;
   let commandCounter = 0;
+  let isRecognitionRunning = false;
 
   recognition.onstart = () => {
     console.log('🎤 SETUP: Speech recognition started - ready for individual commands');
     setIsListening(true);
     (window as any).__speech_recognition_active = true;
     isRestarting = false;
+    isRecognitionRunning = true;
   };
 
   recognition.onresult = (event) => {
@@ -112,6 +114,7 @@ export const setupSpeechRecognition = ({
     if (event.error === 'not-allowed') {
       toast.error('Microphone access denied. Please allow microphone access and try again.');
       setIsListening(false);
+      isRecognitionRunning = false;
       return;
     }
     
@@ -120,10 +123,12 @@ export const setupSpeechRecognition = ({
     } else if (event.error === 'audio-capture') {
       toast.error('No microphone found. Please check your microphone connection.');
       setIsListening(false);
+      isRecognitionRunning = false;
       return;
     } else if (event.error === 'network') {
       toast.error('Network error. Please check your internet connection.');
       setIsListening(false);
+      isRecognitionRunning = false;
       return;
     }
     
@@ -133,6 +138,7 @@ export const setupSpeechRecognition = ({
       scheduleRestart();
     } else {
       setIsListening(false);
+      isRecognitionRunning = false;
     }
   };
 
@@ -140,6 +146,7 @@ export const setupSpeechRecognition = ({
     console.log('🔚 SETUP: Speech recognition ended');
     setIsListening(false);
     (window as any).__speech_recognition_active = false;
+    isRecognitionRunning = false;
     
     // Only restart if not manually stopped and not already restarting
     if (!isRestarting && !(window as any).__manual_stop) {
@@ -161,7 +168,7 @@ export const setupSpeechRecognition = ({
     }
     
     restartTimeout = setTimeout(() => {
-      if (!(window as any).__manual_stop && !recognition.started) {
+      if (!(window as any).__manual_stop && !isRecognitionRunning) {
         try {
           console.log('🔄 SETUP: Attempting restart');
           recognition.start();
@@ -182,6 +189,7 @@ export const setupSpeechRecognition = ({
       restartTimeout = null;
     }
     isRestarting = false;
+    isRecognitionRunning = false;
     (window as any).__manual_stop = true;
     try {
       recognition.abort();

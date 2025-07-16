@@ -64,6 +64,7 @@ export const VoiceCommandTest: React.FC = () => {
     passed: 0, failed: 0, total: 0
   });
   const [testTimeout, setTestTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isProcessingCommand, setIsProcessingCommand] = useState(false);
 
   const {
     isListening,
@@ -80,12 +81,7 @@ export const VoiceCommandTest: React.FC = () => {
   useEffect(() => {
     return () => {
       console.log('🧹 TEST: Cleaning up voice test component');
-      if (testTimeout) {
-        clearTimeout(testTimeout);
-      }
-      if (isRunningTest) {
-        stopTesting();
-      }
+      cleanupTest();
     };
   }, []);
 
@@ -103,24 +99,46 @@ export const VoiceCommandTest: React.FC = () => {
   function handleVoiceCommand(command: VoiceCommand) {
     console.log('🧪 TEST: Voice command received:', command);
     
+    // Prevent processing multiple commands simultaneously
+    if (isProcessingCommand) {
+      console.log('🧪 TEST: Already processing a command, ignoring');
+      return;
+    }
+    
     if (isRunningTest && currentTestIndex >= 0) {
+      setIsProcessingCommand(true);
+      
       const currentTest = testCommands[currentTestIndex];
       const result = evaluateCommand(command, currentTest);
       
       updateTestResult(currentTestIndex, result.passed, result.message);
       
-      // Clear any existing timeout
-      if (testTimeout) {
-        clearTimeout(testTimeout);
-        setTestTimeout(null);
-      }
+      // Clear timeout since we got a result
+      clearCurrentTimeout();
       
       // Move to next test after a delay
       setTimeout(() => {
+        setIsProcessingCommand(false);
         proceedToNextTest();
       }, 2000);
     }
   }
+
+  const clearCurrentTimeout = () => {
+    if (testTimeout) {
+      clearTimeout(testTimeout);
+      setTestTimeout(null);
+      console.log('🧪 TEST: Cleared test timeout');
+    }
+  };
+
+  const cleanupTest = () => {
+    clearCurrentTimeout();
+    setIsRunningTest(false);
+    setCurrentTestIndex(-1);
+    setIsProcessingCommand(false);
+    stopListening();
+  };
 
   const evaluateCommand = (command: VoiceCommand, test: TestCommand) => {
     console.log('🔍 TEST: Evaluating command:', { command, test });
@@ -208,42 +226,75 @@ export const VoiceCommandTest: React.FC = () => {
     const nextIndex = currentTestIndex + 1;
     
     if (nextIndex < testCommands.length) {
+      console.log(`🎯 TEST: Moving to test ${nextIndex + 1}: "${testCommands[nextIndex].command}"`);
+      
+      // Stop current listening session first
+      stopListening();
+      
+      // Wait a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       setCurrentTestIndex(nextIndex);
       setTestCommands(prev => prev.map((test, i) => 
         i === nextIndex ? { ...test, status: 'testing' } : test
       ));
       
       const nextTest = testCommands[nextIndex];
-      console.log(`🎯 TEST: Starting test ${nextIndex + 1}: "${nextTest.command}"`);
       
       toast.info(`🎯 Test ${nextIndex + 1}/${testCommands.length}: Say "${nextTest.command}"`);
-      
-      // Ensure voice recognition is active for the test
-      if (!isListening) {
-        try {
-          await startListening();
-          console.log(`🎤 TEST: Started listening for test ${nextIndex + 1}`);
-        } catch (error) {
-          console.error('🚨 TEST: Failed to start listening:', error);
-          toast.error('Failed to start voice recognition for test');
-          return;
-        }
-      }
-      
-      // Set a timeout to fail the test if no response
-      const timeout = setTimeout(() => {
-        console.log(`⏰ TEST: Timeout for test ${nextIndex + 1}`);
-        updateTestResult(nextIndex, false, 'Test timed out - no voice command detected');
-        proceedToNextTest();
-      }, 15000); // 15 second timeout
-      
-      setTestTimeout(timeout);
       
       // Use text-to-speech to announce the test
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(`Test ${nextIndex + 1}. Please say: ${nextTest.command}`);
         utterance.rate = 0.8;
         speechSynthesis.speak(utterance);
+        
+        // Wait for TTS to finish before starting listening
+        utterance.onend = () => {
+          setTimeout(async () => {
+            try {
+              await startListening();
+              console.log(`🎤 TEST: Started listening for test ${nextIndex + 1}`);
+              
+              // Set timeout for this specific test
+              const timeout = setTimeout(() => {
+                if (currentTestIndex === nextIndex && !isProcessingCommand) {
+                  console.log(`⏰ TEST: Timeout for test ${nextIndex + 1}`);
+                  updateTestResult(nextIndex, false, 'Test timed out - no voice command detected');
+                  proceedToNextTest();
+                }
+              }, 20000); // 20 second timeout
+              
+              setTestTimeout(timeout);
+              
+            } catch (error) {
+              console.error('🚨 TEST: Failed to start listening:', error);
+              toast.error('Failed to start voice recognition for test');
+            }
+          }, 500);
+        };
+      } else {
+        // Fallback if no TTS
+        setTimeout(async () => {
+          try {
+            await startListening();
+            console.log(`🎤 TEST: Started listening for test ${nextIndex + 1}`);
+            
+            const timeout = setTimeout(() => {
+              if (currentTestIndex === nextIndex && !isProcessingCommand) {
+                console.log(`⏰ TEST: Timeout for test ${nextIndex + 1}`);
+                updateTestResult(nextIndex, false, 'Test timed out - no voice command detected');
+                proceedToNextTest();
+              }
+            }, 20000);
+            
+            setTestTimeout(timeout);
+            
+          } catch (error) {
+            console.error('🚨 TEST: Failed to start listening:', error);
+            toast.error('Failed to start voice recognition for test');
+          }
+        }, 1500);
       }
     } else {
       finishTesting();
@@ -252,13 +303,7 @@ export const VoiceCommandTest: React.FC = () => {
 
   const finishTesting = () => {
     console.log('🏁 TEST: Finishing test suite');
-    setIsRunningTest(false);
-    setCurrentTestIndex(-1);
-    
-    if (testTimeout) {
-      clearTimeout(testTimeout);
-      setTestTimeout(null);
-    }
+    cleanupTest();
     
     const { passed, failed, total } = testResults;
     const successRate = total > 0 ? Math.round((passed / total) * 100) : 0;
@@ -281,11 +326,9 @@ export const VoiceCommandTest: React.FC = () => {
     setTestResults({ passed: 0, failed: 0, total: 0 });
     setCurrentTestIndex(-1);
     setIsRunningTest(true);
+    setIsProcessingCommand(false);
     
-    if (testTimeout) {
-      clearTimeout(testTimeout);
-      setTestTimeout(null);
-    }
+    clearCurrentTimeout();
     
     // Reset and prepare voice recognition
     resetListening();
@@ -298,15 +341,7 @@ export const VoiceCommandTest: React.FC = () => {
 
   const stopTesting = () => {
     console.log('🛑 TEST: Stopping voice command test suite');
-    setIsRunningTest(false);
-    setCurrentTestIndex(-1);
-    
-    if (testTimeout) {
-      clearTimeout(testTimeout);
-      setTestTimeout(null);
-    }
-    
-    stopListening();
+    cleanupTest();
     toast.info('Voice command testing stopped');
   };
 
@@ -316,12 +351,9 @@ export const VoiceCommandTest: React.FC = () => {
     setTestResults({ passed: 0, failed: 0, total: 0 });
     setCurrentTestIndex(-1);
     setIsRunningTest(false);
+    setIsProcessingCommand(false);
     
-    if (testTimeout) {
-      clearTimeout(testTimeout);
-      setTestTimeout(null);
-    }
-    
+    clearCurrentTimeout();
     resetListening();
   };
 
@@ -364,6 +396,11 @@ export const VoiceCommandTest: React.FC = () => {
               {testResults.passed}/{testResults.total} Passed
             </Badge>
           )}
+          {isProcessingCommand && (
+            <Badge variant="secondary">
+              Processing...
+            </Badge>
+          )}
         </div>
       </CardHeader>
 
@@ -391,9 +428,14 @@ export const VoiceCommandTest: React.FC = () => {
             <div className="flex items-center gap-2 mt-2">
               <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
               <span className="text-sm text-yellow-600">
-                {isListening ? '🎤 Listening for your command...' : '❌ Not listening - click Start Test Suite'}
+                {isListening ? '🎤 Listening for your command...' : '❌ Not listening - please wait for system to be ready'}
               </span>
             </div>
+            {isProcessingCommand && (
+              <div className="mt-2 text-sm text-blue-600">
+                ⚙️ Processing your command...
+              </div>
+            )}
           </div>
         )}
 
@@ -413,30 +455,6 @@ export const VoiceCommandTest: React.FC = () => {
           <Button onClick={resetTests} variant="outline">
             Reset Tests
           </Button>
-          
-          {/* Manual Voice Control for Testing */}
-          {isRunningTest && (
-            <div className="flex gap-2 ml-4">
-              <Button 
-                onClick={startListening} 
-                disabled={isListening}
-                variant="outline" 
-                size="sm"
-              >
-                <Mic className="h-4 w-4 mr-1" />
-                Start Listening
-              </Button>
-              <Button 
-                onClick={stopListening} 
-                disabled={!isListening}
-                variant="outline" 
-                size="sm"
-              >
-                <MicOff className="h-4 w-4 mr-1" />
-                Stop Listening
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Test Results */}
@@ -489,18 +507,17 @@ export const VoiceCommandTest: React.FC = () => {
           <p className="font-medium">Test Instructions:</p>
           <ol className="list-decimal list-inside space-y-1">
             <li>Click "Start Test Suite" to begin automated testing</li>
-            <li>Wait for the test announcement and "Listening" indicator</li>
-            <li>Speak the requested command clearly when the green dot shows</li>
-            <li>If recognition stops, use the manual "Start Listening" button</li>
-            <li>Each test has a 15-second timeout</li>
+            <li>Wait for the test announcement and listen for the command prompt</li>
+            <li>Speak the requested command clearly when you hear "Please say:"</li>
+            <li>Wait for the system to process your command (you'll see "Processing...")</li>
+            <li>Each test has a 20-second timeout</li>
             <li>Results are automatically evaluated and the next test begins</li>
           </ol>
           
           <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-amber-800 text-sm">
-              <strong>Troubleshooting:</strong> If voice recognition stops working during a test, 
-              use the manual "Start Listening" button to reactivate it. The green/red dot shows 
-              the current listening status.
+              <strong>Fixed Issues:</strong> Improved timeout handling to prevent loops, added command processing 
+              state to prevent duplicate commands, and better cleanup between tests.
             </p>
           </div>
         </div>

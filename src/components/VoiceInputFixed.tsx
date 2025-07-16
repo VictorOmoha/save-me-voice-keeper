@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Volume2, AlertCircle, RefreshCw } from "lucide-react";
+import { Settings, Volume2, AlertCircle, RefreshCw, Minimize2, Maximize2 } from "lucide-react";
 import { VoiceDiagnostic } from "./VoiceDiagnostic";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
@@ -30,6 +30,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'error'>('disconnected');
   const [lastProcessedCommand, setLastProcessedCommand] = useState<string>('');
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const handleVoiceCommand = (transcript: string) => {
     console.log('🔊 VoiceInputFixed: Voice command received:', transcript);
@@ -119,88 +120,114 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   };
 
   return (
-    <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
-      {/* Header with status */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="fixed bottom-4 right-4 z-50 max-w-sm transition-all duration-300 ease-in-out">
+      <div className={`bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
+        isMinimized ? 'w-48' : 'w-full'
+      }`}>
+        {/* Compact Header */}
+        <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${getStatusColor()} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`} />
             <Volume2 className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Voice Commands</span>
+            <span className="text-sm font-medium">Voice</span>
+            <Badge 
+              variant={connectionStatus === 'connected' ? "default" : connectionStatus === 'error' ? "destructive" : "secondary"} 
+              className="text-xs"
+            >
+              {getStatusText()}
+            </Badge>
           </div>
           
-          <Badge 
-            variant={connectionStatus === 'connected' ? "default" : connectionStatus === 'error' ? "destructive" : "secondary"} 
-            className="text-xs"
-          >
-            {getStatusText()}
-          </Badge>
-          
-          {lastVoiceCommand && (
-            <Badge variant="outline" className="text-xs">
-              {lastVoiceCommand.intent || lastVoiceCommand.type || 'Command'}
-            </Badge>
-          )}
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            onClick={handleReset}
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-            title="Reset voice system"
-          >
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Reset
-          </Button>
-          
-          <Button
-            onClick={() => setShowSettingsModal(true)}
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-          >
-            <Settings className="h-3 w-3 mr-1" />
-            Settings
-          </Button>
-        </div>
-      </div>
-
-      {/* Connection status message */}
-      {connectionStatus === 'error' && (
-        <div className="flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded text-sm">
-          <AlertCircle className="h-4 w-4" />
-          <span>Voice recognition encountered an error. Try clicking "Reset" or check your microphone permissions.</span>
-        </div>
-      )}
-
-      {/* Pending confirmation indicator */}
-      {hasPendingConfirmation && (
-        <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded text-sm">
-          <AlertCircle className="h-4 w-4" />
-          <span>Waiting for confirmation. Say "yes" to proceed or "no" to cancel.</span>
-          {onCancelVoice && (
-            <Button onClick={onCancelVoice} variant="outline" size="sm" className="ml-auto">
-              Cancel
+          <div className="flex gap-1">
+            <Button
+              onClick={() => setIsMinimized(!isMinimized)}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              title={isMinimized ? "Expand" : "Minimize"}
+            >
+              {isMinimized ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
             </Button>
-          )}
+            
+            <Button
+              onClick={() => setShowSettingsModal(true)}
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              title="Settings"
+            >
+              <Settings className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
-      )}
 
-      {/* Voice diagnostic component */}
-      <VoiceDiagnostic 
-        onVoiceCommand={handleVoiceCommand}
-        onVoiceError={handleVoiceError}
-        onVoiceStart={handleVoiceStart}
-        onVoiceEnd={handleVoiceEnd}
-      />
+        {/* Collapsible Content */}
+        {!isMinimized && (
+          <div className="p-3 space-y-3">
+            {/* Connection status message */}
+            {connectionStatus === 'error' && (
+              <div className="flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded text-xs">
+                <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                <span>Voice error. Try resetting or check permissions.</span>
+              </div>
+            )}
 
-      {/* Voice Settings Modal */}
-      <VoiceSettingsModal 
-        isOpen={showSettingsModal}
-        onOpenChange={setShowSettingsModal}
-      />
+            {/* Pending confirmation indicator */}
+            {hasPendingConfirmation && (
+              <div className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded text-xs">
+                <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                <span>Waiting for confirmation...</span>
+                {onCancelVoice && (
+                  <Button onClick={onCancelVoice} variant="outline" size="sm" className="h-6 text-xs px-2 ml-auto">
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Last command indicator */}
+            {lastVoiceCommand && (
+              <div className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
+                <span className="text-muted-foreground">Last:</span>
+                <Badge variant="outline" className="text-xs">
+                  {lastVoiceCommand.intent || lastVoiceCommand.type || 'Command'}
+                </Badge>
+              </div>
+            )}
+
+            {/* Quick actions */}
+            <div className="flex gap-1">
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                size="sm"
+                className="flex-1 h-8 text-xs"
+                title="Reset voice system"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Reset
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Compact Voice diagnostic component */}
+        <div className={isMinimized ? 'hidden' : 'block'}>
+          <VoiceDiagnostic 
+            onVoiceCommand={handleVoiceCommand}
+            onVoiceError={handleVoiceError}
+            onVoiceStart={handleVoiceStart}
+            onVoiceEnd={handleVoiceEnd}
+            compact={true}
+          />
+        </div>
+
+        {/* Voice Settings Modal */}
+        <VoiceSettingsModal 
+          isOpen={showSettingsModal}
+          onOpenChange={setShowSettingsModal}
+        />
+      </div>
     </div>
   );
 };

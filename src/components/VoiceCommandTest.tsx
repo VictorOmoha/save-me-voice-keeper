@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,18 +105,25 @@ export const VoiceCommandTest: React.FC = () => {
     }
     
     if (isRunningTest && currentTestIndex >= 0) {
+      console.log('🧪 TEST: Processing command for test', currentTestIndex + 1);
       setIsProcessingCommand(true);
       
       const currentTest = testCommands[currentTestIndex];
       const result = evaluateCommand(command, currentTest);
+      
+      console.log('🧪 TEST: Command evaluation result:', result);
       
       updateTestResult(currentTestIndex, result.passed, result.message);
       
       // Clear timeout since we got a result
       clearCurrentTimeout();
       
+      // Stop listening immediately
+      stopListening();
+      
       // Move to next test after a delay
       setTimeout(() => {
+        console.log('🧪 TEST: Moving to next test after processing');
         setIsProcessingCommand(false);
         proceedToNextTest();
       }, 2000);
@@ -133,10 +139,12 @@ export const VoiceCommandTest: React.FC = () => {
   };
 
   const cleanupTest = () => {
+    console.log('🧪 TEST: Cleaning up test');
     clearCurrentTimeout();
     setIsRunningTest(false);
     setCurrentTestIndex(-1);
     setIsProcessingCommand(false);
+    (window as any).__test_mode = false;
     stopListening();
   };
 
@@ -201,6 +209,8 @@ export const VoiceCommandTest: React.FC = () => {
   };
 
   const updateTestResult = (index: number, passed: boolean, message: string) => {
+    console.log('🧪 TEST: Updating test result for index', index, 'passed:', passed);
+    
     setTestCommands(prev => prev.map((test, i) => 
       i === index 
         ? { 
@@ -219,22 +229,27 @@ export const VoiceCommandTest: React.FC = () => {
       total: prev.total + 1
     }));
 
-    toast[passed ? 'success' : 'error'](`Test ${passed ? 'PASSED' : 'FAILED'}: ${message}`);
+    toast[passed ? 'success' : 'error'](`Test ${index + 1} ${passed ? 'PASSED' : 'FAILED'}: ${message}`);
   };
 
   const proceedToNextTest = async () => {
     const nextIndex = currentTestIndex + 1;
     
+    console.log('🎯 TEST: Proceeding to next test. Current:', currentTestIndex, 'Next:', nextIndex, 'Total:', testCommands.length);
+    
     if (nextIndex < testCommands.length) {
       console.log(`🎯 TEST: Moving to test ${nextIndex + 1}: "${testCommands[nextIndex].command}"`);
       
-      // Stop current listening session first
+      // Stop any current listening
       stopListening();
       
-      // Wait a moment for cleanup
+      // Wait for cleanup
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // Update current test index
       setCurrentTestIndex(nextIndex);
+      
+      // Mark the test as testing
       setTestCommands(prev => prev.map((test, i) => 
         i === nextIndex ? { ...test, status: 'testing' } : test
       ));
@@ -253,17 +268,17 @@ export const VoiceCommandTest: React.FC = () => {
         utterance.onend = () => {
           setTimeout(async () => {
             try {
+              console.log(`🎤 TEST: Starting listening for test ${nextIndex + 1}`);
               await startListening();
-              console.log(`🎤 TEST: Started listening for test ${nextIndex + 1}`);
               
               // Set timeout for this specific test
               const timeout = setTimeout(() => {
+                console.log(`⏰ TEST: Timeout for test ${nextIndex + 1}`);
                 if (currentTestIndex === nextIndex && !isProcessingCommand) {
-                  console.log(`⏰ TEST: Timeout for test ${nextIndex + 1}`);
                   updateTestResult(nextIndex, false, 'Test timed out - no voice command detected');
                   proceedToNextTest();
                 }
-              }, 20000); // 20 second timeout
+              }, 15000); // 15 second timeout
               
               setTestTimeout(timeout);
               
@@ -277,16 +292,16 @@ export const VoiceCommandTest: React.FC = () => {
         // Fallback if no TTS
         setTimeout(async () => {
           try {
+            console.log(`🎤 TEST: Starting listening for test ${nextIndex + 1} (no TTS)`);
             await startListening();
-            console.log(`🎤 TEST: Started listening for test ${nextIndex + 1}`);
             
             const timeout = setTimeout(() => {
+              console.log(`⏰ TEST: Timeout for test ${nextIndex + 1}`);
               if (currentTestIndex === nextIndex && !isProcessingCommand) {
-                console.log(`⏰ TEST: Timeout for test ${nextIndex + 1}`);
                 updateTestResult(nextIndex, false, 'Test timed out - no voice command detected');
                 proceedToNextTest();
               }
-            }, 20000);
+            }, 15000);
             
             setTestTimeout(timeout);
             
@@ -297,6 +312,7 @@ export const VoiceCommandTest: React.FC = () => {
         }, 1500);
       }
     } else {
+      console.log('🏁 TEST: All tests completed');
       finishTesting();
     }
   };
@@ -510,14 +526,14 @@ export const VoiceCommandTest: React.FC = () => {
             <li>Wait for the test announcement and listen for the command prompt</li>
             <li>Speak the requested command clearly when you hear "Please say:"</li>
             <li>Wait for the system to process your command (you'll see "Processing...")</li>
-            <li>Each test has a 20-second timeout</li>
+            <li>Each test has a 15-second timeout</li>
             <li>Results are automatically evaluated and the next test begins</li>
           </ol>
           
           <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-amber-800 text-sm">
-              <strong>Fixed Issues:</strong> Improved timeout handling to prevent loops, added command processing 
-              state to prevent duplicate commands, and better cleanup between tests.
+              <strong>Latest Fix:</strong> Improved test flow to prevent looping after command processing. 
+              The system now properly stops listening after each command and moves to the next test sequentially.
             </p>
           </div>
         </div>

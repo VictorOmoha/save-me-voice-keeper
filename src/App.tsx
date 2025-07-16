@@ -14,6 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
+import VoiceTest from "./pages/VoiceTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/subscription" element={<Subscription />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/voice-test" element={<VoiceTest />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

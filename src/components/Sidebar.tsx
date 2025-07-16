@@ -89,6 +89,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Plus className="w-4 h-4 mr-3" />
             Add Entry
           </Button>
+
+          {/* Settings Button in main nav for better visibility */}
+          <Link to="/settings">
+            <Button 
+              variant={location.pathname === "/settings" ? "default" : "ghost"} 
+              className="w-full justify-start transition-colors duration-200 hover:bg-muted"
+            >
+              <Settings className="w-4 h-4 mr-3" />
+              Settings
+            </Button>
+          </Link>
         </nav>
 
         {/* Categories */}
@@ -123,17 +134,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Settings */}
+      {/* Quick Access Info */}
       <div className="p-4 border-t border-border">
-        <Link to="/settings">
-          <Button 
-            variant={location.pathname === "/settings" ? "default" : "ghost"} 
-            className="w-full justify-start"
-          >
-            <Settings className="w-4 h-4 mr-3" />
-            Settings
-          </Button>
-        </Link>
+        <div className="text-xs text-muted-foreground text-center">
+          <p>Quick access to settings above</p>
+          <p>or via header menu</p>
+        </div>
       </div>
     </div>
   );

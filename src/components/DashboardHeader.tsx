@@ -6,9 +6,11 @@ import {
   Bell, 
   Sun, 
   Moon,
-  LogOut 
+  LogOut,
+  Settings
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
@@ -103,6 +105,18 @@ export const DashboardHeader = ({
             >
               <Mic className="w-5 h-5" />
             </Button>
+
+            {/* Settings Icon - More Prominent */}
+            <Link to="/settings">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-muted-foreground hover:text-foreground"
+                title="Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </Button>
+            </Link>
 
             {/* Notifications */}
             <Button 

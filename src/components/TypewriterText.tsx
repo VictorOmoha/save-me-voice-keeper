@@ -47,10 +47,10 @@ export const TypewriterText = ({
   }, []);
 
   return (
-    <span className={className}>
+    <span className={`bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-white dark:to-white bg-clip-text text-transparent ${className}`}>
       {displayText}
       <span 
-        className={`inline-block w-0.5 h-[1em] bg-blue-600 dark:bg-blue-400 ml-1 ${
+        className={`inline-block w-0.5 h-[1em] bg-blue-600 dark:bg-white ml-1 ${
           showCursor ? 'opacity-100' : 'opacity-0'
         } transition-opacity duration-100`}
       />

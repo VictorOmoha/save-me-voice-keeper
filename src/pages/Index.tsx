@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListModal } from "@/components/WaitingListModal";
 import { VideoModal } from "@/components/VideoModal";
+import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -160,8 +162,13 @@ const Index = () => {
       {/* Hero Section */}
       <section className="py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent leading-tight md:leading-tight pb-2">
-            Never Lose Important Information Again
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight md:leading-tight pb-2 min-h-[200px] flex items-center justify-center">
+            <TypewriterText 
+              text="Never Lose Important Information Again"
+              speed={80}
+              delay={1000}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"
+            />
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
             Save Me is your AI-powered personal information manager. Store, organize, and retrieve any data with voice commands across all your devices.

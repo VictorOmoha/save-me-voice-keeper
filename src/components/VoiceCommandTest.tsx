@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mic, MicOff, Play, CheckCircle, XCircle, Clock, Volume2 } from "lucide-react";
+import { Mic, MicOff, Play, CheckCircle, XCircle, Clock, Volume2, AlertTriangle } from "lucide-react";
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { VoiceCommand, processVoiceCommand } from '@/utils/voiceCommandProcessor';
@@ -74,6 +74,16 @@ export const VoiceCommandTest: React.FC = () => {
   } = useSpeechRecognition({
     onVoiceCommand: handleVoiceCommand,
   });
+
+  // Cleanup on unmount to prevent conflicts
+  useEffect(() => {
+    return () => {
+      console.log('🧹 TEST: Cleaning up voice test component');
+      if (isRunningTest) {
+        stopTesting();
+      }
+    };
+  }, []);
 
   function handleVoiceCommand(command: VoiceCommand) {
     console.log('🧪 TEST: Voice command received:', command);
@@ -217,7 +227,7 @@ export const VoiceCommandTest: React.FC = () => {
   };
 
   const startTesting = async () => {
-    console.log('🚀 Starting voice command test suite');
+    console.log('🚀 TEST: Starting voice command test suite');
     
     // Reset all tests
     setTestCommands(TEST_COMMANDS.map(test => ({ ...test, status: 'pending', actualResult: undefined })));
@@ -225,16 +235,23 @@ export const VoiceCommandTest: React.FC = () => {
     setCurrentTestIndex(-1);
     setIsRunningTest(true);
     
-    // Start listening
-    await startListening();
-    
-    // Wait a moment then start first test
-    setTimeout(() => {
-      proceedToNextTest();
-    }, 1000);
+    // Start listening first
+    try {
+      await startListening();
+      
+      // Wait a moment then start first test
+      setTimeout(() => {
+        proceedToNextTest();
+      }, 2000);
+    } catch (error) {
+      console.error('🚨 TEST: Failed to start listening:', error);
+      toast.error('Failed to start voice recognition');
+      setIsRunningTest(false);
+    }
   };
 
   const stopTesting = () => {
+    console.log('🛑 TEST: Stopping voice command test suite');
     setIsRunningTest(false);
     setCurrentTestIndex(-1);
     stopListening();
@@ -242,6 +259,7 @@ export const VoiceCommandTest: React.FC = () => {
   };
 
   const resetTests = () => {
+    console.log('🔄 TEST: Resetting all tests');
     setTestCommands(TEST_COMMANDS.map(test => ({ ...test, status: 'pending', actualResult: undefined })));
     setTestResults({ passed: 0, failed: 0, total: 0 });
     setCurrentTestIndex(-1);
@@ -253,7 +271,8 @@ export const VoiceCommandTest: React.FC = () => {
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-center text-red-600">
+          <CardTitle className="text-center text-red-600 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
             Voice Recognition Not Supported
           </CardTitle>
         </CardHeader>
@@ -372,6 +391,14 @@ export const VoiceCommandTest: React.FC = () => {
             <li>Results will be automatically evaluated and displayed</li>
             <li>Check console logs for detailed debugging information</li>
           </ol>
+          
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-amber-800 text-sm">
+              <strong>Note:</strong> If you experience continuous errors or the test gets stuck, 
+              try refreshing the page and starting again. The voice recognition system will automatically 
+              prevent conflicts between multiple instances.
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

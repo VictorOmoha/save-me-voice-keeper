@@ -157,6 +157,14 @@ export const setupSpeechRecognition = ({
       return;
     }
     
+    // Check if we're in test mode - don't auto-restart during tests
+    if ((window as any).__test_mode) {
+      console.log('🧪 SETUP: In test mode, not auto-restarting on error');
+      setIsListening(false);
+      globalRecognitionActive = false;
+      return;
+    }
+    
     // Only restart for recoverable errors and if not manually stopped
     if (!isRestarting && !(window as any).__manual_stop && 
         ['no-speech', 'aborted'].includes(event.error)) {
@@ -173,6 +181,12 @@ export const setupSpeechRecognition = ({
     globalRecognitionActive = false;
     (window as any).__speech_recognition_active = false;
     
+    // Check if we're in test mode - don't auto-restart during tests
+    if ((window as any).__test_mode) {
+      console.log('🧪 SETUP: In test mode, not auto-restarting on end');
+      return;
+    }
+    
     // Only restart if not manually stopped and not too many errors
     if (!isRestarting && !(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
       scheduleRestart();
@@ -180,12 +194,12 @@ export const setupSpeechRecognition = ({
   };
 
   const scheduleRestart = () => {
-    if (isRestarting || (window as any).__manual_stop || globalRecognitionActive) {
+    if (isRestarting || (window as any).__manual_stop || globalRecognitionActive || (window as any).__test_mode) {
       return;
     }
     
     isRestarting = true;
-    console.log('🔄 SETUP: Scheduling restart in 3 seconds...');
+    console.log('🔄 SETUP: Scheduling restart in 5 seconds...');
     
     // Clear any existing restart timeout
     if (restartTimeout) {
@@ -193,7 +207,7 @@ export const setupSpeechRecognition = ({
     }
     
     restartTimeout = setTimeout(() => {
-      if (!(window as any).__manual_stop && !globalRecognitionActive) {
+      if (!(window as any).__manual_stop && !globalRecognitionActive && !(window as any).__test_mode) {
         try {
           console.log('🔄 SETUP: Attempting restart');
           recognition.start();
@@ -205,7 +219,7 @@ export const setupSpeechRecognition = ({
       } else {
         isRestarting = false;
       }
-    }, 3000); // Increased delay to prevent rapid restarts
+    }, 5000); // Increased delay to prevent rapid restarts
   };
 
   // Cleanup function
@@ -218,6 +232,7 @@ export const setupSpeechRecognition = ({
     isRestarting = false;
     globalRecognitionActive = false;
     (window as any).__manual_stop = true;
+    (window as any).__test_mode = false;
     try {
       recognition.abort();
     } catch (error) {

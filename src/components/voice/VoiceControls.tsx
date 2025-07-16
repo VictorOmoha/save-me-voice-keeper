@@ -38,8 +38,8 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
 
   if (!isSupported) {
     return (
-      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-        <MicOff className="h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center gap-2 p-3 bg-muted rounded-lg transition-all duration-300 ease-in-out animate-fade-in">
+        <MicOff className="h-4 w-4 text-muted-foreground transition-all duration-200 ease-in-out" />
         <span className="text-sm text-muted-foreground">
           Voice recognition not supported in this browser
         </span>
@@ -48,11 +48,18 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 animate-fade-in">
       {/* Status indicator */}
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}`} />
-        <Badge variant={isListening ? "default" : "secondary"} className="text-xs">
+      <div className="flex items-center gap-2 transition-all duration-300 ease-in-out">
+        <div className={`w-2 h-2 rounded-full transition-all duration-300 ease-in-out ${
+          isListening ? 'bg-red-500 animate-pulse scale-110' : 'bg-gray-400'
+        }`} />
+        <Badge 
+          variant={isListening ? "default" : "secondary"} 
+          className={`text-xs transition-all duration-300 ease-in-out ${
+            isListening ? 'animate-pulse' : ''
+          }`}
+        >
           {isListening ? 'Listening...' : 'Ready'}
         </Badge>
       </div>
@@ -63,16 +70,18 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
           onClick={handleStartStop}
           variant={isListening ? "destructive" : "default"}
           size="sm"
-          className="flex-1"
+          className={`flex-1 transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1 ${
+            isListening ? 'animate-pulse' : ''
+          }`}
         >
           {isListening ? (
             <>
-              <MicOff className="h-4 w-4 mr-2" />
+              <MicOff className="h-4 w-4 mr-2 transition-transform duration-200 ease-in-out hover:scale-110" />
               Stop Listening
             </>
           ) : (
             <>
-              <Mic className="h-4 w-4 mr-2" />
+              <Mic className="h-4 w-4 mr-2 transition-transform duration-200 ease-in-out hover:scale-110" />
               Start Voice Commands
             </>
           )}
@@ -83,15 +92,18 @@ export const VoiceControls: React.FC<VoiceControlsProps> = ({
           variant="outline"
           size="sm"
           title="Reset voice recognition"
+          className="transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
         >
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="h-4 w-4 transition-transform duration-200 ease-in-out hover:rotate-180" />
         </Button>
       </div>
       
       {/* Quick tips */}
       {!isListening && (
-        <div className="text-xs text-muted-foreground">
-          <p>Try saying: "Create new entry", "Open insurance policy", or "Show all entries"</p>
+        <div className="text-xs text-muted-foreground transition-all duration-300 ease-in-out animate-fade-in">
+          <p className="hover:text-foreground/80 transition-colors duration-200">
+            Try saying: "Create new entry", "Open insurance policy", or "Show all entries"
+          </p>
         </div>
       )}
     </div>

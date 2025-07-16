@@ -54,37 +54,43 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, u
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      {stats.map((stat) => {
+      {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.title} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold text-card-foreground mb-1">
-                    {stat.value}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {stat.subtitle || stat.value_subtitle}
-                  </p>
-                  {stat.showProgress && (
-                    <div className="mt-2">
-                      <Progress value={stat.progress} className="h-2" />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {stat.progress}% used
-                      </p>
-                    </div>
-                  )}
+          <div
+            key={stat.title}
+            className="transform transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <Card className="hover:shadow-xl transition-all duration-300 ease-in-out border hover:border-primary/30 group cursor-pointer animate-fade-in">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 transition-all duration-300 ease-in-out">
+                    <p className="text-sm font-medium text-muted-foreground mb-1 transition-colors duration-200 group-hover:text-primary">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold text-card-foreground mb-1 transition-all duration-300 ease-in-out group-hover:scale-105">
+                      {stat.value}
+                    </p>
+                    <p className="text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
+                      {stat.subtitle || stat.value_subtitle}
+                    </p>
+                    {stat.showProgress && (
+                      <div className="mt-2 transition-all duration-300 ease-in-out">
+                        <Progress value={stat.progress} className="h-2 transition-all duration-500 ease-in-out" />
+                        <p className="text-xs text-muted-foreground mt-1 transition-colors duration-200 group-hover:text-foreground/70">
+                          {stat.progress}% used
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className={`w-12 h-12 rounded-lg ${stat.bgColor} flex items-center justify-center transition-all duration-300 ease-in-out group-hover:scale-110 group-hover:rotate-3`}>
+                    <Icon className={`w-6 h-6 ${stat.color} transition-all duration-300 ease-in-out group-hover:scale-110`} />
+                  </div>
                 </div>
-                <div className={`w-12 h-12 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                  <Icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         );
       })}
     </div>

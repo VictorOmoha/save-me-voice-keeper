@@ -15,24 +15,29 @@ export const EntryItem: React.FC<EntryItemProps> = ({ entry, onClick }) => {
   
   return (
     <div 
-      className="flex items-start space-x-4 p-4 rounded-lg hover:bg-accent transition-colors cursor-pointer"
+      className="flex items-start space-x-4 p-4 rounded-lg hover:bg-accent transition-all duration-300 ease-in-out cursor-pointer transform hover:scale-105 hover:-translate-y-1 group animate-fade-in"
       onClick={() => onClick(entry)}
     >
-      <div className={`w-10 h-10 rounded-lg ${categoryColor} flex items-center justify-center flex-shrink-0`}>
-        <Icon className="w-5 h-5" />
+      <div className={`w-10 h-10 rounded-lg ${categoryColor} flex items-center justify-center flex-shrink-0 transition-all duration-300 ease-in-out group-hover:scale-110 group-hover:rotate-3`}>
+        <Icon className="w-5 h-5 transition-transform duration-200 ease-in-out group-hover:scale-110" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-card-foreground truncate">{entry.title}</h4>
-          <Badge variant="secondary" className="text-xs ml-2 flex-shrink-0">
+          <h4 className="font-medium text-card-foreground truncate transition-all duration-200 ease-in-out group-hover:text-primary group-hover:scale-105">
+            {entry.title}
+          </h4>
+          <Badge 
+            variant="secondary" 
+            className="text-xs ml-2 flex-shrink-0 transition-all duration-200 ease-in-out group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground"
+          >
             {categoryName}
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+        <p className="text-sm text-muted-foreground mt-1 line-clamp-2 transition-colors duration-200 ease-in-out group-hover:text-foreground/80">
           {Object.values(entry.fields).slice(0, 2).join(', ')}
         </p>
         <div className="flex items-center mt-2 space-x-3">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground transition-colors duration-200 ease-in-out group-hover:text-foreground/70">
             {new Date(entry.createdAt).toLocaleDateString()}
           </span>
         </div>

@@ -41,31 +41,35 @@ export const DashboardLayout = ({
   conversationData,
 }: DashboardLayoutProps) => {
   return (
-    <div className="min-h-screen bg-background flex">
-      <Sidebar 
-        savedEntriesCount={savedEntries.length}
-        entries={savedEntries}
-        onAddEntry={onAddEntry}
-        onCategorySelect={onCategorySelect}
-        onAllEntriesSelect={onAllEntriesSelect}
-      />
-      
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader
-          searchQuery={searchQuery}
-          onSearchChange={onSearchChange}
-          userName={userName}
-          savedEntries={savedEntries}
-          onEnhancedVoiceInput={onEnhancedVoiceInput}
-          isVoiceProcessing={isVoiceProcessing}
-          lastVoiceCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancelVoice={onCancelVoice}
-          conversationData={conversationData}
+    <div className="min-h-screen bg-background flex transition-all duration-300 ease-in-out">
+      <div className="transform transition-transform duration-300 ease-in-out hover:shadow-lg">
+        <Sidebar 
+          savedEntriesCount={savedEntries.length}
+          entries={savedEntries}
+          onAddEntry={onAddEntry}
+          onCategorySelect={onCategorySelect}
+          onAllEntriesSelect={onAllEntriesSelect}
         />
+      </div>
+      
+      <div className="flex-1 flex flex-col transform transition-all duration-300 ease-in-out">
+        <div className="transform transition-all duration-200 ease-in-out hover:shadow-sm">
+          <DashboardHeader
+            searchQuery={searchQuery}
+            onSearchChange={onSearchChange}
+            userName={userName}
+            savedEntries={savedEntries}
+            onEnhancedVoiceInput={onEnhancedVoiceInput}
+            isVoiceProcessing={isVoiceProcessing}
+            lastVoiceCommand={lastVoiceCommand}
+            conversationState={conversationState}
+            hasPendingConfirmation={hasPendingConfirmation}
+            onCancelVoice={onCancelVoice}
+            conversationData={conversationData}
+          />
+        </div>
         
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto transform transition-all duration-300 ease-in-out animate-fade-in">
           {children}
         </main>
       </div>

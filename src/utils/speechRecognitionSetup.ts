@@ -157,11 +157,17 @@ export const setupSpeechRecognition = ({
       return;
     }
     
-    // Check if we're in test mode - don't auto-restart during tests
+    // Check if we're in test mode - provide better error handling for tests
     if ((window as any).__test_mode) {
-      console.log('🧪 SETUP: In test mode, not auto-restarting on error');
-      setIsListening(false);
-      globalRecognitionActive = false;
+      console.log('🧪 SETUP: In test mode, handling error gracefully:', event.error);
+      // In test mode, only restart for "no-speech" errors after a shorter delay
+      if (event.error === 'no-speech' && !isRestarting && !(window as any).__manual_stop) {
+        console.log('🧪 SETUP: Scheduling quick restart for test mode');
+        scheduleTestRestart();
+      } else {
+        setIsListening(false);
+        globalRecognitionActive = false;
+      }
       return;
     }
     
@@ -181,9 +187,12 @@ export const setupSpeechRecognition = ({
     globalRecognitionActive = false;
     (window as any).__speech_recognition_active = false;
     
-    // Check if we're in test mode - don't auto-restart during tests
+    // Check if we're in test mode - handle differently
     if ((window as any).__test_mode) {
-      console.log('🧪 SETUP: In test mode, not auto-restarting on end');
+      console.log('🧪 SETUP: In test mode, scheduling quick restart if needed');
+      if (!isRestarting && !(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
+        scheduleTestRestart();
+      }
       return;
     }
     
@@ -191,6 +200,34 @@ export const setupSpeechRecognition = ({
     if (!isRestarting && !(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
       scheduleRestart();
     }
+  };
+
+  const scheduleTestRestart = () => {
+    if (isRestarting || (window as any).__manual_stop || globalRecognitionActive) {
+      return;
+    }
+    
+    isRestarting = true;
+    console.log('🧪 SETUP: Scheduling test restart in 2 seconds...');
+    
+    if (restartTimeout) {
+      clearTimeout(restartTimeout);
+    }
+    
+    restartTimeout = setTimeout(() => {
+      if (!(window as any).__manual_stop && !globalRecognitionActive && (window as any).__test_mode) {
+        try {
+          console.log('🧪 SETUP: Attempting test restart');
+          recognition.start();
+        } catch (error) {
+          console.error('🚨 SETUP: Failed to restart in test mode:', error);
+          isRestarting = false;
+          consecutiveErrors++;
+        }
+      } else {
+        isRestarting = false;
+      }
+    }, 2000); // Shorter delay for test mode
   };
 
   const scheduleRestart = () => {

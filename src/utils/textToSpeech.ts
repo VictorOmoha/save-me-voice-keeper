@@ -21,12 +21,13 @@ const SPEECH_COOLDOWN = 500;
 let lastSpeechTime = 0;
 let currentAudio: HTMLAudioElement | null = null;
 let isSpeaking = false;
+let useElevenLabsFallback = true; // Will be set to false if ElevenLabs has quota issues
 
 // Global state for voice input components to check
 (window as any).__tts_is_speaking = false;
 
 export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIONS, isTest: boolean = false): Promise<void> => {
-  console.log('TTS: Attempting to speak with ElevenLabs:', { text: text.substring(0, 100), voiceOption, isTest });
+  console.log('TTS: Attempting to speak with voice synthesis:', { text: text.substring(0, 100), voiceOption, isTest });
   
   const now = Date.now();
   const lowerText = text.toLowerCase().trim();
@@ -65,7 +66,8 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
       'browser speech synthesis',
       'tts',
       'text to speech',
-      'voice synthesis failed'
+      'voice synthesis failed',
+      'quota exceeded'
     ];
     
     const isSystemMessage = systemPatterns.some(pattern => lowerText.includes(pattern));
@@ -97,33 +99,42 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
     isSpeaking = true;
     (window as any).__tts_is_speaking = true;
     
-    // Use ElevenLabs TTS only
-    console.log('TTS: Using ElevenLabs TTS via Supabase Edge Function');
-    await speakWithElevenLabs(text, voiceOption);
+    // Try ElevenLabs first if enabled, fall back to browser TTS
+    if (useElevenLabsFallback) {
+      try {
+        console.log('TTS: Attempting ElevenLabs TTS');
+        await speakWithElevenLabs(text, voiceOption);
+        return;
+      } catch (error) {
+        console.warn('TTS: ElevenLabs failed, falling back to browser TTS:', error);
+        
+        // Check if it's a quota/credit issue
+        if (error instanceof Error && (
+          error.message.includes('quota') || 
+          error.message.includes('credits') || 
+          error.message.includes('403') ||
+          error.message.includes('402')
+        )) {
+          useElevenLabsFallback = false; // Disable for future calls
+          toast.warning('ElevenLabs quota exceeded. Using browser voice synthesis.');
+        }
+        
+        // Fall back to browser TTS
+        await speakWithBrowserTTS(text);
+      }
+    } else {
+      console.log('TTS: Using browser TTS (ElevenLabs disabled due to quota)');
+      await speakWithBrowserTTS(text);
+    }
     
   } catch (error) {
-    console.error('TTS: ElevenLabs TTS failed:', error);
+    console.error('TTS: All voice synthesis methods failed:', error);
     
     // Reset speaking state on error
     isSpeaking = false;
     (window as any).__tts_is_speaking = false;
     
-    // Provide more specific error messages
-    let errorMessage = 'Voice synthesis failed.';
-    
-    if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        errorMessage = 'ElevenLabs API key is invalid or missing.';
-      } else if (error.message.includes('credits')) {
-        errorMessage = 'ElevenLabs account has insufficient credits.';
-      } else if (error.message.includes('rate limit')) {
-        errorMessage = 'ElevenLabs rate limit exceeded. Please try again later.';
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        errorMessage = 'Network error. Please check your connection.';
-      }
-    }
-    
-    toast.error(errorMessage);
+    toast.error('Voice synthesis failed. Please try again.');
     
     // Still dispatch completion event to prevent hanging
     setTimeout(() => {
@@ -153,10 +164,10 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
       .replace(/['']/g, "'")
       .trim();
     
-    // Conservative length limit
-    if (processedText.length > 500) {
-      processedText = processedText.substring(0, 500);
-      console.log('TTS: Truncated text to 500 characters');
+    // Conservative length limit to avoid quota issues
+    if (processedText.length > 300) {
+      processedText = processedText.substring(0, 300) + '...';
+      console.log('TTS: Truncated text to 300 characters');
     }
     
     console.log('TTS: Calling ElevenLabs Edge Function with:', { 
@@ -177,12 +188,18 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
     console.log('TTS: Edge Function response:', { 
       hasData: !!data, 
       hasAudioContent: !!data?.audioContent,
-      error: error?.message 
+      error: error?.message,
+      fallback: data?.fallback
     });
 
     if (error) {
       console.error('TTS: Edge Function error details:', error);
       throw new Error(`ElevenLabs service error: ${error.message}`);
+    }
+
+    if (data?.fallback === 'browser_tts') {
+      console.log('TTS: ElevenLabs recommended fallback to browser TTS');
+      throw new Error('ElevenLabs quota exceeded or API error - using fallback');
     }
 
     if (!data?.audioContent) {
@@ -217,7 +234,6 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
           (window as any).__tts_is_speaking = false;
           console.log('TTS: ElevenLabs TTS completed successfully');
           
-          // Use longer delay to ensure microphone is fully released
           setTimeout(() => {
             const event = new CustomEvent('tts-completed', { 
               detail: { 
@@ -227,7 +243,6 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
               }
             });
             window.dispatchEvent(event);
-            console.log('TTS completion event dispatched');
           }, 1000);
           
           resolve();
@@ -261,6 +276,74 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
   }
 };
 
+const speakWithBrowserTTS = async (text: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      reject(new Error('Browser TTS not supported'));
+      return;
+    }
+
+    try {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Try to use a higher quality voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(voice => 
+        voice.name.toLowerCase().includes('natural') ||
+        voice.name.toLowerCase().includes('neural') ||
+        voice.name.toLowerCase().includes('enhanced') ||
+        (voice.lang.startsWith('en') && voice.default)
+      ) || voices.find(voice => voice.lang.startsWith('en'));
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 0.8;
+
+      utterance.onend = () => {
+        isSpeaking = false;
+        (window as any).__tts_is_speaking = false;
+        console.log('TTS: Browser TTS completed successfully');
+        
+        setTimeout(() => {
+          const event = new CustomEvent('tts-completed', { 
+            detail: { 
+              text, 
+              shouldRestartRecognition: true,
+              timestamp: Date.now()
+            }
+          });
+          window.dispatchEvent(event);
+        }, 1000);
+        
+        resolve();
+      };
+
+      utterance.onerror = (event) => {
+        isSpeaking = false;
+        (window as any).__tts_is_speaking = false;
+        console.error('TTS: Browser TTS error:', event);
+        reject(new Error(`Browser TTS failed: ${event.error}`));
+      };
+
+      window.speechSynthesis.speak(utterance);
+      console.log('TTS: Browser TTS started');
+      
+    } catch (error) {
+      isSpeaking = false;
+      (window as any).__tts_is_speaking = false;
+      console.error('TTS: Browser TTS setup failed:', error);
+      reject(error);
+    }
+  });
+};
+
 export const setElevenLabsApiKey = (apiKey: string) => {
   localStorage.setItem('elevenlabs_api_key', apiKey);
 };
@@ -283,6 +366,12 @@ export const stopCurrentSpeech = () => {
     currentAudio.pause();
     currentAudio = null;
   }
+  
+  // Also stop browser TTS if it's running
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  
   isSpeaking = false;
   (window as any).__tts_is_speaking = false;
 };
@@ -294,4 +383,9 @@ export const clearSpeechHistory = () => {
 
 export const isTTSSpeaking = (): boolean => {
   return isSpeaking || (window as any).__tts_is_speaking;
+};
+
+export const resetElevenLabsFallback = () => {
+  useElevenLabsFallback = true;
+  console.log('TTS: ElevenLabs fallback re-enabled');
 };

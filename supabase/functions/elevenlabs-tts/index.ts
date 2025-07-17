@@ -30,14 +30,17 @@ Deno.serve(async (req) => {
     if (!ELEVENLABS_API_KEY) {
       console.error('TTS Edge Function - No API key configured');
       return new Response(
-        JSON.stringify({ error: 'ElevenLabs API key not configured in environment' }),
+        JSON.stringify({ 
+          error: 'ElevenLabs API key not configured. Please set ELEVENLABS_API_KEY in environment variables.',
+          fallback: 'browser_tts'
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Validate and clean text
-    const maxLength = 500;
-    let processedText = text.length > maxLength ? text.substring(0, maxLength) : text;
+    const maxLength = 300; // Reduced to avoid quota issues
+    let processedText = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
     
     // Clean and normalize text
     processedText = processedText
@@ -51,7 +54,10 @@ Deno.serve(async (req) => {
     if (processedText.length === 0) {
       console.error('TTS Edge Function - Text became empty after processing');
       return new Response(
-        JSON.stringify({ error: 'Text cannot be processed (empty after cleaning)' }),
+        JSON.stringify({ 
+          error: 'Text cannot be processed (empty after cleaning)',
+          fallback: 'browser_tts'
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -68,14 +74,14 @@ Deno.serve(async (req) => {
       text: processedText,
       model_id: modelId,
       voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
+        stability: 0.6,
+        similarity_boost: 0.8,
         style: 0.0,
-        use_speaker_boost: true
+        use_speaker_boost: false // Disabled to reduce processing load
       }
     };
 
-    console.log('TTS Edge Function - Request body:', JSON.stringify(requestBody, null, 2));
+    console.log('TTS Edge Function - Request body prepared');
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -88,7 +94,6 @@ Deno.serve(async (req) => {
     });
 
     console.log('TTS Edge Function - ElevenLabs response status:', response.status);
-    console.log('TTS Edge Function - ElevenLabs response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -99,13 +104,20 @@ Deno.serve(async (req) => {
       });
       
       let errorMessage = `ElevenLabs API error (${response.status})`;
+      let fallbackRecommended = false;
       
       if (response.status === 401) {
         errorMessage = 'Invalid ElevenLabs API key - please check your configuration';
+        fallbackRecommended = true;
       } else if (response.status === 402) {
-        errorMessage = 'ElevenLabs account has insufficient credits';
+        errorMessage = 'ElevenLabs account has insufficient credits or quota exceeded';
+        fallbackRecommended = true;
+      } else if (response.status === 403) {
+        errorMessage = 'ElevenLabs API access forbidden - quota or permissions issue';
+        fallbackRecommended = true;
       } else if (response.status === 429) {
         errorMessage = 'ElevenLabs rate limit exceeded - please try again later';
+        fallbackRecommended = true;
       } else if (response.status === 422) {
         errorMessage = 'Invalid request parameters for ElevenLabs API';
       } else if (errorText) {
@@ -121,7 +133,8 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           error: errorMessage,
           details: errorText,
-          status: response.status
+          status: response.status,
+          fallback: fallbackRecommended ? 'browser_tts' : undefined
         }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -133,7 +146,10 @@ Deno.serve(async (req) => {
     if (audioBuffer.byteLength === 0) {
       console.error('TTS Edge Function - Received empty audio buffer');
       return new Response(
-        JSON.stringify({ error: 'Received empty audio from ElevenLabs' }),
+        JSON.stringify({ 
+          error: 'Received empty audio from ElevenLabs',
+          fallback: 'browser_tts'
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -156,6 +172,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         error: 'Internal server error',
         details: error.message,
+        fallback: 'browser_tts',
         timestamp: new Date().toISOString()
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

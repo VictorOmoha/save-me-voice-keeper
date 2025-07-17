@@ -1,4 +1,3 @@
-
 // Enhanced text-to-speech utility with ElevenLabs premium voices via Supabase Edge Function
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -27,7 +26,7 @@ let isSpeaking = false;
 (window as any).__tts_is_speaking = false;
 
 export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIONS, isTest: boolean = false): Promise<void> => {
-  console.log('TTS: Attempting to speak with ElevenLabs only:', text);
+  console.log('TTS: Attempting to speak with ElevenLabs:', { text: text.substring(0, 100), voiceOption, isTest });
   
   const now = Date.now();
   const lowerText = text.toLowerCase().trim();
@@ -65,7 +64,8 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
       'processing with ai',
       'browser speech synthesis',
       'tts',
-      'text to speech'
+      'text to speech',
+      'voice synthesis failed'
     ];
     
     const isSystemMessage = systemPatterns.some(pattern => lowerText.includes(pattern));
@@ -97,7 +97,7 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
     isSpeaking = true;
     (window as any).__tts_is_speaking = true;
     
-    // Use ElevenLabs TTS only - no fallback
+    // Use ElevenLabs TTS only
     console.log('TTS: Using ElevenLabs TTS via Supabase Edge Function');
     await speakWithElevenLabs(text, voiceOption);
     
@@ -108,8 +108,22 @@ export const speak = async (text: string, voiceOption?: keyof typeof VOICE_OPTIO
     isSpeaking = false;
     (window as any).__tts_is_speaking = false;
     
-    // Show error to user instead of fallback
-    toast.error('Voice synthesis failed. Please check your ElevenLabs configuration.');
+    // Provide more specific error messages
+    let errorMessage = 'Voice synthesis failed.';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        errorMessage = 'ElevenLabs API key is invalid or missing.';
+      } else if (error.message.includes('credits')) {
+        errorMessage = 'ElevenLabs account has insufficient credits.';
+      } else if (error.message.includes('rate limit')) {
+        errorMessage = 'ElevenLabs rate limit exceeded. Please try again later.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+    }
+    
+    toast.error(errorMessage);
     
     // Still dispatch completion event to prevent hanging
     setTimeout(() => {
@@ -134,20 +148,21 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
     
     // Pre-process text to prevent common failures
     let processedText = text
-      .replace(/\\"/g, '"') // Fix escaped quotes
-      .replace(/[""]/g, '"') // Normalize quotes
-      .replace(/['']/g, "'") // Normalize apostrophes
+      .replace(/\\"/g, '"')
+      .replace(/[""]/g, '"')
+      .replace(/['']/g, "'")
       .trim();
     
     // Conservative length limit
-    if (processedText.length > 400) {
-      processedText = processedText.substring(0, 400);
+    if (processedText.length > 500) {
+      processedText = processedText.substring(0, 500);
+      console.log('TTS: Truncated text to 500 characters');
     }
     
     console.log('TTS: Calling ElevenLabs Edge Function with:', { 
-      text: processedText.length > 100 ? processedText.substring(0, 100) + '...' : processedText, 
+      textLength: processedText.length,
       voiceId,
-      length: processedText.length 
+      preview: processedText.substring(0, 100) + (processedText.length > 100 ? '...' : '')
     });
     
     // Call the Supabase Edge Function
@@ -159,11 +174,15 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
       }
     });
 
-    console.log('TTS: Edge Function response:', { data: !!data, error: error?.message });
+    console.log('TTS: Edge Function response:', { 
+      hasData: !!data, 
+      hasAudioContent: !!data?.audioContent,
+      error: error?.message 
+    });
 
     if (error) {
       console.error('TTS: Edge Function error details:', error);
-      throw new Error(`ElevenLabs API error: ${error.message}`);
+      throw new Error(`ElevenLabs service error: ${error.message}`);
     }
 
     if (!data?.audioContent) {
@@ -172,59 +191,69 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
     }
 
     // Convert base64 to audio blob
-    const binaryString = atob(data.audioContent);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    
-    currentAudio = new Audio(audioUrl);
-    currentAudio.volume = 0.8;
-    
-    return new Promise((resolve, reject) => {
-      if (!currentAudio) {
-        reject(new Error('Audio object not created'));
-        return;
+    try {
+      const binaryString = atob(data.audioContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
       }
       
-      currentAudio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        currentAudio = null;
-        isSpeaking = false;
-        (window as any).__tts_is_speaking = false;
-        console.log('TTS: ElevenLabs TTS completed');
-        
-        // Use longer delay to ensure microphone is fully released
-        setTimeout(() => {
-          const event = new CustomEvent('tts-completed', { 
-            detail: { 
-              text, 
-              shouldRestartRecognition: true,
-              timestamp: Date.now()
-            }
-          });
-          window.dispatchEvent(event);
-          console.log('TTS completion event dispatched with delay');
-        }, 1000);
-        
-        resolve();
-      };
+      const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
       
-      currentAudio.onerror = (e) => {
-        URL.revokeObjectURL(audioUrl);
-        currentAudio = null;
-        isSpeaking = false;
-        (window as any).__tts_is_speaking = false;
-        console.error('TTS: ElevenLabs audio playback error:', e);
-        reject(e);
-      };
+      currentAudio = new Audio(audioUrl);
+      currentAudio.volume = 0.8;
       
-      currentAudio.play().catch(reject);
-      console.log('TTS: ElevenLabs TTS started');
-    });
+      return new Promise((resolve, reject) => {
+        if (!currentAudio) {
+          reject(new Error('Audio object not created'));
+          return;
+        }
+        
+        currentAudio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          currentAudio = null;
+          isSpeaking = false;
+          (window as any).__tts_is_speaking = false;
+          console.log('TTS: ElevenLabs TTS completed successfully');
+          
+          // Use longer delay to ensure microphone is fully released
+          setTimeout(() => {
+            const event = new CustomEvent('tts-completed', { 
+              detail: { 
+                text, 
+                shouldRestartRecognition: true,
+                timestamp: Date.now()
+              }
+            });
+            window.dispatchEvent(event);
+            console.log('TTS completion event dispatched');
+          }, 1000);
+          
+          resolve();
+        };
+        
+        currentAudio.onerror = (e) => {
+          URL.revokeObjectURL(audioUrl);
+          currentAudio = null;
+          isSpeaking = false;
+          (window as any).__tts_is_speaking = false;
+          console.error('TTS: Audio playback error:', e);
+          reject(new Error('Audio playback failed'));
+        };
+        
+        currentAudio.play().catch((playError) => {
+          console.error('TTS: Audio play error:', playError);
+          reject(new Error(`Audio play failed: ${playError.message}`));
+        });
+        
+        console.log('TTS: ElevenLabs TTS audio started');
+      });
+      
+    } catch (audioError) {
+      console.error('TTS: Audio processing error:', audioError);
+      throw new Error(`Audio processing failed: ${audioError.message}`);
+    }
     
   } catch (error) {
     console.error('TTS: ElevenLabs TTS failed:', error);
@@ -233,14 +262,10 @@ const speakWithElevenLabs = async (text: string, voiceOption?: keyof typeof VOIC
 };
 
 export const setElevenLabsApiKey = (apiKey: string) => {
-  // Note: This function is kept for backward compatibility
-  // The system now uses Supabase Edge Function with secure API key
   localStorage.setItem('elevenlabs_api_key', apiKey);
 };
 
 export const getElevenLabsApiKey = (): string | null => {
-  // Note: This function is kept for backward compatibility
-  // The system now uses Supabase Edge Function with secure API key
   return localStorage.getItem('elevenlabs_api_key');
 };
 
@@ -258,18 +283,15 @@ export const stopCurrentSpeech = () => {
     currentAudio.pause();
     currentAudio = null;
   }
-  // Remove browser speech synthesis cancel since we're not using it
   isSpeaking = false;
   (window as any).__tts_is_speaking = false;
 };
 
-// Clear speech history when needed
 export const clearSpeechHistory = () => {
   recentSpeechHistory = [];
   lastSpeechTime = 0;
 };
 
-// Check if TTS is currently speaking
 export const isTTSSpeaking = (): boolean => {
   return isSpeaking || (window as any).__tts_is_speaking;
 };

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { SavedEntry } from "@/types/dashboard";
+import { nlpEngine, NLPProcessingResult } from "./nlp/nlpEngine";
 
 export interface EnhancedVoiceCommand {
   intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'unknown';
@@ -39,7 +40,7 @@ export class EnhancedVoiceProcessor {
     context: VoiceContext
   ): Promise<EnhancedVoiceCommand> {
     try {
-      console.log('Processing enhanced voice command:', transcript);
+      console.log('Processing enhanced voice command with NLP engine:', transcript);
       
       // FIRST LINE OF DEFENSE: Check if this is clearly TTS output
       const lowerTranscript = transcript.toLowerCase().trim();
@@ -101,54 +102,32 @@ export class EnhancedVoiceProcessor {
         this.conversationHistory = this.conversationHistory.slice(-10);
       }
 
-      // Prepare context for AI processing
-      const enhancedContext = {
-        ...context,
-        previousCommands: this.conversationHistory,
-      };
-
-      // Try local pattern matching first
-      const localCommand = this.processLocalCommand(transcript, enhancedContext);
-      if (localCommand.confidence > 0.5) {
-        console.log('Using local command processing:', localCommand);
-        return localCommand;
-      }
-
-      // Call the Supabase Edge Function for AI processing as fallback
-      const { data, error } = await supabase.functions.invoke('voice-ai-processor', {
-        body: {
-          transcript,
-          context: enhancedContext,
-        },
+      // Process with NLP engine
+      const nlpResult = await nlpEngine.processText(transcript, {
+        userId: 'current-user', // TODO: Get from auth context
+        currentView: context.currentView,
+        availableEntries: context.availableEntries,
+        permissions: ['auto_confirm'] // TODO: Get from user permissions
       });
 
-      if (error) {
-        console.error('Error calling voice AI processor:', error);
-        // Fall back to local processing
-        return localCommand;
-      }
-      
-      // Reset retry count on success
-      this.retryCount = 0;
+      console.log('NLP processing result:', nlpResult);
 
-      const processedCommand: EnhancedVoiceCommand = {
-        ...data,
-        originalTranscript: transcript,
-      };
+      // Convert NLP result to EnhancedVoiceCommand format
+      const enhancedCommand = this.convertNLPResultToCommand(nlpResult, transcript);
 
       // Store pending confirmation if needed
-      if (processedCommand.needsConfirmation) {
-        this.pendingConfirmation = processedCommand;
+      if (enhancedCommand.needsConfirmation) {
+        this.pendingConfirmation = enhancedCommand;
       }
 
       // Set up follow-up expectations
-      if (processedCommand.expectsFollowUp) {
+      if (enhancedCommand.expectsFollowUp) {
         this.expectingFollowUp = true;
-        this.currentContext = processedCommand.context;
+        this.currentContext = enhancedCommand.context;
       }
 
-      console.log('Processed command:', processedCommand);
-      return processedCommand;
+      console.log('Enhanced command:', enhancedCommand);
+      return enhancedCommand;
 
     } catch (error) {
       console.error('Error processing voice command:', error);
@@ -167,112 +146,83 @@ export class EnhancedVoiceProcessor {
     }
   }
 
-  private processLocalCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
-    const lowerTranscript = transcript.toLowerCase().trim();
-    
-    // Create entry patterns
-    if (this.matchesPattern(lowerTranscript, ['create', 'add', 'new'], ['entry', 'record', 'item'])) {
-      return {
-        intent: 'create',
-        action: 'create_entry',
-        confidence: 0.9,
-        parameters: { type: 'entry' },
-        needsConfirmation: false,
-        conversationalResponse: 'I\'ll help you create a new entry. What information would you like to add?',
-        followUpQuestions: ['What category should this entry be in?'],
-        originalTranscript: transcript,
-        expectsFollowUp: true,
-        context: {
-          operation: 'create_entry',
-          category: 'Personal',
-          entryTitle: `New Entry - ${new Date().toLocaleDateString()}`
-        }
-      };
-    }
+  private convertNLPResultToCommand(nlpResult: NLPProcessingResult, transcript: string): EnhancedVoiceCommand {
+    const { intent, routing, confidence } = nlpResult;
 
-    // Show/view all entries
-    if (this.matchesPattern(lowerTranscript, ['show', 'view', 'display', 'list'], ['all', 'entries', 'documents', 'items'])) {
+    // Map NLP intents to enhanced voice command intents
+    const intentMapping: Record<string, EnhancedVoiceCommand['intent']> = {
+      'create_entry': 'create',
+      'delete_entry': 'delete', 
+      'edit_entry': 'edit',
+      'search_entries': 'search',
+      'navigate_view': 'navigate',
+      'export_data': 'export',
+      'help': 'conversation',
+      'unknown': 'unknown',
+      'error': 'unknown'
+    };
+
+    const mappedIntent = intentMapping[intent.name] || 'unknown';
+    
+    if (!routing.success) {
       return {
-        intent: 'navigate',
-        action: 'show_all_entries',
-        confidence: 0.9,
+        intent: 'unknown',
+        action: 'error',
+        confidence: 0,
         parameters: {},
         needsConfirmation: false,
-        conversationalResponse: 'I\'ll show you all your entries.',
-        originalTranscript: transcript,
+        conversationalResponse: routing.error || 'Command could not be processed',
+        followUpQuestions: routing.suggestions || [],
+        originalTranscript: transcript
       };
     }
 
-    // Search patterns
-    if (this.matchesPattern(lowerTranscript, ['search', 'find', 'look'], ['for'])) {
-      const searchTerm = this.extractSearchTerm(lowerTranscript);
-      return {
-        intent: 'search',
-        action: 'search_entries',
-        confidence: 0.8,
-        parameters: { query: searchTerm },
-        needsConfirmation: false,
-        conversationalResponse: searchTerm 
-          ? `I'll search for "${searchTerm}" in your entries.`
-          : 'What would you like me to search for?',
-        originalTranscript: transcript,
-      };
-    }
-
-    // Category navigation
-    const categories = ['documents', 'health', 'contacts', 'finance', 'personal'];
-    for (const category of categories) {
-      if (lowerTranscript.includes(category)) {
-        return {
-          intent: 'navigate',
-          action: 'navigate_to_category',
-          confidence: 0.8,
-          parameters: { category: category.charAt(0).toUpperCase() + category.slice(1) },
-          needsConfirmation: false,
-          conversationalResponse: `I'll show you your ${category} entries.`,
-          originalTranscript: transcript,
-        };
-      }
-    }
-
-    // Default unknown command
+    const result = routing.result;
+    
     return {
-      intent: 'unknown',
-      action: 'unknown',
-      confidence: 0.1,
-      parameters: {},
-      needsConfirmation: false,
-      conversationalResponse: 'I didn\'t quite understand that. Could you please rephrase your request?',
-      followUpQuestions: [
-        'Try saying "Create a new entry" or "Show me my documents"',
-        'You can also say "Search for [term]" or navigate to categories like "Show my health records"'
-      ],
+      intent: mappedIntent,
+      action: result?.action || intent.name,
+      confidence,
+      parameters: intent.parameters,
+      needsConfirmation: result?.needsConfirmation || false,
+      conversationalResponse: this.generateConversationalResponse(mappedIntent, result),
+      followUpQuestions: result?.suggestions || [],
       originalTranscript: transcript,
+      expectsFollowUp: result?.expectsFollowUp || false,
+      context: result?.context
     };
   }
 
-  private matchesPattern(text: string, triggerWords: string[], contextWords: string[]): boolean {
-    const hasTrigger = triggerWords.some(word => text.includes(word));
-    const hasContext = contextWords.some(word => text.includes(word));
-    return hasTrigger && (contextWords.length === 0 || hasContext);
-  }
-
-  private extractSearchTerm(text: string): string {
-    // Extract search term after words like "search for", "find", "look for"
-    const patterns = [
-      /search\s+for\s+(.+)/i,
-      /find\s+(.+)/i,
-      /look\s+for\s+(.+)/i,
-    ];
-    
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        return match[1].trim();
-      }
+  private generateConversationalResponse(intent: EnhancedVoiceCommand['intent'], result: any): string {
+    switch (intent) {
+      case 'create':
+        return result?.expectsFollowUp 
+          ? "I'll help you create a new entry. What information would you like to add?"
+          : `Perfect! I'll create "${result?.title || 'your entry'}" for you.`;
+          
+      case 'delete':
+        return result?.needsConfirmation
+          ? `Are you sure you want to delete "${result?.target}"? This cannot be undone.`
+          : `I'll delete "${result?.target}" for you.`;
+          
+      case 'edit':
+        return `Opening "${result?.target}" for editing.`;
+        
+      case 'search':
+        return `Searching for "${result?.query}" in your entries.`;
+        
+      case 'navigate':
+        return `Navigating to ${result?.destination}.`;
+        
+      case 'export':
+        return `Exporting your data in ${result?.format} format.`;
+        
+      case 'conversation':
+        return result?.message || "Hello! How can I help you today?";
+        
+      default:
+        return "I didn't quite understand that. Could you please rephrase your request?";
     }
-    
-    return '';
   }
 
   private isConfirmationResponse(transcript: string): boolean {

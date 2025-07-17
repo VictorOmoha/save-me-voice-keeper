@@ -39,7 +39,6 @@ export const useDashboardVoice = ({
     switch (command.type) {
       case 'create_entry':
         console.log('Creating new entry...');
-        // Open the add entry form
         setShowAddEntry(true);
         const createMessage = 'Creating a new entry';
         toast.success(createMessage);
@@ -49,8 +48,6 @@ export const useDashboardVoice = ({
       case 'open_entry':
         if (command.params?.entryTitle === 'all_entries') {
           console.log('Opening all entries view...');
-          // This would need to be handled by the parent component
-          // For now, just show a message
           const allEntriesMessage = 'Showing all entries';
           toast.success(allEntriesMessage);
           speak(allEntriesMessage);
@@ -72,7 +69,6 @@ export const useDashboardVoice = ({
         break;
         
       case 'open_file':
-        // Enhanced file search with fuzzy matching
         if (command.params?.entryTitle) {
           const searchTerm = command.params.entryTitle;
           const searchResults = savedEntries.filter(entry => {
@@ -104,7 +100,6 @@ export const useDashboardVoice = ({
         
       case 'create_field':
         console.log('Creating field...');
-        // Actually create an entry with the specified field
         const fieldName = command.params?.fieldName || 'New Field';
         const fieldType = command.params?.fieldType || 'text';
         
@@ -128,7 +123,6 @@ export const useDashboardVoice = ({
         
       case 'delete_entry':
         if (command.params?.entryTitle) {
-          // Enhanced delete with confirmation
           const searchTerm = command.params.entryTitle;
           const matchingEntries = savedEntries.filter(entry => 
             entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -190,42 +184,46 @@ export const useDashboardVoice = ({
         break;
         
       case 'cancel':
-        console.log('Close/Cancel command received in dashboard');
+        console.log('Close/Cancel command received - executing proper cleanup');
         
-        // Enhanced close functionality - check for any open forms
         let formClosed = false;
         let closeMessage = '';
         
+        // Close any open forms
         if (showAddEntry) {
           console.log('Closing add entry form');
           setShowAddEntry(false);
           closeMessage = 'Add entry form closed';
           formClosed = true;
-        } else if (editingEntry) {
+        }
+        
+        if (editingEntry) {
           console.log('Closing edit entry form');
           setEditingEntry(null);
-          closeMessage = 'Edit entry form closed';
-          formClosed = true;
-        } else if (fillingEntry) {
-          console.log('Closing fill entry form');
-          setFillingEntry(null);
-          closeMessage = 'Fill entry form closed';
+          closeMessage = editingEntry.title ? `Closed: ${editingEntry.title}` : 'Edit entry form closed';
           formClosed = true;
         }
         
-        // If we found and closed a form, use handleCancelEdit to ensure proper cleanup
+        if (fillingEntry) {
+          console.log('Closing fill entry form');
+          setFillingEntry(null);
+          closeMessage = fillingEntry.title ? `Closed: ${fillingEntry.title}` : 'Fill entry form closed';
+          formClosed = true;
+        }
+        
+        // Call the proper cancel handler to ensure cleanup
         if (formClosed) {
+          console.log('Calling handleCancelEdit for proper cleanup');
           handleCancelEdit();
           toast.success(closeMessage);
           speak(closeMessage);
         } else {
-          // No specific form to close, general close action
           const generalCloseMessage = 'Nothing to close';
           toast.info(generalCloseMessage);
           speak(generalCloseMessage);
         }
         
-        // Trigger a custom event that components can listen to for closing
+        // Dispatch custom event for UI components to handle
         window.dispatchEvent(new CustomEvent('voice-close-command', { 
           detail: { timestamp: Date.now(), source: 'dashboard' } 
         }));
@@ -233,7 +231,7 @@ export const useDashboardVoice = ({
         
       default:
         console.log('Unknown command received, providing help message');
-        const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, or Fill form. Try saying "create a new entry" or "show all my documents".';
+        const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, Close form, or Fill form. Try saying "create a new entry" or "show all my documents".';
         toast.info('Voice command not recognized');
         speak(helpMessage);
     }
@@ -241,7 +239,6 @@ export const useDashboardVoice = ({
 
   const handleVoiceResult = (text: string) => {
     console.log('Processing voice text:', text);
-    // Process the text as a voice command
     const command = processVoiceCommand(text);
     handleVoiceCommand(command);
   };

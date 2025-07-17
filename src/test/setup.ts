@@ -18,20 +18,33 @@ global.console = {
 };
 
 // Mock Speech Recognition API
-global.SpeechRecognition = class MockSpeechRecognition {
+global.SpeechRecognition = class MockSpeechRecognition implements SpeechRecognition {
   continuous = false;
   interimResults = false;
   lang = 'en-US';
+  grammars = {} as SpeechGrammarList;
+  maxAlternatives = 1;
+  serviceURI = '';
   
   start() {}
   stop() {}
   abort() {}
+  addEventListener() {}
+  removeEventListener() {}
+  dispatchEvent() { return true; }
   
   onstart = null;
   onend = null;
   onresult = null;
   onerror = null;
-};
+  onaudiostart = null;
+  onaudioend = null;
+  onnomatch = null;
+  onsoundstart = null;
+  onsoundend = null;
+  onspeechstart = null;
+  onspeechend = null;
+} as any;
 
 global.webkitSpeechRecognition = global.SpeechRecognition;
 

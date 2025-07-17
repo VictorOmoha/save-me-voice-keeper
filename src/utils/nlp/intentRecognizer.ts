@@ -9,7 +9,7 @@ export interface Intent {
 
 export interface IntentPattern {
   intent: string;
-  patterns: string[];
+  patterns: RegExp[];
   requiredParams: string[];
   optionalParams: string[];
   examples: string[];

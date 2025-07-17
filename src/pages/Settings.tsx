@@ -10,10 +10,11 @@ import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings
 import { AutomationSettings } from "@/components/settings/AutomationSettings";
 import { DataManagementSettings } from "@/components/settings/DataManagementSettings";
 import { HelpSupportSettings } from "@/components/settings/HelpSupportSettings";
+import { VoiceSettings } from "@/components/settings/VoiceSettings";
 import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Key } from "lucide-react";
+import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 
@@ -65,6 +66,10 @@ const Settings = () => {
               <Palette className="w-4 h-4 mr-2" />
               Appearance
             </TabsTrigger>
+            <TabsTrigger value="voice" className="w-full justify-start">
+              <Mic className="w-4 h-4 mr-2" />
+              Voice Settings
+            </TabsTrigger>
             <TabsTrigger value="automation" className="w-full justify-start">
               <Zap className="w-4 h-4 mr-2" />
               Automation & API
@@ -95,6 +100,9 @@ const Settings = () => {
             </TabsContent>
             <TabsContent value="appearance">
               <AppearanceSettings />
+            </TabsContent>
+            <TabsContent value="voice">
+              <VoiceSettings />
             </TabsContent>
             <TabsContent value="automation">
               <AutomationSettings />

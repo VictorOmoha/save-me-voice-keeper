@@ -180,6 +180,7 @@ export const DashboardHeader = ({
               conversationState={conversationState || 'idle'}
               hasPendingConfirmation={hasPendingConfirmation || false}
               onCancelVoice={onCancelVoice || (() => {})}
+              conversationData={{ isActive: false }}
             />
           </div>
         </div>

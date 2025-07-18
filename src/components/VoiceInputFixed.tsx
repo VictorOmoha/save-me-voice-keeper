@@ -64,12 +64,8 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
       return;
     }
     
-    if (transcript === lastProcessedCommand) {
-      console.log('🔊 Duplicate command, ignoring');
-      return;
-    }
-    
-    setLastProcessedCommand(transcript);
+    // Remove duplicate prevention for now to ensure all commands are processed
+    console.log('🔊 Processing transcript:', transcript);
     
     const command = processVoiceCommand(transcript);
     console.log('🔊 VoiceInputFixed: Processed command:', command);
@@ -78,17 +74,16 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
     
     if (onEnhancedVoiceInput) {
       console.log('🔊 VoiceInputFixed: Calling onEnhancedVoiceInput with:', transcript);
+      // Call the voice input handler immediately
       onEnhancedVoiceInput(transcript);
+      
+      // Show visual feedback
+      toast.success(`Voice command: "${transcript}"`);
     } else {
       console.error('🔊 VoiceInputFixed: onEnhancedVoiceInput is not available!');
       toast.error('Voice input handler not available');
     }
-    
-    // Clear the last processed command after a delay
-    setTimeout(() => {
-      setLastProcessedCommand('');
-    }, 3000);
-  }, [lastProcessedCommand, onEnhancedVoiceInput]);
+  }, [onEnhancedVoiceInput]);
 
   const handleVoiceError = useCallback((error: string) => {
     console.error('🔊 VoiceInputFixed: Voice error:', error);

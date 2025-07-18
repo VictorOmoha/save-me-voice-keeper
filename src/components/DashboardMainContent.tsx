@@ -8,6 +8,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
+import { FloatingVoiceInput } from "@/components/FloatingVoiceInput";
 import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardMainContentProps {
@@ -209,6 +210,17 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
           </CardContent>
         </Card>
       </div>
+
+      {/* Floating Voice Input - Always Available */}
+      <FloatingVoiceInput
+        onEnhancedVoiceInput={onEnhancedVoiceInput}
+        isVoiceProcessing={isVoiceProcessing}
+        lastVoiceCommand={lastVoiceCommand}
+        conversationState={conversationState}
+        hasPendingConfirmation={hasPendingConfirmation}
+        onCancelVoice={onCancelVoice}
+        conversationData={conversationData}
+      />
     </div>
   );
 };

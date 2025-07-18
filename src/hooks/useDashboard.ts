@@ -174,20 +174,31 @@ export const useDashboard = () => {
     }
   };
 
-  // Simplified voice input processing
+  // Enhanced voice input processing with better logging and error handling
   const handleEnhancedVoiceInput = (text: string) => {
     console.log('🎤 Dashboard received voice input:', text);
+    
     if (!text || text.trim().length === 0) {
-      console.log('Empty voice input, ignoring');
+      console.log('❌ Empty voice input, ignoring');
       return;
     }
     
-    // Process the command directly
-    const command = processVoiceCommand(text);
-    console.log('🔄 Processed command:', command);
-    
-    // Execute the command immediately
-    executeVoiceCommand(command);
+    try {
+      // Process the command directly
+      const command = processVoiceCommand(text);
+      console.log('🔄 Processed command:', command);
+      
+      // Execute the command immediately
+      console.log('⚡ Executing command now...');
+      executeVoiceCommand(command);
+      
+      // Log successful processing
+      console.log('✅ Voice command processing completed');
+    } catch (error) {
+      console.error('❌ Error processing voice command:', error);
+      toast.error('Failed to process voice command');
+      speak('Sorry, I could not process that command');
+    }
   };
 
   // Enhanced saveEntry function that passes fillingEntry context

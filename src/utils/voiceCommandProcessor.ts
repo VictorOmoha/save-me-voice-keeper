@@ -12,8 +12,15 @@ export interface VoiceCommand {
 }
 
 export const processVoiceCommand = (transcript: string): VoiceCommand => {
+  console.log('🎯 Processing voice command:', transcript);
+  
+  if (!transcript || transcript.trim().length === 0) {
+    console.log('❌ Empty text provided to processVoiceCommand');
+    return { type: 'unknown' };
+  }
+
   const lowerTranscript = transcript.toLowerCase().trim();
-  console.log('🔍 Processing voice command:', lowerTranscript);
+  console.log('🔄 Normalized text:', lowerTranscript);
   
   // Enhanced pattern matching with better logging
   
@@ -106,7 +113,20 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
   
-  console.log('❌ Unknown command:', lowerTranscript);
+  // Log detailed analysis for unknown commands
+  console.log('❌ Unknown command detected:', {
+    original: transcript,
+    normalized: lowerTranscript,
+    length: lowerTranscript.length,
+    containsCreate: lowerTranscript.includes('create'),
+    containsOpen: lowerTranscript.includes('open'),
+    containsDelete: lowerTranscript.includes('delete'),
+    containsCancel: lowerTranscript.includes('cancel'),
+    containsShow: lowerTranscript.includes('show'),
+    containsFill: lowerTranscript.includes('fill'),
+    containsSave: lowerTranscript.includes('save')
+  });
+  
   return { type: 'unknown' };
 };
 

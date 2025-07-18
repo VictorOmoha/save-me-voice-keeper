@@ -1,4 +1,3 @@
-
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
@@ -42,7 +41,7 @@ export const useDashboard = () => {
     loadEntries,
   });
 
-  // Enhanced editEntry function that directly manages state
+  // Enhanced editEntry function that directly manages state with proper TTS feedback
   const editEntry = (entry: SavedEntry) => {
     console.log('🔧 Dashboard editEntry called with:', entry.title);
     console.log('🔧 Current editingEntry before:', editingEntry?.title || 'null');
@@ -53,11 +52,23 @@ export const useDashboard = () => {
     setShowAddEntry(true);
     
     console.log('✅ Dashboard editEntry - state updated directly');
+    console.log('✅ State changes: fillingEntry=null, editingEntry=', entry.title, 'showAddEntry=true');
+    
+    // Provide immediate TTS feedback
+    const openMessage = `Opening ${entry.title} for editing`;
+    console.log('🔊 Speaking feedback:', openMessage);
+    
+    // Use setTimeout to ensure TTS happens after state updates
+    setTimeout(() => {
+      speak(openMessage);
+      toast.success(openMessage);
+    }, 200);
     
     // Verify state was updated with a small delay
     setTimeout(() => {
-      console.log('🔍 Post-edit state verification');
-    }, 100);
+      console.log('🔍 Post-edit state verification - showAddEntry should be true:', showAddEntry);
+      console.log('🔍 Post-edit state verification - editingEntry should be:', entry.title);
+    }, 500);
   };
 
   // Execute voice command with enhanced logging and state management
@@ -93,7 +104,7 @@ export const useDashboard = () => {
       
       const completionMessage = `Completed ${command.params.commands.length} commands successfully`;
       toast.success(completionMessage);
-      speak(completionMessage);
+      setTimeout(() => speak(completionMessage), 100);
       return;
     }
     
@@ -106,9 +117,13 @@ export const useDashboard = () => {
         case 'create_entry':
           console.log('📝 Creating new entry...');
           setShowAddEntry(true);
+          setEditingEntry(null);
+          setFillingEntry(null);
+          
           const createMessage = 'Creating a new entry';
+          console.log('🔊 Speaking create message:', createMessage);
           toast.success(createMessage);
-          speak(createMessage);
+          setTimeout(() => speak(createMessage), 100);
           break;
           
         case 'open_entry':
@@ -117,8 +132,9 @@ export const useDashboard = () => {
           
           if (searchTerm === 'all_entries') {
             const allEntriesMessage = 'Showing all entries';
+            console.log('🔊 Speaking all entries message:', allEntriesMessage);
             toast.success(allEntriesMessage);
-            speak(allEntriesMessage);
+            setTimeout(() => speak(allEntriesMessage), 100);
           } else if (searchTerm) {
             console.log('🔍 Searching for entry with term:', searchTerm);
             console.log('📋 Available entries:', savedEntries.map(e => ({ title: e.title, id: e.id })));
@@ -162,18 +178,15 @@ export const useDashboard = () => {
               console.log('📄 Found entry to open:', entryToOpen.title);
               console.log('📄 Full entry object:', entryToOpen);
               
-              // Call editEntry which now directly manages state
+              // Call editEntry which now directly manages state and provides TTS feedback
               editEntry(entryToOpen);
-              
-              const openMessage = `Opening entry: ${entryToOpen.title}`;
-              toast.success(openMessage);
-              speak(openMessage);
             } else {
               console.log('❌ No matching entry found for:', searchTerm);
               console.log('📋 Available entry titles:', savedEntries.map(e => e.title));
-              const errorMessage = `Entry "${searchTerm}" not found. Showing available entries instead.`;
-              toast.info(errorMessage);
-              speak(errorMessage);
+              const errorMessage = `Entry "${searchTerm}" not found. Please check your entries.`;
+              console.log('🔊 Speaking error message:', errorMessage);
+              toast.error(errorMessage);
+              setTimeout(() => speak(errorMessage), 100);
             }
           }
           break;
@@ -193,17 +206,20 @@ export const useDashboard = () => {
               console.log('🗑️ Deleting entry:', entryToDelete.title);
               deleteEntry(entryToDelete.id);
               const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
+              console.log('🔊 Speaking delete message:', deleteMessage);
               toast.success(deleteMessage);
-              speak(deleteMessage);
+              setTimeout(() => speak(deleteMessage), 100);
             } else if (matchingEntries.length > 1) {
               const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
               const multipleMessage = `Found ${matchingEntries.length} entries: ${matches}. Please be more specific.`;
+              console.log('🔊 Speaking multiple matches message:', multipleMessage);
               toast.info(multipleMessage);
-              speak(multipleMessage);
+              setTimeout(() => speak(multipleMessage), 100);
             } else {
               const notFoundMessage = `No entries found matching "${searchTerm}".`;
+              console.log('🔊 Speaking not found message:', notFoundMessage);
               toast.info(notFoundMessage);
-              speak(notFoundMessage);
+              setTimeout(() => speak(notFoundMessage), 100);
             }
           }
           break;
@@ -211,12 +227,14 @@ export const useDashboard = () => {
         case 'save_entry':
           if (showAddEntry || editingEntry || fillingEntry) {
             const saveMessage = 'Please complete the form and click save to save the entry';
+            console.log('🔊 Speaking save message:', saveMessage);
             toast.info(saveMessage);
-            speak(saveMessage);
+            setTimeout(() => speak(saveMessage), 100);
           } else {
             const noEntryMessage = 'No entry form is currently open';
+            console.log('🔊 Speaking no entry message:', noEntryMessage);
             toast.info(noEntryMessage);
-            speak(noEntryMessage);
+            setTimeout(() => speak(noEntryMessage), 100);
           }
           break;
           
@@ -237,8 +255,9 @@ export const useDashboard = () => {
           }
           
           const closeMessage = 'All forms closed';
+          console.log('🔊 Speaking close message:', closeMessage);
           toast.success(closeMessage);
-          speak(closeMessage);
+          setTimeout(() => speak(closeMessage), 100);
           
           // Dispatch event for UI components
           window.dispatchEvent(new CustomEvent('voice-close-command', { 
@@ -248,43 +267,47 @@ export const useDashboard = () => {
           
         default:
           console.log('❓ Unknown sequenced command:', intent.type);
-          const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, Close form, or Fill form.';
+          const helpMessage = 'I can help you with commands like: Create new entry, Open entry, Delete entry, Close form, or Fill form.';
+          console.log('🔊 Speaking help message:', helpMessage);
           toast.info('Voice command not recognized');
-          speak(helpMessage);
+          setTimeout(() => speak(helpMessage), 100);
       }
       return;
     }
     
-    // Fallback to legacy command handling
+    // Fallback to legacy command handling with improved TTS
     switch (command.type) {
       case 'create_entry':
         console.log('📝 Creating new entry...');
         setShowAddEntry(true);
+        setEditingEntry(null);
+        setFillingEntry(null);
+        
         const createMessage = 'Creating a new entry';
+        console.log('🔊 Speaking create message:', createMessage);
         toast.success(createMessage);
-        speak(createMessage);
+        setTimeout(() => speak(createMessage), 100);
         break;
         
       case 'open_entry':
         if (command.params?.entryTitle === 'all_entries') {
           console.log('📂 Opening all entries view...');
           const allEntriesMessage = 'Showing all entries';
+          console.log('🔊 Speaking all entries message:', allEntriesMessage);
           toast.success(allEntriesMessage);
-          speak(allEntriesMessage);
+          setTimeout(() => speak(allEntriesMessage), 100);
         } else if (command.params?.entryTitle) {
           const entryToOpen = savedEntries.find(entry => 
             entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
           );
           if (entryToOpen) {
             console.log('📄 Opening entry:', entryToOpen.title);
-            editEntry(entryToOpen);
-            const openMessage = `Opening entry: ${entryToOpen.title}`;
-            toast.success(openMessage);
-            speak(openMessage);
+            editEntry(entryToOpen); // This now provides its own TTS feedback
           } else {
-            const errorMessage = `Entry "${command.params.entryTitle}" not found. Showing available entries instead.`;
-            toast.info(errorMessage);
-            speak(errorMessage);
+            const errorMessage = `Entry "${command.params.entryTitle}" not found. Please check your entries.`;
+            console.log('🔊 Speaking error message:', errorMessage);
+            toast.error(errorMessage);
+            setTimeout(() => speak(errorMessage), 100);
           }
         }
         break;
@@ -304,17 +327,20 @@ export const useDashboard = () => {
             console.log('🗑️ Deleting entry:', entryToDelete.title);
             deleteEntry(entryToDelete.id);
             const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
+            console.log('🔊 Speaking delete message:', deleteMessage);
             toast.success(deleteMessage);
-            speak(deleteMessage);
+            setTimeout(() => speak(deleteMessage), 100);
           } else if (matchingEntries.length > 1) {
             const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
             const multipleMessage = `Found ${matchingEntries.length} entries: ${matches}. Please be more specific.`;
+            console.log('🔊 Speaking multiple matches message:', multipleMessage);
             toast.info(multipleMessage);
-            speak(multipleMessage);
+            setTimeout(() => speak(multipleMessage), 100);
           } else {
             const notFoundMessage = `No entries found matching "${searchTerm}".`;
+            console.log('🔊 Speaking not found message:', notFoundMessage);
             toast.info(notFoundMessage);
-            speak(notFoundMessage);
+            setTimeout(() => speak(notFoundMessage), 100);
           }
         }
         break;
@@ -328,12 +354,14 @@ export const useDashboard = () => {
             console.log('📋 Filling form:', entryToFill.title);
             fillEntry(entryToFill);
             const fillMessage = `Filling form: ${entryToFill.title}`;
+            console.log('🔊 Speaking fill message:', fillMessage);
             toast.success(fillMessage);
-            speak(fillMessage);
+            setTimeout(() => speak(fillMessage), 100);
           } else {
             const errorMessage = `Template "${command.params.entryTitle}" not found`;
+            console.log('🔊 Speaking error message:', errorMessage);
             toast.error(errorMessage);
-            speak(errorMessage);
+            setTimeout(() => speak(errorMessage), 100);
           }
         }
         break;
@@ -341,12 +369,14 @@ export const useDashboard = () => {
       case 'save_entry':
         if (showAddEntry || editingEntry || fillingEntry) {
           const saveMessage = 'Please complete the form and click save to save the entry';
+          console.log('🔊 Speaking save message:', saveMessage);
           toast.info(saveMessage);
-          speak(saveMessage);
+          setTimeout(() => speak(saveMessage), 100);
         } else {
           const noEntryMessage = 'No entry form is currently open';
+          console.log('🔊 Speaking no entry message:', noEntryMessage);
           toast.info(noEntryMessage);
-          speak(noEntryMessage);
+          setTimeout(() => speak(noEntryMessage), 100);
         }
         break;
         
@@ -367,8 +397,9 @@ export const useDashboard = () => {
         }
         
         const closeMessage = 'All forms closed';
+        console.log('🔊 Speaking close message:', closeMessage);
         toast.success(closeMessage);
-        speak(closeMessage);
+        setTimeout(() => speak(closeMessage), 100);
         
         // Dispatch event for UI components
         window.dispatchEvent(new CustomEvent('voice-close-command', { 
@@ -378,9 +409,10 @@ export const useDashboard = () => {
         
       default:
         console.log('❓ Unknown command:', command.type);
-        const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, Close form, or Fill form.';
+        const helpMessage = 'I can help you with commands like: Create new entry, Open entry, Delete entry, Close form, or Fill form.';
+        console.log('🔊 Speaking help message:', helpMessage);
         toast.info('Voice command not recognized');
-        speak(helpMessage);
+        setTimeout(() => speak(helpMessage), 100);
     }
   };
 
@@ -403,11 +435,12 @@ export const useDashboard = () => {
       await executeVoiceCommand(command);
       
       // Log successful processing
-      console.log('✅ Voice command processing completed');
+      console.log('✅ Voice command processing completed successfully');
     } catch (error) {
       console.error('❌ Error processing voice command:', error);
+      const errorMessage = 'Sorry, I could not process that command';
       toast.error('Failed to process voice command');
-      speak('Sorry, I could not process that command');
+      setTimeout(() => speak(errorMessage), 100);
     }
   };
 
@@ -441,7 +474,7 @@ export const useDashboard = () => {
     saveEntry: enhancedSaveEntry,
     deleteEntry,
     bulkDeleteEntries,
-    editEntry, // Use the enhanced editEntry function that directly manages state
+    editEntry, // Use the enhanced editEntry function that directly manages state with TTS
     fillEntry,
     handleCancelEdit,
     getFormMode,

@@ -42,19 +42,21 @@ export const useDashboard = () => {
     loadEntries,
   });
 
-  // Enhanced editEntry function that ensures state is updated properly
+  // Enhanced editEntry function that directly manages state
   const editEntry = (entry: SavedEntry) => {
     console.log('🔧 Dashboard editEntry called with:', entry.title);
     console.log('🔧 Current editingEntry before:', editingEntry?.title || 'null');
     
-    // Use the base editEntry function which properly manages state
-    baseEditEntry(entry);
+    // Directly manage state to avoid stale closure issues
+    setFillingEntry(null);
+    setEditingEntry(entry);
+    setShowAddEntry(true);
     
-    console.log('✅ Dashboard editEntry completed using baseEditEntry');
+    console.log('✅ Dashboard editEntry - state updated directly');
     
     // Verify state was updated with a small delay
     setTimeout(() => {
-      console.log('🔍 Post-edit state check - should now be editing:', entry.title);
+      console.log('🔍 Post-edit state verification');
     }, 100);
   };
 
@@ -160,7 +162,7 @@ export const useDashboard = () => {
               console.log('📄 Found entry to open:', entryToOpen.title);
               console.log('📄 Full entry object:', entryToOpen);
               
-              // Use the enhanced editEntry function (which calls baseEditEntry)
+              // Call editEntry which now directly manages state
               editEntry(entryToOpen);
               
               const openMessage = `Opening entry: ${entryToOpen.title}`;
@@ -439,7 +441,7 @@ export const useDashboard = () => {
     saveEntry: enhancedSaveEntry,
     deleteEntry,
     bulkDeleteEntries,
-    editEntry, // Use the enhanced editEntry function that calls baseEditEntry
+    editEntry, // Use the enhanced editEntry function that directly manages state
     fillEntry,
     handleCancelEdit,
     getFormMode,

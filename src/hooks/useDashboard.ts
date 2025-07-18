@@ -1,3 +1,4 @@
+
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceConversation } from "./useVoiceConversation";
@@ -62,9 +63,13 @@ export const useDashboard = () => {
     formAddFieldFunction: formAddFieldFunction || undefined,
   });
 
-  // Enhanced voice input processing
+  // Enhanced voice input processing with proper cleanup
   const handleEnhancedVoiceInput = (text: string) => {
     console.log('Dashboard received voice input:', text);
+    if (!text || text.trim().length === 0) {
+      console.log('Empty voice input, ignoring');
+      return;
+    }
     handleVoiceResult(text);
   };
 
@@ -84,6 +89,10 @@ export const useDashboard = () => {
     if (fillingEntry) return `Fill Form: ${fillingEntry.title}`;
     return 'Add New Entry';
   };
+
+  // Simplified conversation state management
+  const isVoiceActive = conversationState.isActive;
+  const voiceState = isVoiceActive ? 'listening' : 'idle';
 
   return {
     searchQuery,
@@ -109,13 +118,13 @@ export const useDashboard = () => {
     handleVoiceResult,
     isLoading,
     loadEntries,
-    // Enhanced Voice - with conversation support
+    // Enhanced Voice - cleaned up interface
     handleEnhancedVoiceInput,
     isVoiceProcessing: false,
-    lastVoiceCommand: conversationState.isActive ? { conversationState } : null,
-    conversationState: (conversationState.isActive ? 'listening' : 'idle') as 'listening' | 'confirming' | 'idle',
-    hasPendingConfirmation: conversationState.isActive,
+    lastVoiceCommand: isVoiceActive ? { conversationState } : null,
+    conversationState: voiceState as 'listening' | 'confirming' | 'idle',
+    hasPendingConfirmation: isVoiceActive,
     cancelCurrentOperation: cancelConversation,
-    conversationData: conversationState, // Add the full conversation data
+    conversationData: conversationState,
   };
 };

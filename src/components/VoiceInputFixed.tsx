@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Settings, Volume2, AlertCircle, RefreshCw, Minimize2, Maximize2, X } from "lucide-react";
@@ -20,10 +20,10 @@ interface VoiceInputFixedProps {
 
 export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   onEnhancedVoiceInput,
-  isVoiceProcessing,
+  isVoiceProcessing = false,
   lastVoiceCommand,
   conversationState = 'idle',
-  hasPendingConfirmation,
+  hasPendingConfirmation = false,
   onCancelVoice,
   conversationData,
 }) => {
@@ -32,7 +32,31 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   const [lastProcessedCommand, setLastProcessedCommand] = useState<string>('');
   const [isMinimized, setIsMinimized] = useState(false);
 
-  const handleVoiceCommand = (transcript: string) => {
+  // Cleanup function for voice recognition
+  const cleanupVoiceRecognition = useCallback(() => {
+    if ((window as any).__stopAllVoiceRecognition) {
+      (window as any).__stopAllVoiceRecognition();
+    }
+    setConnectionStatus('disconnected');
+    setLastProcessedCommand('');
+  }, []);
+
+  // Listen for voice close events and cleanup accordingly
+  useEffect(() => {
+    const handleVoiceCloseEvent = () => {
+      console.log('🔊 VoiceInputFixed: Received voice close event');
+      cleanupVoiceRecognition();
+    };
+
+    window.addEventListener('voice-close-command', handleVoiceCloseEvent);
+    
+    return () => {
+      window.removeEventListener('voice-close-command', handleVoiceCloseEvent);
+      cleanupVoiceRecognition();
+    };
+  }, [cleanupVoiceRecognition]);
+
+  const handleVoiceCommand = useCallback((transcript: string) => {
     console.log('🔊 VoiceInputFixed: Voice command received:', transcript);
     
     if (!transcript || transcript.trim().length === 0) {
@@ -60,43 +84,41 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
       toast.error('Voice input handler not available');
     }
     
+    // Clear the last processed command after a delay
     setTimeout(() => {
       setLastProcessedCommand('');
     }, 3000);
-  };
+  }, [lastProcessedCommand, onEnhancedVoiceInput]);
 
-  const handleVoiceError = (error: string) => {
+  const handleVoiceError = useCallback((error: string) => {
     console.error('🔊 VoiceInputFixed: Voice error:', error);
     setConnectionStatus('error');
     toast.error(`Voice recognition error: ${error}`);
-  };
+  }, []);
 
-  const handleVoiceStart = () => {
+  const handleVoiceStart = useCallback(() => {
     console.log('🔊 VoiceInputFixed: Voice recognition started');
     setConnectionStatus('connected');
-  };
+  }, []);
 
-  const handleVoiceEnd = () => {
+  const handleVoiceEnd = useCallback(() => {
     console.log('🔊 VoiceInputFixed: Voice recognition ended');
     setTimeout(() => {
       setConnectionStatus('disconnected');
     }, 1000);
-  };
+  }, []);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     console.log('🔊 VoiceInputFixed: Resetting voice system');
-    setConnectionStatus('disconnected');
-    setLastProcessedCommand('');
+    cleanupVoiceRecognition();
     toast.info('Voice system reset');
-  };
+  }, [cleanupVoiceRecognition]);
 
-  const handleCloseVoiceCommand = () => {
+  const handleCloseVoiceCommand = useCallback(() => {
     console.log('🔊 VoiceInputFixed: Manual close voice command triggered');
     
     // Stop any ongoing voice recognition
-    if ((window as any).__stopAllVoiceRecognition) {
-      (window as any).__stopAllVoiceRecognition();
-    }
+    cleanupVoiceRecognition();
     
     // Cancel any pending voice operations
     if (onCancelVoice) {
@@ -107,7 +129,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
     handleVoiceCommand('close');
     
     toast.success('Voice commands cancelled');
-  };
+  }, [cleanupVoiceRecognition, onCancelVoice, handleVoiceCommand]);
 
   const getStatusColor = () => {
     switch (connectionStatus) {
@@ -133,6 +155,8 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
     }
   };
 
+  const hasActiveVoice = conversationState !== 'idle' || hasPendingConfirmation || isVoiceProcessing;
+
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm transition-all duration-300 ease-in-out">
       <div className={`bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg transition-all duration-300 ease-in-out ${
@@ -154,7 +178,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
           
           <div className="flex gap-1">
             {/* Close Voice Command Button */}
-            {(conversationState !== 'idle' || hasPendingConfirmation || isVoiceProcessing) && (
+            {hasActiveVoice && (
               <Button
                 onClick={handleCloseVoiceCommand}
                 variant="ghost"
@@ -211,7 +235,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
             )}
 
             {/* Active conversation indicator */}
-            {(conversationState !== 'idle' || isVoiceProcessing) && (
+            {hasActiveVoice && (
               <div className="flex items-center justify-between p-2 bg-primary/10 text-primary rounded text-xs">
                 <span>Voice command active</span>
                 <Button onClick={handleCloseVoiceCommand} variant="outline" size="sm" className="h-6 text-xs px-2">
@@ -244,7 +268,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
                 Reset
               </Button>
               
-              {(conversationState !== 'idle' || hasPendingConfirmation) && (
+              {hasActiveVoice && (
                 <Button
                   onClick={handleCloseVoiceCommand}
                   variant="destructive"
@@ -259,7 +283,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
           </div>
         )}
 
-        <div className={isMinimized ? 'hidden' : 'block'}>
+        {!isMinimized && (
           <VoiceDiagnostic 
             onVoiceCommand={handleVoiceCommand}
             onVoiceError={handleVoiceError}
@@ -267,7 +291,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
             onVoiceEnd={handleVoiceEnd}
             compact={true}
           />
-        </div>
+        )}
 
         <VoiceSettingsModal 
           isOpen={showSettingsModal}

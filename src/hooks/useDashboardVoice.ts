@@ -186,42 +186,34 @@ export const useDashboardVoice = ({
       case 'cancel':
         console.log('Close/Cancel command received - executing proper cleanup');
         
+        // Stop any ongoing voice recognition first
+        if ((window as any).__stopAllVoiceRecognition) {
+          (window as any).__stopAllVoiceRecognition();
+        }
+        
         let formClosed = false;
         let closeMessage = '';
         
-        // Close any open forms
-        if (showAddEntry) {
-          console.log('Closing add entry form');
+        // Close any open forms with proper state management
+        if (showAddEntry || editingEntry || fillingEntry) {
+          console.log('Closing open forms');
+          
+          // Reset all form states
           setShowAddEntry(false);
-          closeMessage = 'Add entry form closed';
-          formClosed = true;
-        }
-        
-        if (editingEntry) {
-          console.log('Closing edit entry form');
           setEditingEntry(null);
-          closeMessage = editingEntry.title ? `Closed: ${editingEntry.title}` : 'Edit entry form closed';
-          formClosed = true;
-        }
-        
-        if (fillingEntry) {
-          console.log('Closing fill entry form');
           setFillingEntry(null);
-          closeMessage = fillingEntry.title ? `Closed: ${fillingEntry.title}` : 'Fill entry form closed';
+          
+          // Call the proper cancel handler to ensure complete cleanup
+          handleCancelEdit();
+          
+          closeMessage = 'All forms closed';
           formClosed = true;
+        } else {
+          closeMessage = 'Nothing to close';
         }
         
-        // Call the proper cancel handler to ensure cleanup
-        if (formClosed) {
-          console.log('Calling handleCancelEdit for proper cleanup');
-          handleCancelEdit();
-          toast.success(closeMessage);
-          speak(closeMessage);
-        } else {
-          const generalCloseMessage = 'Nothing to close';
-          toast.info(generalCloseMessage);
-          speak(generalCloseMessage);
-        }
+        toast.success(closeMessage);
+        speak(closeMessage);
         
         // Dispatch custom event for UI components to handle
         window.dispatchEvent(new CustomEvent('voice-close-command', { 
@@ -239,6 +231,10 @@ export const useDashboardVoice = ({
 
   const handleVoiceResult = (text: string) => {
     console.log('Processing voice text:', text);
+    if (!text || text.trim().length === 0) {
+      console.log('Empty voice text, ignoring');
+      return;
+    }
     const command = processVoiceCommand(text);
     handleVoiceCommand(command);
   };

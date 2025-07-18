@@ -1,5 +1,8 @@
+import { MultiIntentParser, ParsedIntent } from './nlp/multiIntentParser';
+import { CommandSequencer, SequencedCommand } from './nlp/commandSequencer';
+
 export interface VoiceCommand {
-  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'confirm_delete' | 'unknown';
+  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'confirm_delete' | 'unknown' | 'multi_command';
   params?: {
     fieldName?: string;
     fieldType?: 'text' | 'number' | 'date' | 'textarea';
@@ -8,8 +11,13 @@ export interface VoiceCommand {
     entryCategory?: string;
     titleValue?: string;
     categoryValue?: string;
+    commands?: SequencedCommand[]; // For multi-command support
+    originalText?: string;
   };
 }
+
+// Enhanced command processor with multi-intent support
+const multiIntentParser = new MultiIntentParser();
 
 export const processVoiceCommand = (transcript: string): VoiceCommand => {
   console.log('🎯 Processing voice command:', transcript);
@@ -19,6 +27,26 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     return { type: 'unknown' };
   }
 
+  // First, try multi-intent parsing
+  const multiIntentResult = multiIntentParser.parse(transcript);
+  
+  if (multiIntentResult.hasMultipleIntents) {
+    console.log('🔄 Multi-intent command detected:', multiIntentResult);
+    
+    // Convert parsed intents to sequenced commands
+    const commandSequencer = new CommandSequencer(async () => ({})); // Placeholder executor
+    const sequencedCommands = commandSequencer.sequenceCommands(multiIntentResult.intents);
+    
+    return {
+      type: 'multi_command',
+      params: {
+        commands: sequencedCommands,
+        originalText: transcript
+      }
+    };
+  }
+
+  // Fallback to single-intent processing with corrections
   const lowerTranscript = transcript.toLowerCase().trim();
   
   // Handle common speech recognition errors and misinterpretations
@@ -35,8 +63,6 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   if (correctedTranscript !== lowerTranscript) {
     console.log('🔧 Speech correction applied:', correctedTranscript);
   }
-  
-  // Enhanced pattern matching with better logging
   
   // Cancel/Close commands - check first for immediate response (use corrected transcript)
   if (correctedTranscript.includes('cancel') || 

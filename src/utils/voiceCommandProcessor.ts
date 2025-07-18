@@ -20,18 +20,32 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   }
 
   const lowerTranscript = transcript.toLowerCase().trim();
+  
+  // Handle common speech recognition errors and misinterpretations
+  let correctedTranscript = lowerTranscript
+    // Common close/open confusion
+    .replace(/\bopen\s+([^.]+?)\s+policy\b/g, 'close $1 policy') // "open X policy" likely means "close X policy"
+    .replace(/\bopening\s+([^.]+?)\s+policy\b/g, 'close $1 policy')
+    // Other common speech recognition errors
+    .replace(/\bcall\s+it\b/g, 'cancel') // "call it" often misheard as "cancel"
+    .replace(/\bcancel\s+it\b/g, 'cancel')
+    .replace(/\bstop\s+it\b/g, 'cancel');
+  
   console.log('🔄 Normalized text:', lowerTranscript);
+  if (correctedTranscript !== lowerTranscript) {
+    console.log('🔧 Speech correction applied:', correctedTranscript);
+  }
   
   // Enhanced pattern matching with better logging
   
-  // Cancel/Close commands - check first for immediate response
-  if (lowerTranscript.includes('cancel') || 
-      lowerTranscript.includes('stop') || 
-      lowerTranscript.includes('close') ||
-      lowerTranscript.includes('exit') ||
-      lowerTranscript.includes('dismiss') ||
-      lowerTranscript.includes('back')) {
-    console.log('✅ Detected close/cancel command');
+  // Cancel/Close commands - check first for immediate response (use corrected transcript)
+  if (correctedTranscript.includes('cancel') || 
+      correctedTranscript.includes('stop') || 
+      correctedTranscript.includes('close') ||
+      correctedTranscript.includes('exit') ||
+      correctedTranscript.includes('dismiss') ||
+      correctedTranscript.includes('back')) {
+    console.log('✅ Detected close/cancel command - EARLY RETURN');
     return { type: 'cancel' };
   }
   

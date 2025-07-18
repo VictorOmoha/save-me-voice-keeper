@@ -1,4 +1,3 @@
-
 export interface VoiceCommand {
   type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'confirm_delete' | 'unknown';
   params?: {
@@ -14,53 +13,25 @@ export interface VoiceCommand {
 
 export const processVoiceCommand = (transcript: string): VoiceCommand => {
   const lowerTranscript = transcript.toLowerCase().trim();
-  console.log('Processing voice command:', lowerTranscript);
+  console.log('🔍 Processing voice command:', lowerTranscript);
   
-  // Form field commands - check these first for active forms
+  // Enhanced pattern matching with better logging
   
-  // Title setting commands - more natural speech patterns
-  if ((lowerTranscript.includes('title') || lowerTranscript.includes('call')) && 
-      (lowerTranscript.includes('my') || lowerTranscript.includes('document') || 
-       lowerTranscript.includes('entry') || lowerTranscript.includes('name'))) {
-    const titleValue = extractTitleFromSpeech(lowerTranscript);
-    if (titleValue) {
-      console.log('Detected set title command:', { titleValue });
-      return {
-        type: 'set_title',
-        params: { titleValue }
-      };
-    }
+  // Cancel/Close commands - check first for immediate response
+  if (lowerTranscript.includes('cancel') || 
+      lowerTranscript.includes('stop') || 
+      lowerTranscript.includes('close') ||
+      lowerTranscript.includes('exit') ||
+      lowerTranscript.includes('dismiss') ||
+      lowerTranscript.includes('back')) {
+    console.log('✅ Detected close/cancel command');
+    return { type: 'cancel' };
   }
   
-  // Category setting commands - natural speech patterns  
-  if (lowerTranscript.includes('category') || 
-      (lowerTranscript.includes('set') && (lowerTranscript.includes('personal') || 
-       lowerTranscript.includes('documents') || lowerTranscript.includes('health') || 
-       lowerTranscript.includes('finance') || lowerTranscript.includes('contacts')))) {
-    const categoryValue = extractCategoryFromSpeech(lowerTranscript);
-    if (categoryValue) {
-      console.log('Detected set category command:', { categoryValue });
-      return {
-        type: 'set_category',
-        params: { categoryValue }
-      };
-    }
-  }
-  
-  // Delete confirmation commands
-  if ((lowerTranscript.includes('confirm') || lowerTranscript.includes('yes')) && 
-      lowerTranscript.includes('delete')) {
-    console.log('Detected delete confirmation');
-    return { type: 'confirm_delete' };
-  }
-  
-  // Enhanced pattern matching for better command recognition
-  
-  // Create entry commands - prioritize conversation mode over title extraction
+  // Create entry commands
   if ((lowerTranscript.includes('create') || lowerTranscript.includes('add') || lowerTranscript.includes('new')) && 
       (lowerTranscript.includes('entry') || lowerTranscript.includes('record') || lowerTranscript.includes('item'))) {
     
-    // Don't extract titles for generic "create entry" commands - start conversation instead
     const isGenericCommand = lowerTranscript.includes('new entry') || 
                            lowerTranscript.includes('create entry') ||
                            lowerTranscript.includes('add entry') ||
@@ -70,11 +41,10 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     const entryTitle = isGenericCommand ? '' : extractEntryTitle(lowerTranscript, 'create');
     const entryCategory = extractCategory(lowerTranscript);
     
-    console.log('Detected create entry command:', { 
+    console.log('✅ Detected create entry command:', { 
       entryTitle, 
       entryCategory, 
-      isGenericCommand,
-      originalTranscript: lowerTranscript 
+      isGenericCommand 
     });
     
     return {
@@ -83,64 +53,33 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
 
-  // Show/view all entries - very flexible patterns
+  // Show/view all entries
   if ((lowerTranscript.includes('show') || lowerTranscript.includes('view') || lowerTranscript.includes('display') || lowerTranscript.includes('list')) && 
       (lowerTranscript.includes('all') || lowerTranscript.includes('entries') || lowerTranscript.includes('documents') || lowerTranscript.includes('my'))) {
-    console.log('Detected show all entries command');
+    console.log('✅ Detected show all entries command');
     return {
       type: 'open_entry',
       params: { entryTitle: 'all_entries' }
     };
   }
   
-  // Create field commands
-  if ((lowerTranscript.includes('create') || lowerTranscript.includes('add')) && lowerTranscript.includes('field')) {
-    const fieldName = extractFieldName(lowerTranscript);
-    const fieldType = extractFieldType(lowerTranscript);
-    console.log('Detected create field command:', { fieldName, fieldType });
-    return {
-      type: 'create_field',
-      params: { fieldName, fieldType }
-    };
-  }
-  
-  // Delete entry commands - enhanced patterns
+  // Delete entry commands
   if (lowerTranscript.includes('delete') || 
       lowerTranscript.includes('remove') || 
       lowerTranscript.includes('erase') ||
       lowerTranscript.includes('trash')) {
     const searchTerm = extractDeleteTarget(lowerTranscript);
-    console.log('Detected delete command:', { searchTerm });
+    console.log('✅ Detected delete command:', { searchTerm });
     return {
       type: 'delete_entry',
       params: { entryTitle: searchTerm }
     };
   }
   
-  // Open specific entry commands - enhanced to handle any file/entry
+  // Open specific entry commands
   if (lowerTranscript.includes('open') && !lowerTranscript.includes('all')) {
     const searchTerm = extractOpenTarget(lowerTranscript);
-    console.log('Detected open command:', { searchTerm });
-    
-    // If it looks like a file search, use the file command type
-    if (searchTerm && (searchTerm.includes('.') || lowerTranscript.includes('file'))) {
-      return {
-        type: 'open_file',
-        params: { entryTitle: searchTerm }
-      };
-    }
-    
-    // Otherwise treat as entry command
-    return {
-      type: 'open_entry',
-      params: { entryTitle: searchTerm }
-    };
-  }
-  
-  // Edit commands - also enhanced for flexibility
-  if (lowerTranscript.includes('edit')) {
-    const searchTerm = extractOpenTarget(lowerTranscript);
-    console.log('Detected edit command:', { searchTerm });
+    console.log('✅ Detected open command:', { searchTerm });
     return {
       type: 'open_entry',
       params: { entryTitle: searchTerm }
@@ -150,7 +89,7 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   // Fill form commands
   if (lowerTranscript.includes('fill') && (lowerTranscript.includes('form') || lowerTranscript.includes('template'))) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'fill');
-    console.log('Detected fill form command:', { entryTitle });
+    console.log('✅ Detected fill form command:', { entryTitle });
     return {
       type: 'fill_form',
       params: { entryTitle }
@@ -160,25 +99,14 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   // Save entry commands
   if (lowerTranscript.includes('save')) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'save');
-    console.log('Detected save command:', { entryTitle });
+    console.log('✅ Detected save command:', { entryTitle });
     return {
       type: 'save_entry',
       params: { entryTitle }
     };
   }
   
-  // Cancel/Close commands - enhanced patterns
-  if (lowerTranscript.includes('cancel') || 
-      lowerTranscript.includes('stop') || 
-      lowerTranscript.includes('close') ||
-      lowerTranscript.includes('exit') ||
-      lowerTranscript.includes('dismiss') ||
-      lowerTranscript.includes('back')) {
-    console.log('Detected close/cancel command');
-    return { type: 'cancel' };
-  }
-  
-  console.log('Unknown command:', lowerTranscript);
+  console.log('❌ Unknown command:', lowerTranscript);
   return { type: 'unknown' };
 };
 

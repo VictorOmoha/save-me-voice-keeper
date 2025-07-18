@@ -175,7 +175,7 @@ export const useDashboard = () => {
   };
 
   // Enhanced voice input processing with better logging and error handling
-  const handleEnhancedVoiceInput = (text: string) => {
+  const handleEnhancedVoiceInput = async (text: string) => {
     console.log('🎤 Dashboard received voice input:', text);
     
     if (!text || text.trim().length === 0) {
@@ -188,9 +188,9 @@ export const useDashboard = () => {
       const command = processVoiceCommand(text);
       console.log('🔄 Processed command:', command);
       
-      // Execute the command immediately
+      // Execute the command immediately (now supports async for multi-commands)
       console.log('⚡ Executing command now...');
-      executeVoiceCommand(command);
+      await executeVoiceCommand(command);
       
       // Log successful processing
       console.log('✅ Voice command processing completed');

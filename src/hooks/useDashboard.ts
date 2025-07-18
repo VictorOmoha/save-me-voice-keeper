@@ -1,4 +1,3 @@
-
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
@@ -42,10 +41,189 @@ export const useDashboard = () => {
     loadEntries,
   });
 
-  // Direct voice command execution - bypassing the complex conversation system
-  const executeVoiceCommand = (command: VoiceCommand) => {
-    console.log('🎯 Executing voice command directly:', command);
+  // Enhanced command execution that handles both single and multi-intent commands
+  const executeVoiceCommand = async (command: VoiceCommand) => {
+    console.log('🎯 Executing voice command:', command);
     
+    // Handle multi-command sequences
+    if (command.type === 'multi_command' && command.params?.commands) {
+      console.log('🔄 Executing multi-command sequence...');
+      
+      for (let i = 0; i < command.params.commands.length; i++) {
+        const sequencedCommand = command.params.commands[i];
+        console.log(`⚡ Executing command ${i + 1}/${command.params.commands.length}:`, sequencedCommand.intent);
+        
+        // Add delay between commands for better UX
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, sequencedCommand.delay || 500));
+        }
+        
+        // Execute individual command from the sequence
+        const singleCommand: VoiceCommand = {
+          type: 'sequenced_command',
+          params: {
+            intent: sequencedCommand.intent,
+            originalText: command.params.originalText,
+            entryTitle: sequencedCommand.intent.parameters.entryTitle || '',
+            entryCategory: sequencedCommand.intent.parameters.entryCategory || 'Personal'
+          }
+        };
+        
+        await executeVoiceCommand(singleCommand);
+      }
+      
+      const completionMessage = `Completed ${command.params.commands.length} commands successfully`;
+      toast.success(completionMessage);
+      speak(completionMessage);
+      return;
+    }
+    
+    // Handle sequenced single commands (enhanced ParsedIntent execution)
+    if (command.type === 'sequenced_command' && command.params?.intent) {
+      const intent = command.params.intent;
+      console.log('🎯 Executing sequenced command:', intent.type);
+      
+      switch (intent.type) {
+        case 'create_entry':
+          console.log('📝 Creating new entry...');
+          setShowAddEntry(true);
+          const createMessage = 'Creating a new entry';
+          toast.success(createMessage);
+          speak(createMessage);
+          break;
+          
+        case 'open_entry':
+          console.log('📂 Opening entry with enhanced search...');
+          const searchTerm = intent.parameters.entryTitle;
+          
+          if (searchTerm === 'all_entries') {
+            const allEntriesMessage = 'Showing all entries';
+            toast.success(allEntriesMessage);
+            speak(allEntriesMessage);
+          } else if (searchTerm) {
+            console.log('🔍 Searching for entry with term:', searchTerm);
+            console.log('📋 Available entries:', savedEntries.map(e => ({ title: e.title, id: e.id })));
+            
+            // Enhanced search with better matching
+            const entryToOpen = savedEntries.find(entry => {
+              const entryTitle = entry.title.toLowerCase();
+              const searchLower = searchTerm.toLowerCase();
+              
+              // Direct substring match
+              if (entryTitle.includes(searchLower)) {
+                console.log(`✅ Direct match found: "${entry.title}" contains "${searchTerm}"`);
+                return true;
+              }
+              
+              // Word-based matching for better results
+              const entryWords = entryTitle.split(/\s+/);
+              const searchWords = searchLower.split(/\s+/);
+              
+              const matchingWords = searchWords.filter(searchWord =>
+                entryWords.some(entryWord => entryWord.includes(searchWord) || searchWord.includes(entryWord))
+              );
+              
+              if (matchingWords.length > 0) {
+                console.log(`✅ Word match found: "${entry.title}" matches words:`, matchingWords);
+                return true;
+              }
+              
+              return false;
+            });
+            
+            if (entryToOpen) {
+              console.log('📄 Opening entry:', entryToOpen.title);
+              editEntry(entryToOpen);
+              const openMessage = `Opening entry: ${entryToOpen.title}`;
+              toast.success(openMessage);
+              speak(openMessage);
+            } else {
+              console.log('❌ No matching entry found for:', searchTerm);
+              const errorMessage = `Entry "${searchTerm}" not found. Showing available entries instead.`;
+              toast.info(errorMessage);
+              speak(errorMessage);
+            }
+          }
+          break;
+          
+        case 'delete_entry':
+          if (intent.parameters.entryTitle) {
+            const searchTerm = intent.parameters.entryTitle;
+            const matchingEntries = savedEntries.filter(entry => 
+              entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              Object.values(entry.fields).some(value => 
+                typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+            );
+            
+            if (matchingEntries.length === 1) {
+              const entryToDelete = matchingEntries[0];
+              console.log('🗑️ Deleting entry:', entryToDelete.title);
+              deleteEntry(entryToDelete.id);
+              const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
+              toast.success(deleteMessage);
+              speak(deleteMessage);
+            } else if (matchingEntries.length > 1) {
+              const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
+              const multipleMessage = `Found ${matchingEntries.length} entries: ${matches}. Please be more specific.`;
+              toast.info(multipleMessage);
+              speak(multipleMessage);
+            } else {
+              const notFoundMessage = `No entries found matching "${searchTerm}".`;
+              toast.info(notFoundMessage);
+              speak(notFoundMessage);
+            }
+          }
+          break;
+          
+        case 'save_entry':
+          if (showAddEntry || editingEntry || fillingEntry) {
+            const saveMessage = 'Please complete the form and click save to save the entry';
+            toast.info(saveMessage);
+            speak(saveMessage);
+          } else {
+            const noEntryMessage = 'No entry form is currently open';
+            toast.info(noEntryMessage);
+            speak(noEntryMessage);
+          }
+          break;
+          
+        case 'cancel':
+          console.log('❌ Cancel/Close command - resetting all forms');
+          
+          // Reset all form states immediately
+          setShowAddEntry(false);
+          setEditingEntry(null);
+          setFillingEntry(null);
+          
+          // Call the proper cancel handler
+          handleCancelEdit();
+          
+          // Stop any ongoing voice recognition
+          if ((window as any).__stopAllVoiceRecognition) {
+            (window as any).__stopAllVoiceRecognition();
+          }
+          
+          const closeMessage = 'All forms closed';
+          toast.success(closeMessage);
+          speak(closeMessage);
+          
+          // Dispatch event for UI components
+          window.dispatchEvent(new CustomEvent('voice-close-command', { 
+            detail: { timestamp: Date.now(), source: 'dashboard' } 
+          }));
+          break;
+          
+        default:
+          console.log('❓ Unknown sequenced command:', intent.type);
+          const helpMessage = 'I can help you with commands like: Create new entry, Show all entries, Delete entry, Close form, or Fill form.';
+          toast.info('Voice command not recognized');
+          speak(helpMessage);
+      }
+      return;
+    }
+    
+    // Fallback to legacy command handling
     switch (command.type) {
       case 'create_entry':
         console.log('📝 Creating new entry...');

@@ -2,7 +2,7 @@ import { MultiIntentParser, ParsedIntent } from './nlp/multiIntentParser';
 import { CommandSequencer, SequencedCommand } from './nlp/commandSequencer';
 
 export interface VoiceCommand {
-  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'confirm_delete' | 'unknown' | 'multi_command';
+  type: 'create_field' | 'create_entry' | 'delete_entry' | 'open_entry' | 'open_file' | 'save_entry' | 'cancel' | 'fill_form' | 'set_title' | 'set_category' | 'confirm_delete' | 'unknown' | 'multi_command' | 'sequenced_command';
   params?: {
     fieldName?: string;
     fieldType?: 'text' | 'number' | 'date' | 'textarea';
@@ -13,6 +13,7 @@ export interface VoiceCommand {
     categoryValue?: string;
     commands?: SequencedCommand[]; // For multi-command support
     originalText?: string;
+    intent?: ParsedIntent; // For sequenced single commands
   };
 }
 
@@ -27,9 +28,16 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     return { type: 'unknown' };
   }
 
-  // First, try multi-intent parsing
+  // First, try multi-intent parsing for ALL commands
   const multiIntentResult = multiIntentParser.parse(transcript);
+  console.log('🔍 Multi-intent analysis result:', multiIntentResult);
   
+  if (multiIntentResult.intents.length === 0) {
+    console.log('❌ No intents parsed from input');
+    return { type: 'unknown' };
+  }
+
+  // If we have multiple intents, handle as multi-command
   if (multiIntentResult.hasMultipleIntents) {
     console.log('🔄 Multi-intent command detected:', multiIntentResult);
     
@@ -46,32 +54,98 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
     };
   }
 
-  // Fallback to single-intent processing with corrections
+  // Single intent - convert ParsedIntent to VoiceCommand format
+  const singleIntent = multiIntentResult.intents[0];
+  console.log('🎯 Single intent detected:', singleIntent);
+  
+  // Map ParsedIntent to VoiceCommand with enhanced processing
+  const voiceCommand = convertParsedIntentToVoiceCommand(singleIntent, transcript);
+  console.log('✅ Converted to voice command:', voiceCommand);
+  
+  return voiceCommand;
+};
+
+// Enhanced conversion function that properly maps ParsedIntent to VoiceCommand
+const convertParsedIntentToVoiceCommand = (intent: ParsedIntent, originalText: string): VoiceCommand => {
+  console.log('🔄 Converting parsed intent to voice command:', intent);
+  
+  switch (intent.type) {
+    case 'create_entry':
+      return {
+        type: 'sequenced_command',
+        params: {
+          intent,
+          originalText,
+          entryTitle: intent.parameters.entryTitle || '',
+          entryCategory: intent.parameters.entryCategory || 'Personal'
+        }
+      };
+      
+    case 'open_entry':
+      return {
+        type: 'sequenced_command',
+        params: {
+          intent,
+          originalText,
+          entryTitle: intent.parameters.entryTitle || ''
+        }
+      };
+      
+    case 'delete_entry':
+      return {
+        type: 'sequenced_command',
+        params: {
+          intent,
+          originalText,
+          entryTitle: intent.parameters.entryTitle || ''
+        }
+      };
+      
+    case 'save_entry':
+      return {
+        type: 'sequenced_command',
+        params: {
+          intent,
+          originalText,
+          entryTitle: intent.parameters.entryTitle || ''
+        }
+      };
+      
+    case 'cancel':
+      return {
+        type: 'sequenced_command',
+        params: {
+          intent,
+          originalText
+        }
+      };
+      
+    default:
+      console.log('❓ Unknown intent type, falling back to legacy processing');
+      // Fallback to legacy single-command processing
+      return processLegacySingleCommand(originalText);
+  }
+};
+
+// Legacy single-command processing for backward compatibility
+const processLegacySingleCommand = (transcript: string): VoiceCommand => {
   const lowerTranscript = transcript.toLowerCase().trim();
   
   // Handle common speech recognition errors and misinterpretations
   let correctedTranscript = lowerTranscript
-    // Common close/open confusion
-    .replace(/\bopen\s+([^.]+?)\s+policy\b/g, 'close $1 policy') // "open X policy" likely means "close X policy"
+    .replace(/\bopen\s+([^.]+?)\s+policy\b/g, 'close $1 policy')
     .replace(/\bopening\s+([^.]+?)\s+policy\b/g, 'close $1 policy')
-    // Other common speech recognition errors
-    .replace(/\bcall\s+it\b/g, 'cancel') // "call it" often misheard as "cancel"
+    .replace(/\bcall\s+it\b/g, 'cancel')
     .replace(/\bcancel\s+it\b/g, 'cancel')
     .replace(/\bstop\s+it\b/g, 'cancel');
   
-  console.log('🔄 Normalized text:', lowerTranscript);
-  if (correctedTranscript !== lowerTranscript) {
-    console.log('🔧 Speech correction applied:', correctedTranscript);
-  }
-  
-  // Cancel/Close commands - check first for immediate response (use corrected transcript)
+  // Cancel/Close commands - check first for immediate response
   if (correctedTranscript.includes('cancel') || 
       correctedTranscript.includes('stop') || 
       correctedTranscript.includes('close') ||
       correctedTranscript.includes('exit') ||
       correctedTranscript.includes('dismiss') ||
       correctedTranscript.includes('back')) {
-    console.log('✅ Detected close/cancel command - EARLY RETURN');
     return { type: 'cancel' };
   }
   
@@ -79,20 +153,8 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   if ((lowerTranscript.includes('create') || lowerTranscript.includes('add') || lowerTranscript.includes('new')) && 
       (lowerTranscript.includes('entry') || lowerTranscript.includes('record') || lowerTranscript.includes('item'))) {
     
-    const isGenericCommand = lowerTranscript.includes('new entry') || 
-                           lowerTranscript.includes('create entry') ||
-                           lowerTranscript.includes('add entry') ||
-                           lowerTranscript === 'create' ||
-                           lowerTranscript === 'new';
-    
-    const entryTitle = isGenericCommand ? '' : extractEntryTitle(lowerTranscript, 'create');
+    const entryTitle = extractEntryTitle(lowerTranscript, 'create');
     const entryCategory = extractCategory(lowerTranscript);
-    
-    console.log('✅ Detected create entry command:', { 
-      entryTitle, 
-      entryCategory, 
-      isGenericCommand 
-    });
     
     return {
       type: 'create_entry',
@@ -103,7 +165,6 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   // Show/view all entries
   if ((lowerTranscript.includes('show') || lowerTranscript.includes('view') || lowerTranscript.includes('display') || lowerTranscript.includes('list')) && 
       (lowerTranscript.includes('all') || lowerTranscript.includes('entries') || lowerTranscript.includes('documents') || lowerTranscript.includes('my'))) {
-    console.log('✅ Detected show all entries command');
     return {
       type: 'open_entry',
       params: { entryTitle: 'all_entries' }
@@ -116,7 +177,6 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
       lowerTranscript.includes('erase') ||
       lowerTranscript.includes('trash')) {
     const searchTerm = extractDeleteTarget(lowerTranscript);
-    console.log('✅ Detected delete command:', { searchTerm });
     return {
       type: 'delete_entry',
       params: { entryTitle: searchTerm }
@@ -126,7 +186,6 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   // Open specific entry commands
   if (lowerTranscript.includes('open') && !lowerTranscript.includes('all')) {
     const searchTerm = extractOpenTarget(lowerTranscript);
-    console.log('✅ Detected open command:', { searchTerm });
     return {
       type: 'open_entry',
       params: { entryTitle: searchTerm }
@@ -136,7 +195,6 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   // Fill form commands
   if (lowerTranscript.includes('fill') && (lowerTranscript.includes('form') || lowerTranscript.includes('template'))) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'fill');
-    console.log('✅ Detected fill form command:', { entryTitle });
     return {
       type: 'fill_form',
       params: { entryTitle }
@@ -146,26 +204,11 @@ export const processVoiceCommand = (transcript: string): VoiceCommand => {
   // Save entry commands
   if (lowerTranscript.includes('save')) {
     const entryTitle = extractEntryTitle(lowerTranscript, 'save');
-    console.log('✅ Detected save command:', { entryTitle });
     return {
       type: 'save_entry',
       params: { entryTitle }
     };
   }
-  
-  // Log detailed analysis for unknown commands
-  console.log('❌ Unknown command detected:', {
-    original: transcript,
-    normalized: lowerTranscript,
-    length: lowerTranscript.length,
-    containsCreate: lowerTranscript.includes('create'),
-    containsOpen: lowerTranscript.includes('open'),
-    containsDelete: lowerTranscript.includes('delete'),
-    containsCancel: lowerTranscript.includes('cancel'),
-    containsShow: lowerTranscript.includes('show'),
-    containsFill: lowerTranscript.includes('fill'),
-    containsSave: lowerTranscript.includes('save')
-  });
   
   return { type: 'unknown' };
 };
@@ -244,75 +287,6 @@ const extractCategory = (transcript: string): string => {
   }
   
   return 'Personal'; // Default category
-};
-
-const extractFormValue = (transcript: string, fieldType: string): string => {
-  const lowerTranscript = transcript.toLowerCase();
-  
-  // Pattern 1: "TITLE: My Document" or "CATEGORY: Personal"
-  const colonPattern = new RegExp(`${fieldType}:\\s*(.+)`, 'i');
-  const colonMatch = transcript.match(colonPattern);
-  if (colonMatch && colonMatch[1]) {
-    return colonMatch[1].trim();
-  }
-  
-  // Pattern 2: "SET TITLE My Document" or "TITLE My Document"  
-  const setPattern = new RegExp(`(?:set\\s+)?${fieldType}\\s+(.+)`, 'i');
-  const setMatch = transcript.match(setPattern);
-  if (setMatch && setMatch[1]) {
-    return setMatch[1].trim();
-  }
-  
-  return '';
-};
-
-const extractTitleFromSpeech = (transcript: string): string => {
-  console.log('🔍 Extracting title from:', transcript);
-  
-  // Handle speech recognition variations and common misinterpretations
-  const patterns = [
-    // Direct patterns
-    /title\s+my\s+(.+?)(?:\.|$)/i,
-    /(?:call it|name it)\s+(.+?)(?:\.|$)/i,
-    /title\s+(.+?)(?:\.|$)/i,
-    /(?:set|make)\s+(?:the\s+)?title\s+(.+?)(?:\.|$)/i,
-    
-    // Common speech recognition errors
-    /type\s+(?:to|two)\s+my\s+(.+?)(?:\.|$)/i,  // "title my" often becomes "type to my"
-    /tight\s+(?:to|two)\s+my\s+(.+?)(?:\.|$)/i, // "title" sometimes becomes "tight"
-    /(?:call|caller)\s+(?:it|this|that)\s+(.+?)(?:\.|$)/i, // "call it" variations
-    /(?:name|named?)\s+(?:it|this|that)\s+(.+?)(?:\.|$)/i, // "name it" variations
-  ];
-  
-  for (const pattern of patterns) {
-    const match = transcript.match(pattern);
-    console.log('🔍 Testing pattern:', pattern, 'Match:', match);
-    if (match && match[1]) {
-      let title = match[1].trim();
-      // Only clean up common prefixes, preserve the actual content
-      title = title.replace(/^(the|a|an)\s+/gi, '').trim();
-      console.log('🔍 Extracted title after cleanup:', title);
-      if (title.length > 0) {
-        return title;
-      }
-    }
-  }
-  
-  console.log('🔍 No title extracted');
-  return '';
-};
-
-const extractCategoryFromSpeech = (transcript: string): string => {
-  const categories = ['personal', 'documents', 'health', 'finance', 'contacts'];
-  const lowerTranscript = transcript.toLowerCase();
-  
-  for (const category of categories) {
-    if (lowerTranscript.includes(category)) {
-      return category.charAt(0).toUpperCase() + category.slice(1);
-    }
-  }
-  
-  return '';
 };
 
 const extractOpenTarget = (transcript: string): string => {

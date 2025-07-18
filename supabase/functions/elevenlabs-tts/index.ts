@@ -10,7 +10,27 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = await req.json();
+    // Safely parse JSON with error handling
+    let requestData;
+    try {
+      const bodyText = await req.text();
+      if (!bodyText || bodyText.trim() === '') {
+        throw new Error('Empty request body');
+      }
+      requestData = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('TTS Edge Function - JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: parseError.message,
+          fallback: 'browser_tts'
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { text, voiceId = '9BWtsMINqrJLrRacOk9x', modelId = 'eleven_multilingual_v2' } = requestData;
 
     console.log('TTS Edge Function - Received request:', { 
       textLength: text?.length, 
@@ -154,7 +174,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+    // Convert to base64 safely to avoid stack overflow with large files
+    const uint8Array = new Uint8Array(audioBuffer);
+    let binaryString = '';
+    const chunkSize = 8192; // Process in chunks to avoid stack overflow
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const base64Audio = btoa(binaryString);
     console.log('TTS Edge Function - Base64 audio length:', base64Audio.length);
 
     return new Response(

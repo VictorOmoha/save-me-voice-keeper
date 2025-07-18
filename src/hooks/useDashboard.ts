@@ -1,3 +1,4 @@
+
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
@@ -27,7 +28,7 @@ export const useDashboard = () => {
     saveEntry,
     deleteEntry,
     bulkDeleteEntries,
-    editEntry,
+    editEntry: baseEditEntry,
     fillEntry,
     handleCancelEdit,
     handleAddEntry,
@@ -41,7 +42,22 @@ export const useDashboard = () => {
     loadEntries,
   });
 
-  // Enhanced command execution that handles both single and multi-intent commands
+  // Enhanced editEntry function that ensures state is updated properly
+  const editEntry = (entry: SavedEntry) => {
+    console.log('🔧 Dashboard editEntry called with:', entry.title);
+    console.log('🔧 Setting editingEntry state...');
+    
+    // Close any other forms first
+    setShowAddEntry(false);
+    setFillingEntry(null);
+    
+    // Set the editing entry
+    setEditingEntry(entry);
+    
+    console.log('✅ Dashboard editEntry completed, state should be updated');
+  };
+
+  // Execute voice command with enhanced logging and state management
   const executeVoiceCommand = async (command: VoiceCommand) => {
     console.log('🎯 Executing voice command:', command);
     
@@ -104,10 +120,12 @@ export const useDashboard = () => {
             console.log('🔍 Searching for entry with term:', searchTerm);
             console.log('📋 Available entries:', savedEntries.map(e => ({ title: e.title, id: e.id })));
             
-            // Enhanced search with better matching
+            // Enhanced search with fuzzy matching
             const entryToOpen = savedEntries.find(entry => {
               const entryTitle = entry.title.toLowerCase();
               const searchLower = searchTerm.toLowerCase();
+              
+              console.log(`🔍 Checking "${entryTitle}" against "${searchLower}"`);
               
               // Direct substring match
               if (entryTitle.includes(searchLower)) {
@@ -115,12 +133,17 @@ export const useDashboard = () => {
                 return true;
               }
               
-              // Word-based matching for better results
+              // Word-based matching
               const entryWords = entryTitle.split(/\s+/);
               const searchWords = searchLower.split(/\s+/);
               
               const matchingWords = searchWords.filter(searchWord =>
-                entryWords.some(entryWord => entryWord.includes(searchWord) || searchWord.includes(entryWord))
+                entryWords.some(entryWord => 
+                  entryWord.includes(searchWord) || 
+                  searchWord.includes(entryWord) ||
+                  entryWord.startsWith(searchWord) ||
+                  searchWord.startsWith(entryWord)
+                )
               );
               
               if (matchingWords.length > 0) {
@@ -133,12 +156,22 @@ export const useDashboard = () => {
             
             if (entryToOpen) {
               console.log('📄 Opening entry:', entryToOpen.title);
+              console.log('📄 Entry object:', entryToOpen);
+              
+              // Use the enhanced editEntry function
               editEntry(entryToOpen);
+              
+              // Verify state was updated
+              setTimeout(() => {
+                console.log('🔍 Post-edit state check - editingEntry:', editingEntry?.title);
+              }, 100);
+              
               const openMessage = `Opening entry: ${entryToOpen.title}`;
               toast.success(openMessage);
               speak(openMessage);
             } else {
               console.log('❌ No matching entry found for:', searchTerm);
+              console.log('📋 Available entry titles:', savedEntries.map(e => e.title));
               const errorMessage = `Entry "${searchTerm}" not found. Showing available entries instead.`;
               toast.info(errorMessage);
               speak(errorMessage);
@@ -409,7 +442,7 @@ export const useDashboard = () => {
     saveEntry: enhancedSaveEntry,
     deleteEntry,
     bulkDeleteEntries,
-    editEntry,
+    editEntry, // Use the enhanced editEntry function
     fillEntry,
     handleCancelEdit,
     getFormMode,

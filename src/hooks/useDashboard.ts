@@ -45,16 +45,17 @@ export const useDashboard = () => {
   // Enhanced editEntry function that ensures state is updated properly
   const editEntry = (entry: SavedEntry) => {
     console.log('🔧 Dashboard editEntry called with:', entry.title);
-    console.log('🔧 Setting editingEntry state...');
+    console.log('🔧 Current editingEntry before:', editingEntry?.title || 'null');
     
-    // Close any other forms first
-    setShowAddEntry(false);
-    setFillingEntry(null);
+    // Use the base editEntry function which properly manages state
+    baseEditEntry(entry);
     
-    // Set the editing entry
-    setEditingEntry(entry);
+    console.log('✅ Dashboard editEntry completed using baseEditEntry');
     
-    console.log('✅ Dashboard editEntry completed, state should be updated');
+    // Verify state was updated with a small delay
+    setTimeout(() => {
+      console.log('🔍 Post-edit state check - should now be editing:', entry.title);
+    }, 100);
   };
 
   // Execute voice command with enhanced logging and state management
@@ -119,6 +120,7 @@ export const useDashboard = () => {
           } else if (searchTerm) {
             console.log('🔍 Searching for entry with term:', searchTerm);
             console.log('📋 Available entries:', savedEntries.map(e => ({ title: e.title, id: e.id })));
+            console.log('🔍 Current savedEntries count:', savedEntries.length);
             
             // Enhanced search with fuzzy matching
             const entryToOpen = savedEntries.find(entry => {
@@ -155,16 +157,11 @@ export const useDashboard = () => {
             });
             
             if (entryToOpen) {
-              console.log('📄 Opening entry:', entryToOpen.title);
-              console.log('📄 Entry object:', entryToOpen);
+              console.log('📄 Found entry to open:', entryToOpen.title);
+              console.log('📄 Full entry object:', entryToOpen);
               
-              // Use the enhanced editEntry function
+              // Use the enhanced editEntry function (which calls baseEditEntry)
               editEntry(entryToOpen);
-              
-              // Verify state was updated
-              setTimeout(() => {
-                console.log('🔍 Post-edit state check - editingEntry:', editingEntry?.title);
-              }, 100);
               
               const openMessage = `Opening entry: ${entryToOpen.title}`;
               toast.success(openMessage);
@@ -442,7 +439,7 @@ export const useDashboard = () => {
     saveEntry: enhancedSaveEntry,
     deleteEntry,
     bulkDeleteEntries,
-    editEntry, // Use the enhanced editEntry function
+    editEntry, // Use the enhanced editEntry function that calls baseEditEntry
     fillEntry,
     handleCancelEdit,
     getFormMode,

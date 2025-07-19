@@ -22,7 +22,7 @@ export class MultiIntentParser {
 
   private intentPatterns = [
     { pattern: /\b(create|add|new)\s+([^,]+?)(?:\s+(?:and|then|,)|$)/gi, type: 'create_entry' },
-    { pattern: /\b(open|edit|show)\s+([^,]+?)(?:\s+(?:and|then|,)|$)/gi, type: 'open_entry' },
+    { pattern: /\b(open|edit|show|view)\s+([^,]+?)(?:\s+(?:and|then|,)|$)/gi, type: 'open_entry' },
     { pattern: /\b(delete|remove|trash)\s+([^,]+?)(?:\s+(?:and|then|,)|$)/gi, type: 'delete_entry' },
     { pattern: /\b(close|cancel|stop|exit)\s*([^,]*?)(?:\s+(?:and|then|,)|$)/gi, type: 'cancel' },
     { pattern: /\b(save|store)\s+([^,]+?)(?:\s+(?:and|then|,)|$)/gi, type: 'save_entry' },
@@ -36,6 +36,7 @@ export class MultiIntentParser {
     const normalizedText = this.normalizeText(text);
     const segments = this.segmentByCoordinators(normalizedText);
     
+    console.log('🔍 MultiIntentParser: Normalized text:', normalizedText);
     console.log('🔍 MultiIntentParser: Found segments:', segments);
 
     const intents: ParsedIntent[] = [];
@@ -67,9 +68,7 @@ export class MultiIntentParser {
     return text
       .toLowerCase()
       .trim()
-      // Normalize common speech recognition errors
-      .replace(/\bopen\s+([^.]+?)\s+policy\b/g, 'close $1 policy')
-      .replace(/\bopening\s+([^.]+?)\s+policy\b/g, 'close $1 policy')
+      // Remove the problematic policy replacements - they were causing "open" to become "close"
       // Standardize coordinators
       .replace(/\s+and\s+then\s+/g, ' and then ')
       .replace(/\s+then\s+/g, ' then ')

@@ -204,7 +204,15 @@ export class EnhancedVoiceProcessor {
   }
 
   private isCancelCommand(transcript: string): boolean {
-    return /\b(cancel|close|stop|exit|back|dismiss)\b/i.test(transcript);
+    // Enhanced cancel command detection to include specific entry names
+    const cancelPatterns = [
+      /\b(cancel|close|stop|exit|back|dismiss)\b/i,
+      /\bclose\s+.*\b(form|entry|policy|document|record)\b/i,
+      /\bcancel\s+.*\b(form|entry|policy|document|record)\b/i,
+      /\b(done|finished)\s+with\b/i
+    ];
+    
+    return cancelPatterns.some(pattern => pattern.test(transcript));
   }
 
   private isSearchCommand(transcript: string): boolean {
@@ -314,15 +322,22 @@ export class EnhancedVoiceProcessor {
     this.currentContext = null;
     this.conversationActive = false;
     
+    // Enhanced close command handling - extract entry name if provided
+    const entryName = this.extractEntityFromText(transcript, 'close');
+    
     return {
       intent: 'navigate',
       action: 'cancel_operation',
       confidence: 0.95,
-      parameters: {},
+      parameters: {
+        entryName: entryName || ''
+      },
       needsConfirmation: false,
-      conversationalResponse: context.isFormOpen 
-        ? "Closing all forms"
-        : "Cancelling current operation",
+      conversationalResponse: entryName 
+        ? `Closing ${entryName}`
+        : context.isFormOpen 
+          ? "Closing all forms"
+          : "Cancelling current operation",
       originalTranscript: transcript
     };
   }
@@ -366,12 +381,25 @@ export class EnhancedVoiceProcessor {
   }
 
   private extractEntityFromText(text: string, action: string): string {
-    // Remove action words and common articles
-    let cleaned = text.toLowerCase()
-      .replace(new RegExp(`\\b${action}\\b`, 'gi'), '')
-      .replace(/\b(entry|record|document|item|the|a|an|my|our|your|new|called|named)\b/gi, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    // Enhanced entity extraction for close commands
+    let cleaned = text.toLowerCase();
+    
+    // For close commands, be more specific about what we're extracting
+    if (action === 'close') {
+      // Remove the action word and common close-related words
+      cleaned = cleaned
+        .replace(/\b(close|cancel|stop|exit|back|dismiss|done|finished)\b/gi, '')
+        .replace(/\b(the|a|an|my|our|your|form|entry|document|record)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    } else {
+      // Remove action words and common articles
+      cleaned = cleaned
+        .replace(new RegExp(`\\b${action}\\b`, 'gi'), '')
+        .replace(/\b(entry|record|document|item|the|a|an|my|our|your|new|called|named)\b/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
     
     // Remove trailing punctuation
     cleaned = cleaned.replace(/[.,!?]+$/, '');

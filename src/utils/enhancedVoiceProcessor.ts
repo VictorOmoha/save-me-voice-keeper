@@ -153,6 +153,12 @@ export class EnhancedVoiceProcessor {
     const lowerTranscript = transcript.toLowerCase().trim();
     console.log('🔍 PROCESSOR: Analyzing command:', lowerTranscript);
     
+    // PRIORITY CHECK: Cancel/Close commands should be checked FIRST
+    if (this.isCancelCommand(lowerTranscript)) {
+      console.log('✅ PROCESSOR: Detected CANCEL/CLOSE command (HIGH PRIORITY)');
+      return this.handleCancelCommand(transcript, context);
+    }
+    
     // Enhanced command recognition with context awareness
     if (this.isCreateCommand(lowerTranscript)) {
       console.log('✅ PROCESSOR: Detected CREATE command');
@@ -172,17 +178,6 @@ export class EnhancedVoiceProcessor {
     if (this.isSaveCommand(lowerTranscript)) {
       console.log('✅ PROCESSOR: Detected SAVE command');
       return this.handleSaveCommand(transcript, context);
-    }
-    
-    if (this.isCancelCommand(lowerTranscript)) {
-      console.log('✅ PROCESSOR: Detected CANCEL/CLOSE command');
-      console.log('📝 PROCESSOR: Close command details:', {
-        transcript,
-        lowerTranscript,
-        context: context.isFormOpen,
-        editingEntry: context.editingEntry?.title
-      });
-      return this.handleCancelCommand(transcript, context);
     }
     
     if (this.isSearchCommand(lowerTranscript)) {
@@ -219,19 +214,30 @@ export class EnhancedVoiceProcessor {
   }
 
   private isCancelCommand(transcript: string): boolean {
-    // Enhanced cancel command detection to include specific entry names
+    console.log('🔍 CANCEL CHECK: Testing transcript:', transcript);
+    
+    // Enhanced cancel command detection - more comprehensive patterns
     const cancelPatterns = [
-      /\b(cancel|close|stop|exit|back|dismiss)\b/i,
-      /\bclose\s+.*\b(form|entry|policy|document|record)\b/i,
-      /\bcancel\s+.*\b(form|entry|policy|document|record)\b/i,
-      /\b(done|finished)\s+with\b/i
+      /\b(cancel|close|stop|exit|back|dismiss|done|finished)\b/i,
+      /\bclose\s+.*\b(form|entry|policy|document|record|file)\b/i,
+      /\bcancel\s+.*\b(form|entry|policy|document|record|file)\b/i,
+      /\b(done|finished)\s+with\b/i,
+      /\bclose\s+[\w\s]+policy\b/i,  // Specifically for "close insurance policy"
+      /\bclose\s+[\w\s]+document\b/i,
+      /\bclose\s+[\w\s]+entry\b/i,
+      /\bclose\s+[\w\s]+form\b/i
     ];
     
-    const isCancel = cancelPatterns.some(pattern => pattern.test(transcript));
-    console.log('🔍 CANCEL CHECK:', {
+    const isCancel = cancelPatterns.some(pattern => {
+      const matches = pattern.test(transcript);
+      console.log('🔍 CANCEL PATTERN:', pattern.source, 'matches:', matches);
+      return matches;
+    });
+    
+    console.log('🔍 CANCEL CHECK RESULT:', {
       transcript,
       isCancel,
-      patterns: cancelPatterns.map(p => ({ pattern: p.source, matches: p.test(transcript) }))
+      totalPatterns: cancelPatterns.length
     });
     
     return isCancel;
@@ -422,12 +428,16 @@ export class EnhancedVoiceProcessor {
     
     // For close commands, be more specific about what we're extracting
     if (action === 'close') {
-      // Remove the action word and common close-related words
+      // First remove the action word
+      cleaned = cleaned.replace(/\b(close|cancel|stop|exit|back|dismiss|done|finished)\b/gi, '');
+      
+      // Then remove common articles and form-related words, but preserve the main entity
       cleaned = cleaned
-        .replace(/\b(close|cancel|stop|exit|back|dismiss|done|finished)\b/gi, '')
         .replace(/\b(the|a|an|my|our|your|form|entry|document|record)\b/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
+        
+      console.log('🔍 EXTRACT: Close command cleaned:', cleaned);
     } else {
       // Remove action words and common articles
       cleaned = cleaned
@@ -440,7 +450,7 @@ export class EnhancedVoiceProcessor {
     // Remove trailing punctuation
     cleaned = cleaned.replace(/[.,!?]+$/, '');
     
-    console.log('🔍 EXTRACT: Cleaned result:', cleaned);
+    console.log('🔍 EXTRACT: Final cleaned result:', cleaned);
     return cleaned.length > 1 ? cleaned : '';
   }
 

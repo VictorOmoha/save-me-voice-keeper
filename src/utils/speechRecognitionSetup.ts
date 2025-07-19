@@ -41,26 +41,42 @@ export const setupSpeechRecognition = ({
 
   const recognition = new SpeechRecognition();
   
-  // Configure recognition settings
-  recognition.continuous = false;
+  // Configure recognition settings for CONTINUOUS listening
+  recognition.continuous = true;  // CRITICAL FIX: Enable continuous listening
   recognition.interimResults = true;
   recognition.lang = 'en-US';
   recognition.maxAlternatives = 1;
 
-  // Prevent too frequent restarts
-  let isRestarting = false;
-  let restartTimeout: NodeJS.Timeout | null = null;
+  // Enhanced conversation management
   let commandCounter = 0;
   let consecutiveErrors = 0;
+  let lastCommandTime = Date.now();
+  let silenceTimeout: NodeJS.Timeout | null = null;
+  let conversationContext: any = null;
   const MAX_CONSECUTIVE_ERRORS = 3;
+  const SILENCE_TIMEOUT = 15000; // 15 seconds of silence before auto-stop
+  const COMMAND_COOLDOWN = 1000; // 1 second between commands
 
   recognition.onstart = () => {
-    console.log('🎤 SETUP: Speech recognition started successfully');
+    console.log('🎤 SETUP: Continuous speech recognition started');
     setIsListening(true);
     globalRecognitionActive = true;
     (window as any).__speech_recognition_active = true;
-    isRestarting = false;
     consecutiveErrors = 0;
+    
+    // Reset silence timeout
+    if (silenceTimeout) {
+      clearTimeout(silenceTimeout);
+    }
+    
+    // Set silence timeout for auto-stop
+    silenceTimeout = setTimeout(() => {
+      if (!(window as any).__manual_stop && globalRecognitionActive) {
+        console.log('🔇 SETUP: Auto-stopping due to silence timeout');
+        recognition.stop();
+        toast.info('Voice recognition paused due to inactivity');
+      }
+    }, SILENCE_TIMEOUT);
   };
 
   recognition.onresult = (event) => {
@@ -81,12 +97,26 @@ export const setupSpeechRecognition = ({
     const currentTranscript = finalTranscript || interimTranscript;
     setTranscript(currentTranscript);
 
-    // Process final results
+    // Process final results with improved timing
     if (finalTranscript && finalTranscript !== lastProcessedTranscript) {
+      const now = Date.now();
+      
+      // Prevent rapid-fire duplicate commands
+      if (now - lastCommandTime < COMMAND_COOLDOWN) {
+        console.log('🕒 SETUP: Command cooldown active, skipping');
+        return;
+      }
+      
       console.log('🔄 SETUP: Processing final transcript:', finalTranscript);
       
       commandCounter++;
       setLastProcessedTranscript(finalTranscript);
+      lastCommandTime = now;
+      
+      // Reset silence timeout on new command
+      if (silenceTimeout) {
+        clearTimeout(silenceTimeout);
+      }
       
       // Clear processed commands cache periodically
       if (commandCounter % 5 === 0) {
@@ -94,7 +124,7 @@ export const setupSpeechRecognition = ({
         (window as any).__processed_commands = new Set();
       }
 
-      // Process the command
+      // Process the command with context preservation
       try {
         if (conversationState?.isActive && onEnhancedVoiceInput) {
           console.log('🗣️ SETUP: Conversation mode - using enhanced input');
@@ -113,11 +143,37 @@ export const setupSpeechRecognition = ({
           detail: {
             commandNumber: commandCounter,
             command: finalTranscript,
-            timestamp: new Date().toLocaleTimeString()
+            timestamp: new Date().toLocaleTimeString(),
+            continuous: true
           }
         }));
+
+        // Provide immediate feedback for continuous listening
+        import('@/utils/textToSpeech').then(({ speak }) => {
+          // Only give feedback if it's a successful command and not during conversation
+          if (!conversationState?.isActive) {
+            // Brief confirmation without interrupting flow
+            setTimeout(() => {
+              if (globalRecognitionActive && !(window as any).__manual_stop) {
+                console.log('🔄 SETUP: Ready for next command');
+                // Don't speak feedback to avoid interrupting natural flow
+              }
+            }, 500);
+          }
+        });
+
+        // Set new silence timeout after command processing
+        silenceTimeout = setTimeout(() => {
+          if (!(window as any).__manual_stop && globalRecognitionActive) {
+            console.log('🔇 SETUP: Auto-stopping due to silence timeout');
+            recognition.stop();
+            toast.info('Voice recognition paused - say "start listening" to resume');
+          }
+        }, SILENCE_TIMEOUT);
+
       } catch (error) {
         console.error('🚨 SETUP: Error processing command:', error);
+        consecutiveErrors++;
       }
     }
   };
@@ -125,6 +181,11 @@ export const setupSpeechRecognition = ({
   recognition.onerror = (event) => {
     console.error('🚨 SETUP: Speech recognition error:', event.error);
     consecutiveErrors++;
+    
+    // Clear silence timeout on error
+    if (silenceTimeout) {
+      clearTimeout(silenceTimeout);
+    }
     
     // Handle specific errors
     if (event.error === 'not-allowed') {
@@ -150,34 +211,33 @@ export const setupSpeechRecognition = ({
 
     // Stop restarting after too many consecutive errors
     if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-      console.log('🛑 SETUP: Too many consecutive errors, stopping auto-restart');
+      console.log('🛑 SETUP: Too many consecutive errors, stopping continuous recognition');
       setIsListening(false);
       globalRecognitionActive = false;
-      toast.error('Voice recognition encountered multiple errors. Please try restarting manually.');
+      toast.error('Voice recognition encountered multiple errors. Please restart manually.');
       return;
     }
     
-    // Check if we're in test mode - provide better error handling for tests
-    if ((window as any).__test_mode) {
-      console.log('🧪 SETUP: In test mode, handling error gracefully:', event.error);
-      // In test mode, only restart for "no-speech" errors after a shorter delay
-      if (event.error === 'no-speech' && !isRestarting && !(window as any).__manual_stop) {
-        console.log('🧪 SETUP: Scheduling quick restart for test mode');
-        scheduleTestRestart();
-      } else {
-        setIsListening(false);
-        globalRecognitionActive = false;
-      }
+    // For continuous mode, handle aborted errors more gracefully
+    if (event.error === 'aborted' && (window as any).__manual_stop) {
+      console.log('🛑 SETUP: Manual stop detected, not restarting');
+      setIsListening(false);
+      globalRecognitionActive = false;
       return;
     }
     
-    // Only restart for recoverable errors and if not manually stopped
-    if (!isRestarting && !(window as any).__manual_stop && 
-        ['no-speech', 'aborted'].includes(event.error)) {
-      scheduleRestart();
-    } else {
-      setIsListening(false);
-      globalRecognitionActive = false;
+    // Auto-restart for recoverable errors in continuous mode
+    if (!((window as any).__manual_stop) && ['no-speech', 'aborted'].includes(event.error)) {
+      console.log('🔄 SETUP: Recoverable error, attempting immediate restart');
+      setTimeout(() => {
+        if (!(window as any).__manual_stop && !globalRecognitionActive) {
+          try {
+            recognition.start();
+          } catch (restartError) {
+            console.error('🚨 SETUP: Failed to restart after error:', restartError);
+          }
+        }
+      }, 1000); // Quick restart for continuous flow
     }
   };
 
@@ -187,89 +247,40 @@ export const setupSpeechRecognition = ({
     globalRecognitionActive = false;
     (window as any).__speech_recognition_active = false;
     
-    // Check if we're in test mode - handle differently
-    if ((window as any).__test_mode) {
-      console.log('🧪 SETUP: In test mode, scheduling quick restart if needed');
-      if (!isRestarting && !(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
-        scheduleTestRestart();
-      }
-      return;
+    // Clear silence timeout
+    if (silenceTimeout) {
+      clearTimeout(silenceTimeout);
     }
     
-    // Only restart if not manually stopped and not too many errors
-    if (!isRestarting && !(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
-      scheduleRestart();
-    }
-  };
-
-  const scheduleTestRestart = () => {
-    if (isRestarting || (window as any).__manual_stop || globalRecognitionActive) {
-      return;
-    }
-    
-    isRestarting = true;
-    console.log('🧪 SETUP: Scheduling test restart in 2 seconds...');
-    
-    if (restartTimeout) {
-      clearTimeout(restartTimeout);
-    }
-    
-    restartTimeout = setTimeout(() => {
-      if (!(window as any).__manual_stop && !globalRecognitionActive && (window as any).__test_mode) {
-        try {
-          console.log('🧪 SETUP: Attempting test restart');
-          recognition.start();
-        } catch (error) {
-          console.error('🚨 SETUP: Failed to restart in test mode:', error);
-          isRestarting = false;
-          consecutiveErrors++;
+    // Auto-restart unless manually stopped or too many errors
+    if (!(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
+      console.log('🔄 SETUP: Auto-restarting continuous recognition');
+      setTimeout(() => {
+        if (!(window as any).__manual_stop && !globalRecognitionActive) {
+          try {
+            recognition.start();
+            toast.info('🎤 Voice recognition resumed');
+          } catch (error) {
+            console.error('🚨 SETUP: Failed to auto-restart:', error);
+            consecutiveErrors++;
+          }
         }
-      } else {
-        isRestarting = false;
-      }
-    }, 2000); // Shorter delay for test mode
+      }, 2000); // 2-second delay for smooth restart
+    }
   };
 
-  const scheduleRestart = () => {
-    if (isRestarting || (window as any).__manual_stop || globalRecognitionActive || (window as any).__test_mode) {
-      return;
-    }
-    
-    isRestarting = true;
-    console.log('🔄 SETUP: Scheduling restart in 5 seconds...');
-    
-    // Clear any existing restart timeout
-    if (restartTimeout) {
-      clearTimeout(restartTimeout);
-    }
-    
-    restartTimeout = setTimeout(() => {
-      if (!(window as any).__manual_stop && !globalRecognitionActive && !(window as any).__test_mode) {
-        try {
-          console.log('🔄 SETUP: Attempting restart');
-          recognition.start();
-        } catch (error) {
-          console.error('🚨 SETUP: Failed to restart:', error);
-          isRestarting = false;
-          consecutiveErrors++;
-        }
-      } else {
-        isRestarting = false;
-      }
-    }, 5000); // Increased delay to prevent rapid restarts
-  };
-
-  // Cleanup function
+  // Enhanced cleanup function
   const cleanup = () => {
-    console.log('🧹 SETUP: Cleaning up speech recognition');
-    if (restartTimeout) {
-      clearTimeout(restartTimeout);
-      restartTimeout = null;
+    console.log('🧹 SETUP: Cleaning up continuous speech recognition');
+    
+    if (silenceTimeout) {
+      clearTimeout(silenceTimeout);
+      silenceTimeout = null;
     }
-    isRestarting = false;
+    
     globalRecognitionActive = false;
     (window as any).__manual_stop = true;
-    (window as any).__test_mode = false;
+    
     try {
       recognition.abort();
     } catch (error) {
@@ -277,8 +288,11 @@ export const setupSpeechRecognition = ({
     }
   };
 
-  // Store cleanup function on the recognition object
+  // Store cleanup function and context on the recognition object
   (recognition as any).cleanup = cleanup;
+  (recognition as any).setConversationContext = (context: any) => {
+    conversationContext = context;
+  };
 
   return recognition;
 };

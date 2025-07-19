@@ -39,6 +39,7 @@ export class EnhancedVoiceProcessor {
   private expectingFollowUp: boolean = false;
   private conversationActive: boolean = false;
   private lastCommand: string = '';
+  private continuousMode: boolean = false;
 
   async processVoiceCommand(
     transcript: string,
@@ -48,7 +49,7 @@ export class EnhancedVoiceProcessor {
       console.log('🎙️ Enhanced Voice Processor: Processing command:', transcript);
       console.log('🔍 Context:', context);
       
-      // FIRST LINE OF DEFENSE: Check if this is clearly TTS output
+      // Enhanced TTS feedback prevention with more conservative approach
       const lowerTranscript = transcript.toLowerCase().trim();
       
       // Only block exact system responses - be very conservative
@@ -61,8 +62,8 @@ export class EnhancedVoiceProcessor {
         "ai voice assistant ready", 
         "processing with ai",
         "listening for commands",
-        "opening",
-        "creating"
+        "continuous voice recognition active",
+        "ready for next command"
       ];
       
       // Only block if it's an exact match to prevent blocking real user commands
@@ -81,6 +82,9 @@ export class EnhancedVoiceProcessor {
       
       console.log('✅ VOICE PROCESSOR: Processing user command:', transcript);
       
+      // Set continuous mode flag
+      this.continuousMode = true;
+      
       // Check if this is a confirmation response
       if (this.pendingConfirmation && this.isConfirmationResponse(transcript)) {
         const confirmed = this.extractConfirmation(transcript);
@@ -94,15 +98,18 @@ export class EnhancedVoiceProcessor {
           parameters: { ...command.parameters, confirmed },
           needsConfirmation: false,
           conversationalResponse: confirmed 
-            ? `Confirmed! I'll ${command.action} now.`
-            : 'Okay, I\'ve cancelled that action. What else can I help you with?'
+            ? `Confirmed! I'll ${command.action} now. What would you like to do next?`
+            : 'Okay, I\'ve cancelled that action. What else can I help you with?',
+          expectsFollowUp: true
         };
       }
 
       // Handle follow-up responses in ongoing conversations
       if (this.expectingFollowUp && this.currentContext) {
         console.log('🔄 Processing follow-up command...');
-        return this.handleFollowUpResponse(transcript, context);
+        const followUpResult = this.handleFollowUpResponse(transcript, context);
+        followUpResult.expectsFollowUp = true;
+        return followUpResult;
       }
 
       // Add current command to history
@@ -123,10 +130,16 @@ export class EnhancedVoiceProcessor {
         this.pendingConfirmation = enhancedCommand;
       }
 
-      // Set up follow-up expectations
-      if (enhancedCommand.expectsFollowUp) {
+      // Set up follow-up expectations for continuous listening
+      if (enhancedCommand.expectsFollowUp || this.continuousMode) {
         this.expectingFollowUp = true;
         this.currentContext = enhancedCommand.context;
+      }
+
+      // Enhanced conversational responses for continuous mode
+      if (this.continuousMode && !enhancedCommand.needsConfirmation) {
+        enhancedCommand.conversationalResponse += ' What would you like to do next?';
+        enhancedCommand.expectsFollowUp = true;
       }
 
       console.log('✅ Enhanced command processed:', enhancedCommand);
@@ -142,9 +155,10 @@ export class EnhancedVoiceProcessor {
         confidence: 0,
         parameters: {},
         needsConfirmation: false,
-        conversationalResponse: 'Sorry, I had trouble understanding that. Could you please try again?',
+        conversationalResponse: 'Sorry, I had trouble understanding that. Could you please try again? I\'m still listening.',
         followUpQuestions: ['Try saying something like "Create a new entry" or "Show me my documents"'],
         originalTranscript: transcript,
+        expectsFollowUp: true
       };
     }
   }
@@ -353,10 +367,8 @@ export class EnhancedVoiceProcessor {
       fillingEntry: context.fillingEntry?.title
     });
     
-    // Reset conversation state
-    this.expectingFollowUp = false;
+    // Reset conversation state but keep continuous listening
     this.currentContext = null;
-    this.conversationActive = false;
     
     // Enhanced close command handling - extract entry name if provided
     const entryName = this.extractEntityFromText(transcript, 'close');
@@ -371,11 +383,12 @@ export class EnhancedVoiceProcessor {
       },
       needsConfirmation: false,
       conversationalResponse: entryName 
-        ? `Closing ${entryName}`
+        ? `Closing ${entryName}. What would you like to do next?`
         : context.isFormOpen 
-          ? "Closing all forms"
-          : "Cancelling current operation",
-      originalTranscript: transcript
+          ? "Closing all forms. What would you like to do next?"
+          : "Cancelling current operation. What would you like to do next?",
+      originalTranscript: transcript,
+      expectsFollowUp: true
     };
     
     console.log('🚪 CANCEL HANDLER: Final result:', result);
@@ -650,6 +663,20 @@ export class EnhancedVoiceProcessor {
     this.currentContext = null;
     this.pendingConfirmation = null;
     this.lastCommand = '';
+  }
+
+  setContinuousMode(enabled: boolean): void {
+    this.continuousMode = enabled;
+    if (enabled) {
+      console.log('🔄 VOICE PROCESSOR: Continuous mode enabled');
+    } else {
+      console.log('🔇 VOICE PROCESSOR: Continuous mode disabled');
+      this.resetConversation();
+    }
+  }
+
+  isContinuousModeEnabled(): boolean {
+    return this.continuousMode;
   }
 }
 

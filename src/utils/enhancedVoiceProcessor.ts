@@ -25,6 +25,9 @@ export interface VoiceContext {
   availableEntries?: Array<{ id: string; title: string; category: string }>;
   currentEntry?: { id: string; title: string };
   previousCommands?: string[];
+  isFormOpen?: boolean;
+  editingEntry?: any;
+  fillingEntry?: any;
 }
 
 export class EnhancedVoiceProcessor {
@@ -34,13 +37,16 @@ export class EnhancedVoiceProcessor {
   private retryCount = 0;
   private currentContext: any = null;
   private expectingFollowUp: boolean = false;
+  private conversationActive: boolean = false;
+  private lastCommand: string = '';
 
   async processVoiceCommand(
     transcript: string,
     context: VoiceContext
   ): Promise<EnhancedVoiceCommand> {
     try {
-      console.log('Processing enhanced voice command with NLP engine:', transcript);
+      console.log('🎙️ Enhanced Voice Processor: Processing command:', transcript);
+      console.log('🔍 Context:', context);
       
       // FIRST LINE OF DEFENSE: Check if this is clearly TTS output
       const lowerTranscript = transcript.toLowerCase().trim();
@@ -54,12 +60,14 @@ export class EnhancedVoiceProcessor {
         "voice assistant",
         "ai voice assistant ready", 
         "processing with ai",
-        "listening for commands"
+        "listening for commands",
+        "opening",
+        "creating"
       ];
       
       // Only block if it's an exact match to prevent blocking real user commands
-      if (exactTTSResponses.includes(lowerTranscript)) {
-        console.log('🚫 VOICE PROCESSOR: Blocking exact TTS match:', transcript);
+      if (exactTTSResponses.some(response => lowerTranscript.includes(response))) {
+        console.log('🚫 VOICE PROCESSOR: Blocking TTS feedback:', transcript);
         return {
           intent: 'unknown',
           action: 'tts_feedback_blocked',
@@ -93,6 +101,7 @@ export class EnhancedVoiceProcessor {
 
       // Handle follow-up responses in ongoing conversations
       if (this.expectingFollowUp && this.currentContext) {
+        console.log('🔄 Processing follow-up command...');
         return this.handleFollowUpResponse(transcript, context);
       }
 
@@ -102,18 +111,12 @@ export class EnhancedVoiceProcessor {
         this.conversationHistory = this.conversationHistory.slice(-10);
       }
 
-      // Process with NLP engine
-      const nlpResult = await nlpEngine.processText(transcript, {
-        userId: 'current-user', // TODO: Get from auth context
-        currentView: context.currentView,
-        availableEntries: context.availableEntries,
-        permissions: ['auto_confirm'] // TODO: Get from user permissions
-      });
+      // Set conversation as active
+      this.conversationActive = true;
+      this.lastCommand = transcript;
 
-      console.log('NLP processing result:', nlpResult);
-
-      // Convert NLP result to EnhancedVoiceCommand format
-      const enhancedCommand = this.convertNLPResultToCommand(nlpResult, transcript);
+      // Enhanced command processing with context awareness
+      const enhancedCommand = await this.processCommandWithContext(transcript, context);
 
       // Store pending confirmation if needed
       if (enhancedCommand.needsConfirmation) {
@@ -126,11 +129,11 @@ export class EnhancedVoiceProcessor {
         this.currentContext = enhancedCommand.context;
       }
 
-      console.log('Enhanced command:', enhancedCommand);
+      console.log('✅ Enhanced command processed:', enhancedCommand);
       return enhancedCommand;
 
     } catch (error) {
-      console.error('Error processing voice command:', error);
+      console.error('❌ Error processing voice command:', error);
       
       // Fallback to basic processing for safety
       return {
@@ -146,83 +149,247 @@ export class EnhancedVoiceProcessor {
     }
   }
 
-  private convertNLPResultToCommand(nlpResult: NLPProcessingResult, transcript: string): EnhancedVoiceCommand {
-    const { intent, routing, confidence } = nlpResult;
-
-    // Map NLP intents to enhanced voice command intents
-    const intentMapping: Record<string, EnhancedVoiceCommand['intent']> = {
-      'create_entry': 'create',
-      'delete_entry': 'delete', 
-      'edit_entry': 'edit',
-      'search_entries': 'search',
-      'navigate_view': 'navigate',
-      'export_data': 'export',
-      'help': 'conversation',
-      'unknown': 'unknown',
-      'error': 'unknown'
-    };
-
-    const mappedIntent = intentMapping[intent.name] || 'unknown';
+  private async processCommandWithContext(transcript: string, context: VoiceContext): Promise<EnhancedVoiceCommand> {
+    const lowerTranscript = transcript.toLowerCase().trim();
     
-    if (!routing.success) {
-      return {
-        intent: 'unknown',
-        action: 'error',
-        confidence: 0,
-        parameters: {},
-        needsConfirmation: false,
-        conversationalResponse: routing.error || 'Command could not be processed',
-        followUpQuestions: routing.suggestions || [],
-        originalTranscript: transcript
-      };
+    // Enhanced command recognition with context awareness
+    if (this.isCreateCommand(lowerTranscript)) {
+      return this.handleCreateCommand(transcript, context);
+    }
+    
+    if (this.isOpenCommand(lowerTranscript)) {
+      return this.handleOpenCommand(transcript, context);
+    }
+    
+    if (this.isDeleteCommand(lowerTranscript)) {
+      return this.handleDeleteCommand(transcript, context);
+    }
+    
+    if (this.isSaveCommand(lowerTranscript)) {
+      return this.handleSaveCommand(transcript, context);
+    }
+    
+    if (this.isCancelCommand(lowerTranscript)) {
+      return this.handleCancelCommand(transcript, context);
+    }
+    
+    if (this.isSearchCommand(lowerTranscript)) {
+      return this.handleSearchCommand(transcript, context);
     }
 
-    const result = routing.result;
+    // If we have an active form, try to interpret as form input
+    if (context.isFormOpen || context.editingEntry || context.fillingEntry) {
+      return this.handleFormInput(transcript, context);
+    }
+    
+    // Default unknown command
+    return this.createUnknownCommand(transcript);
+  }
+
+  private isCreateCommand(transcript: string): boolean {
+    return /\b(create|add|new|make)\b.*\b(entry|record|document|item)\b/i.test(transcript) ||
+           /\b(create|add|new|make)\b/i.test(transcript);
+  }
+
+  private isOpenCommand(transcript: string): boolean {
+    return /\b(open|edit|show|view|display)\b/i.test(transcript);
+  }
+
+  private isDeleteCommand(transcript: string): boolean {
+    return /\b(delete|remove|trash|erase)\b/i.test(transcript);
+  }
+
+  private isSaveCommand(transcript: string): boolean {
+    return /\b(save|store|submit)\b/i.test(transcript);
+  }
+
+  private isCancelCommand(transcript: string): boolean {
+    return /\b(cancel|close|stop|exit|back|dismiss)\b/i.test(transcript);
+  }
+
+  private isSearchCommand(transcript: string): boolean {
+    return /\b(search|find|look\s+for|where\s+is)\b/i.test(transcript);
+  }
+
+  private handleCreateCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    const entryTitle = this.extractEntityFromText(transcript, 'create');
+    const category = this.extractCategoryFromText(transcript);
     
     return {
-      intent: mappedIntent,
-      action: result?.action || intent.name,
-      confidence,
-      parameters: intent.parameters,
-      needsConfirmation: result?.needsConfirmation || false,
-      conversationalResponse: this.generateConversationalResponse(mappedIntent, result),
-      followUpQuestions: result?.suggestions || [],
+      intent: 'create',
+      action: 'create_entry',
+      confidence: 0.9,
+      parameters: {
+        entryTitle: entryTitle || '',
+        entryCategory: category || 'Personal'
+      },
+      needsConfirmation: false,
+      conversationalResponse: entryTitle 
+        ? `Creating a new entry: "${entryTitle}"`
+        : "Creating a new entry",
       originalTranscript: transcript,
-      expectsFollowUp: result?.expectsFollowUp || false,
-      context: result?.context
+      expectsFollowUp: !entryTitle,
+      context: entryTitle ? undefined : {
+        operation: 'create_entry',
+        category: category || 'Personal'
+      }
     };
   }
 
-  private generateConversationalResponse(intent: EnhancedVoiceCommand['intent'], result: any): string {
-    switch (intent) {
-      case 'create':
-        return result?.expectsFollowUp 
-          ? "I'll help you create a new entry. What information would you like to add?"
-          : `Perfect! I'll create "${result?.title || 'your entry'}" for you.`;
-          
-      case 'delete':
-        return result?.needsConfirmation
-          ? `Are you sure you want to delete "${result?.target}"? This cannot be undone.`
-          : `I'll delete "${result?.target}" for you.`;
-          
-      case 'edit':
-        return `Opening "${result?.target}" for editing.`;
-        
-      case 'search':
-        return `Searching for "${result?.query}" in your entries.`;
-        
-      case 'navigate':
-        return `Navigating to ${result?.destination}.`;
-        
-      case 'export':
-        return `Exporting your data in ${result?.format} format.`;
-        
-      case 'conversation':
-        return result?.message || "Hello! How can I help you today?";
-        
-      default:
-        return "I didn't quite understand that. Could you please rephrase your request?";
+  private handleOpenCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    const searchTerm = this.extractEntityFromText(transcript, 'open');
+    
+    if (searchTerm === 'all' || transcript.toLowerCase().includes('all entries')) {
+      return {
+        intent: 'navigate',
+        action: 'show_all_entries',
+        confidence: 0.95,
+        parameters: {},
+        needsConfirmation: false,
+        conversationalResponse: "Showing all entries",
+        originalTranscript: transcript
+      };
     }
+    
+    return {
+      intent: 'edit',
+      action: 'open_entry',
+      confidence: searchTerm ? 0.9 : 0.7,
+      parameters: {
+        entryTitle: searchTerm || '',
+        searchTerm
+      },
+      needsConfirmation: false,
+      conversationalResponse: searchTerm 
+        ? `Opening: "${searchTerm}"`
+        : "What would you like to open?",
+      originalTranscript: transcript,
+      expectsFollowUp: !searchTerm,
+      context: searchTerm ? undefined : {
+        operation: 'open_entry'
+      }
+    };
+  }
+
+  private handleDeleteCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    const searchTerm = this.extractEntityFromText(transcript, 'delete');
+    
+    return {
+      intent: 'delete',
+      action: 'delete_entry',
+      confidence: searchTerm ? 0.9 : 0.7,
+      parameters: {
+        entryTitle: searchTerm || '',
+        searchTerm
+      },
+      needsConfirmation: true,
+      conversationalResponse: searchTerm 
+        ? `Are you sure you want to delete "${searchTerm}"?`
+        : "What would you like to delete?",
+      originalTranscript: transcript,
+      expectsFollowUp: !searchTerm,
+      context: searchTerm ? undefined : {
+        operation: 'delete_entry'
+      }
+    };
+  }
+
+  private handleSaveCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    return {
+      intent: 'create',
+      action: 'save_current_entry',
+      confidence: 0.95,
+      parameters: {},
+      needsConfirmation: false,
+      conversationalResponse: context.isFormOpen 
+        ? "Saving the current entry"
+        : "No entry form is currently open",
+      originalTranscript: transcript
+    };
+  }
+
+  private handleCancelCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    // Reset conversation state
+    this.expectingFollowUp = false;
+    this.currentContext = null;
+    this.conversationActive = false;
+    
+    return {
+      intent: 'navigate',
+      action: 'cancel_operation',
+      confidence: 0.95,
+      parameters: {},
+      needsConfirmation: false,
+      conversationalResponse: context.isFormOpen 
+        ? "Closing all forms"
+        : "Cancelling current operation",
+      originalTranscript: transcript
+    };
+  }
+
+  private handleSearchCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    const searchQuery = this.extractEntityFromText(transcript, 'search');
+    
+    return {
+      intent: 'search',
+      action: 'search_entries',
+      confidence: searchQuery ? 0.9 : 0.7,
+      parameters: {
+        query: searchQuery || ''
+      },
+      needsConfirmation: false,
+      conversationalResponse: searchQuery 
+        ? `Searching for: "${searchQuery}"`
+        : "What would you like to search for?",
+      originalTranscript: transcript,
+      expectsFollowUp: !searchQuery,
+      context: searchQuery ? undefined : {
+        operation: 'search_entries'
+      }
+    };
+  }
+
+  private handleFormInput(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    // If user is giving content for a form
+    return {
+      intent: 'form_fill',
+      action: 'add_form_content',
+      confidence: 0.8,
+      parameters: {
+        content: transcript,
+        fieldType: 'text'
+      },
+      needsConfirmation: false,
+      conversationalResponse: `Adding: "${transcript}"`,
+      originalTranscript: transcript
+    };
+  }
+
+  private extractEntityFromText(text: string, action: string): string {
+    // Remove action words and common articles
+    let cleaned = text.toLowerCase()
+      .replace(new RegExp(`\\b${action}\\b`, 'gi'), '')
+      .replace(/\b(entry|record|document|item|the|a|an|my|our|your|new|called|named)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Remove trailing punctuation
+    cleaned = cleaned.replace(/[.,!?]+$/, '');
+    
+    return cleaned.length > 1 ? cleaned : '';
+  }
+
+  private extractCategoryFromText(text: string): string {
+    const categories = ['documents', 'health', 'contacts', 'finance', 'personal'];
+    const lowerText = text.toLowerCase();
+    
+    for (const category of categories) {
+      if (lowerText.includes(category)) {
+        return category.charAt(0).toUpperCase() + category.slice(1);
+      }
+    }
+    
+    return 'Personal';
   }
 
   private isConfirmationResponse(transcript: string): boolean {
@@ -255,6 +422,9 @@ export class EnhancedVoiceProcessor {
 
   clearHistory(): void {
     this.conversationHistory = [];
+    this.conversationActive = false;
+    this.expectingFollowUp = false;
+    this.currentContext = null;
   }
 
   private handleFollowUpResponse(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
@@ -269,8 +439,16 @@ export class EnhancedVoiceProcessor {
       return this.handleCreateEntryFollowUp(lowerTranscript, this.currentContext);
     }
 
-    if (this.currentContext.operation === 'add_field') {
-      return this.handleAddFieldFollowUp(lowerTranscript, this.currentContext);
+    if (this.currentContext.operation === 'open_entry') {
+      return this.handleOpenEntryFollowUp(lowerTranscript, this.currentContext, context);
+    }
+
+    if (this.currentContext.operation === 'delete_entry') {
+      return this.handleDeleteEntryFollowUp(lowerTranscript, this.currentContext, context);
+    }
+
+    if (this.currentContext.operation === 'search_entries') {
+      return this.handleSearchFollowUp(lowerTranscript, this.currentContext);
     }
 
     // Default follow-up handling
@@ -289,11 +467,9 @@ export class EnhancedVoiceProcessor {
   }
 
   private handleCreateEntryFollowUp(transcript: string, context: any): EnhancedVoiceCommand {
-    // Reset expectation since we're handling it
     this.expectingFollowUp = false;
     this.currentContext = null;
 
-    // Extract the content for the new entry
     const entryData = {
       title: context.entryTitle || `New Entry - ${new Date().toLocaleDateString()}`,
       category: context.category || 'Personal',
@@ -316,22 +492,55 @@ export class EnhancedVoiceProcessor {
     };
   }
 
-  private handleAddFieldFollowUp(transcript: string, context: any): EnhancedVoiceCommand {
+  private handleOpenEntryFollowUp(transcript: string, context: any, voiceContext: VoiceContext): EnhancedVoiceCommand {
     this.expectingFollowUp = false;
     this.currentContext = null;
 
     return {
-      intent: 'create',
-      action: 'add_field_to_entry',
+      intent: 'edit',
+      action: 'open_entry',
       parameters: {
-        entryId: context.entryId,
-        fieldName: context.fieldName,
-        fieldValue: transcript,
-        fieldType: context.fieldType || 'text'
+        entryTitle: transcript,
+        searchTerm: transcript
       },
-      conversationalResponse: `Great! I've added "${context.fieldName}" with the value you provided.`,
+      conversationalResponse: `Opening: "${transcript}"`,
       needsConfirmation: false,
-      confidence: 0.95,
+      confidence: 0.9,
+      originalTranscript: transcript
+    };
+  }
+
+  private handleDeleteEntryFollowUp(transcript: string, context: any, voiceContext: VoiceContext): EnhancedVoiceCommand {
+    this.expectingFollowUp = false;
+    this.currentContext = null;
+
+    return {
+      intent: 'delete',
+      action: 'delete_entry',
+      parameters: {
+        entryTitle: transcript,
+        searchTerm: transcript
+      },
+      conversationalResponse: `Are you sure you want to delete "${transcript}"?`,
+      needsConfirmation: true,
+      confidence: 0.9,
+      originalTranscript: transcript
+    };
+  }
+
+  private handleSearchFollowUp(transcript: string, context: any): EnhancedVoiceCommand {
+    this.expectingFollowUp = false;
+    this.currentContext = null;
+
+    return {
+      intent: 'search',
+      action: 'search_entries',
+      parameters: {
+        query: transcript
+      },
+      conversationalResponse: `Searching for: "${transcript}"`,
+      needsConfirmation: false,
+      confidence: 0.9,
       originalTranscript: transcript
     };
   }
@@ -350,6 +559,22 @@ export class EnhancedVoiceProcessor {
 
   isExpectingFollowUp(): boolean {
     return this.expectingFollowUp;
+  }
+
+  isConversationActive(): boolean {
+    return this.conversationActive;
+  }
+
+  getLastCommand(): string {
+    return this.lastCommand;
+  }
+
+  resetConversation(): void {
+    this.conversationActive = false;
+    this.expectingFollowUp = false;
+    this.currentContext = null;
+    this.pendingConfirmation = null;
+    this.lastCommand = '';
   }
 }
 

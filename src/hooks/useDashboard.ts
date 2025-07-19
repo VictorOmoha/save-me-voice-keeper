@@ -1,4 +1,3 @@
-
 import { useDashboardState } from "./useDashboardState";
 import { useDashboardActions } from "./useDashboardActions";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
@@ -64,355 +63,7 @@ export const useDashboard = () => {
     }, 200);
   };
 
-  // Execute voice command with comprehensive logging and proper execution
-  const executeVoiceCommand = async (command: VoiceCommand) => {
-    console.log('🎯 Executing voice command:', command);
-    
-    try {
-      // Handle multi-command sequences
-      if (command.type === 'multi_command' && command.params?.commands) {
-        console.log('🔄 Executing multi-command sequence...');
-        
-        for (let i = 0; i < command.params.commands.length; i++) {
-          const sequencedCommand = command.params.commands[i];
-          console.log(`⚡ Executing command ${i + 1}/${command.params.commands.length}:`, sequencedCommand.intent);
-          
-          // Add delay between commands for better UX
-          if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, sequencedCommand.delay || 500));
-          }
-          
-          // Execute individual command from the sequence
-          const singleCommand: VoiceCommand = {
-            type: 'sequenced_command',
-            params: {
-              intent: sequencedCommand.intent,
-              originalText: command.params.originalText,
-              entryTitle: sequencedCommand.intent.parameters.entryTitle || '',
-              entryCategory: sequencedCommand.intent.parameters.entryCategory || 'Personal'
-            }
-          };
-          
-          await executeVoiceCommand(singleCommand);
-        }
-        
-        const completionMessage = `Completed ${command.params.commands.length} commands successfully`;
-        toast.success(completionMessage);
-        setTimeout(() => speak(completionMessage), 100);
-        return;
-      }
-      
-      // Handle sequenced single commands (enhanced ParsedIntent execution)
-      if (command.type === 'sequenced_command' && command.params?.intent) {
-        const intent = command.params.intent;
-        console.log('🎯 Executing sequenced command:', intent.type);
-        
-        switch (intent.type) {
-          case 'create_entry':
-            console.log('📝 Creating new entry...');
-            setShowAddEntry(true);
-            setEditingEntry(null);
-            setFillingEntry(null);
-            
-            const createMessage = 'Creating a new entry';
-            console.log('🔊 Speaking create message:', createMessage);
-            toast.success(createMessage);
-            setTimeout(() => speak(createMessage), 100);
-            break;
-            
-          case 'open_entry':
-            console.log('📂 Opening entry with enhanced search...');
-            const searchTerm = intent.parameters.entryTitle;
-            
-            if (searchTerm === 'all_entries') {
-              const allEntriesMessage = 'Showing all entries';
-              console.log('🔊 Speaking all entries message:', allEntriesMessage);
-              toast.success(allEntriesMessage);
-              setTimeout(() => speak(allEntriesMessage), 100);
-            } else if (searchTerm) {
-              console.log('🔍 Searching for entry with term:', searchTerm);
-              console.log('📋 Available entries:', savedEntries.map(e => ({ title: e.title, id: e.id })));
-              
-              // Enhanced search with fuzzy matching
-              const entryToOpen = savedEntries.find(entry => {
-                const entryTitle = entry.title.toLowerCase();
-                const searchLower = searchTerm.toLowerCase();
-                
-                console.log(`🔍 Checking "${entryTitle}" against "${searchLower}"`);
-                
-                // Direct substring match
-                if (entryTitle.includes(searchLower)) {
-                  console.log(`✅ Direct match found: "${entry.title}" contains "${searchTerm}"`);
-                  return true;
-                }
-                
-                // Word-based matching
-                const entryWords = entryTitle.split(/\s+/);
-                const searchWords = searchLower.split(/\s+/);
-                
-                const matchingWords = searchWords.filter(searchWord =>
-                  entryWords.some(entryWord => 
-                    entryWord.includes(searchWord) || 
-                    searchWord.includes(entryWord) ||
-                    entryWord.startsWith(searchWord) ||
-                    searchWord.startsWith(entryWord)
-                  )
-                );
-                
-                if (matchingWords.length > 0) {
-                  console.log(`✅ Word match found: "${entry.title}" matches words:`, matchingWords);
-                  return true;
-                }
-                
-                return false;
-              });
-              
-              if (entryToOpen) {
-                console.log('📄 Found entry to open:', entryToOpen.title);
-                editEntry(entryToOpen); // This now provides its own TTS feedback
-              } else {
-                console.log('❌ No matching entry found for:', searchTerm);
-                console.log('📋 Available entry titles:', savedEntries.map(e => e.title));
-                const errorMessage = `Entry "${searchTerm}" not found. Please check your entries.`;
-                console.log('🔊 Speaking error message:', errorMessage);
-                toast.error(errorMessage);
-                setTimeout(() => speak(errorMessage), 100);
-              }
-            }
-            break;
-            
-          case 'delete_entry':
-            if (intent.parameters.entryTitle) {
-              const searchTerm = intent.parameters.entryTitle;
-              const matchingEntries = savedEntries.filter(entry => 
-                entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                Object.values(entry.fields).some(value => 
-                  typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-              );
-              
-              if (matchingEntries.length === 1) {
-                const entryToDelete = matchingEntries[0];
-                console.log('🗑️ Deleting entry:', entryToDelete.title);
-                await deleteEntry(entryToDelete.id);
-                const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
-                console.log('🔊 Speaking delete message:', deleteMessage);
-                toast.success(deleteMessage);
-                setTimeout(() => speak(deleteMessage), 100);
-              } else if (matchingEntries.length > 1) {
-                const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
-                const multipleMessage = `Found ${matchingEntries.length} entries: ${matches}. Please be more specific.`;
-                console.log('🔊 Speaking multiple matches message:', multipleMessage);
-                toast.info(multipleMessage);
-                setTimeout(() => speak(multipleMessage), 100);
-              } else {
-                const notFoundMessage = `No entries found matching "${searchTerm}".`;
-                console.log('🔊 Speaking not found message:', notFoundMessage);
-                toast.info(notFoundMessage);
-                setTimeout(() => speak(notFoundMessage), 100);
-              }
-            }
-            break;
-            
-          case 'save_entry':
-            if (showAddEntry || editingEntry || fillingEntry) {
-              const saveMessage = 'Please complete the form and click save to save the entry';
-              console.log('🔊 Speaking save message:', saveMessage);
-              toast.info(saveMessage);
-              setTimeout(() => speak(saveMessage), 100);
-            } else {
-              const noEntryMessage = 'No entry form is currently open';
-              console.log('🔊 Speaking no entry message:', noEntryMessage);
-              toast.info(noEntryMessage);
-              setTimeout(() => speak(noEntryMessage), 100);
-            }
-            break;
-            
-          case 'cancel':
-            console.log('❌ Cancel/Close command - resetting all forms');
-            
-            // Reset all form states immediately
-            setShowAddEntry(false);
-            setEditingEntry(null);
-            setFillingEntry(null);
-            
-            // Call the proper cancel handler
-            handleCancelEdit();
-            
-            // Stop any ongoing voice recognition
-            if ((window as any).__stopAllVoiceRecognition) {
-              (window as any).__stopAllVoiceRecognition();
-            }
-            
-            const closeMessage = 'All forms closed';
-            console.log('🔊 Speaking close message:', closeMessage);
-            toast.success(closeMessage);
-            setTimeout(() => speak(closeMessage), 100);
-            
-            // Dispatch event for UI components
-            window.dispatchEvent(new CustomEvent('voice-close-command', { 
-              detail: { timestamp: Date.now(), source: 'dashboard' } 
-            }));
-            break;
-            
-          default:
-            console.log('❓ Unknown sequenced command:', intent.type);
-            const helpMessage = 'I can help you with commands like: Create new entry, Open entry, Delete entry, Close form, or Fill form.';
-            console.log('🔊 Speaking help message:', helpMessage);
-            toast.info('Voice command not recognized');
-            setTimeout(() => speak(helpMessage), 100);
-        }
-        return;
-      }
-      
-      // Fallback to legacy command handling with improved TTS
-      switch (command.type) {
-        case 'create_entry':
-          console.log('📝 Creating new entry...');
-          setShowAddEntry(true);
-          setEditingEntry(null);
-          setFillingEntry(null);
-          
-          const createMessage = 'Creating a new entry';
-          console.log('🔊 Speaking create message:', createMessage);
-          toast.success(createMessage);
-          setTimeout(() => speak(createMessage), 100);
-          break;
-          
-        case 'open_entry':
-          if (command.params?.entryTitle === 'all_entries') {
-            console.log('📂 Opening all entries view...');
-            const allEntriesMessage = 'Showing all entries';
-            console.log('🔊 Speaking all entries message:', allEntriesMessage);
-            toast.success(allEntriesMessage);
-            setTimeout(() => speak(allEntriesMessage), 100);
-          } else if (command.params?.entryTitle) {
-            const entryToOpen = savedEntries.find(entry => 
-              entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
-            );
-            if (entryToOpen) {
-              console.log('📄 Opening entry:', entryToOpen.title);
-              editEntry(entryToOpen); // This now provides its own TTS feedback
-            } else {
-              const errorMessage = `Entry "${command.params.entryTitle}" not found. Please check your entries.`;
-              console.log('🔊 Speaking error message:', errorMessage);
-              toast.error(errorMessage);
-              setTimeout(() => speak(errorMessage), 100);
-            }
-          }
-          break;
-          
-        case 'delete_entry':
-          if (command.params?.entryTitle) {
-            const searchTerm = command.params.entryTitle;
-            const matchingEntries = savedEntries.filter(entry => 
-              entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              Object.values(entry.fields).some(value => 
-                typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-            );
-            
-            if (matchingEntries.length === 1) {
-              const entryToDelete = matchingEntries[0];
-              console.log('🗑️ Deleting entry:', entryToDelete.title);
-              await deleteEntry(entryToDelete.id);
-              const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
-              console.log('🔊 Speaking delete message:', deleteMessage);
-              toast.success(deleteMessage);
-              setTimeout(() => speak(deleteMessage), 100);
-            } else if (matchingEntries.length > 1) {
-              const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
-              const multipleMessage = `Found ${matchingEntries.length} entries: ${matches}. Please be more specific.`;
-              console.log('🔊 Speaking multiple matches message:', multipleMessage);
-              toast.info(multipleMessage);
-              setTimeout(() => speak(multipleMessage), 100);
-            } else {
-              const notFoundMessage = `No entries found matching "${searchTerm}".`;
-              console.log('🔊 Speaking not found message:', notFoundMessage);
-              toast.info(notFoundMessage);
-              setTimeout(() => speak(notFoundMessage), 100);
-            }
-          }
-          break;
-          
-        case 'fill_form':
-          if (command.params?.entryTitle) {
-            const entryToFill = savedEntries.find(entry => 
-              entry.title.toLowerCase().includes(command.params?.entryTitle?.toLowerCase() || '')
-            );
-            if (entryToFill) {
-              console.log('📋 Filling form:', entryToFill.title);
-              fillEntry(entryToFill);
-              const fillMessage = `Filling form: ${entryToFill.title}`;
-              console.log('🔊 Speaking fill message:', fillMessage);
-              toast.success(fillMessage);
-              setTimeout(() => speak(fillMessage), 100);
-            } else {
-              const errorMessage = `Template "${command.params.entryTitle}" not found`;
-              console.log('🔊 Speaking error message:', errorMessage);
-              toast.error(errorMessage);
-              setTimeout(() => speak(errorMessage), 100);
-            }
-          }
-          break;
-          
-        case 'save_entry':
-          if (showAddEntry || editingEntry || fillingEntry) {
-            const saveMessage = 'Please complete the form and click save to save the entry';
-            console.log('🔊 Speaking save message:', saveMessage);
-            toast.info(saveMessage);
-            setTimeout(() => speak(saveMessage), 100);
-          } else {
-            const noEntryMessage = 'No entry form is currently open';
-            console.log('🔊 Speaking no entry message:', noEntryMessage);
-            toast.info(noEntryMessage);
-            setTimeout(() => speak(noEntryMessage), 100);
-          }
-          break;
-          
-        case 'cancel':
-          console.log('❌ Cancel/Close command - resetting all forms');
-          
-          // Reset all form states immediately
-          setShowAddEntry(false);
-          setEditingEntry(null);
-          setFillingEntry(null);
-          
-          // Call the proper cancel handler
-          handleCancelEdit();
-          
-          // Stop any ongoing voice recognition
-          if ((window as any).__stopAllVoiceRecognition) {
-            (window as any).__stopAllVoiceRecognition();
-          }
-          
-          const closeMessage = 'All forms closed';
-          console.log('🔊 Speaking close message:', closeMessage);
-          toast.success(closeMessage);
-          setTimeout(() => speak(closeMessage), 100);
-          
-          // Dispatch event for UI components
-          window.dispatchEvent(new CustomEvent('voice-close-command', { 
-            detail: { timestamp: Date.now(), source: 'dashboard' } 
-          }));
-          break;
-          
-        default:
-          console.log('❓ Unknown command:', command.type);
-          const helpMessage = 'I can help you with commands like: Create new entry, Open entry, Delete entry, Close form, or Fill form.';
-          console.log('🔊 Speaking help message:', helpMessage);
-          toast.info('Voice command not recognized');
-          setTimeout(() => speak(helpMessage), 100);
-      }
-    } catch (error) {
-      console.error('❌ Error executing voice command:', error);
-      const errorMessage = 'Sorry, I could not process that command';
-      toast.error('Failed to process voice command');
-      setTimeout(() => speak(errorMessage), 100);
-    }
-  };
-
-  // Enhanced voice input processing with better logging and error handling
+  // Enhanced voice input processing with conversation support
   const handleEnhancedVoiceInput = async (text: string) => {
     console.log('🎤 Dashboard handleEnhancedVoiceInput called with:', text);
     
@@ -422,18 +73,40 @@ export const useDashboard = () => {
     }
     
     try {
-      console.log('🔄 Processing voice command...');
+      console.log('🔄 Processing voice command with enhanced processor...');
       
-      // Process the command directly
-      const command = processVoiceCommand(text);
-      console.log('🔄 Processed command result:', command);
+      // Import the enhanced voice processor
+      const { voiceProcessor } = await import('@/utils/enhancedVoiceProcessor');
       
-      // Execute the command immediately
-      console.log('⚡ Executing command now...');
-      await executeVoiceCommand(command);
+      // Build context for the voice processor
+      const context = {
+        currentView: 'dashboard',
+        availableEntries: savedEntries.map(entry => ({
+          id: entry.id,
+          title: entry.title,
+          category: entry.fields.category || 'Personal'
+        })),
+        currentEntry: editingEntry ? { id: editingEntry.id, title: editingEntry.title } : undefined,
+        previousCommands: [],
+        isFormOpen: showAddEntry || !!editingEntry || !!fillingEntry,
+        editingEntry,
+        fillingEntry
+      };
       
-      // Log successful processing
-      console.log('✅ Voice command processing completed successfully');
+      // Process the command with context
+      const enhancedCommand = await voiceProcessor.processVoiceCommand(text, context);
+      console.log('🔄 Enhanced command result:', enhancedCommand);
+      
+      // Skip TTS feedback blocks
+      if (enhancedCommand.action === 'tts_feedback_blocked') {
+        console.log('🚫 Skipping TTS feedback block');
+        return;
+      }
+      
+      // Execute the enhanced command
+      await executeEnhancedVoiceCommand(enhancedCommand);
+      
+      console.log('✅ Enhanced voice command processing completed successfully');
     } catch (error) {
       console.error('❌ Error in handleEnhancedVoiceInput:', error);
       const errorMessage = 'Sorry, I could not process that command';
@@ -442,7 +115,170 @@ export const useDashboard = () => {
     }
   };
 
-  // Enhanced saveEntry function that passes fillingEntry context
+  // Execute enhanced voice command with comprehensive handling
+  const executeEnhancedVoiceCommand = async (command: any) => {
+    console.log('🎯 Executing enhanced voice command:', command);
+    
+    try {
+      switch (command.intent) {
+        case 'create':
+          if (command.action === 'create_entry' || command.action === 'create_entry_with_content') {
+            console.log('📝 Creating new entry...');
+            setShowAddEntry(true);
+            setEditingEntry(null);
+            setFillingEntry(null);
+            
+            toast.success(command.conversationalResponse);
+            setTimeout(() => speak(command.conversationalResponse), 100);
+          } else if (command.action === 'save_current_entry') {
+            if (showAddEntry || editingEntry || fillingEntry) {
+              const saveMessage = 'Please complete the form and click save to save the entry';
+              toast.info(saveMessage);
+              setTimeout(() => speak(saveMessage), 100);
+            } else {
+              toast.info(command.conversationalResponse);
+              setTimeout(() => speak(command.conversationalResponse), 100);
+            }
+          }
+          break;
+          
+        case 'edit':
+          if (command.action === 'open_entry') {
+            const searchTerm = command.parameters.entryTitle || command.parameters.searchTerm;
+            
+            if (searchTerm) {
+              console.log('🔍 Searching for entry with term:', searchTerm);
+              
+              const entryToOpen = savedEntries.find(entry => {
+                const entryTitle = entry.title.toLowerCase();
+                const searchLower = searchTerm.toLowerCase();
+                
+                return entryTitle.includes(searchLower) ||
+                       entryTitle.split(/\s+/).some(word => word.includes(searchLower)) ||
+                       searchLower.split(/\s+/).some(word => entryTitle.includes(word));
+              });
+              
+              if (entryToOpen) {
+                console.log('📄 Found entry to open:', entryToOpen.title);
+                editEntry(entryToOpen);
+              } else {
+                const errorMessage = `Entry "${searchTerm}" not found. Please check your entries.`;
+                console.log('🔊 Speaking error message:', errorMessage);
+                toast.error(errorMessage);
+                setTimeout(() => speak(errorMessage), 100);
+              }
+            } else {
+              const helpMessage = 'Please specify which entry you want to open';
+              toast.info(helpMessage);
+              setTimeout(() => speak(helpMessage), 100);
+            }
+          }
+          break;
+          
+        case 'delete':
+          if (command.action === 'delete_entry') {
+            const searchTerm = command.parameters.entryTitle || command.parameters.searchTerm;
+            
+            if (searchTerm) {
+              const matchingEntries = savedEntries.filter(entry => 
+                entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                Object.values(entry.fields).some(value => 
+                  typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+              );
+              
+              if (matchingEntries.length === 1) {
+                if (command.needsConfirmation && !command.parameters.confirmed) {
+                  toast.info(command.conversationalResponse);
+                  setTimeout(() => speak(command.conversationalResponse), 100);
+                } else {
+                  const entryToDelete = matchingEntries[0];
+                  await deleteEntry(entryToDelete.id);
+                  const deleteMessage = `Deleted entry: ${entryToDelete.title}`;
+                  toast.success(deleteMessage);
+                  setTimeout(() => speak(deleteMessage), 100);
+                }
+              } else if (matchingEntries.length > 1) {
+                const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
+                const multipleMessage = `Found ${matchingEntries.length} entries: ${matches}. Please be more specific.`;
+                toast.info(multipleMessage);
+                setTimeout(() => speak(multipleMessage), 100);
+              } else {
+                const notFoundMessage = `No entries found matching "${searchTerm}".`;
+                toast.info(notFoundMessage);
+                setTimeout(() => speak(notFoundMessage), 100);
+              }
+            }
+          }
+          break;
+          
+        case 'navigate':
+          if (command.action === 'show_all_entries') {
+            toast.success(command.conversationalResponse);
+            setTimeout(() => speak(command.conversationalResponse), 100);
+          } else if (command.action === 'cancel_operation') {
+            console.log('❌ Cancel/Close command - resetting all forms');
+            
+            setShowAddEntry(false);
+            setEditingEntry(null);
+            setFillingEntry(null);
+            handleCancelEdit();
+            
+            if ((window as any).__stopAllVoiceRecognition) {
+              (window as any).__stopAllVoiceRecognition();
+            }
+            
+            toast.success(command.conversationalResponse);
+            setTimeout(() => speak(command.conversationalResponse), 100);
+            
+            window.dispatchEvent(new CustomEvent('voice-close-command', { 
+              detail: { timestamp: Date.now(), source: 'dashboard' } 
+            }));
+          }
+          break;
+          
+        case 'search':
+          if (command.action === 'search_entries') {
+            const query = command.parameters.query;
+            if (query) {
+              setSearchQuery(query);
+              toast.success(command.conversationalResponse);
+              setTimeout(() => speak(command.conversationalResponse), 100);
+            } else {
+              const helpMessage = 'Please specify what you want to search for';
+              toast.info(helpMessage);
+              setTimeout(() => speak(helpMessage), 100);
+            }
+          }
+          break;
+          
+        case 'form_fill':
+          if (command.action === 'add_form_content') {
+            // This would be handled by the form components directly
+            toast.success(command.conversationalResponse);
+            setTimeout(() => speak(command.conversationalResponse), 100);
+          }
+          break;
+          
+        case 'conversation':
+          toast.info(command.conversationalResponse);
+          setTimeout(() => speak(command.conversationalResponse), 100);
+          break;
+          
+        default:
+          console.log('❓ Unknown enhanced command:', command.intent);
+          const helpMessage = 'I can help you with commands like: Create new entry, Open entry, Delete entry, Search entries, or Close forms.';
+          toast.info('Voice command not recognized');
+          setTimeout(() => speak(helpMessage), 100);
+      }
+    } catch (error) {
+      console.error('❌ Error executing enhanced voice command:', error);
+      const errorMessage = 'Sorry, I could not process that command';
+      toast.error('Failed to process voice command');
+      setTimeout(() => speak(errorMessage), 100);
+    }
+  };
+
   const enhancedSaveEntry = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     saveEntry(entry, fillingEntry);
   };
@@ -472,7 +308,7 @@ export const useDashboard = () => {
     saveEntry: enhancedSaveEntry,
     deleteEntry,
     bulkDeleteEntries,
-    editEntry, // Use the enhanced editEntry function that directly manages state with TTS
+    editEntry,
     fillEntry,
     handleCancelEdit,
     getFormMode,
@@ -481,7 +317,7 @@ export const useDashboard = () => {
     handleAddEntry,
     isLoading,
     loadEntries,
-    // Simplified Voice interface
+    // Enhanced Voice interface with conversation support
     handleEnhancedVoiceInput,
     isVoiceProcessing: false,
     lastVoiceCommand: null,
@@ -489,7 +325,15 @@ export const useDashboard = () => {
     hasPendingConfirmation: false,
     cancelCurrentOperation: () => {
       console.log('Voice operation cancelled');
-      executeVoiceCommand({ type: 'cancel' });
+      executeEnhancedVoiceCommand({ 
+        intent: 'navigate', 
+        action: 'cancel_operation',
+        conversationalResponse: 'Operation cancelled',
+        parameters: {},
+        needsConfirmation: false,
+        confidence: 1.0,
+        originalTranscript: 'cancel'
+      });
     },
     conversationData: { isActive: false },
   };

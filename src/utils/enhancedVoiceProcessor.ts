@@ -151,37 +151,52 @@ export class EnhancedVoiceProcessor {
 
   private async processCommandWithContext(transcript: string, context: VoiceContext): Promise<EnhancedVoiceCommand> {
     const lowerTranscript = transcript.toLowerCase().trim();
+    console.log('🔍 PROCESSOR: Analyzing command:', lowerTranscript);
     
     // Enhanced command recognition with context awareness
     if (this.isCreateCommand(lowerTranscript)) {
+      console.log('✅ PROCESSOR: Detected CREATE command');
       return this.handleCreateCommand(transcript, context);
     }
     
     if (this.isOpenCommand(lowerTranscript)) {
+      console.log('✅ PROCESSOR: Detected OPEN command');
       return this.handleOpenCommand(transcript, context);
     }
     
     if (this.isDeleteCommand(lowerTranscript)) {
+      console.log('✅ PROCESSOR: Detected DELETE command');
       return this.handleDeleteCommand(transcript, context);
     }
     
     if (this.isSaveCommand(lowerTranscript)) {
+      console.log('✅ PROCESSOR: Detected SAVE command');
       return this.handleSaveCommand(transcript, context);
     }
     
     if (this.isCancelCommand(lowerTranscript)) {
+      console.log('✅ PROCESSOR: Detected CANCEL/CLOSE command');
+      console.log('📝 PROCESSOR: Close command details:', {
+        transcript,
+        lowerTranscript,
+        context: context.isFormOpen,
+        editingEntry: context.editingEntry?.title
+      });
       return this.handleCancelCommand(transcript, context);
     }
     
     if (this.isSearchCommand(lowerTranscript)) {
+      console.log('✅ PROCESSOR: Detected SEARCH command');
       return this.handleSearchCommand(transcript, context);
     }
 
     // If we have an active form, try to interpret as form input
     if (context.isFormOpen || context.editingEntry || context.fillingEntry) {
+      console.log('✅ PROCESSOR: Detected FORM INPUT command');
       return this.handleFormInput(transcript, context);
     }
     
+    console.log('❓ PROCESSOR: Unknown command, falling back to default');
     // Default unknown command
     return this.createUnknownCommand(transcript);
   }
@@ -212,7 +227,14 @@ export class EnhancedVoiceProcessor {
       /\b(done|finished)\s+with\b/i
     ];
     
-    return cancelPatterns.some(pattern => pattern.test(transcript));
+    const isCancel = cancelPatterns.some(pattern => pattern.test(transcript));
+    console.log('🔍 CANCEL CHECK:', {
+      transcript,
+      isCancel,
+      patterns: cancelPatterns.map(p => ({ pattern: p.source, matches: p.test(transcript) }))
+    });
+    
+    return isCancel;
   }
 
   private isSearchCommand(transcript: string): boolean {
@@ -317,6 +339,14 @@ export class EnhancedVoiceProcessor {
   }
 
   private handleCancelCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
+    console.log('🚪 CANCEL HANDLER: Processing close command');
+    console.log('🚪 CANCEL HANDLER: Input transcript:', transcript);
+    console.log('🚪 CANCEL HANDLER: Context:', {
+      isFormOpen: context.isFormOpen,
+      editingEntry: context.editingEntry?.title,
+      fillingEntry: context.fillingEntry?.title
+    });
+    
     // Reset conversation state
     this.expectingFollowUp = false;
     this.currentContext = null;
@@ -324,9 +354,10 @@ export class EnhancedVoiceProcessor {
     
     // Enhanced close command handling - extract entry name if provided
     const entryName = this.extractEntityFromText(transcript, 'close');
+    console.log('🚪 CANCEL HANDLER: Extracted entry name:', entryName);
     
-    return {
-      intent: 'navigate',
+    const result = {
+      intent: 'navigate' as const,
       action: 'cancel_operation',
       confidence: 0.95,
       parameters: {
@@ -340,6 +371,9 @@ export class EnhancedVoiceProcessor {
           : "Cancelling current operation",
       originalTranscript: transcript
     };
+    
+    console.log('🚪 CANCEL HANDLER: Final result:', result);
+    return result;
   }
 
   private handleSearchCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
@@ -381,6 +415,8 @@ export class EnhancedVoiceProcessor {
   }
 
   private extractEntityFromText(text: string, action: string): string {
+    console.log('🔍 EXTRACT: Input text:', text, 'action:', action);
+    
     // Enhanced entity extraction for close commands
     let cleaned = text.toLowerCase();
     
@@ -404,6 +440,7 @@ export class EnhancedVoiceProcessor {
     // Remove trailing punctuation
     cleaned = cleaned.replace(/[.,!?]+$/, '');
     
+    console.log('🔍 EXTRACT: Cleaned result:', cleaned);
     return cleaned.length > 1 ? cleaned : '';
   }
 

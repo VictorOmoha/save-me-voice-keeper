@@ -93,6 +93,8 @@ export const useDashboard = () => {
         fillingEntry
       };
       
+      console.log('🔄 DASHBOARD: Built context:', context);
+      
       // Process the command with context
       const enhancedCommand = await voiceProcessor.processVoiceCommand(text, context);
       console.log('🔄 Enhanced command result:', enhancedCommand);
@@ -217,22 +219,36 @@ export const useDashboard = () => {
             toast.success(command.conversationalResponse);
             setTimeout(() => speak(command.conversationalResponse), 100);
           } else if (command.action === 'cancel_operation') {
-            console.log('❌ Cancel/Close command - resetting all forms');
+            console.log('❌ DASHBOARD: Processing cancel/close command');
+            console.log('❌ DASHBOARD: Command details:', command);
+            console.log('❌ DASHBOARD: Current state before close:', {
+              showAddEntry,
+              editingEntry: editingEntry?.title,
+              fillingEntry: fillingEntry?.title
+            });
             
+            // Close all forms and reset state
             setShowAddEntry(false);
             setEditingEntry(null);
             setFillingEntry(null);
             handleCancelEdit();
             
+            // Stop any active voice recognition
             if ((window as any).__stopAllVoiceRecognition) {
               (window as any).__stopAllVoiceRecognition();
             }
             
+            console.log('❌ DASHBOARD: Forms closed, speaking response');
             toast.success(command.conversationalResponse);
             setTimeout(() => speak(command.conversationalResponse), 100);
             
+            // Dispatch custom event for any components that need to know
             window.dispatchEvent(new CustomEvent('voice-close-command', { 
-              detail: { timestamp: Date.now(), source: 'dashboard' } 
+              detail: { 
+                timestamp: Date.now(), 
+                source: 'dashboard',
+                entryName: command.parameters.entryName 
+              } 
             }));
           }
           break;

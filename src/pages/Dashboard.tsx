@@ -1,220 +1,128 @@
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
+import { toast } from 'sonner';
 
-import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
-import { CategoryView } from "@/components/CategoryView";
-import { AllEntriesView } from "@/components/AllEntriesView";
-import { useDashboard } from "@/hooks/useDashboard";
-import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
-import { useDashboardEntryHandlers } from "@/hooks/useDashboardEntryHandlers";
-import { DashboardMainContent } from "@/components/DashboardMainContent";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useDashboardVoice } from "@/hooks/useDashboardVoice";
+import { SavedEntry } from '@/types/dashboard';
+import { categories } from '@/constants/categories';
+import { useEntries } from '@/hooks/useEntries';
+import { DashboardHeader } from '@/components/DashboardHeader';
+import { CategoriesPanel } from '@/components/CategoriesPanel';
+import { DashboardMainContent } from '@/components/DashboardMainContent';
+import { AddEntryModal } from '@/components/modals/AddEntryModal';
+import { EditEntryModal } from '@/components/modals/EditEntryModal';
+import { FillTemplateModal } from '@/components/modals/FillTemplateModal';
+import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 
-const Dashboard = () => {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+export default function Dashboard() {
+  const { data: session, status } = useSession();
+  const user = session?.user;
+  const router = useRouter();
+
+  const [showAddEntry, setShowAddEntry] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
+  const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+
   const {
-    searchQuery,
-    setSearchQuery,
     savedEntries,
-    showAddEntry,
-    setShowAddEntry,
-    editingEntry,
-    setEditingEntry,
-    fillingEntry,
-    setFillingEntry,
     saveEntry,
     deleteEntry,
     editEntry,
     fillEntry,
-    handleCancelEdit,
-    getFormMode,
-    getFormTitle,
-    handleAddEntry,
-    handleEnhancedVoiceInput,
-    isVoiceProcessing,
-    lastVoiceCommand,
-    conversationState,
-    hasPendingConfirmation,
-    cancelCurrentOperation,
-    conversationData,
-    isLoading,
-  } = useDashboard();
+    entryCounts,
+  } = useEntries(user?.email || '');
 
-  const {
-    selectedCategory,
-    showDocumentCreator,
-    showAllEntries,
-    setShowDocumentCreator,
-    handleCategorySelect,
-    handleAllEntriesSelect,
-    handleBackToMain,
-    handleCreateDocument,
-  } = useDashboardNavigation();
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/');
+    }
+  }, [status, router]);
 
-  const {
-    handleDocumentSave,
-    handleDocumentCancel,
-    handleCreateEntryForCategory,
-    handleAddEntryWithCategory,
-  } = useDashboardEntryHandlers(
-    saveEntry,
-    setShowDocumentCreator,
-    setShowAddEntry,
-    setEditingEntry,
-    setFillingEntry
-  );
-
-  // Set up voice command handling
-  const { handleVoiceCommand } = useDashboardVoice({
-    savedEntries,
-    showAddEntry,
-    setShowAddEntry,
-    setEditingEntry,
-    setFillingEntry,
-    deleteEntry,
-    editEntry,
-    fillEntry,
-    handleCancelEdit,
-    saveEntry,
-    editingEntry,
-    fillingEntry,
-  });
-
-  console.log('Dashboard state:', {
-    selectedCategory,
-    showDocumentCreator,
-    showAddEntry,
-    showAllEntries,
-    editingEntry: editingEntry?.title,
-    fillingEntry: fillingEntry?.title,
-    totalEntries: savedEntries.length,
-    isLoading,
-    isVoiceProcessing,
-    conversationState,
-    hasPendingConfirmation,
-    authLoading,
-    isAuthenticated,
-    user: user?.email
-  });
-
-  // Check for OAuth callback in URL - don't redirect if this is an OAuth callback
-  const isOAuthCallback = window.location.search.includes('code=') || 
-                         window.location.hash.includes('access_token') ||
-                         window.location.pathname === '/dashboard';
-
-  // Don't redirect if we're loading or if this is an OAuth callback
-  if (!isAuthenticated && !authLoading && !isOAuthCallback) {
-    return <Navigate to="/login" replace />;
+  if (status === 'loading') {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  // Show loading state while auth is loading or entries are being loaded
-  console.log('Loading check:', { authLoading, isLoading, isAuthenticated, isOAuthCallback });
-  if (authLoading || (isLoading && isAuthenticated)) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your entries...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const wrappedCategorySelect = (categoryName: string) => {
-    handleCategorySelect(categoryName, setShowAddEntry, setEditingEntry, setFillingEntry);
+  const logout = async () => {
+    await signOut();
+    router.push('/');
+    toast.success('Logged out successfully');
   };
 
-  const wrappedAllEntriesSelect = () => {
-    handleAllEntriesSelect(setShowAddEntry, setEditingEntry, setFillingEntry);
-  };
-
-  const wrappedBackToMain = () => {
-    handleBackToMain(setShowAddEntry, setEditingEntry, setFillingEntry);
+  const handleCancelEdit = () => {
+    setEditingEntry(null);
+    setFillingEntry(null);
+    setShowAddEntry(false);
   };
 
   return (
-    <DashboardLayout
-      searchQuery={searchQuery}
-      onSearchChange={setSearchQuery}
-      userName={user?.full_name || user?.email}
-      savedEntries={savedEntries}
-      onAddEntry={handleAddEntryWithCategory}
-      onCategorySelect={wrappedCategorySelect}
-      onAllEntriesSelect={wrappedAllEntriesSelect}
-      onVoiceCommand={handleVoiceCommand}
-      isVoiceProcessing={isVoiceProcessing}
-      lastVoiceCommand={lastVoiceCommand}
-      conversationState={conversationState}
-      hasPendingConfirmation={hasPendingConfirmation}
-      onCancelVoice={cancelCurrentOperation}
-      conversationData={conversationData}
-    >
-      {showAllEntries ? (
-        <AllEntriesView
-          entries={savedEntries}
-          onBack={wrappedBackToMain}
-          onEdit={editEntry}
-          onDelete={deleteEntry}
-          onFill={fillEntry}
-          showAddEntry={showAddEntry}
-          editingEntry={editingEntry}
-          fillingEntry={fillingEntry}
-          onSaveEntry={saveEntry}
-          onCancelEdit={handleCancelEdit}
-          getFormTitle={getFormTitle}
-          getFormMode={getFormMode}
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
+        <DashboardHeader 
+          userName={user?.user_metadata?.full_name || user?.email || 'User'}
+          onLogout={logout}
         />
-      ) : selectedCategory ? (
-        <CategoryView
-          categoryName={selectedCategory}
-          entries={savedEntries}
-          onBack={wrappedBackToMain}
-          onEdit={editEntry}
-          onDelete={deleteEntry}
-          onFill={fillEntry}
-          onCreateEntry={handleCreateEntryForCategory}
-          showDocumentCreator={showDocumentCreator}  
-          showAddEntry={showAddEntry}
-          editingEntry={editingEntry}
-          fillingEntry={fillingEntry}
-          onDocumentSave={handleDocumentSave}
-          onDocumentCancel={handleDocumentCancel}
-          onSaveEntry={saveEntry}
-          onCancelEdit={handleCancelEdit}
-          getFormTitle={getFormTitle}
-          getFormMode={getFormMode}
-        />
-      ) : (
-        <DashboardMainContent
-          userName={user?.full_name || user?.email}
-          userTier={user?.subscriptionTier}
-          savedEntries={savedEntries}
-          showDocumentCreator={showDocumentCreator}
-          showAddEntry={showAddEntry}
-          editingEntry={editingEntry}
-          fillingEntry={fillingEntry}
-          getFormTitle={getFormTitle}
-          getFormMode={getFormMode}
-          onDocumentSave={handleDocumentSave}
-          onDocumentCancel={handleDocumentCancel}
-          onSaveEntry={saveEntry}
-          onCancelEdit={handleCancelEdit}
-          onCategorySelect={wrappedCategorySelect}
-          onAddEntry={handleAddEntryWithCategory}
-          onCreateDocument={handleCreateDocument}
-          onEnhancedVoiceInput={handleEnhancedVoiceInput}
-          onEditEntry={editEntry}
-          onFillEntry={fillEntry}
-          isVoiceProcessing={isVoiceProcessing}
-          lastVoiceCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancelVoice={cancelCurrentOperation}
-          conversationData={conversationData}
-        />
-      )}
-    </DashboardLayout>
-  );
-};
 
-export default Dashboard;
+        <div className="grid lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1">
+            <div className="space-y-4">
+              <CategoriesPanel 
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onCategorySelect={setSelectedCategory}
+                entryCounts={entryCounts}
+              />
+              
+              <div className="p-4 rounded-lg border border-border bg-card">
+                <h3 className="text-sm font-medium text-card-foreground mb-3">Voice Assistant</h3>
+                <ConversationalVoiceInterface
+                  savedEntries={savedEntries}
+                  onCreateEntry={() => setShowAddEntry(true)}
+                  onEditEntry={editEntry}
+                  onDeleteEntry={deleteEntry}
+                  onSaveEntry={saveEntry}
+                  onCancelEdit={handleCancelEdit}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-3">
+            <DashboardMainContent
+              savedEntries={savedEntries}
+              selectedCategory={selectedCategory}
+              deleteEntry={deleteEntry}
+              editEntry={setEditingEntry}
+              fillEntry={setFillingEntry}
+              showAddEntry={showAddEntry}
+              setShowAddEntry={setShowAddEntry}
+            />
+          </div>
+        </div>
+
+        <AddEntryModal
+          isOpen={showAddEntry}
+          onClose={() => setShowAddEntry(false)}
+          onSave={saveEntry}
+          onCancel={handleCancelEdit}
+        />
+
+        <EditEntryModal
+          isOpen={!!editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSave={saveEntry}
+          onCancel={handleCancelEdit}
+          editEntry={editingEntry}
+        />
+
+        <FillTemplateModal
+          isOpen={!!fillingEntry}
+          onClose={() => setFillingEntry(null)}
+          onSave={saveEntry}
+          onCancel={handleCancelEdit}
+          templateEntry={fillingEntry}
+        />
+      </div>
+    </div>
+  );
+}

@@ -1,55 +1,55 @@
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Volume2, Settings } from "lucide-react";
+import { Mic, MicOff, MessageCircle } from "lucide-react";
 
 interface VoiceStatusProps {
+  isActive: boolean;
   isListening: boolean;
-  conversationState?: { isActive: boolean; currentStep?: { question: string } };
-  onSettingsClick: () => void;
+  isInConversation?: boolean;
 }
 
 export const VoiceStatus: React.FC<VoiceStatusProps> = ({
+  isActive,
   isListening,
-  conversationState,
-  onSettingsClick,
+  isInConversation = false,
 }) => {
+  const getStatusColor = () => {
+    if (isInConversation) return "text-blue-600";
+    if (isListening) return "text-green-600";
+    if (isActive) return "text-yellow-600";
+    return "text-gray-400";
+  };
+
+  const getStatusText = () => {
+    if (isInConversation) return "In Conversation";
+    if (isListening) return "Listening...";
+    if (isActive) return "Voice Mode Active";
+    return "Voice Mode Inactive";
+  };
+
+  const getIcon = () => {
+    if (isInConversation) return <MessageCircle className="h-4 w-4" />;
+    if (isListening) return <Mic className="h-4 w-4" />;
+    return <MicOff className="h-4 w-4" />;
+  };
+
   return (
-    <div className="flex items-center justify-between transition-all duration-300 ease-in-out animate-fade-in">
-      <div className="flex items-center gap-2">
-        <Volume2 className={`h-4 w-4 text-muted-foreground transition-all duration-300 ease-in-out ${
-          isListening ? 'text-primary animate-pulse' : ''
-        }`} />
-        <span className="text-sm font-medium transition-colors duration-200 ease-in-out hover:text-primary">
-          Voice Commands
-        </span>
-        {isListening && (
-          <Badge 
-            variant="default" 
-            className="text-xs animate-pulse transition-all duration-300 ease-in-out"
-          >
-            {conversationState?.isActive ? 'In Conversation' : 'Listening...'}
-          </Badge>
-        )}
-        {conversationState?.isActive && !isListening && (
-          <Badge 
-            variant="secondary" 
-            className="text-xs transition-all duration-200 ease-in-out hover:scale-105"
-          >
-            Conversation Active
-          </Badge>
-        )}
+    <div className="flex items-center gap-2 p-3 rounded-lg bg-background border">
+      <div className={`${getStatusColor()} ${isListening ? 'animate-pulse' : ''}`}>
+        {getIcon()}
       </div>
-      <Button
-        onClick={onSettingsClick}
-        variant="ghost"
-        size="sm"
-        className="text-xs transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
-      >
-        <Settings className="h-3 w-3 mr-1 transition-transform duration-200 ease-in-out hover:rotate-90" />
-        Settings
-      </Button>
+      <span className={`text-sm font-medium ${getStatusColor()}`}>
+        {getStatusText()}
+      </span>
+      {isInConversation && (
+        <div className="ml-auto">
+          <div className="flex space-x-1">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

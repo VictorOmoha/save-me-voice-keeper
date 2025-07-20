@@ -1,181 +1,111 @@
 
-import React, { useEffect, useState } from 'react';
-import { useVoiceOrchestrator } from '@/hooks/useVoiceOrchestrator';
-import { simpleVoiceProcessor, SimpleVoiceCommand } from '@/utils/simpleVoiceProcessor';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Mic, MessageCircle, Zap } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import { useVoiceOrchestrator } from "@/hooks/useVoiceOrchestrator";
+import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
+import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
+import { VoiceStatus } from "./voice/VoiceStatus";
+import { VoiceControls } from "./voice/VoiceControls";
+import { ConversationDisplay } from "./voice/ConversationDisplay";
+import { SavedEntry } from "@/types/dashboard";
 
 interface ConversationalVoiceInterfaceProps {
-  onVoiceCommand?: (command: SimpleVoiceCommand) => void;
-  className?: string;
+  savedEntries: SavedEntry[];
+  onCreateEntry: () => void;
+  onEditEntry: (entry: SavedEntry) => void;
+  onDeleteEntry: (id: string) => void;
+  onSaveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onCancelEdit: () => void;
 }
 
 export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterfaceProps> = ({
-  onVoiceCommand,
-  className = '',
+  savedEntries,
+  onCreateEntry,
+  onEditEntry,
+  onDeleteEntry,
+  onSaveEntry,
+  onCancelEdit,
 }) => {
-  const [currentTranscript, setCurrentTranscript] = useState('');
-  const [lastCommand, setLastCommand] = useState<SimpleVoiceCommand | null>(null);
+  const [lastTranscript, setLastTranscript] = useState<string>("");
+  const { formTitleSetter, formCategorySetter, formAddFieldFunction } = useVoiceFormContext();
 
-  const { conversationState, activateConversation, deactivateConversation, isSupported } = useVoiceOrchestrator(
-    (text: string) => {
-      console.log('🎙️ Conversational Voice: Received input:', text);
-      setCurrentTranscript(text);
+  const {
+    processVoiceInput,
+    conversationState,
+    cancelConversation,
+    isInConversation,
+  } = useUnifiedVoiceProcessor({
+    savedEntries,
+    onCreateEntry,
+    onEditEntry,
+    onDeleteEntry,
+    onSaveEntry,
+    onCancelEdit,
+    formTitleSetter,
+    formCategorySetter,
+    formAddFieldFunction,
+  });
 
-      // Process the voice command
-      const command = simpleVoiceProcessor.processCommand(text);
-      console.log('🎯 Processed command:', command);
-      
-      setLastCommand(command);
-      
-      if (onVoiceCommand && command.confidence > 0.3) {
-        onVoiceCommand(command);
-      }
-    },
-    {
-      autoStart: true,
-      silenceTimeout: 8000,
-      maxSessionDuration: 600000,
-    }
-  );
+  const {
+    conversationState: orchestratorState,
+    activateConversation,
+    deactivateConversation,
+    isSupported,
+  } = useVoiceOrchestrator(processVoiceInput);
 
-  // Auto-clear transcript after processing
+  // Show transcript updates
   useEffect(() => {
-    if (currentTranscript) {
-      const timer = setTimeout(() => {
-        setCurrentTranscript('');
-        setLastCommand(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [currentTranscript]);
+    const handleTranscriptUpdate = (event: CustomEvent) => {
+      setLastTranscript(event.detail.transcript);
+    };
+
+    window.addEventListener('voice-transcript-update', handleTranscriptUpdate as EventListener);
+    return () => window.removeEventListener('voice-transcript-update', handleTranscriptUpdate as EventListener);
+  }, []);
 
   if (!isSupported) {
     return (
-      <Card className={`border-muted ${className}`}>
-        <CardContent className="p-4 text-center">
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <Mic className="h-4 w-4" />
-            <span className="text-sm">Voice recognition not supported in this browser</span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="p-4 bg-muted rounded-lg">
+        <p className="text-sm text-muted-foreground">
+          Voice recognition is not supported in this browser. Please use Chrome, Edge, or Safari for voice features.
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      {/* Main Voice Status Card */}
-      <Card className={`border transition-all duration-300 ${
-        conversationState.isActive 
-          ? 'border-primary shadow-lg bg-primary/5' 
-          : 'border-muted hover:border-primary/50'
-      }`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Voice Status Indicator */}
-              <div className="relative">
-                <div className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  conversationState.isListening 
-                    ? 'bg-green-500 animate-pulse' 
-                    : conversationState.isActive 
-                      ? 'bg-primary' 
-                      : 'bg-muted-foreground'
-                }`} />
-                {conversationState.isListening && (
-                  <div className="absolute inset-0 w-3 h-3 rounded-full bg-green-500/30 animate-ping" />
-                )}
-              </div>
+    <div className="space-y-4">
+      <VoiceStatus 
+        isActive={orchestratorState.isActive}
+        isListening={orchestratorState.isListening}
+        isInConversation={isInConversation}
+      />
 
-              {/* Status Text */}
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">
-                    {conversationState.isActive ? 'Voice Active' : 'Voice Ready'}
-                  </span>
-                </div>
-                
-                {conversationState.isActive && (
-                  <span className="text-xs text-muted-foreground">
-                    {conversationState.isListening ? 'Listening...' : 'Processing...'}
-                  </span>
-                )}
-              </div>
-            </div>
+      <VoiceControls
+        isActive={orchestratorState.isActive}
+        onActivate={activateConversation}
+        onDeactivate={deactivateConversation}
+        onCancelConversation={cancelConversation}
+        isInConversation={isInConversation}
+      />
 
-            {/* Mode Badge */}
-            {conversationState.isActive && (
-              <Badge variant="default" className="text-xs">
-                <Zap className="h-3 w-3 mr-1" />
-                Active
-              </Badge>
-            )}
-          </div>
+      {lastTranscript && (
+        <div className="p-3 bg-secondary rounded-lg">
+          <p className="text-sm font-medium text-secondary-foreground">Last heard:</p>
+          <p className="text-sm text-muted-foreground">"{lastTranscript}"</p>
+        </div>
+      )}
 
-          {/* Current Transcript and Command Display */}
-          {currentTranscript && (
-            <div className="mt-3 space-y-2">
-              <div className="p-3 bg-muted/50 rounded-md">
-                <div className="flex items-start gap-2">
-                  <Mic className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
-                  <span className="text-sm text-foreground">"{currentTranscript}"</span>
-                </div>
-              </div>
-              
-              {lastCommand && lastCommand.type !== 'unknown' && (
-                <div className="p-2 bg-green-50 border border-green-200 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span className="text-xs font-medium text-green-800">
-                      Command: {lastCommand.type.replace('_', ' ')}
-                      {lastCommand.target && ` (${lastCommand.target})`}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+      <ConversationDisplay conversationState={conversationState} />
 
-          {/* Instructions for first-time users */}
-          {!conversationState.isActive && (
-            <div className="mt-3 p-3 bg-muted/30 rounded-md">
-              <p className="text-xs text-muted-foreground text-center">
-                💡 Voice mode auto-activates when you open the app. 
-                <br />
-                Say <strong>"Hey SaveMe"</strong> to reactivate.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Quick Voice Tips */}
-      {conversationState.isActive && (
-        <Card className="border-muted/50">
-          <CardContent className="p-3">
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                <span className="text-muted-foreground">"Create new entry"</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                <span className="text-muted-foreground">"Open insurance"</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                <span className="text-muted-foreground">"Show all entries"</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                <span className="text-muted-foreground">"Cancel"</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {isInConversation && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
+          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+            🎤 Voice Conversation Active
+          </p>
+          <p className="text-xs text-blue-600 dark:text-blue-400">
+            I'm listening for your response. Speak naturally or say "cancel" to stop.
+          </p>
+        </div>
       )}
     </div>
   );

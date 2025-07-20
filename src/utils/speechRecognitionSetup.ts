@@ -42,7 +42,7 @@ export const setupSpeechRecognition = ({
   const recognition = new SpeechRecognition();
   
   // Configure recognition settings for CONTINUOUS listening
-  recognition.continuous = true;  // CRITICAL FIX: Enable continuous listening
+  recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
   recognition.maxAlternatives = 1;
@@ -54,8 +54,52 @@ export const setupSpeechRecognition = ({
   let silenceTimeout: NodeJS.Timeout | null = null;
   let conversationContext: any = null;
   const MAX_CONSECUTIVE_ERRORS = 3;
-  const SILENCE_TIMEOUT = 15000; // 15 seconds of silence before auto-stop
-  const COMMAND_COOLDOWN = 1000; // 1 second between commands
+  const SILENCE_TIMEOUT = 15000;
+  const COMMAND_COOLDOWN = 1000;
+  
+  // Enhanced TTS detection patterns
+  const TTS_PATTERNS = [
+    /what would you like to/i,
+    /what type of field/i,
+    /you can say/i,
+    /added.*field/i,
+    /created entry/i,
+    /would you like to add/i,
+    /what category should/i,
+    /conversation cancelled/i,
+    /voice mode activated/i,
+    /how can i help/i
+  ];
+  
+  const isTTSContent = (text: string): boolean => {
+    // Check if TTS is currently speaking
+    if ((window as any).__tts_is_speaking) {
+      console.log('🚫 SETUP: TTS is currently speaking, ignoring input');
+      return true;
+    }
+    
+    // Check for TTS-like patterns in the text
+    const isTTSPattern = TTS_PATTERNS.some(pattern => pattern.test(text));
+    if (isTTSPattern) {
+      console.log('🚫 SETUP: Detected TTS-like content, ignoring:', text);
+      return true;
+    }
+    
+    // Check if text matches recent TTS output (stored in a global cache)
+    if ((window as any).__recent_tts_texts) {
+      const recentTTS = (window as any).__recent_tts_texts as string[];
+      const isRecentTTS = recentTTS.some(ttsText => 
+        text.toLowerCase().includes(ttsText.toLowerCase().substring(0, 20)) ||
+        ttsText.toLowerCase().includes(text.toLowerCase().substring(0, 20))
+      );
+      if (isRecentTTS) {
+        console.log('🚫 SETUP: Text matches recent TTS output, ignoring:', text);
+        return true;
+      }
+    }
+    
+    return false;
+  };
 
   recognition.onstart = () => {
     console.log('🎤 SETUP: Continuous speech recognition started');
@@ -97,9 +141,15 @@ export const setupSpeechRecognition = ({
     const currentTranscript = finalTranscript || interimTranscript;
     setTranscript(currentTranscript);
 
-    // Process final results with improved timing
+    // Process final results with improved TTS filtering
     if (finalTranscript && finalTranscript !== lastProcessedTranscript) {
       const now = Date.now();
+      
+      // Enhanced TTS detection - skip if this looks like TTS content
+      if (isTTSContent(finalTranscript)) {
+        console.log('🚫 SETUP: Skipping TTS-like content:', finalTranscript);
+        return;
+      }
       
       // Prevent rapid-fire duplicate commands
       if (now - lastCommandTime < COMMAND_COOLDOWN) {
@@ -147,20 +197,6 @@ export const setupSpeechRecognition = ({
             continuous: true
           }
         }));
-
-        // Provide immediate feedback for continuous listening
-        import('@/utils/textToSpeech').then(({ speak }) => {
-          // Only give feedback if it's a successful command and not during conversation
-          if (!conversationState?.isActive) {
-            // Brief confirmation without interrupting flow
-            setTimeout(() => {
-              if (globalRecognitionActive && !(window as any).__manual_stop) {
-                console.log('🔄 SETUP: Ready for next command');
-                // Don't speak feedback to avoid interrupting natural flow
-              }
-            }, 500);
-          }
-        });
 
         // Set new silence timeout after command processing
         silenceTimeout = setTimeout(() => {
@@ -237,7 +273,7 @@ export const setupSpeechRecognition = ({
             console.error('🚨 SETUP: Failed to restart after error:', restartError);
           }
         }
-      }, 1000); // Quick restart for continuous flow
+      }, 1000);
     }
   };
 
@@ -265,7 +301,7 @@ export const setupSpeechRecognition = ({
             consecutiveErrors++;
           }
         }
-      }, 2000); // 2-second delay for smooth restart
+      }, 2000);
     }
   };
 

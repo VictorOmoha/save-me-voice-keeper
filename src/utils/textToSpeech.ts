@@ -1,330 +1,250 @@
+import { toast } from 'sonner';
 
-import { supabase } from "@/integrations/supabase/client";
+// ElevenLabs API configuration
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
+const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
-// Enhanced TTS system with ElevenLabs integration
-let currentUtterance: SpeechSynthesisUtterance | null = null;
-let currentAudio: HTMLAudioElement | null = null;
-let isInitialized = false;
-let recentlySpokeText: Set<string> = new Set();
-let audioCache: Map<string, string> = new Map();
-
-// Voice configuration
-export const VOICE_OPTIONS = {
-  aria: 'Aria - Natural and warm',
-  alloy: 'Alloy - Balanced and clear', 
-  echo: 'Echo - Expressive and dynamic',
-  fable: 'Fable - Storytelling voice',
-  onyx: 'Onyx - Deep and authoritative',
-  nova: 'Nova - Bright and energetic',
-  shimmer: 'Shimmer - Gentle and soothing'
+// Voice settings for ElevenLabs
+const VOICE_SETTINGS = {
+  stability: 0.5,
+  similarity_boost: 0.8,
+  style: 0.0,
+  use_speaker_boost: true
 };
 
-// Voice settings management
+// Available voices
+export const AVAILABLE_VOICES = {
+  'Adam': 'pNInz6obpgDQGcFmaJgB',
+  'Antoni': 'ErXwobaYiN019PkySvjV',
+  'Arnold': 'VR6AewLTigWG4xSOukaG',
+  'Bella': 'EXAVITQu4vr4xnSDxMaL',
+  'Domi': 'AZnzlk1XvdvUeBnXmlld',
+  'Elli': 'MF3mGyEYCl7XYWbV9V6O',
+  'Josh': 'TxGEqnHWrfWFTfGW9XjX',
+  'Rachel': 'pqHfZKP75CvOlQylNhV4',
+  'Sam': 'yoZ06aMxZJJ28mfd3POQ'
+};
+
 export const getElevenLabsApiKey = (): string | null => {
   return localStorage.getItem('elevenlabs_api_key');
 };
 
-export const setElevenLabsApiKey = (apiKey: string) => {
-  localStorage.setItem('elevenlabs_api_key', apiKey);
+export const setElevenLabsApiKey = (apiKey: string): void => {
+  if (apiKey.trim()) {
+    localStorage.setItem('elevenlabs_api_key', apiKey.trim());
+    toast.success('ElevenLabs API key saved successfully');
+  } else {
+    localStorage.removeItem('elevenlabs_api_key');
+    toast.success('ElevenLabs API key removed');
+  }
 };
 
-export const getSelectedVoice = (): keyof typeof VOICE_OPTIONS => {
-  return (localStorage.getItem('selected_voice') as keyof typeof VOICE_OPTIONS) || 'aria';
+export const getSelectedVoice = (): string => {
+  return localStorage.getItem('selected_voice') || 'Adam';
 };
 
-export const setSelectedVoice = (voice: keyof typeof VOICE_OPTIONS) => {
+export const setSelectedVoice = (voice: string): void => {
   localStorage.setItem('selected_voice', voice);
 };
 
-export const clearSpeechHistory = () => {
-  recentlySpokeText.clear();
+// Global cache for recent TTS content to help speech recognition filter it out
+const initializeTTSCache = () => {
+  if (!(window as any).__recent_tts_texts) {
+    (window as any).__recent_tts_texts = [];
+  }
 };
 
-export const stopCurrentSpeech = () => {
-  // Stop browser TTS
-  speechSynthesis.cancel();
+const addToTTSCache = (text: string) => {
+  initializeTTSCache();
+  const cache = (window as any).__recent_tts_texts as string[];
   
-  // Stop ElevenLabs audio
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio = null;
+  // Add to cache and keep only last 5 items
+  cache.unshift(text);
+  if (cache.length > 5) {
+    cache.splice(5);
   }
   
-  (window as any).__tts_is_speaking = false;
-  currentUtterance = null;
-  
-  // Dispatch completion event
-  window.dispatchEvent(new CustomEvent('tts-completed', { detail: { stopped: true } }));
-};
-
-// Initialize speech synthesis with better browser compatibility
-const initializeTTS = () => {
-  if (isInitialized) return;
-  
-  // Load voices if not already loaded
-  if (speechSynthesis.getVoices().length === 0) {
-    speechSynthesis.addEventListener('voiceschanged', () => {
-      console.log('🔊 TTS: Voices loaded');
-    });
-  }
-  
-  isInitialized = true;
-};
-
-// Check if text was recently spoken to prevent loops
-const wasRecentlySpoken = (text: string): boolean => {
-  const key = text.toLowerCase().trim().substring(0, 50);
-  if (recentlySpokeText.has(key)) {
-    console.log('🔄 TTS: Text recently spoken, skipping to prevent loop');
-    return true;
-  }
-  
-  recentlySpokeText.add(key);
-  // Clear after 5 seconds
-  setTimeout(() => recentlySpokeText.delete(key), 5000);
-  return false;
-};
-
-// ElevenLabs voice ID mapping
-const getElevenLabsVoiceId = (voice: keyof typeof VOICE_OPTIONS): string => {
-  const voiceMap: Record<keyof typeof VOICE_OPTIONS, string> = {
-    aria: '9BWtsMINqrJLrRacOk9x',
-    alloy: 'TX3LPaxmHKxFdv7VOQHJ', 
-    echo: 'IKne3meq5aSn9XLyUdCD',
-    fable: 'onwK4e9ZLuTAKqWW03F9',
-    onyx: 'bIHbv24MWmeRgasZH58o',
-    nova: 'pFZP5JQG7iQjIQuC4Bku',
-    shimmer: 'cgSgspJ2msm6clMCkdW9'
-  };
-  return voiceMap[voice] || voiceMap.aria;
-};
-
-// Use ElevenLabs TTS
-const speakWithElevenLabs = async (text: string, options: {
-  voice?: keyof typeof VOICE_OPTIONS;
-  onStart?: () => void;
-  onEnd?: () => void;
-}): Promise<boolean> => {
-  try {
-    const selectedVoice = options.voice || getSelectedVoice();
-    const cacheKey = `${text}_${selectedVoice}`;
-    
-    console.log('🎙️ TTS: Using ElevenLabs for:', text.substring(0, 50) + '...');
-    
-    let audioContent: string;
-    
-    // Check cache first
-    if (audioCache.has(cacheKey)) {
-      audioContent = audioCache.get(cacheKey)!;
-      console.log('📦 TTS: Using cached audio');
-    } else {
-      // Call ElevenLabs edge function
-      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
-        body: {
-          text: text,
-          voiceId: getElevenLabsVoiceId(selectedVoice),
-          modelId: 'eleven_multilingual_v2'
-        }
-      });
-
-      if (error) {
-        console.error('🚨 TTS: ElevenLabs error:', error);
-        return false;
-      }
-
-      if (!data?.audioContent) {
-        console.error('🚨 TTS: No audio content received');
-        return false;
-      }
-
-      audioContent = data.audioContent;
-      
-      // Cache the audio (limit cache size)
-      if (audioCache.size > 50) {
-        const firstKey = audioCache.keys().next().value;
-        audioCache.delete(firstKey);
-      }
-      audioCache.set(cacheKey, audioContent);
+  // Clear cache after 30 seconds
+  setTimeout(() => {
+    const index = cache.indexOf(text);
+    if (index > -1) {
+      cache.splice(index, 1);
     }
-
-    // Create audio element and play
-    const audio = new Audio(`data:audio/mpeg;base64,${audioContent}`);
-    currentAudio = audio;
-    
-    audio.onloadstart = () => {
-      console.log('🔊 TTS: ElevenLabs audio loading');
-      (window as any).__tts_is_speaking = true;
-      options.onStart?.();
-    };
-    
-    audio.onplay = () => {
-      console.log('🔊 TTS: ElevenLabs audio started');
-    };
-    
-    audio.onended = () => {
-      console.log('🔊 TTS: ElevenLabs audio completed');
-      (window as any).__tts_is_speaking = false;
-      currentAudio = null;
-      
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('tts-completed', { detail: { text } }));
-        options.onEnd?.();
-      }, 100);
-    };
-    
-    audio.onerror = (event) => {
-      console.error('🚨 TTS: ElevenLabs audio error:', event);
-      (window as any).__tts_is_speaking = false;
-      currentAudio = null;
-      
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('tts-completed', { detail: { text, error: 'Audio playback failed' } }));
-      }, 100);
-    };
-
-    await audio.play();
-    return true;
-    
-  } catch (error) {
-    console.error('🚨 TTS: ElevenLabs failed:', error);
-    return false;
-  }
+  }, 30000);
 };
 
-// Fallback to browser TTS
-const speakWithBrowser = (text: string, options: { 
-  rate?: number; 
-  pitch?: number; 
-  volume?: number; 
-  voice?: SpeechSynthesisVoice;
-  onStart?: () => void;
-  onEnd?: () => void;
-}) => {
-  console.log('🔊 TTS: Using browser TTS fallback');
-  
-  // Initialize TTS if needed
-  initializeTTS();
-  
-  // Cancel any current speech
-  if (currentUtterance) {
-    speechSynthesis.cancel();
-    currentUtterance = null;
+export const speak = async (text: string, voice?: string): Promise<void> => {
+  if (!text || text.trim().length === 0) {
+    console.log('🔊 TTS: Empty text provided, skipping');
+    return;
   }
+
+  console.log('🔊 TTS: Starting speech:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
   
-  // Set global TTS state
+  // Add to TTS cache for speech recognition filtering
+  addToTTSCache(text);
+  
+  // Set global flag to indicate TTS is speaking
   (window as any).__tts_is_speaking = true;
   
-  const utterance = new SpeechSynthesisUtterance(text);
-  currentUtterance = utterance;
-  
-  // Configure utterance
-  utterance.rate = options.rate || 0.9;
-  utterance.pitch = options.pitch || 1;
-  utterance.volume = options.volume || 0.8;
-  
-  // Select voice (prefer natural sounding voices)
-  const voices = speechSynthesis.getVoices();
-  if (options.voice) {
-    utterance.voice = options.voice;
-  } else {
+  // Dispatch TTS started event
+  window.dispatchEvent(new CustomEvent('tts-started'));
+
+  try {
+    const elevenLabsKey = getElevenLabsApiKey();
+    
+    if (elevenLabsKey) {
+      console.log('🎙️ TTS: Attempting ElevenLabs TTS');
+      await speakWithElevenLabs(text, voice);
+    } else {
+      console.log('🎙️ TTS: Using browser TTS (no ElevenLabs key)');
+      await speakWithBrowser(text);
+    }
+  } catch (error) {
+    console.error('🚨 TTS: Error during speech:', error);
+    // Fallback to browser TTS
+    try {
+      await speakWithBrowser(text);
+    } catch (fallbackError) {
+      console.error('🚨 TTS: Fallback TTS also failed:', fallbackError);
+    }
+  } finally {
+    // Clear TTS flag and dispatch completion event
+    (window as any).__tts_is_speaking = false;
+    window.dispatchEvent(new CustomEvent('tts-completed'));
+    console.log('🔊 TTS: Speech completed');
+  }
+};
+
+const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> => {
+  const apiKey = getElevenLabsApiKey();
+  if (!apiKey) {
+    throw new Error('ElevenLabs API key not found');
+  }
+
+  const selectedVoice = voice || getSelectedVoice();
+  const voiceId = AVAILABLE_VOICES[selectedVoice as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
+
+  console.log('🎙️ TTS: Using ElevenLabs voice:', selectedVoice, 'ID:', voiceId);
+
+  const response = await fetch(`${ELEVENLABS_API_URL}/${voiceId}`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'audio/mpeg',
+      'Content-Type': 'application/json',
+      'xi-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      text: text,
+      model_id: 'eleven_monolingual_v1',
+      voice_settings: VOICE_SETTINGS,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🚨 TTS: ElevenLabs API error:', response.status, errorText);
+    
+    if (response.status === 401) {
+      toast.error('Invalid ElevenLabs API key. Please check your settings.');
+      throw new Error('Invalid API key');
+    } else if (response.status === 429) {
+      toast.error('ElevenLabs API rate limit exceeded. Using browser TTS instead.');
+      throw new Error('Rate limit exceeded');
+    } else {
+      toast.error('ElevenLabs TTS failed. Using browser TTS instead.');
+      throw new Error(`API error: ${response.status}`);
+    }
+  }
+
+  const audioBlob = await response.blob();
+  const audioUrl = URL.createObjectURL(audioBlob);
+  const audio = new Audio(audioUrl);
+
+  return new Promise((resolve, reject) => {
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      console.log('🔊 TTS: ElevenLabs audio playback completed');
+      resolve();
+    };
+
+    audio.onerror = (error) => {
+      URL.revokeObjectURL(audioUrl);
+      console.error('🚨 TTS: Audio playback error:', error);
+      reject(error);
+    };
+
+    audio.play().catch(reject);
+  });
+};
+
+const speakWithBrowser = async (text: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      reject(new Error('Speech synthesis not supported'));
+      return;
+    }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Configure utterance
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    utterance.volume = 0.8;
+
+    // Try to use a good voice
+    const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(voice => 
-      voice.lang.includes('en') && 
-      (voice.name.includes('Natural') || voice.name.includes('Enhanced') || voice.localService)
-    ) || voices.find(voice => voice.lang.includes('en')) || voices[0];
+      voice.name.includes('Google') || 
+      voice.name.includes('Microsoft') ||
+      voice.lang.startsWith('en')
+    );
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
+      console.log('🎙️ TTS: Using browser voice:', preferredVoice.name);
     }
-  }
-  
-  utterance.onstart = () => {
-    console.log('🔊 TTS: Browser speech started');
-    (window as any).__tts_is_speaking = true;
-    options.onStart?.();
-  };
-  
-  utterance.onend = () => {
-    console.log('🔊 TTS: Browser speech completed');
-    (window as any).__tts_is_speaking = false;
-    currentUtterance = null;
-    
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('tts-completed', { detail: { text } }));
-      options.onEnd?.();
-    }, 100);
-  };
-  
-  utterance.onerror = (event) => {
-    console.error('🚨 TTS: Browser speech error:', event.error);
-    (window as any).__tts_is_speaking = false;
-    currentUtterance = null;
-    
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('tts-completed', { detail: { text, error: event.error } }));
-    }, 100);
-  };
-  
-  // Start speaking
-  try {
-    speechSynthesis.speak(utterance);
-  } catch (error) {
-    console.error('🚨 TTS: Failed to start browser speech:', error);
-    (window as any).__tts_is_speaking = false;
-    currentUtterance = null;
-  }
+
+    utterance.onend = () => {
+      console.log('🔊 TTS: Browser speech completed');
+      resolve();
+    };
+
+    utterance.onerror = (error) => {
+      console.error('🚨 TTS: Browser speech error:', error);
+      reject(error);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  });
 };
 
-export const speak = async (text: string, options: { 
-  rate?: number; 
-  pitch?: number; 
-  volume?: number; 
-  voice?: SpeechSynthesisVoice;
-  onStart?: () => void;
-  onEnd?: () => void;
-} = {}) => {
-  if (!text || text.trim().length === 0) return;
-  
-  // Prevent speaking loops
-  if (wasRecentlySpoken(text)) {
-    return;
-  }
-  
-  console.log('🔊 TTS: Starting speech:', text.substring(0, 50) + '...');
-  
-  // Stop any current speech
-  stopCurrentSpeech();
-  
-  // Dispatch TTS started event
-  window.dispatchEvent(new CustomEvent('tts-started', { detail: { text } }));
-  
-  // Try ElevenLabs first if API key is available
-  const elevenLabsApiKey = getElevenLabsApiKey();
-  if (elevenLabsApiKey && elevenLabsApiKey.trim()) {
-    console.log('🎙️ TTS: Attempting ElevenLabs TTS');
-    const success = await speakWithElevenLabs(text, {
-      voice: getSelectedVoice(),
-      onStart: options.onStart,
-      onEnd: options.onEnd
-    });
-    
-    if (success) {
-      return; // Successfully used ElevenLabs
-    }
-    
-    console.log('⚠️ TTS: ElevenLabs failed, falling back to browser TTS');
-  } else {
-    console.log('🔍 TTS: No ElevenLabs API key, using browser TTS');
-  }
-  
-  // Fallback to browser TTS
-  speakWithBrowser(text, options);
+// Test function for voice settings
+export const testVoice = async (voice: string): Promise<void> => {
+  const testText = `Hello! This is a test of the ${voice} voice. How does it sound?`;
+  await speak(testText, voice);
 };
 
-export const stopSpeaking = () => {
-  stopCurrentSpeech();
+// Stop any ongoing speech
+export const stopSpeaking = (): void => {
+  console.log('🛑 TTS: Stopping all speech');
+  
+  // Stop browser TTS
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+  
+  // Clear TTS flag
+  (window as any).__tts_is_speaking = false;
+  
+  // Dispatch completion event
+  window.dispatchEvent(new CustomEvent('tts-completed'));
 };
 
-export const isSpeaking = () => {
-  return (window as any).__tts_is_speaking || false;
+// Check if TTS is currently speaking
+export const isSpeaking = (): boolean => {
+  return !!(window as any).__tts_is_speaking;
 };

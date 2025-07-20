@@ -28,6 +28,12 @@ export const useVoiceCommandExecutor = ({
   const executeCommand = useCallback((command: SimpleVoiceCommand) => {
     console.log('🚀 Executing voice command:', command);
     
+    // Only execute commands with sufficient confidence
+    if (command.confidence < 0.6) {
+      console.log('🚫 Command confidence too low:', command.confidence);
+      return;
+    }
+    
     switch (command.type) {
       case 'create_entry':
         onAddEntry();
@@ -36,7 +42,6 @@ export const useVoiceCommandExecutor = ({
         break;
         
       case 'show_all':
-        // This would typically navigate to show all entries
         toast.success('Showing all entries');
         speak('Showing all your entries');
         break;
@@ -52,8 +57,9 @@ export const useVoiceCommandExecutor = ({
             toast.success(`Opening ${matchingEntry.title}`);
             speak(`Opening ${matchingEntry.title}`);
           } else {
+            // Be more conservative with "not found" messages to avoid feedback loops
             toast.info(`No entry found matching "${command.target}"`);
-            speak(`I couldn't find an entry matching ${command.target}`);
+            // Don't speak the "not found" message to prevent feedback
           }
         } else {
           toast.info('Please specify which entry to open');
@@ -70,10 +76,10 @@ export const useVoiceCommandExecutor = ({
           if (matchingEntry) {
             // For now, just show confirmation - implement confirmation dialog later
             toast.info(`Would you like to delete "${matchingEntry.title}"? Say "confirm delete" to proceed.`);
-            speak(`Are you sure you want to delete ${matchingEntry.title}? Say confirm delete to proceed.`);
+            // Don't speak the confirmation to avoid feedback loops
           } else {
             toast.info(`No entry found matching "${command.target}"`);
-            speak(`I couldn't find an entry matching ${command.target}`);
+            // Don't speak the "not found" message
           }
         } else {
           toast.info('Please specify which entry to delete');
@@ -95,16 +101,16 @@ export const useVoiceCommandExecutor = ({
       case 'save_entry':
         if (showAddEntry || editingEntry) {
           toast.info('Please fill out the form and click save');
-          speak('Please complete the form and click save');
+          // Don't speak to avoid feedback
         } else {
           toast.info('No entry form is currently open');
-          speak('There\'s no form open to save');
+          // Don't speak to avoid feedback
         }
         break;
         
       default:
-        toast.info('Voice command not recognized');
-        speak('I didn\'t understand that. Try saying create new entry, or cancel.');
+        // Don't show "not recognized" messages to avoid feedback loops
+        console.log('Voice command not recognized or filtered out');
     }
   }, [savedEntries, onAddEntry, onEditEntry, onDeleteEntry, onCancelEdit, showAddEntry, editingEntry]);
   

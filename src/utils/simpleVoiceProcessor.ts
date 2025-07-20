@@ -13,12 +13,24 @@ export class SimpleVoiceProcessor {
     const lowerTranscript = transcript.toLowerCase().trim();
     console.log('🎯 Simple Voice Processor: Processing:', lowerTranscript);
     
+    // Skip TTS feedback - filter out common TTS response patterns
+    if (this.isTTSFeedback(lowerTranscript)) {
+      console.log('🚫 Filtering out TTS feedback:', lowerTranscript);
+      return { type: 'unknown', confidence: 0.0 };
+    }
+    
+    // Skip if currently speaking to prevent feedback loops
+    if ((window as any).__tts_is_speaking) {
+      console.log('🚫 Skipping command while TTS is speaking');
+      return { type: 'unknown', confidence: 0.0 };
+    }
+    
     // Cancel/Close commands - highest priority
     if (this.isCancelCommand(lowerTranscript)) {
       return { type: 'cancel', confidence: 0.95 };
     }
     
-    // Create entry commands
+    // Create entry commands - must be explicit
     if (this.isCreateCommand(lowerTranscript)) {
       return { type: 'create_entry', confidence: 0.9 };
     }
@@ -28,7 +40,7 @@ export class SimpleVoiceProcessor {
       return { type: 'show_all', confidence: 0.9 };
     }
     
-    // Open specific entry
+    // Open specific entry - now more specific
     if (this.isOpenCommand(lowerTranscript)) {
       const target = this.extractTarget(lowerTranscript, 'open');
       return { type: 'open_entry', target, confidence: target ? 0.8 : 0.4 };
@@ -48,12 +60,38 @@ export class SimpleVoiceProcessor {
     return { type: 'unknown', confidence: 0.1 };
   }
   
+  private isTTSFeedback(text: string): boolean {
+    // Common TTS response patterns that should be filtered out
+    const ttsPatterns = [
+      'i couldn\'t find',
+      'couldn\'t find an entry',
+      'matching',
+      'no entry found',
+      'voice mode activated',
+      'how can i help',
+      'creating new entry',
+      'creating a new entry',
+      'opening',
+      'showing all',
+      'forms closed',
+      'there\'s nothing to cancel',
+      'which entry would you like',
+      'are you sure you want to delete',
+      'say confirm delete',
+      'please complete the form',
+      'no form open to save'
+    ];
+    
+    return ttsPatterns.some(pattern => text.includes(pattern));
+  }
+  
   private isCancelCommand(text: string): boolean {
     const cancelWords = ['cancel', 'close', 'stop', 'exit', 'back', 'dismiss', 'done'];
     return cancelWords.some(word => text.includes(word));
   }
   
   private isCreateCommand(text: string): boolean {
+    // Must explicitly mention creating/adding something
     return (text.includes('create') || text.includes('add') || text.includes('new')) &&
            (text.includes('entry') || text.includes('record') || text.includes('document'));
   }
@@ -64,7 +102,20 @@ export class SimpleVoiceProcessor {
   }
   
   private isOpenCommand(text: string): boolean {
-    return text.includes('open') || text.includes('edit') || text.includes('view');
+    // Make this much more specific - only trigger on explicit "open X" patterns
+    const hasOpenWord = text.includes('open');
+    const hasEditWord = text.includes('edit');
+    
+    // Don't trigger on TTS responses that mention "opening"
+    if (text.includes('opening') && !hasOpenWord) {
+      return false;
+    }
+    
+    // Must have explicit open/edit command structure
+    return (hasOpenWord || hasEditWord) && 
+           !text.includes('couldn\'t find') && // Filter out error responses
+           !text.includes('no entry found') &&
+           text.length > 4; // Avoid single word false positives
   }
   
   private isDeleteCommand(text: string): boolean {

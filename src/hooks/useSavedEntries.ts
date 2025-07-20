@@ -34,15 +34,20 @@ export const useSavedEntries = () => {
       }
 
       // Transform the data to match our SavedEntry type
-      const transformedEntries: SavedEntry[] = (data || []).map(entry => ({
-        id: entry.id,
-        title: entry.title,
-        fields: entry.fields || {},
-        fieldDefinitions: entry.field_definitions || [],
-        category: entry.fields?.category || 'Personal',
-        createdAt: new Date(entry.created_at),
-        updatedAt: new Date(entry.updated_at),
-      }));
+      const transformedEntries: SavedEntry[] = (data || []).map(entry => {
+        const fields = entry.fields as Record<string, any> || {};
+        const fieldDefinitions = entry.field_definitions as any[] || [];
+        
+        return {
+          id: entry.id,
+          title: entry.title,
+          fields,
+          fieldDefinitions,
+          category: fields?.category || 'Personal',
+          createdAt: new Date(entry.created_at),
+          updatedAt: new Date(entry.updated_at),
+        };
+      });
 
       setSavedEntries(transformedEntries);
     } catch (error) {
@@ -71,7 +76,7 @@ export const useSavedEntries = () => {
 
       const { data, error } = await supabase
         .from('entries')
-        .insert([entryData])
+        .insert(entryData)
         .select()
         .single();
 
@@ -80,12 +85,15 @@ export const useSavedEntries = () => {
       }
 
       // Add the new entry to local state
+      const fields = data.fields as Record<string, any> || {};
+      const fieldDefinitions = data.field_definitions as any[] || [];
+      
       const newEntry: SavedEntry = {
         id: data.id,
         title: data.title,
-        fields: data.fields || {},
-        fieldDefinitions: data.field_definitions || [],
-        category: data.fields?.category || 'Personal',
+        fields,
+        fieldDefinitions,
+        category: fields?.category || 'Personal',
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       };

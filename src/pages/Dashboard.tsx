@@ -8,6 +8,7 @@ import { useDashboardNavigation } from "@/hooks/useDashboardNavigation";
 import { useDashboardEntryHandlers } from "@/hooks/useDashboardEntryHandlers";
 import { DashboardMainContent } from "@/components/DashboardMainContent";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { useDashboardVoice } from "@/hooks/useDashboardVoice";
 
 const Dashboard = () => {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -62,6 +63,22 @@ const Dashboard = () => {
     setEditingEntry,
     setFillingEntry
   );
+
+  // Set up voice command handling
+  const { handleVoiceCommand } = useDashboardVoice({
+    savedEntries,
+    showAddEntry,
+    setShowAddEntry,
+    setEditingEntry,
+    setFillingEntry,
+    deleteEntry,
+    editEntry,
+    fillEntry,
+    handleCancelEdit,
+    saveEntry,
+    editingEntry,
+    fillingEntry,
+  });
 
   console.log('Dashboard state:', {
     selectedCategory,
@@ -124,7 +141,7 @@ const Dashboard = () => {
       onAddEntry={handleAddEntryWithCategory}
       onCategorySelect={wrappedCategorySelect}
       onAllEntriesSelect={wrappedAllEntriesSelect}
-      onEnhancedVoiceInput={handleEnhancedVoiceInput}
+      onVoiceCommand={handleVoiceCommand}
       isVoiceProcessing={isVoiceProcessing}
       lastVoiceCommand={lastVoiceCommand}
       conversationState={conversationState}

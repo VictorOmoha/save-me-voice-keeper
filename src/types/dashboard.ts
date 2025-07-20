@@ -10,6 +10,7 @@ export interface SavedEntry {
   title: string;
   fields: Record<string, any>;
   fieldDefinitions?: FieldDefinition[];
+  category?: string;
   createdAt: Date;
   updatedAt: Date;
 }

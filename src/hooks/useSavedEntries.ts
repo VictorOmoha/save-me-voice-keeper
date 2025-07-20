@@ -22,7 +22,7 @@ export const useSavedEntries = () => {
       }
 
       const { data, error } = await supabase
-        .from('saved_entries')
+        .from('entries')
         .select('*')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
@@ -39,7 +39,7 @@ export const useSavedEntries = () => {
         title: entry.title,
         fields: entry.fields || {},
         fieldDefinitions: entry.field_definitions || [],
-        category: entry.category || 'Personal',
+        category: entry.fields?.category || 'Personal',
         createdAt: new Date(entry.created_at),
         updatedAt: new Date(entry.updated_at),
       }));
@@ -65,13 +65,12 @@ export const useSavedEntries = () => {
       const entryData = {
         title: entry.title,
         fields: entry.fields,
-        field_definitions: entry.fieldDefinitions,
-        category: entry.category,
+        field_definitions: entry.fieldDefinitions || null,
         user_id: user.id,
       };
 
       const { data, error } = await supabase
-        .from('saved_entries')
+        .from('entries')
         .insert([entryData])
         .select()
         .single();
@@ -86,7 +85,7 @@ export const useSavedEntries = () => {
         title: data.title,
         fields: data.fields || {},
         fieldDefinitions: data.field_definitions || [],
-        category: data.category || 'Personal',
+        category: data.fields?.category || 'Personal',
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       };
@@ -104,7 +103,7 @@ export const useSavedEntries = () => {
   const deleteEntry = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
-        .from('saved_entries')
+        .from('entries')
         .delete()
         .eq('id', id);
 
@@ -129,7 +128,7 @@ export const useSavedEntries = () => {
     const query = searchQuery.toLowerCase();
     return (
       entry.title.toLowerCase().includes(query) ||
-      entry.category.toLowerCase().includes(query) ||
+      (entry.category && entry.category.toLowerCase().includes(query)) ||
       Object.values(entry.fields).some(value => 
         typeof value === 'string' && value.toLowerCase().includes(query)
       )

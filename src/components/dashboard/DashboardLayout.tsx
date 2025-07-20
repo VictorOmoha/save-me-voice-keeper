@@ -1,30 +1,27 @@
 
-import { ReactNode } from "react";
-import { DashboardHeader } from "@/components/DashboardHeader";
-import { Sidebar } from "@/components/Sidebar";
-import { SavedEntry } from "@/types/dashboard";
-import { VoiceCommand } from "@/utils/voiceCommandProcessor";
+import React from "react";
+import { SearchHeader } from "../SearchHeader";
+import { ConversationalVoiceInterface } from "../ConversationalVoiceInterface";
 
 interface DashboardLayoutProps {
-  children: ReactNode;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   userName?: string;
-  savedEntries: SavedEntry[];
+  savedEntries: any[];
   onAddEntry: () => void;
-  onCategorySelect: (category: string) => void;
+  onCategorySelect: (categoryName: string) => void;
   onAllEntriesSelect: () => void;
-  onEnhancedVoiceInput?: (text: string) => void;
+  onEnhancedVoiceInput: (text: string) => void;
   isVoiceProcessing?: boolean;
   lastVoiceCommand?: any;
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
-  conversationData?: { isActive: boolean; currentStep?: { question: string } };
+  conversationData?: { isActive: boolean };
+  children: React.ReactNode;
 }
 
-export const DashboardLayout = ({
-  children,
+export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   searchQuery,
   onSearchChange,
   userName,
@@ -39,39 +36,39 @@ export const DashboardLayout = ({
   hasPendingConfirmation,
   onCancelVoice,
   conversationData,
-}: DashboardLayoutProps) => {
+  children,
+}) => {
   return (
-    <div className="min-h-screen bg-background flex transition-all duration-300 ease-in-out">
-      <div className="transform transition-transform duration-300 ease-in-out hover:shadow-lg">
-        <Sidebar 
-          savedEntriesCount={savedEntries.length}
-          entries={savedEntries}
-          onAddEntry={onAddEntry}
-          onCategorySelect={onCategorySelect}
-          onAllEntriesSelect={onAllEntriesSelect}
-        />
-      </div>
-      
-      <div className="flex-1 flex flex-col transform transition-all duration-300 ease-in-out">
-        <div className="transform transition-all duration-200 ease-in-out hover:shadow-sm">
-          <DashboardHeader
-            searchQuery={searchQuery}
-            onSearchChange={onSearchChange}
-            userName={userName}
-            savedEntries={savedEntries}
-            onEnhancedVoiceInput={onEnhancedVoiceInput}
-            isVoiceProcessing={isVoiceProcessing}
-            lastVoiceCommand={lastVoiceCommand}
-            conversationState={conversationState}
-            hasPendingConfirmation={hasPendingConfirmation}
-            onCancelVoice={onCancelVoice}
-            conversationData={conversationData}
-          />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <SearchHeader
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        userName={userName}
+        savedEntries={savedEntries}
+        onAddEntry={onAddEntry}
+        onCategorySelect={onCategorySelect}
+        onAllEntriesSelect={onAllEntriesSelect}
+      />
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Voice Interface - Always visible on the left */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              <ConversationalVoiceInterface
+                onEnhancedVoiceInput={onEnhancedVoiceInput}
+                className="mb-4"
+              />
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="lg:col-span-3">
+            {children}
+          </div>
         </div>
-        
-        <main className="flex-1 p-6 overflow-auto transform transition-all duration-300 ease-in-out animate-fade-in">
-          {children}
-        </main>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 // ElevenLabs API configuration
@@ -12,7 +13,7 @@ const VOICE_SETTINGS = {
   use_speaker_boost: true
 };
 
-// Available voices
+// Available voices - exported for use in other components
 export const AVAILABLE_VOICES = {
   'Adam': 'pNInz6obpgDQGcFmaJgB',
   'Antoni': 'ErXwobaYiN019PkySvjV',
@@ -23,6 +24,20 @@ export const AVAILABLE_VOICES = {
   'Josh': 'TxGEqnHWrfWFTfGW9XjX',
   'Rachel': 'pqHfZKP75CvOlQylNhV4',
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
+};
+
+// Voice options for UI components
+export const VOICE_OPTIONS = {
+  'adam': 'Adam',
+  'antoni': 'Antoni', 
+  'arnold': 'Arnold',
+  'bella': 'Bella',
+  'domi': 'Domi',
+  'elli': 'Elli',
+  'josh': 'Josh',
+  'rachel': 'Rachel',
+  'sam': 'Sam',
+  'aria': 'Aria' // Browser voice fallback
 };
 
 export const getElevenLabsApiKey = (): string | null => {
@@ -40,7 +55,7 @@ export const setElevenLabsApiKey = (apiKey: string): void => {
 };
 
 export const getSelectedVoice = (): string => {
-  return localStorage.getItem('selected_voice') || 'Adam';
+  return localStorage.getItem('selected_voice') || 'adam';
 };
 
 export const setSelectedVoice = (voice: string): void => {
@@ -73,7 +88,23 @@ const addToTTSCache = (text: string) => {
   }, 30000);
 };
 
-export const speak = async (text: string, voice?: string): Promise<void> => {
+// Clear speech history - for compatibility
+export const clearSpeechHistory = (): void => {
+  if ((window as any).__recent_tts_texts) {
+    (window as any).__recent_tts_texts = [];
+  }
+};
+
+// Speech options interface
+interface SpeechOptions {
+  rate?: number;
+  pitch?: number;
+  volume?: number;
+  onEnd?: () => void;
+}
+
+// Main speak function with multiple signatures
+export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
     console.log('🔊 TTS: Empty text provided, skipping');
     return;
@@ -93,18 +124,28 @@ export const speak = async (text: string, voice?: string): Promise<void> => {
   try {
     const elevenLabsKey = getElevenLabsApiKey();
     
+    // Determine voice and options
+    let voice: string | undefined;
+    let options: SpeechOptions | undefined;
+    
+    if (typeof optionsOrVoice === 'string') {
+      voice = optionsOrVoice;
+    } else if (typeof optionsOrVoice === 'object') {
+      options = optionsOrVoice;
+    }
+    
     if (elevenLabsKey) {
       console.log('🎙️ TTS: Attempting ElevenLabs TTS');
       await speakWithElevenLabs(text, voice);
     } else {
       console.log('🎙️ TTS: Using browser TTS (no ElevenLabs key)');
-      await speakWithBrowser(text);
+      await speakWithBrowser(text, options);
     }
   } catch (error) {
     console.error('🚨 TTS: Error during speech:', error);
     // Fallback to browser TTS
     try {
-      await speakWithBrowser(text);
+      await speakWithBrowser(text, typeof optionsOrVoice === 'object' ? optionsOrVoice : undefined);
     } catch (fallbackError) {
       console.error('🚨 TTS: Fallback TTS also failed:', fallbackError);
     }
@@ -178,7 +219,7 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
   });
 };
 
-const speakWithBrowser = async (text: string): Promise<void> => {
+const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       reject(new Error('Speech synthesis not supported'));
@@ -190,10 +231,10 @@ const speakWithBrowser = async (text: string): Promise<void> => {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Configure utterance
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    utterance.volume = 0.8;
+    // Configure utterance with options
+    utterance.rate = options?.rate || 0.9;
+    utterance.pitch = options?.pitch || 1.0;
+    utterance.volume = options?.volume || 0.8;
 
     // Try to use a good voice
     const voices = window.speechSynthesis.getVoices();
@@ -210,6 +251,9 @@ const speakWithBrowser = async (text: string): Promise<void> => {
 
     utterance.onend = () => {
       console.log('🔊 TTS: Browser speech completed');
+      if (options?.onEnd) {
+        options.onEnd();
+      }
       resolve();
     };
 
@@ -228,7 +272,7 @@ export const testVoice = async (voice: string): Promise<void> => {
   await speak(testText, voice);
 };
 
-// Stop any ongoing speech
+// Stop any ongoing speech - exported for compatibility
 export const stopSpeaking = (): void => {
   console.log('🛑 TTS: Stopping all speech');
   
@@ -243,6 +287,9 @@ export const stopSpeaking = (): void => {
   // Dispatch completion event
   window.dispatchEvent(new CustomEvent('tts-completed'));
 };
+
+// Alias for compatibility
+export const stopCurrentSpeech = stopSpeaking;
 
 // Check if TTS is currently speaking
 export const isSpeaking = (): boolean => {

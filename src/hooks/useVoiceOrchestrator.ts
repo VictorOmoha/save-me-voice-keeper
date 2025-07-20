@@ -24,9 +24,9 @@ export interface VoiceOrchestratorConfig {
 const defaultConfig: VoiceOrchestratorConfig = {
   autoStart: true,
   wakeWords: ['hey saveme', 'start listening', 'voice mode'],
-  silenceTimeout: 8000, // 8 seconds
-  maxSessionDuration: 600000, // 10 minutes
-  brainDumpTimeout: 15000, // 15 seconds for brain dump mode
+  silenceTimeout: 8000,
+  maxSessionDuration: 600000,
+  brainDumpTimeout: 15000,
 };
 
 export const useVoiceOrchestrator = (
@@ -49,243 +49,30 @@ export const useVoiceOrchestrator = (
   const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
   const brainDumpTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialized = useRef(false);
+  const onVoiceInputRef = useRef(onVoiceInput);
 
-  // Initialize speech recognition with ambient listening
-  const initializeVoiceRecognition = useCallback(() => {
-    if (isInitialized.current || !('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      return;
-    }
+  // Update the ref when callback changes
+  useEffect(() => {
+    onVoiceInputRef.current = onVoiceInput;
+  }, [onVoiceInput]);
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-    recognition.maxAlternatives = 1;
-
-    let finalTranscript = '';
-    let interimTranscript = '';
-
-    recognition.onstart = () => {
-      console.log('🎤 Voice Orchestrator: Started listening');
-      setConversationState(prev => ({
-        ...prev,
-        isListening: true,
-        lastActivity: Date.now(),
-      }));
-    };
-
-    recognition.onresult = (event) => {
-      finalTranscript = '';
-      interimTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript.trim();
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-
-      // Update activity timestamp
-      setConversationState(prev => ({
-        ...prev,
-        lastActivity: Date.now(),
-        accumulatedContent: conversationState.brainDumpMode 
-          ? prev.accumulatedContent + ' ' + (finalTranscript || interimTranscript)
-          : finalTranscript || interimTranscript,
-      }));
-
-      // Process final results
-      if (finalTranscript) {
-        console.log('🗣️ Voice Orchestrator: Processing transcript:', finalTranscript);
-        
-        // Check for wake words if not active
-        if (!conversationState.isActive && containsWakeWord(finalTranscript)) {
-          activateConversation();
-          return;
-        }
-
-        // Check for brain dump mode activation
-        if (isBrainDumpCommand(finalTranscript)) {
-          enterBrainDumpMode();
-          return;
-        }
-
-        // Process voice input
-        if (onVoiceInput && conversationState.isActive) {
-          onVoiceInput(finalTranscript);
-        }
-
-        // Reset silence timer
-        resetSilenceTimer();
-      }
-    };
-
-    recognition.onerror = (event) => {
-      console.error('🚨 Voice Orchestrator: Recognition error:', event.error);
-      
-      if (event.error === 'not-allowed') {
-        toast.error('Microphone access denied. Please allow microphone access for voice features.');
-        return;
-      }
-
-      if (event.error !== 'aborted' && conversationState.isActive) {
-        // Auto-restart on recoverable errors
-        setTimeout(() => {
-          if (conversationState.isActive && recognitionRef.current) {
-            try {
-              recognitionRef.current.start();
-            } catch (error) {
-              console.log('Failed to restart recognition:', error);
-            }
-          }
-        }, 1000);
-      }
-    };
-
-    recognition.onend = () => {
-      console.log('🔚 Voice Orchestrator: Recognition ended');
-      setConversationState(prev => ({ ...prev, isListening: false }));
-
-      // Auto-restart if conversation is still active
-      if (conversationState.isActive && !document.hidden) {
-        setTimeout(() => {
-          if (conversationState.isActive && recognitionRef.current) {
-            try {
-              recognitionRef.current.start();
-            } catch (error) {
-              console.log('Auto-restart failed:', error);
-            }
-          }
-        }, 500);
-      }
-    };
-
-    recognitionRef.current = recognition;
-    isInitialized.current = true;
-
-    // Auto-start if configured
-    if (finalConfig.autoStart) {
-      setTimeout(() => {
-        activateConversation();
-      }, 1000); // Small delay to ensure component is mounted
-    }
-  }, [conversationState, onVoiceInput, finalConfig.autoStart]);
-
-  // Wake word detection
-  const containsWakeWord = (text: string): boolean => {
-    const lowerText = text.toLowerCase();
-    return finalConfig.wakeWords.some(wakeWord => lowerText.includes(wakeWord));
-  };
-
-  // Brain dump command detection
-  const isBrainDumpCommand = (text: string): boolean => {
-    const brainDumpTriggers = ['brain dump', 'long note', 'ramble mode', 'extended input'];
-    const lowerText = text.toLowerCase();
-    return brainDumpTriggers.some(trigger => lowerText.includes(trigger));
-  };
-
-  // Activate conversation mode
-  const activateConversation = useCallback(() => {
-    console.log('🚀 Voice Orchestrator: Activating conversation');
-    
-    setConversationState(prev => ({
-      ...prev,
-      isActive: true,
-      sessionStartTime: Date.now(),
-      lastActivity: Date.now(),
-      brainDumpMode: false,
-      accumulatedContent: '',
-    }));
-
-    // Start recognition if not already running
-    if (recognitionRef.current && !conversationState.isListening) {
-      try {
-        recognitionRef.current.start();
-        toast.success('🎤 Voice mode activated - I\'m listening!');
-        speak('I\'m ready to help. What would you like to do?');
-      } catch (error) {
-        console.error('Failed to start recognition:', error);
-      }
-    }
-
-    // Set session timeout
-    if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-    sessionTimerRef.current = setTimeout(() => {
-      deactivateConversation('Session timeout');
-    }, finalConfig.maxSessionDuration);
-
-    resetSilenceTimer();
-  }, [conversationState.isListening, finalConfig.maxSessionDuration]);
-
-  // Enter brain dump mode
-  const enterBrainDumpMode = useCallback(() => {
-    console.log('🧠 Voice Orchestrator: Entering brain dump mode');
-    
-    setConversationState(prev => ({
-      ...prev,
-      brainDumpMode: true,
-      accumulatedContent: '',
-    }));
-
-    toast.info('🧠 Brain dump mode activated - speak freely!');
-    speak('Brain dump mode activated. Share your thoughts and I\'ll organize them for you.');
-
-    // Set brain dump timeout
-    if (brainDumpTimerRef.current) clearTimeout(brainDumpTimerRef.current);
-    brainDumpTimerRef.current = setTimeout(() => {
-      processBrainDump();
-    }, finalConfig.brainDumpTimeout);
-  }, [finalConfig.brainDumpTimeout]);
-
-  // Process accumulated brain dump content
-  const processBrainDump = useCallback(() => {
-    if (conversationState.accumulatedContent.trim()) {
-      console.log('🧠 Processing brain dump:', conversationState.accumulatedContent);
-      
-      // Send accumulated content for processing
-      if (onVoiceInput) {
-        onVoiceInput(`BRAIN_DUMP: ${conversationState.accumulatedContent}`);
-      }
-
-      toast.success('🧠 Brain dump processed and organized!');
-      speak('Great! I\'ve organized your thoughts. What would you like to do next?');
-    }
-
-    setConversationState(prev => ({
-      ...prev,
-      brainDumpMode: false,
-      accumulatedContent: '',
-    }));
-  }, [conversationState.accumulatedContent, onVoiceInput]);
-
-  // Reset silence timer
-  const resetSilenceTimer = useCallback(() => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-    }
-
-    silenceTimerRef.current = setTimeout(() => {
-      if (conversationState.isActive) {
-        const timeSinceLastActivity = Date.now() - conversationState.lastActivity;
-        if (timeSinceLastActivity >= finalConfig.silenceTimeout) {
-          deactivateConversation('Silence timeout');
-        }
-      }
-    }, finalConfig.silenceTimeout);
-  }, [conversationState.isActive, conversationState.lastActivity, finalConfig.silenceTimeout]);
-
-  // Deactivate conversation
+  // Stable callback functions using useCallback
   const deactivateConversation = useCallback((reason: string = 'Manual') => {
     console.log('🛑 Voice Orchestrator: Deactivating conversation -', reason);
     
     // Clear all timers
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
-    if (brainDumpTimerRef.current) clearTimeout(brainDumpTimerRef.current);
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (sessionTimerRef.current) {
+      clearTimeout(sessionTimerRef.current);
+      sessionTimerRef.current = null;
+    }
+    if (brainDumpTimerRef.current) {
+      clearTimeout(brainDumpTimerRef.current);
+      brainDumpTimerRef.current = null;
+    }
 
     // Stop recognition
     if (recognitionRef.current) {
@@ -311,14 +98,119 @@ export const useVoiceOrchestrator = (
     }
   }, []);
 
-  // Initialize on mount
+  const activateConversation = useCallback(() => {
+    console.log('🚀 Voice Orchestrator: Activating conversation');
+    
+    setConversationState(prev => ({
+      ...prev,
+      isActive: true,
+      sessionStartTime: Date.now(),
+      lastActivity: Date.now(),
+      brainDumpMode: false,
+      accumulatedContent: '',
+    }));
+
+    // Start recognition if available and not already running
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+        toast.success('🎤 Voice mode activated - I\'m listening!');
+        speak('Voice mode activated. How can I help you?');
+      } catch (error) {
+        console.error('Failed to start recognition:', error);
+      }
+    }
+
+    // Set session timeout
+    if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+    sessionTimerRef.current = setTimeout(() => {
+      deactivateConversation('Session timeout');
+    }, finalConfig.maxSessionDuration);
+  }, [finalConfig.maxSessionDuration, deactivateConversation]);
+
+  // Initialize speech recognition once
   useEffect(() => {
-    initializeVoiceRecognition();
+    if (isInitialized.current || !('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      console.log('🎤 Voice Orchestrator: Started listening');
+      setConversationState(prev => ({
+        ...prev,
+        isListening: true,
+        lastActivity: Date.now(),
+      }));
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript.trim();
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        }
+      }
+
+      if (finalTranscript && onVoiceInputRef.current) {
+        console.log('🗣️ Voice Orchestrator: Processing transcript:', finalTranscript);
+        onVoiceInputRef.current(finalTranscript);
+        
+        setConversationState(prev => ({
+          ...prev,
+          lastActivity: Date.now(),
+        }));
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('🚨 Voice Orchestrator: Recognition error:', event.error);
+      
+      if (event.error === 'not-allowed') {
+        toast.error('Microphone access denied. Please allow microphone access for voice features.');
+        deactivateConversation('Permission denied');
+        return;
+      }
+    };
+
+    recognition.onend = () => {
+      console.log('🔚 Voice Orchestrator: Recognition ended');
+      setConversationState(prev => ({ ...prev, isListening: false }));
+
+      // Auto-restart if conversation is still active
+      setTimeout(() => {
+        if (conversationState.isActive && recognitionRef.current && !document.hidden) {
+          try {
+            recognitionRef.current.start();
+          } catch (error) {
+            console.log('Auto-restart failed:', error);
+          }
+        }
+      }, 500);
+    };
+
+    recognitionRef.current = recognition;
+    isInitialized.current = true;
+
+    // Auto-start if configured
+    if (finalConfig.autoStart) {
+      setTimeout(activateConversation, 1000);
+    }
 
     return () => {
       deactivateConversation('Cleanup');
+      isInitialized.current = false;
     };
-  }, [initializeVoiceRecognition, deactivateConversation]);
+  }, []); // Empty dependency array - initialize only once
 
   // Handle page visibility changes
   useEffect(() => {

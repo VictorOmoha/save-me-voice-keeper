@@ -1,79 +1,51 @@
 
 import React, { useEffect, useState } from 'react';
 import { useVoiceOrchestrator } from '@/hooks/useVoiceOrchestrator';
-import { brainDumpProcessor } from '@/utils/brainDumpProcessor';
+import { simpleVoiceProcessor, SimpleVoiceCommand } from '@/utils/simpleVoiceProcessor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Mic, Brain, MessageCircle, Zap } from 'lucide-react';
+import { Mic, MessageCircle, Zap } from 'lucide-react';
 
 interface ConversationalVoiceInterfaceProps {
-  onEnhancedVoiceInput?: (text: string) => void;
+  onVoiceCommand?: (command: SimpleVoiceCommand) => void;
   className?: string;
 }
 
 export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterfaceProps> = ({
-  onEnhancedVoiceInput,
+  onVoiceCommand,
   className = '',
 }) => {
   const [currentTranscript, setCurrentTranscript] = useState('');
-  const [processingBrainDump, setProcessingBrainDump] = useState(false);
+  const [lastCommand, setLastCommand] = useState<SimpleVoiceCommand | null>(null);
 
   const { conversationState, activateConversation, deactivateConversation, isSupported } = useVoiceOrchestrator(
     (text: string) => {
       console.log('🎙️ Conversational Voice: Received input:', text);
       setCurrentTranscript(text);
 
-      // Handle brain dump processing
-      if (text.startsWith('BRAIN_DUMP:')) {
-        handleBrainDump(text);
-      } else if (onEnhancedVoiceInput) {
-        onEnhancedVoiceInput(text);
+      // Process the voice command
+      const command = simpleVoiceProcessor.processCommand(text);
+      console.log('🎯 Processed command:', command);
+      
+      setLastCommand(command);
+      
+      if (onVoiceCommand && command.confidence > 0.3) {
+        onVoiceCommand(command);
       }
     },
     {
       autoStart: true,
-      silenceTimeout: 10000, // 10 seconds for natural pauses
-      maxSessionDuration: 900000, // 15 minutes
-      brainDumpTimeout: 20000, // 20 seconds for brain dumps
+      silenceTimeout: 8000,
+      maxSessionDuration: 600000,
     }
   );
-
-  const handleBrainDump = async (brainDumpText: string) => {
-    setProcessingBrainDump(true);
-    
-    try {
-      const result = brainDumpProcessor.processBrainDump(brainDumpText);
-      console.log('🧠 Brain dump processed:', result);
-
-      // Create structured entry from brain dump
-      const structuredInput = `CREATE_STRUCTURED_ENTRY: ${JSON.stringify({
-        title: result.title,
-        category: result.category,
-        content: {
-          actionItems: result.actionItems,
-          keyPoints: result.keyPoints,
-          notes: result.notes,
-          originalText: brainDumpText.replace('BRAIN_DUMP:', '').trim(),
-          ...result.structuredFields,
-        },
-        confidence: result.confidence,
-      })}`;
-
-      if (onEnhancedVoiceInput) {
-        onEnhancedVoiceInput(structuredInput);
-      }
-    } catch (error) {
-      console.error('Error processing brain dump:', error);
-    } finally {
-      setProcessingBrainDump(false);
-    }
-  };
 
   // Auto-clear transcript after processing
   useEffect(() => {
     if (currentTranscript) {
       const timer = setTimeout(() => {
         setCurrentTranscript('');
+        setLastCommand(null);
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -128,43 +100,42 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
                 
                 {conversationState.isActive && (
                   <span className="text-xs text-muted-foreground">
-                    {conversationState.brainDumpMode 
-                      ? '🧠 Brain dump mode - speak freely!' 
-                      : conversationState.isListening 
-                        ? 'Listening...' 
-                        : 'Processing...'}
+                    {conversationState.isListening ? 'Listening...' : 'Processing...'}
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Mode Badges */}
-            <div className="flex gap-2">
-              {conversationState.brainDumpMode && (
-                <Badge variant="secondary" className="text-xs">
-                  <Brain className="h-3 w-3 mr-1" />
-                  Brain Dump
-                </Badge>
-              )}
-              
-              {conversationState.isActive && !conversationState.brainDumpMode && (
-                <Badge variant="default" className="text-xs">
-                  <Zap className="h-3 w-3 mr-1" />
-                  Conversation
-                </Badge>
-              )}
-            </div>
+            {/* Mode Badge */}
+            {conversationState.isActive && (
+              <Badge variant="default" className="text-xs">
+                <Zap className="h-3 w-3 mr-1" />
+                Active
+              </Badge>
+            )}
           </div>
 
-          {/* Current Transcript Display */}
+          {/* Current Transcript and Command Display */}
           {currentTranscript && (
-            <div className="mt-3 p-3 bg-muted/50 rounded-md">
-              <div className="flex items-start gap-2">
-                <Mic className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
-                <span className="text-sm text-foreground">
-                  {processingBrainDump ? 'Processing brain dump...' : `"${currentTranscript}"`}
-                </span>
+            <div className="mt-3 space-y-2">
+              <div className="p-3 bg-muted/50 rounded-md">
+                <div className="flex items-start gap-2">
+                  <Mic className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
+                  <span className="text-sm text-foreground">"{currentTranscript}"</span>
+                </div>
               </div>
+              
+              {lastCommand && lastCommand.type !== 'unknown' && (
+                <div className="p-2 bg-green-50 border border-green-200 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    <span className="text-xs font-medium text-green-800">
+                      Command: {lastCommand.type.replace('_', ' ')}
+                      {lastCommand.target && ` (${lastCommand.target})`}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -174,7 +145,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
               <p className="text-xs text-muted-foreground text-center">
                 💡 Voice mode auto-activates when you open the app. 
                 <br />
-                Say <strong>"Hey SaveMe"</strong> to reactivate, or <strong>"brain dump"</strong> for extended input.
+                Say <strong>"Hey SaveMe"</strong> to reactivate.
               </p>
             </div>
           )}
@@ -192,15 +163,15 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                <span className="text-muted-foreground">"Open insurance policy"</span>
+                <span className="text-muted-foreground">"Open insurance"</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                <span className="text-muted-foreground">"Brain dump"</span>
+                <span className="text-muted-foreground">"Show all entries"</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                <span className="text-muted-foreground">"Close form"</span>
+                <span className="text-muted-foreground">"Cancel"</span>
               </div>
             </div>
           </CardContent>

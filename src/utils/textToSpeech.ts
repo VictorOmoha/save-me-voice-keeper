@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 
 // ElevenLabs API configuration
@@ -38,7 +37,9 @@ export const VOICE_OPTIONS = {
   'rachel': 'Rachel',
   'sam': 'Sam',
   'aria': 'Aria' // Browser voice fallback
-};
+} as const;
+
+export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 
 export const getElevenLabsApiKey = (): string | null => {
   return localStorage.getItem('elevenlabs_api_key');
@@ -54,11 +55,15 @@ export const setElevenLabsApiKey = (apiKey: string): void => {
   }
 };
 
-export const getSelectedVoice = (): string => {
-  return localStorage.getItem('selected_voice') || 'adam';
+export const getSelectedVoice = (): VoiceOptionKey => {
+  const stored = localStorage.getItem('selected_voice');
+  if (stored && stored in VOICE_OPTIONS) {
+    return stored as VoiceOptionKey;
+  }
+  return 'adam';
 };
 
-export const setSelectedVoice = (voice: string): void => {
+export const setSelectedVoice = (voice: VoiceOptionKey): void => {
   localStorage.setItem('selected_voice', voice);
 };
 

@@ -3,7 +3,6 @@ import React from "react";
 import { SearchHeader } from "../SearchHeader";
 import { ConversationalVoiceInterface } from "../ConversationalVoiceInterface";
 import { Sidebar } from "../Sidebar";
-import { SimpleVoiceCommand } from "@/utils/simpleVoiceProcessor";
 
 interface DashboardLayoutProps {
   searchQuery: string;
@@ -13,13 +12,10 @@ interface DashboardLayoutProps {
   onAddEntry: () => void;
   onCategorySelect: (categoryName: string) => void;
   onAllEntriesSelect: () => void;
-  onVoiceCommand: (command: SimpleVoiceCommand) => void;
-  isVoiceProcessing?: boolean;
-  lastVoiceCommand?: any;
-  conversationState?: 'listening' | 'confirming' | 'idle';
-  hasPendingConfirmation?: boolean;
-  onCancelVoice?: () => void;
-  conversationData?: { isActive: boolean };
+  onEditEntry: (entry: any) => void;
+  onDeleteEntry: (id: string) => void;
+  onSaveEntry: (entry: any) => void;
+  onCancelEdit: () => void;
   children: React.ReactNode;
 }
 
@@ -31,13 +27,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onAddEntry,
   onCategorySelect,
   onAllEntriesSelect,
-  onVoiceCommand,
-  isVoiceProcessing,
-  lastVoiceCommand,
-  conversationState,
-  hasPendingConfirmation,
-  onCancelVoice,
-  conversationData,
+  onEditEntry,
+  onDeleteEntry,
+  onSaveEntry,
+  onCancelEdit,
   children,
 }) => {
   return (
@@ -71,8 +64,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="lg:col-span-1">
               <div className="sticky top-6">
                 <ConversationalVoiceInterface
-                  onVoiceCommand={onVoiceCommand}
-                  className="mb-4"
+                  savedEntries={savedEntries}
+                  onCreateEntry={onAddEntry}
+                  onEditEntry={onEditEntry}
+                  onDeleteEntry={onDeleteEntry}
+                  onSaveEntry={onSaveEntry}
+                  onCancelEdit={onCancelEdit}
                 />
               </div>
             </div>

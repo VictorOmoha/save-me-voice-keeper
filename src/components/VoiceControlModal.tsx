@@ -42,8 +42,9 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
   };
 
   const handleVoiceChange = (voice: string) => {
-    setSelectedVoice(voice as keyof typeof VOICE_OPTIONS);
-    setSelectedVoiceState(voice);
+    const voiceKey = voice as keyof typeof VOICE_OPTIONS;
+    setSelectedVoice(voiceKey);
+    setSelectedVoiceState(voiceKey);
     toast.success(`Voice changed to ${voice.charAt(0).toUpperCase() + voice.slice(1)}`);
   };
 

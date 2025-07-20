@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,14 +90,20 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
       const testText = "Hello! This is a test of your voice settings. How does this sound?";
       console.log('Testing voice with:', selectedVoice);
       
-      // Test the voice
-      await speak(testText, selectedVoice as keyof typeof VOICE_OPTIONS, true);
+      // Test the voice with the new signature
+      speak(testText, {
+        rate: speechRate,
+        pitch: 1,
+        volume: speechVolume,
+        onEnd: () => {
+          toast.success('Voice test completed!');
+          setIsTestingVoice(false);
+        }
+      });
       
-      toast.success('Voice test completed!');
     } catch (error) {
       console.error('Voice test failed:', error);
       toast.error('Voice test failed. Using fallback browser voice.');
-    } finally {
       setIsTestingVoice(false);
     }
   };
@@ -140,6 +147,11 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     setAutoSpeak(false);
     setContinuousListening(false);
     toast.info('Settings reset to defaults');
+  };
+
+  const handleVoiceChange = (voice: string) => {
+    const voiceKey = voice as keyof typeof VOICE_OPTIONS;
+    setSelectedVoiceState(voiceKey);
   };
 
   const hasElevenLabsKey = !!getElevenLabsApiKey();
@@ -288,7 +300,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Voice Character</Label>
-                  <Select value={selectedVoice} onValueChange={setSelectedVoiceState}>
+                  <Select value={selectedVoice} onValueChange={handleVoiceChange}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

@@ -3,6 +3,7 @@ import React from "react";
 import { SearchHeader } from "../SearchHeader";
 import { ConversationalVoiceInterface } from "../ConversationalVoiceInterface";
 import { Sidebar } from "../Sidebar";
+import { SimpleVoiceCommand } from "@/utils/simpleVoiceProcessor";
 
 interface DashboardLayoutProps {
   searchQuery: string;
@@ -12,7 +13,7 @@ interface DashboardLayoutProps {
   onAddEntry: () => void;
   onCategorySelect: (categoryName: string) => void;
   onAllEntriesSelect: () => void;
-  onEnhancedVoiceInput: (text: string) => void;
+  onVoiceCommand: (command: SimpleVoiceCommand) => void;
   isVoiceProcessing?: boolean;
   lastVoiceCommand?: any;
   conversationState?: 'listening' | 'confirming' | 'idle';
@@ -30,7 +31,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onAddEntry,
   onCategorySelect,
   onAllEntriesSelect,
-  onEnhancedVoiceInput,
+  onVoiceCommand,
   isVoiceProcessing,
   lastVoiceCommand,
   conversationState,
@@ -70,7 +71,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="lg:col-span-1">
               <div className="sticky top-6">
                 <ConversationalVoiceInterface
-                  onEnhancedVoiceInput={onEnhancedVoiceInput}
+                  onVoiceCommand={onVoiceCommand}
                   className="mb-4"
                 />
               </div>

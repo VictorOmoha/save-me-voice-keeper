@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +45,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
   onOpenChange 
 }) => {
   const [apiKey, setApiKey] = useState(getElevenLabsApiKey() || '');
-  const [selectedVoice, setSelectedVoiceState] = useState(getSelectedVoice());
+  const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>(getSelectedVoice());
   const [speechLanguage, setSpeechLanguage] = useState(
     localStorage.getItem('speech_language') || 'en-US'
   );
@@ -71,7 +70,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
       setElevenLabsApiKey(apiKey);
     }
     
-    setSelectedVoice(selectedVoice as keyof typeof VOICE_OPTIONS);
+    setSelectedVoice(selectedVoice);
     localStorage.setItem('speech_language', speechLanguage);
     localStorage.setItem('speech_rate', speechRate.toString());
     localStorage.setItem('speech_volume', speechVolume.toString());

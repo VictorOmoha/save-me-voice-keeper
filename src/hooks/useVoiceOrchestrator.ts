@@ -51,29 +51,71 @@ export const useVoiceOrchestrator = (
   const isInitialized = useRef(false);
   const onVoiceInputRef = useRef(onVoiceInput);
   const lastProcessedTranscript = useRef<string>('');
+  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use refs for current state to avoid stale closures
+  const currentStateRef = useRef(conversationState);
+  const isManualStopRef = useRef(false);
 
-  // Update the ref when callback changes
+  // Update refs when state changes
+  useEffect(() => {
+    currentStateRef.current = conversationState;
+  }, [conversationState]);
+
   useEffect(() => {
     onVoiceInputRef.current = onVoiceInput;
   }, [onVoiceInput]);
 
-  // Stable callback functions using useCallback
+  // Centralized recognition restart logic
+  const attemptRecognitionRestart = useCallback(() => {
+    console.log('🔄 Voice Orchestrator: Attempting recognition restart', {
+      isActive: currentStateRef.current.isActive,
+      isListening: currentStateRef.current.isListening,
+      hasRecognition: !!recognitionRef.current,
+      isManualStop: isManualStopRef.current,
+      ttsIsSpeaking: (window as any).__tts_is_speaking,
+      documentHidden: document.hidden
+    });
+
+    // Clear any pending restart attempts
+    if (restartTimeoutRef.current) {
+      clearTimeout(restartTimeoutRef.current);
+      restartTimeoutRef.current = null;
+    }
+
+    // Only restart if conditions are met
+    if (!currentStateRef.current.isActive || 
+        currentStateRef.current.isListening || 
+        !recognitionRef.current || 
+        isManualStopRef.current ||
+        (window as any).__tts_is_speaking ||
+        document.hidden) {
+      console.log('🚫 Voice Orchestrator: Skipping restart - conditions not met');
+      return;
+    }
+
+    try {
+      console.log('🎤 Voice Orchestrator: Starting recognition restart');
+      recognitionRef.current.start();
+    } catch (error) {
+      console.log('⚠️ Voice Orchestrator: Restart failed, will retry:', error);
+      // Retry after a short delay if restart fails
+      restartTimeoutRef.current = setTimeout(attemptRecognitionRestart, 1000);
+    }
+  }, []);
+
   const deactivateConversation = useCallback((reason: string = 'Manual') => {
     console.log('🛑 Voice Orchestrator: Deactivating conversation -', reason);
     
+    isManualStopRef.current = true;
+    
     // Clear all timers
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    if (sessionTimerRef.current) {
-      clearTimeout(sessionTimerRef.current);
-      sessionTimerRef.current = null;
-    }
-    if (brainDumpTimerRef.current) {
-      clearTimeout(brainDumpTimerRef.current);
-      brainDumpTimerRef.current = null;
-    }
+    [silenceTimerRef, sessionTimerRef, brainDumpTimerRef, restartTimeoutRef].forEach(timer => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
+    });
 
     // Stop recognition
     if (recognitionRef.current) {
@@ -102,6 +144,8 @@ export const useVoiceOrchestrator = (
   const activateConversation = useCallback(() => {
     console.log('🚀 Voice Orchestrator: Activating conversation');
     
+    isManualStopRef.current = false;
+    
     setConversationState(prev => ({
       ...prev,
       isActive: true,
@@ -111,8 +155,8 @@ export const useVoiceOrchestrator = (
       accumulatedContent: '',
     }));
 
-    // Start recognition if available and not already running
-    if (recognitionRef.current) {
+    // Start recognition if available
+    if (recognitionRef.current && !(window as any).__tts_is_speaking) {
       try {
         recognitionRef.current.start();
         toast.success('🎤 Voice mode activated - I\'m listening!');
@@ -188,25 +232,28 @@ export const useVoiceOrchestrator = (
         deactivateConversation('Permission denied');
         return;
       }
+
+      // For other errors, attempt restart after delay
+      if (currentStateRef.current.isActive && !isManualStopRef.current) {
+        console.log('🔄 Voice Orchestrator: Scheduling restart after error');
+        restartTimeoutRef.current = setTimeout(attemptRecognitionRestart, 1500);
+      }
     };
 
     recognition.onend = () => {
-      console.log('🔚 Voice Orchestrator: Recognition ended');
+      console.log('🔚 Voice Orchestrator: Recognition ended', {
+        isActive: currentStateRef.current.isActive,
+        isManualStop: isManualStopRef.current,
+        ttsIsSpeaking: (window as any).__tts_is_speaking
+      });
+      
       setConversationState(prev => ({ ...prev, isListening: false }));
 
-      // Auto-restart if conversation is still active and TTS is not speaking
-      setTimeout(() => {
-        if (conversationState.isActive && 
-            recognitionRef.current && 
-            !document.hidden && 
-            !(window as any).__tts_is_speaking) {
-          try {
-            recognitionRef.current.start();
-          } catch (error) {
-            console.log('Auto-restart failed:', error);
-          }
-        }
-      }, 500);
+      // Schedule restart if conversation is still active and not manually stopped
+      if (currentStateRef.current.isActive && !isManualStopRef.current) {
+        console.log('🔄 Voice Orchestrator: Scheduling auto-restart');
+        restartTimeoutRef.current = setTimeout(attemptRecognitionRestart, 750);
+      }
     };
 
     recognitionRef.current = recognition;
@@ -223,44 +270,74 @@ export const useVoiceOrchestrator = (
     };
   }, []); // Empty dependency array - initialize only once
 
-  // Handle TTS completion events to restart recognition
+  // Handle TTS completion events with improved coordination
   useEffect(() => {
     const handleTTSCompleted = () => {
-      console.log('🔊 Voice Orchestrator: TTS completed, checking if recognition needs restart');
+      console.log('🔊 Voice Orchestrator: TTS completed, scheduling recognition restart');
       
-      // Only restart if conversation is active and not currently listening
-      if (conversationState.isActive && !conversationState.isListening && recognitionRef.current) {
-        setTimeout(() => {
-          try {
-            if (recognitionRef.current && conversationState.isActive) {
-              recognitionRef.current.start();
-              console.log('🎤 Voice Orchestrator: Recognition restarted after TTS completion');
-            }
-          } catch (error) {
-            console.log('Failed to restart recognition after TTS:', error);
-          }
-        }, 1000);
-      }
+      // Wait a bit longer for TTS to fully complete, then attempt restart
+      setTimeout(() => {
+        if (currentStateRef.current.isActive && !currentStateRef.current.isListening) {
+          attemptRecognitionRestart();
+        }
+      }, 1200);
+    };
+
+    const handleTTSStarted = () => {
+      console.log('🔊 Voice Orchestrator: TTS started');
+      // TTS started - recognition will be paused by the TTS system
     };
 
     window.addEventListener('tts-completed', handleTTSCompleted);
+    window.addEventListener('tts-started', handleTTSStarted);
     
     return () => {
       window.removeEventListener('tts-completed', handleTTSCompleted);
+      window.removeEventListener('tts-started', handleTTSStarted);
     };
-  }, [conversationState.isActive, conversationState.isListening]);
+  }, [attemptRecognitionRestart]);
 
   // Handle page visibility changes
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && conversationState.isActive) {
-        deactivateConversation('Page hidden');
+        console.log('📱 Voice Orchestrator: Page hidden, pausing conversation');
+        isManualStopRef.current = true;
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.stop();
+          } catch (error) {
+            console.log('Error stopping recognition on visibility change:', error);
+          }
+        }
+      } else if (!document.hidden && conversationState.isActive) {
+        console.log('📱 Voice Orchestrator: Page visible, resuming conversation');
+        isManualStopRef.current = false;
+        setTimeout(attemptRecognitionRestart, 500);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [conversationState.isActive, deactivateConversation]);
+  }, [conversationState.isActive, attemptRecognitionRestart]);
+
+  // Periodic health check to ensure recognition is running when it should be
+  useEffect(() => {
+    if (!conversationState.isActive) return;
+
+    const healthCheck = setInterval(() => {
+      if (currentStateRef.current.isActive && 
+          !currentStateRef.current.isListening && 
+          !isManualStopRef.current &&
+          !(window as any).__tts_is_speaking &&
+          !document.hidden) {
+        console.log('🏥 Voice Orchestrator: Health check - restarting stalled recognition');
+        attemptRecognitionRestart();
+      }
+    }, 5000);
+
+    return () => clearInterval(healthCheck);
+  }, [conversationState.isActive, attemptRecognitionRestart]);
 
   return {
     conversationState,

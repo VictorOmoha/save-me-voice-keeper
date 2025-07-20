@@ -28,9 +28,20 @@ export const useVoiceCommandExecutor = ({
   const executeCommand = useCallback((command: SimpleVoiceCommand) => {
     console.log('🚀 Executing voice command:', command);
     
-    // Only execute commands with sufficient confidence
-    if (command.confidence < 0.6) {
-      console.log('🚫 Command confidence too low:', command.confidence);
+    // Enhanced confidence thresholds for different command types
+    const confidenceThresholds = {
+      'create_entry': 0.8,
+      'cancel': 0.7,
+      'show_all': 0.8,
+      'open_entry': 0.75,
+      'delete_entry': 0.8,
+      'save_entry': 0.8
+    };
+    
+    const requiredConfidence = confidenceThresholds[command.type] || 0.7;
+    
+    if (command.confidence < requiredConfidence) {
+      console.log(`🚫 Command confidence ${command.confidence} below threshold ${requiredConfidence}`);
       return;
     }
     
@@ -43,7 +54,7 @@ export const useVoiceCommandExecutor = ({
         
       case 'show_all':
         toast.success('Showing all entries');
-        speak('Showing all your entries');
+        speak('Here are all your entries');
         break;
         
       case 'open_entry':
@@ -57,9 +68,13 @@ export const useVoiceCommandExecutor = ({
             toast.success(`Opening ${matchingEntry.title}`);
             speak(`Opening ${matchingEntry.title}`);
           } else {
-            // Be more conservative with "not found" messages to avoid feedback loops
+            // More conservative feedback to prevent loops
+            console.log(`No entry found matching "${command.target}"`);
             toast.info(`No entry found matching "${command.target}"`);
-            // Don't speak the "not found" message to prevent feedback
+            // Only speak if the command was very specific to avoid feedback loops
+            if (command.confidence > 0.85) {
+              speak(`I couldn't find an entry matching ${command.target}`);
+            }
           }
         } else {
           toast.info('Please specify which entry to open');
@@ -74,16 +89,17 @@ export const useVoiceCommandExecutor = ({
           );
           
           if (matchingEntry) {
-            // For now, just show confirmation - implement confirmation dialog later
             toast.info(`Would you like to delete "${matchingEntry.title}"? Say "confirm delete" to proceed.`);
-            // Don't speak the confirmation to avoid feedback loops
+            // Don't speak deletion confirmations to avoid accidental triggers
           } else {
+            console.log(`No entry found for deletion: "${command.target}"`);
             toast.info(`No entry found matching "${command.target}"`);
-            // Don't speak the "not found" message
           }
         } else {
           toast.info('Please specify which entry to delete');
-          speak('Which entry would you like to delete?');
+          if (command.confidence > 0.85) {
+            speak('Which entry would you like to delete?');
+          }
         }
         break;
         
@@ -94,23 +110,23 @@ export const useVoiceCommandExecutor = ({
           speak('Forms closed');
         } else {
           toast.info('Nothing to cancel');
-          speak('There\'s nothing to cancel right now');
+          // Only speak if very confident to avoid noise
+          if (command.confidence > 0.9) {
+            speak('There\'s nothing to cancel right now');
+          }
         }
         break;
         
       case 'save_entry':
         if (showAddEntry || editingEntry) {
-          toast.info('Please fill out the form and click save');
-          // Don't speak to avoid feedback
+          toast.info('Please complete the form and click save');
         } else {
           toast.info('No entry form is currently open');
-          // Don't speak to avoid feedback
         }
         break;
         
       default:
-        // Don't show "not recognized" messages to avoid feedback loops
-        console.log('Voice command not recognized or filtered out');
+        console.log('Voice command not recognized or filtered out:', command);
     }
   }, [savedEntries, onAddEntry, onEditEntry, onDeleteEntry, onCancelEdit, showAddEntry, editingEntry]);
   

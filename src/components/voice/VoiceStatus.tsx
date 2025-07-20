@@ -1,34 +1,43 @@
 
 import React from "react";
-import { Mic, MicOff, MessageCircle } from "lucide-react";
+import { Mic, MicOff, MessageCircle, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface VoiceStatusProps {
-  isActive: boolean;
-  isListening: boolean;
+  isListening?: boolean;
+  isActive?: boolean;
   isInConversation?: boolean;
+  conversationState?: { isActive: boolean; currentStep?: { question: string } };
+  onSettingsClick?: () => void;
 }
 
 export const VoiceStatus: React.FC<VoiceStatusProps> = ({
-  isActive,
-  isListening,
+  isListening = false,
+  isActive = false,
   isInConversation = false,
+  conversationState,
+  onSettingsClick,
 }) => {
+  // Determine actual state from props
+  const actualIsInConversation = isInConversation || conversationState?.isActive || false;
+  const actualIsActive = isActive || conversationState?.isActive || false;
+
   const getStatusColor = () => {
-    if (isInConversation) return "text-blue-600";
+    if (actualIsInConversation) return "text-blue-600";
     if (isListening) return "text-green-600";
-    if (isActive) return "text-yellow-600";
+    if (actualIsActive) return "text-yellow-600";
     return "text-gray-400";
   };
 
   const getStatusText = () => {
-    if (isInConversation) return "In Conversation";
+    if (actualIsInConversation) return "In Conversation";
     if (isListening) return "Listening...";
-    if (isActive) return "Voice Mode Active";
+    if (actualIsActive) return "Voice Mode Active";
     return "Voice Mode Inactive";
   };
 
   const getIcon = () => {
-    if (isInConversation) return <MessageCircle className="h-4 w-4" />;
+    if (actualIsInConversation) return <MessageCircle className="h-4 w-4" />;
     if (isListening) return <Mic className="h-4 w-4" />;
     return <MicOff className="h-4 w-4" />;
   };
@@ -41,7 +50,7 @@ export const VoiceStatus: React.FC<VoiceStatusProps> = ({
       <span className={`text-sm font-medium ${getStatusColor()}`}>
         {getStatusText()}
       </span>
-      {isInConversation && (
+      {actualIsInConversation && (
         <div className="ml-auto">
           <div className="flex space-x-1">
             <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
@@ -49,6 +58,16 @@ export const VoiceStatus: React.FC<VoiceStatusProps> = ({
             <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
           </div>
         </div>
+      )}
+      {onSettingsClick && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onSettingsClick}
+          className="ml-auto"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
       )}
     </div>
   );

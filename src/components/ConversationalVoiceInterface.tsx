@@ -72,12 +72,19 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     );
   }
 
+  // Create a unified conversation state for display
+  const displayConversationState = {
+    isActive: isInConversation || orchestratorState.isActive,
+    currentStep: conversationState.currentStep,
+  };
+
   return (
     <div className="space-y-4">
       <VoiceStatus 
         isActive={orchestratorState.isActive}
         isListening={orchestratorState.isListening}
         isInConversation={isInConversation}
+        conversationState={displayConversationState}
       />
 
       <VoiceControls
@@ -95,7 +102,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         </div>
       )}
 
-      <ConversationDisplay conversationState={conversationState} />
+      <ConversationDisplay conversationState={displayConversationState} />
 
       {isInConversation && (
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">

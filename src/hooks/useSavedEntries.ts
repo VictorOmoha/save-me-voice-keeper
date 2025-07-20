@@ -69,8 +69,8 @@ export const useSavedEntries = () => {
 
       const entryData = {
         title: entry.title,
-        fields: entry.fields,
-        field_definitions: entry.fieldDefinitions || null,
+        fields: entry.fields as any, // Cast to Json-compatible type
+        field_definitions: entry.fieldDefinitions as any || null, // Cast to Json-compatible type
         user_id: user.id,
       };
 

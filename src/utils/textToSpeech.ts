@@ -67,7 +67,7 @@ export const setSelectedVoice = (voice: VoiceOptionKey): void => {
   localStorage.setItem('selected_voice', voice);
 };
 
-// Global cache for recent TTS content to help speech recognition filter it out
+// Simplified TTS cache for speech recognition filtering
 const initializeTTSCache = () => {
   if (!(window as any).__recent_tts_texts) {
     (window as any).__recent_tts_texts = [];
@@ -78,19 +78,19 @@ const addToTTSCache = (text: string) => {
   initializeTTSCache();
   const cache = (window as any).__recent_tts_texts as string[];
   
-  // Add to cache and keep only last 5 items
+  // Add to cache and keep only last 3 items (reduced from 5)
   cache.unshift(text);
-  if (cache.length > 5) {
-    cache.splice(5);
+  if (cache.length > 3) {
+    cache.splice(3);
   }
   
-  // Clear cache after 30 seconds
+  // Clear cache after 15 seconds (reduced from 30)
   setTimeout(() => {
     const index = cache.indexOf(text);
     if (index > -1) {
       cache.splice(index, 1);
     }
-  }, 30000);
+  }, 15000);
 };
 
 // Clear speech history - for compatibility
@@ -108,7 +108,7 @@ interface SpeechOptions {
   onEnd?: () => void;
 }
 
-// Main speak function with multiple signatures
+// Main speak function with enhanced logging
 export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
     console.log('🔊 TTS: Empty text provided, skipping');
@@ -140,7 +140,7 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     }
     
     if (elevenLabsKey) {
-      console.log('🎙️ TTS: Attempting ElevenLabs TTS');
+      console.log('🎙️ TTS: Using ElevenLabs TTS');
       await speakWithElevenLabs(text, voice);
     } else {
       console.log('🎙️ TTS: Using browser TTS (no ElevenLabs key)');
@@ -155,10 +155,12 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       console.error('🚨 TTS: Fallback TTS also failed:', fallbackError);
     }
   } finally {
-    // Clear TTS flag and dispatch completion event
-    (window as any).__tts_is_speaking = false;
-    window.dispatchEvent(new CustomEvent('tts-completed'));
-    console.log('🔊 TTS: Speech completed');
+    // Clear TTS flag after a longer delay to prevent immediate voice recognition restart
+    setTimeout(() => {
+      (window as any).__tts_is_speaking = false;
+      window.dispatchEvent(new CustomEvent('tts-completed'));
+      console.log('🔊 TTS: Speech completed, recognition can restart');
+    }, 1000); // Added delay
   }
 };
 

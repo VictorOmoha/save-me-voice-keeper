@@ -52,48 +52,51 @@ export const setupSpeechRecognition = ({
   let consecutiveErrors = 0;
   let lastCommandTime = Date.now();
   let silenceTimeout: NodeJS.Timeout | null = null;
-  let conversationContext: any = null;
   const MAX_CONSECUTIVE_ERRORS = 3;
-  const SILENCE_TIMEOUT = 15000;
-  const COMMAND_COOLDOWN = 1000;
+  const SILENCE_TIMEOUT = 20000; // Increased from 15s
+  const COMMAND_COOLDOWN = 800; // Reduced from 1000ms
   
-  // Enhanced TTS detection patterns
-  const TTS_PATTERNS = [
-    /what would you like to/i,
-    /what type of field/i,
-    /you can say/i,
-    /added.*field/i,
-    /created entry/i,
-    /would you like to add/i,
-    /what category should/i,
-    /conversation cancelled/i,
-    /voice mode activated/i,
-    /how can i help/i
-  ];
-  
+  // Simplified TTS detection - rely mainly on the global flag
   const isTTSContent = (text: string): boolean => {
-    // Check if TTS is currently speaking
+    // Primary check: if TTS is currently speaking
     if ((window as any).__tts_is_speaking) {
       console.log('🚫 SETUP: TTS is currently speaking, ignoring input');
       return true;
     }
     
-    // Check for TTS-like patterns in the text
-    const isTTSPattern = TTS_PATTERNS.some(pattern => pattern.test(text));
-    if (isTTSPattern) {
-      console.log('🚫 SETUP: Detected TTS-like content, ignoring:', text);
+    // Secondary check: very short or clearly system-generated text
+    const cleanText = text.toLowerCase().trim();
+    if (cleanText.length < 2) {
+      console.log('🚫 SETUP: Text too short, ignoring:', text);
       return true;
     }
     
-    // Check if text matches recent TTS output (stored in a global cache)
+    // Only block obvious system responses
+    const systemPhrases = [
+      'voice mode activated',
+      'listening for commands',
+      'processing with ai',
+      'ai voice assistant ready',
+      'voice recognition',
+      'speech recognition'
+    ];
+    
+    const isSystemPhrase = systemPhrases.some(phrase => cleanText.includes(phrase));
+    if (isSystemPhrase) {
+      console.log('🚫 SETUP: System phrase detected, ignoring:', text);
+      return true;
+    }
+    
+    // Check recent TTS cache (shortened window)
     if ((window as any).__recent_tts_texts) {
       const recentTTS = (window as any).__recent_tts_texts as string[];
-      const isRecentTTS = recentTTS.some(ttsText => 
-        text.toLowerCase().includes(ttsText.toLowerCase().substring(0, 20)) ||
-        ttsText.toLowerCase().includes(text.toLowerCase().substring(0, 20))
-      );
+      const isRecentTTS = recentTTS.some(ttsText => {
+        const similarity = cleanText.includes(ttsText.toLowerCase().substring(0, 15)) ||
+                          ttsText.toLowerCase().includes(cleanText.substring(0, 15));
+        return similarity;
+      });
       if (isRecentTTS) {
-        console.log('🚫 SETUP: Text matches recent TTS output, ignoring:', text);
+        console.log('🚫 SETUP: Matches recent TTS, ignoring:', text);
         return true;
       }
     }
@@ -141,11 +144,11 @@ export const setupSpeechRecognition = ({
     const currentTranscript = finalTranscript || interimTranscript;
     setTranscript(currentTranscript);
 
-    // Process final results with improved TTS filtering
+    // Process final results with improved filtering
     if (finalTranscript && finalTranscript !== lastProcessedTranscript) {
       const now = Date.now();
       
-      // Enhanced TTS detection - skip if this looks like TTS content
+      // Check if this is TTS content
       if (isTTSContent(finalTranscript)) {
         console.log('🚫 SETUP: Skipping TTS-like content:', finalTranscript);
         return;
@@ -157,7 +160,7 @@ export const setupSpeechRecognition = ({
         return;
       }
       
-      console.log('🔄 SETUP: Processing final transcript:', finalTranscript);
+      console.log('✅ SETUP: Processing user command:', finalTranscript);
       
       commandCounter++;
       setLastProcessedTranscript(finalTranscript);
@@ -166,12 +169,6 @@ export const setupSpeechRecognition = ({
       // Reset silence timeout on new command
       if (silenceTimeout) {
         clearTimeout(silenceTimeout);
-      }
-      
-      // Clear processed commands cache periodically
-      if (commandCounter % 5 === 0) {
-        console.log('🧹 SETUP: Cleared processed commands cache');
-        (window as any).__processed_commands = new Set();
       }
 
       // Process the command with context preservation
@@ -264,7 +261,7 @@ export const setupSpeechRecognition = ({
     
     // Auto-restart for recoverable errors in continuous mode
     if (!((window as any).__manual_stop) && ['no-speech', 'aborted'].includes(event.error)) {
-      console.log('🔄 SETUP: Recoverable error, attempting immediate restart');
+      console.log('🔄 SETUP: Recoverable error, attempting restart after delay');
       setTimeout(() => {
         if (!(window as any).__manual_stop && !globalRecognitionActive) {
           try {
@@ -273,7 +270,7 @@ export const setupSpeechRecognition = ({
             console.error('🚨 SETUP: Failed to restart after error:', restartError);
           }
         }
-      }, 1000);
+      }, 1500); // Increased delay
     }
   };
 
@@ -301,7 +298,7 @@ export const setupSpeechRecognition = ({
             consecutiveErrors++;
           }
         }
-      }, 2000);
+      }, 2500); // Increased delay
     }
   };
 
@@ -324,11 +321,8 @@ export const setupSpeechRecognition = ({
     }
   };
 
-  // Store cleanup function and context on the recognition object
+  // Store cleanup function on the recognition object
   (recognition as any).cleanup = cleanup;
-  (recognition as any).setConversationContext = (context: any) => {
-    conversationContext = context;
-  };
 
   return recognition;
 };

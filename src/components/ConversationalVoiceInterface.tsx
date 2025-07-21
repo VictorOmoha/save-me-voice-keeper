@@ -26,6 +26,8 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   onCancelEdit,
 }) => {
   const [lastTranscript, setLastTranscript] = useState<string>("");
+  
+  // Always call hooks in the same order
   const { formTitleSetter, formCategorySetter, formAddFieldFunction } = useVoiceFormContext();
 
   const {
@@ -55,6 +57,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   // Show transcript updates
   useEffect(() => {
     const handleTranscriptUpdate = (event: CustomEvent) => {
+      console.log('🎯 Voice Interface: Transcript update received:', event.detail.transcript);
       setLastTranscript(event.detail.transcript);
     };
 
@@ -62,6 +65,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     return () => window.removeEventListener('voice-transcript-update', handleTranscriptUpdate as EventListener);
   }, []);
 
+  // Early return after all hooks are called
   if (!isSupported) {
     return (
       <div className="p-4 bg-muted rounded-lg">

@@ -108,7 +108,7 @@ interface SpeechOptions {
   onEnd?: () => void;
 }
 
-// Main speak function with enhanced logging
+// Main speak function with improved coordination
 export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
     console.log('🔊 TTS: Empty text provided, skipping');
@@ -120,11 +120,10 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   // Add to TTS cache for speech recognition filtering
   addToTTSCache(text);
   
-  // Set global flag to indicate TTS is speaking
+  // Set global flag and dispatch event BEFORE starting speech
   (window as any).__tts_is_speaking = true;
-  
-  // Dispatch TTS started event
   window.dispatchEvent(new CustomEvent('tts-started'));
+  console.log('🔊 TTS: Set speaking flag and dispatched tts-started event');
 
   try {
     const elevenLabsKey = getElevenLabsApiKey();
@@ -155,12 +154,12 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       console.error('🚨 TTS: Fallback TTS also failed:', fallbackError);
     }
   } finally {
-    // Clear TTS flag after a longer delay to prevent immediate voice recognition restart
+    // Clear TTS flag and dispatch completion event
     setTimeout(() => {
       (window as any).__tts_is_speaking = false;
       window.dispatchEvent(new CustomEvent('tts-completed'));
-      console.log('🔊 TTS: Speech completed, recognition can restart');
-    }, 1000); // Added delay
+      console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
+    }, 500);
   }
 };
 

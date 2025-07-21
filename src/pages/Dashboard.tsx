@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -7,6 +6,7 @@ import { SavedEntry } from '@/types/dashboard';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
+import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -157,6 +157,9 @@ export default function Dashboard() {
           onFillEntry={(entry) => setFillingEntry(entry)}
         />
       )}
+      
+      {/* Debug panel for voice system monitoring */}
+      <VoiceDebugPanel />
     </DashboardLayout>
   );
 }

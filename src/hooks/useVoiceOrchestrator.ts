@@ -25,7 +25,7 @@ export interface VoiceOrchestratorConfig {
 const defaultConfig: VoiceOrchestratorConfig = {
   autoStart: true,
   wakeWords: ['hey saveme', 'start listening', 'voice mode'],
-  silenceTimeout: 20000,
+  silenceTimeout: 30000,
   maxSessionDuration: 600000,
   brainDumpTimeout: 15000,
 };
@@ -104,13 +104,13 @@ export const useVoiceOrchestrator = (
       deactivateConversation('Session timeout');
     }, finalConfig.maxSessionDuration);
 
-    // Start speech recognition after TTS
+    // Start speech recognition after a brief delay
     setTimeout(() => {
-      if (!(window as any).__tts_is_speaking) {
+      if (speechRecognition.isSupported()) {
         speechRecognition.start();
         toast.success('🎤 Voice mode activated - I\'m listening!');
       }
-    }, 2000);
+    }, 1000);
     
     speak('Voice mode activated. How can I help you?');
   }, [finalConfig.maxSessionDuration, deactivateConversation]);
@@ -188,21 +188,26 @@ export const useVoiceOrchestrator = (
     };
   }, [finalConfig.autoStart, activateConversation, deactivateConversation]);
 
-  // Handle TTS completion events
+  // Handle TTS completion events - improved coordination
   useEffect(() => {
     const handleTTSCompleted = () => {
-      console.log('🔊 Voice Orchestrator: TTS completed, restarting recognition');
+      console.log('🔊 Voice Orchestrator: TTS completed, checking if should restart recognition');
       
+      // Only restart if conversation is active and we're not currently listening
       if (conversationState.isActive && !conversationState.isListening) {
+        // Wait a bit longer for TTS to fully complete
         setTimeout(() => {
-          speechRecognition.start();
-        }, 1000);
+          if (speechRecognition.isSupported() && !speechRecognition.isCurrentlyListening()) {
+            console.log('🔄 Voice Orchestrator: Restarting recognition after TTS completion');
+            speechRecognition.start();
+          }
+        }, 1500);
       }
     };
 
     const handleTTSStarted = () => {
-      console.log('🔊 Voice Orchestrator: TTS started, pausing recognition');
-      // Recognition will be paused automatically by the singleton
+      console.log('🔊 Voice Orchestrator: TTS started, ensuring recognition is paused');
+      // The singleton will handle pausing automatically
     };
 
     window.addEventListener('tts-completed', handleTTSCompleted);

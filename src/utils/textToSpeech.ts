@@ -67,7 +67,7 @@ export const setSelectedVoice = (voice: VoiceOptionKey): void => {
   localStorage.setItem('selected_voice', voice);
 };
 
-// Simplified TTS cache for speech recognition filtering
+// Improved TTS cache for speech recognition filtering
 const initializeTTSCache = () => {
   if (!(window as any).__recent_tts_texts) {
     (window as any).__recent_tts_texts = [];
@@ -78,19 +78,19 @@ const addToTTSCache = (text: string) => {
   initializeTTSCache();
   const cache = (window as any).__recent_tts_texts as string[];
   
-  // Add to cache and keep only last 3 items (reduced from 5)
+  // Add to cache and keep only last 3 items
   cache.unshift(text);
   if (cache.length > 3) {
     cache.splice(3);
   }
   
-  // Clear cache after 15 seconds (reduced from 30)
+  // Clear cache after 10 seconds (reduced for faster cleanup)
   setTimeout(() => {
     const index = cache.indexOf(text);
     if (index > -1) {
       cache.splice(index, 1);
     }
-  }, 15000);
+  }, 10000);
 };
 
 // Clear speech history - for compatibility
@@ -108,7 +108,7 @@ interface SpeechOptions {
   onEnd?: () => void;
 }
 
-// Main speak function with improved coordination
+// Main speak function with improved singleton coordination
 export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
     console.log('🔊 TTS: Empty text provided, skipping');
@@ -154,12 +154,12 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       console.error('🚨 TTS: Fallback TTS also failed:', fallbackError);
     }
   } finally {
-    // Clear TTS flag and dispatch completion event
+    // Clear TTS flag and dispatch completion event after a brief delay
     setTimeout(() => {
       (window as any).__tts_is_speaking = false;
       window.dispatchEvent(new CustomEvent('tts-completed'));
       console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
-    }, 500);
+    }, 1000); // Increased delay to ensure audio is fully complete
   }
 };
 

@@ -14,6 +14,8 @@ export const VoiceDebugPanel: React.FC = () => {
     commandCount: 0,
     lastCommand: '',
     lastCommandTime: '',
+    restartAttempts: 0,
+    manualStop: false,
   });
 
   useEffect(() => {
@@ -25,6 +27,8 @@ export const VoiceDebugPanel: React.FC = () => {
         commandCount: (window as any).__command_count || 0,
         lastCommand: (window as any).__last_command || '',
         lastCommandTime: (window as any).__last_command_time || '',
+        restartAttempts: speechRecognition.getRestartAttempts(),
+        manualStop: !!(window as any).__manual_stop,
       });
     };
 
@@ -66,7 +70,7 @@ export const VoiceDebugPanel: React.FC = () => {
   }
 
   return (
-    <Card className="fixed bottom-4 right-4 w-80 z-50">
+    <Card className="fixed bottom-4 right-4 w-96 z-50 max-h-96 overflow-y-auto">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center justify-between">
           Voice Debug Panel
@@ -88,6 +92,17 @@ export const VoiceDebugPanel: React.FC = () => {
           </Badge>
         </div>
         
+        <div className="flex items-center gap-2">
+          <span>Manual Stop:</span>
+          <Badge variant={debugInfo.manualStop ? "destructive" : "secondary"}>
+            {debugInfo.manualStop ? "Yes" : "No"}
+          </Badge>
+        </div>
+        
+        <div>
+          <span className="font-medium">Restart Attempts:</span> {debugInfo.restartAttempts}/3
+        </div>
+        
         <div>
           <span className="font-medium">Commands:</span> {debugInfo.commandCount}
         </div>
@@ -95,7 +110,7 @@ export const VoiceDebugPanel: React.FC = () => {
         {debugInfo.lastTranscript && (
           <div>
             <span className="font-medium">Last Transcript:</span>
-            <div className="bg-muted p-1 rounded text-xs">
+            <div className="bg-muted p-1 rounded text-xs max-h-16 overflow-y-auto">
               {debugInfo.lastTranscript}
             </div>
           </div>
@@ -104,17 +119,17 @@ export const VoiceDebugPanel: React.FC = () => {
         {debugInfo.lastCommand && (
           <div>
             <span className="font-medium">Last Command:</span>
-            <div className="bg-muted p-1 rounded text-xs">
+            <div className="bg-muted p-1 rounded text-xs max-h-16 overflow-y-auto">
               {debugInfo.lastCommand} ({debugInfo.lastCommandTime})
             </div>
           </div>
         )}
         
-        <div className="pt-2 border-t">
+        <div className="pt-2 border-t space-y-1">
           <Button 
             onClick={() => speechRecognition.start()}
             size="sm"
-            className="w-full mb-1"
+            className="w-full"
           >
             Force Start Recognition
           </Button>
@@ -125,6 +140,14 @@ export const VoiceDebugPanel: React.FC = () => {
             className="w-full"
           >
             Stop Recognition
+          </Button>
+          <Button 
+            onClick={() => speechRecognition.resetRestartAttempts()}
+            size="sm"
+            variant="ghost"
+            className="w-full"
+          >
+            Reset Restart Attempts
           </Button>
         </div>
       </CardContent>

@@ -64,15 +64,19 @@ class EnhancedVoiceProcessor {
       return true;
     }
     
-    // Quick check against recent TTS - simplified
+    // Check against recent TTS with exact phrase matching
     if ((window as any).__recent_tts_texts) {
       const recentTTS = (window as any).__recent_tts_texts as string[];
       const isRecentTTS = recentTTS.some(ttsText => {
-        const ttsClean = ttsText.toLowerCase().substring(0, 10);
-        return cleanText.includes(ttsClean) || ttsClean.includes(cleanText.substring(0, 10));
+        const ttsClean = ttsText.toLowerCase().trim();
+        // Only block if the user input exactly matches the TTS text
+        // or if the TTS text is very short and matches exactly
+        return ttsClean === cleanText || 
+               (ttsClean.length > 10 && cleanText === ttsClean) ||
+               (ttsText.toLowerCase().includes('tts feedback detected') && cleanText.includes('tts feedback'));
       });
       if (isRecentTTS) {
-        console.log('🚫 Enhanced Processor: Matches recent TTS, blocking');
+        console.log('🚫 Enhanced Processor: Exactly matches recent TTS, blocking');
         return true;
       }
     }

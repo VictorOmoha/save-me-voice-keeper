@@ -67,15 +67,13 @@ class EnhancedVoiceProcessor {
     // Check against recent TTS with exact phrase matching
     if ((window as any).__recent_tts_texts) {
       const recentTTS = (window as any).__recent_tts_texts as string[];
-      const isRecentTTS = recentTTS.some(ttsText => {
-        const ttsClean = ttsText.toLowerCase().trim();
-        // Only block if the user input exactly matches the TTS text
-        // or if the TTS text is very short and matches exactly
-        return ttsClean === cleanText || 
-               (ttsClean.length > 10 && cleanText === ttsClean) ||
-               (ttsText.toLowerCase().includes('tts feedback detected') && cleanText.includes('tts feedback'));
+      
+      // Only block if exactly matches TTS output
+      const isExactTTSMatch = recentTTS.some(ttsText => {
+        return ttsText.toLowerCase().trim() === cleanText;
       });
-      if (isRecentTTS) {
+      
+      if (isExactTTSMatch) {
         console.log('🚫 Enhanced Processor: Exactly matches recent TTS, blocking');
         return true;
       }
@@ -86,6 +84,28 @@ class EnhancedVoiceProcessor {
 
   async processVoiceCommand(transcript: string, context: VoiceContext): Promise<EnhancedVoiceCommand> {
     console.log('🎯 Enhanced Processor: Processing command:', transcript);
+    
+    // Handle mixed TTS feedback - extract user command from mixed input
+    const cleanText = transcript.toLowerCase().trim();
+    if (cleanText.includes('tts feedback detected') || 
+        cleanText.includes('how can i help you') ||
+        cleanText.includes('voice mode activated')) {
+      
+      // Try to extract the actual user command by removing TTS phrases
+      let userCommand = cleanText
+        .replace(/tts feedback detected and blocked\.?/g, '')
+        .replace(/how can i help you\.?/g, '')
+        .replace(/voice mode activated\.?/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // If we have a meaningful command after cleanup, process it
+      if (userCommand.length > 2 && !userCommand.includes('tts') && !userCommand.includes('voice mode')) {
+        console.log('🔄 Enhanced Processor: Extracting user command from mixed input:', userCommand);
+        // Process the cleaned command
+        return this.processVoiceCommand(userCommand, context);
+      }
+    }
     
     // Check for TTS feedback
     if (this.isTTSFeedback(transcript)) {

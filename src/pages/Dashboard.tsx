@@ -1,12 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { SavedEntry } from '@/types/dashboard';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
+import { useDashboard } from '@/hooks/useDashboard';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -20,13 +20,27 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  
-  const [showAddEntry, setShowAddEntry] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
-  const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
+
+  // Use the comprehensive dashboard hook that includes voice handling
+  const {
+    savedEntries,
+    isLoading: entriesLoading,
+    searchQuery,
+    setSearchQuery,
+    showAddEntry,
+    editingEntry,
+    fillingEntry,
+    saveEntry,
+    deleteEntry,
+    editEntry,
+    fillEntry,
+    handleCancelEdit,
+    getFormMode,
+    getFormTitle,
+    handleAddEntry,
+    handleEnhancedVoiceInput, // This is the key function that was missing!
+  } = useDashboard();
 
   useEffect(() => {
     const getUser = async () => {
@@ -42,53 +56,6 @@ export default function Dashboard() {
     getUser();
   }, [navigate]);
 
-  const handleAddEntry = () => {
-    setShowAddEntry(true);
-    setEditingEntry(null);
-    setFillingEntry(null);
-  };
-
-  const handleEditEntry = (entry: SavedEntry) => {
-    setEditingEntry(entry);
-    setShowAddEntry(false);
-    setFillingEntry(null);
-  };
-
-  const handleDeleteEntry = (id: string) => {
-    setSavedEntries(prev => prev.filter(entry => entry.id !== id));
-    toast.success('Entry deleted successfully');
-  };
-
-  const handleSaveEntry = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (editingEntry) {
-      // Update existing entry
-      const updatedEntry: SavedEntry = {
-        ...editingEntry,
-        ...entry,
-        updatedAt: new Date(),
-      };
-      setSavedEntries(prev => prev.map(e => e.id === editingEntry.id ? updatedEntry : e));
-      toast.success('Entry updated successfully');
-    } else {
-      // Create new entry
-      const newEntry: SavedEntry = {
-        ...entry,
-        id: Date.now().toString(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setSavedEntries(prev => [...prev, newEntry]);
-      toast.success('Entry saved successfully');
-    }
-    handleCancelEdit();
-  };
-
-  const handleCancelEdit = () => {
-    setEditingEntry(null);
-    setFillingEntry(null);
-    setShowAddEntry(false);
-  };
-
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);
   };
@@ -97,21 +64,9 @@ export default function Dashboard() {
     setSelectedCategory('All');
   };
 
-  if (loading) {
+  if (loading || entriesLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
-
-  const getFormTitle = () => {
-    if (editingEntry) return `Edit ${editingEntry.title}`;
-    if (fillingEntry) return `Fill ${fillingEntry.title}`;
-    return 'Add New Entry';
-  };
-
-  const getFormMode = (): 'create' | 'edit' | 'fill' => {
-    if (editingEntry) return 'edit';
-    if (fillingEntry) return 'fill';
-    return 'create';
-  };
 
   return (
     <DashboardLayout
@@ -122,9 +77,9 @@ export default function Dashboard() {
       onAddEntry={handleAddEntry}
       onCategorySelect={handleCategorySelect}
       onAllEntriesSelect={handleAllEntriesSelect}
-      onEditEntry={handleEditEntry}
-      onDeleteEntry={handleDeleteEntry}
-      onSaveEntry={handleSaveEntry}
+      onEditEntry={editEntry}
+      onDeleteEntry={deleteEntry}
+      onSaveEntry={saveEntry}
       onCancelEdit={handleCancelEdit}
     >
       {(showAddEntry || editingEntry || fillingEntry) ? (
@@ -132,7 +87,7 @@ export default function Dashboard() {
           mode={getFormMode()}
           editEntry={editingEntry}
           templateEntry={fillingEntry}
-          onSave={handleSaveEntry}
+          onSave={saveEntry}
           onCancel={handleCancelEdit}
         />
       ) : (
@@ -147,14 +102,14 @@ export default function Dashboard() {
           getFormMode={getFormMode}
           onDocumentSave={() => {}}
           onDocumentCancel={() => {}}
-          onSaveEntry={handleSaveEntry}
+          onSaveEntry={saveEntry}
           onCancelEdit={handleCancelEdit}
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={() => {}}
-          onEnhancedVoiceInput={() => {}}
-          onEditEntry={handleEditEntry}
-          onFillEntry={(entry) => setFillingEntry(entry)}
+          onEnhancedVoiceInput={handleEnhancedVoiceInput} // Now properly connected!
+          onEditEntry={editEntry}
+          onFillEntry={fillEntry}
         />
       )}
       

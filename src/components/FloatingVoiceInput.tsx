@@ -1,5 +1,7 @@
+
 import React, { useEffect, useRef } from "react";
-import { VoiceInputFixed } from "./VoiceInputFixed";
+import { ConversationalVoiceInterface } from "./ConversationalVoiceInterface";
+import { SavedEntry } from "@/types/dashboard";
 
 interface FloatingVoiceInputProps {
   onEnhancedVoiceInput: (text: string) => void;
@@ -9,29 +11,43 @@ interface FloatingVoiceInputProps {
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
   conversationData?: { isActive: boolean; currentStep?: { question: string } };
+  // Add required props for ConversationalVoiceInterface
+  savedEntries?: SavedEntry[];
+  onCreateEntry?: () => void;
+  onEditEntry?: (entry: SavedEntry) => void;
+  onDeleteEntry?: (id: string) => void;
+  onSaveEntry?: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onCancelEdit?: () => void;
 }
 
-export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = (props) => {
+export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
+  savedEntries = [],
+  onCreateEntry = () => {},
+  onEditEntry = () => {},
+  onDeleteEntry = () => {},
+  onSaveEntry = () => {},
+  onCancelEdit = () => {},
+}) => {
   const hasInitialized = useRef(false);
 
   useEffect(() => {
     // Auto-initialize voice input only once
     if (!hasInitialized.current) {
       hasInitialized.current = true;
-      console.log('🎤 FloatingVoiceInput: Auto-initializing voice recognition');
-      
-      // Dispatch event to start voice recognition automatically
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('auto-start-voice', {
-          detail: { source: 'floating-voice-input' }
-        }));
-      }, 1000);
+      console.log('🎤 FloatingVoiceInput: Using ConversationalVoiceInterface');
     }
   }, []);
 
   return (
-    <VoiceInputFixed 
-      {...props}
-    />
+    <div className="fixed bottom-4 right-20 z-40">
+      <ConversationalVoiceInterface 
+        savedEntries={savedEntries}
+        onCreateEntry={onCreateEntry}
+        onEditEntry={onEditEntry}
+        onDeleteEntry={onDeleteEntry}
+        onSaveEntry={onSaveEntry}
+        onCancelEdit={onCancelEdit}
+      />
+    </div>
   );
 };

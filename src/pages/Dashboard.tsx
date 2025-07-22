@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
+import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { useDashboard } from '@/hooks/useDashboard';
 
 const categories = [
@@ -39,7 +40,7 @@ export default function Dashboard() {
     getFormMode,
     getFormTitle,
     handleAddEntry,
-    handleEnhancedVoiceInput, // This is the key function that was missing!
+    handleEnhancedVoiceInput,
   } = useDashboard();
 
   useEffect(() => {
@@ -107,11 +108,23 @@ export default function Dashboard() {
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={() => {}}
-          onEnhancedVoiceInput={handleEnhancedVoiceInput} // Now properly connected!
+          onEnhancedVoiceInput={handleEnhancedVoiceInput}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
         />
       )}
+      
+      {/* Main Voice Interface - now properly connected */}
+      <div className="fixed bottom-4 left-4 z-50">
+        <ConversationalVoiceInterface
+          savedEntries={savedEntries}
+          onCreateEntry={handleAddEntry}
+          onEditEntry={editEntry}
+          onDeleteEntry={deleteEntry}
+          onSaveEntry={saveEntry}
+          onCancelEdit={handleCancelEdit}
+        />
+      </div>
       
       {/* Debug panel for voice system monitoring */}
       <VoiceDebugPanel />

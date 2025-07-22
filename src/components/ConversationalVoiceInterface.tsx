@@ -1,12 +1,14 @@
 
 import React, { useEffect, useState } from "react";
-import { useVoiceOrchestrator } from "@/hooks/useVoiceOrchestrator";
 import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 import { VoiceStatus } from "./voice/VoiceStatus";
 import { VoiceControls } from "./voice/VoiceControls";
 import { ConversationDisplay } from "./voice/ConversationDisplay";
 import { SavedEntry } from "@/types/dashboard";
+import { speechRecognition } from "@/utils/speechRecognitionSingleton";
+import { toast } from "sonner";
+import { speak } from "@/utils/textToSpeech";
 
 interface ConversationalVoiceInterfaceProps {
   savedEntries: SavedEntry[];
@@ -26,6 +28,8 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   onCancelEdit,
 }) => {
   const [lastTranscript, setLastTranscript] = useState<string>("");
+  const [isActive, setIsActive] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   
   // Always call hooks in the same order
   const { formTitleSetter, formCategorySetter, formAddFieldFunction } = useVoiceFormContext();
@@ -47,26 +51,75 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     formAddFieldFunction,
   });
 
-  const {
-    conversationState: orchestratorState,
-    activateConversation,
-    deactivateConversation,
-    isSupported,
-  } = useVoiceOrchestrator(processVoiceInput);
-
-  // Show transcript updates
+  // Initialize speech recognition with singleton
   useEffect(() => {
-    const handleTranscriptUpdate = (event: CustomEvent) => {
-      console.log('🎯 Voice Interface: Transcript update received:', event.detail.transcript);
-      setLastTranscript(event.detail.transcript);
-    };
+    console.log('🎤 Conversational Voice Interface: Initializing speech recognition');
+    
+    if (!speechRecognition.isSupported()) {
+      console.warn('Speech recognition not supported');
+      return;
+    }
 
-    window.addEventListener('voice-transcript-update', handleTranscriptUpdate as EventListener);
-    return () => window.removeEventListener('voice-transcript-update', handleTranscriptUpdate as EventListener);
-  }, []);
+    speechRecognition.setCallbacks({
+      onResult: (transcript: string) => {
+        console.log('🎯 Voice Interface: Processing transcript:', transcript);
+        setLastTranscript(transcript);
+        
+        // Process the voice input through our unified processor
+        processVoiceInput(transcript);
+        
+        // Dispatch transcript update event for debug panel
+        window.dispatchEvent(new CustomEvent('voice-transcript-update', {
+          detail: { transcript }
+        }));
+      },
+      
+      onStart: () => {
+        console.log('🎤 Voice Interface: Recognition started');
+        setIsListening(true);
+      },
+      
+      onEnd: () => {
+        console.log('🔚 Voice Interface: Recognition ended');
+        setIsListening(false);
+      },
+      
+      onError: (error: string) => {
+        console.error('🚨 Voice Interface: Recognition error:', error);
+        if (error === 'not-allowed') {
+          toast.error('Microphone access denied. Please allow microphone access for voice features.');
+          setIsActive(false);
+        }
+      }
+    });
+
+    return () => {
+      speechRecognition.stop();
+    };
+  }, [processVoiceInput]);
+
+  const activateConversation = () => {
+    console.log('🚀 Voice Interface: Activating conversation');
+    setIsActive(true);
+    
+    if (speechRecognition.start()) {
+      toast.success('🎤 Voice mode activated - I\'m listening!');
+      speak('Voice mode activated. How can I help you?');
+    } else {
+      toast.error('Failed to start voice recognition');
+      setIsActive(false);
+    }
+  };
+
+  const deactivateConversation = () => {
+    console.log('🛑 Voice Interface: Deactivating conversation');
+    setIsActive(false);
+    speechRecognition.stop();
+    toast.info('Voice mode deactivated');
+  };
 
   // Early return after all hooks are called
-  if (!isSupported) {
+  if (!speechRecognition.isSupported()) {
     return (
       <div className="p-4 bg-muted rounded-lg">
         <p className="text-sm text-muted-foreground">
@@ -78,21 +131,21 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
 
   // Create a unified conversation state for display
   const displayConversationState = {
-    isActive: isInConversation || orchestratorState.isActive,
+    isActive: isActive || isInConversation,
     currentStep: conversationState.currentStep,
   };
 
   return (
     <div className="space-y-4">
       <VoiceStatus 
-        isActive={orchestratorState.isActive}
-        isListening={orchestratorState.isListening}
+        isActive={isActive}
+        isListening={isListening}
         isInConversation={isInConversation}
         conversationState={displayConversationState}
       />
 
       <VoiceControls
-        isActive={orchestratorState.isActive}
+        isActive={isActive}
         onActivate={activateConversation}
         onDeactivate={deactivateConversation}
         onCancelConversation={cancelConversation}
@@ -108,13 +161,13 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
 
       <ConversationDisplay conversationState={displayConversationState} />
 
-      {isInConversation && (
+      {(isActive || isInConversation) && (
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
           <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
-            🎤 Voice Conversation Active
+            🎤 Voice Mode Active
           </p>
           <p className="text-xs text-blue-600 dark:text-blue-400">
-            I'm listening for your response. Speak naturally or say "cancel" to stop.
+            I'm listening for your commands. Try saying "create a new entry", "search documents", or "help".
           </p>
         </div>
       )}

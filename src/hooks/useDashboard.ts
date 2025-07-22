@@ -54,6 +54,7 @@ export const useDashboard = () => {
           title: entry.title,
           category: entry.category || 'Personal'
         })),
+        previousCommands: [],
         isFormOpen: showAddEntry || !!editingEntry || !!fillingEntry,
         editingEntry,
         fillingEntry,
@@ -83,7 +84,7 @@ export const useDashboard = () => {
       }
 
       // Handle follow-up expectations
-      if (command.expectsFollowUp) {
+      if (command.expectsFollowUp || command.followUpExpected) {
         setConversationData({ isActive: true });
         setTimeout(() => {
           setConversationState('listening');

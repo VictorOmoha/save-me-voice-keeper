@@ -267,7 +267,8 @@ export const useUnifiedVoiceProcessor = ({
           id: entry.id,
           title: entry.title,
           category: entry.fields.category || 'Personal'
-        }))
+        })),
+        previousCommands: []
       };
       
       const command: EnhancedVoiceCommand = await voiceProcessor.processVoiceCommand(transcript, context);

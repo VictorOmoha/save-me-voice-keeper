@@ -8,6 +8,8 @@ export interface EnhancedVoiceCommand {
   conversationalResponse?: string;
   needsConfirmation?: boolean;
   followUpExpected?: boolean;
+  expectsFollowUp?: boolean;
+  followUpQuestions?: string[];
 }
 
 export interface VoiceContext {

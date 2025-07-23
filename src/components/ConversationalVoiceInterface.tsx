@@ -32,24 +32,30 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const [isListening, setIsListening] = useState(false);
   const [isInConversation, setIsInConversation] = useState(false);
   const [conversationState, setConversationState] = useState<{ currentStep: any }>({ currentStep: null });
+  const [waitingForFollowUp, setWaitingForFollowUp] = useState(false);
   
   // Get form context if available
   const formContext = useVoiceFormContext();
 
   // Execute voice commands
   const executeVoiceCommand = async (command: EnhancedVoiceCommand) => {
-    console.log('🚀 ConversationalVoiceInterface: Executing command:', command.action);
+    console.log('🚀 ConversationalVoiceInterface: Executing command:', command.action, command.parameters);
     
     // Don't execute if it's just feedback
     if (command.action === 'tts_feedback_blocked') {
+      console.log('🚫 ConversationalVoiceInterface: Skipping TTS feedback');
       return;
     }
+    
+    // Set conversation state based on command
+    setIsInConversation(true);
     
     switch (command.action) {
       case 'initiate_create':
         console.log('📝 Executing create entry command');
         onCreateEntry();
-        toast.success('Creating new entry');
+        setWaitingForFollowUp(true);
+        toast.success('Creating new entry - tell me what to add');
         break;
         
       case 'open_entry':
@@ -88,7 +94,6 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         break;
         
       case 'execute_search':
-        // This would typically update search in parent component
         console.log('🔍 Search command:', command.parameters.query);
         toast.info(`Searching for: ${command.parameters.query}`);
         break;
@@ -99,7 +104,6 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         
       case 'create_entry_with_content':
         console.log('📝 Creating entry with content');
-        // Create entry with the provided content
         const newEntry = {
           title: command.parameters.title || `Voice Entry - ${new Date().toLocaleDateString()}`,
           fields: {
@@ -116,6 +120,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         
         onSaveEntry(newEntry);
         toast.success(`Created: "${newEntry.title}"`);
+        setWaitingForFollowUp(false);
         break;
         
       case 'clarify_confirmation':
@@ -135,6 +140,12 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const processVoiceInput = async (transcript: string) => {
     console.log('🎙️ ConversationalVoiceInterface: Processing voice input:', transcript);
     
+    // Skip very short inputs
+    if (transcript.trim().length < 2) {
+      console.log('🚫 ConversationalVoiceInterface: Input too short, skipping');
+      return;
+    }
+    
     try {
       // Create context for voice processing
       const context = {
@@ -144,19 +155,29 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
           title: entry.title,
           category: entry.fields.category || 'Personal'
         })),
-        previousCommands: []
+        previousCommands: [],
+        waitingForFollowUp
       };
       
       // Process the command
       const command = await voiceProcessor.processVoiceCommand(transcript, context);
       console.log('🎯 ConversationalVoiceInterface: Processed command:', command);
       
-      // Execute the command
-      await executeVoiceCommand(command);
+      // Only execute if it's not TTS feedback
+      if (command.action !== 'tts_feedback_blocked') {
+        // Execute the command
+        await executeVoiceCommand(command);
+        
+        // Provide conversational response
+        if (command.conversationalResponse) {
+          console.log('🔊 ConversationalVoiceInterface: Speaking response:', command.conversationalResponse);
+          speak(command.conversationalResponse);
+        }
+      }
       
-      // Provide conversational response
-      if (command.conversationalResponse) {
-        speak(command.conversationalResponse);
+      // Update conversation state
+      if (command.followUpExpected) {
+        setWaitingForFollowUp(true);
       }
       
     } catch (error) {
@@ -177,7 +198,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
 
     speechRecognition.setCallbacks({
       onResult: (transcript: string) => {
-        console.log('🎯 ConversationalVoiceInterface: Processing transcript:', transcript);
+        console.log('🎯 ConversationalVoiceInterface: Received transcript:', transcript);
         setLastTranscript(transcript);
         
         // Process the voice input
@@ -211,11 +232,13 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     return () => {
       speechRecognition.stop();
     };
-  }, [savedEntries]);
+  }, [savedEntries, waitingForFollowUp]);
 
   const activateConversation = () => {
     console.log('🚀 ConversationalVoiceInterface: Activating conversation');
     setIsActive(true);
+    setIsInConversation(false);
+    setWaitingForFollowUp(false);
     
     if (speechRecognition.start()) {
       toast.success('🎤 Voice mode activated - I\'m listening!');
@@ -229,7 +252,10 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const deactivateConversation = () => {
     console.log('🛑 ConversationalVoiceInterface: Deactivating conversation');
     setIsActive(false);
+    setIsInConversation(false);
+    setWaitingForFollowUp(false);
     speechRecognition.stop();
+    voiceProcessor.clearPendingConfirmation();
     toast.info('Voice mode deactivated');
   };
 
@@ -237,6 +263,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     console.log('❌ ConversationalVoiceInterface: Cancelling conversation');
     setIsActive(false);
     setIsInConversation(false);
+    setWaitingForFollowUp(false);
     speechRecognition.stop();
     voiceProcessor.clearPendingConfirmation();
     toast.info('Voice conversation cancelled');
@@ -257,6 +284,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const displayConversationState = {
     isActive: isActive || isInConversation,
     currentStep: conversationState.currentStep,
+    waitingForFollowUp,
   };
 
   return (
@@ -264,7 +292,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
       <VoiceStatus 
         isActive={isActive}
         isListening={isListening}
-        isInConversation={isInConversation}
+        isInConversation={isInConversation || waitingForFollowUp}
         conversationState={displayConversationState}
       />
 
@@ -273,7 +301,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         onActivate={activateConversation}
         onDeactivate={deactivateConversation}
         onCancelConversation={cancelConversation}
-        isInConversation={isInConversation}
+        isInConversation={isInConversation || waitingForFollowUp}
       />
 
       {lastTranscript && (
@@ -285,13 +313,16 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
 
       <ConversationDisplay conversationState={displayConversationState} />
 
-      {(isActive || isInConversation) && (
+      {(isActive || isInConversation || waitingForFollowUp) && (
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
           <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
             🎤 Voice Mode Active
           </p>
           <p className="text-xs text-blue-600 dark:text-blue-400">
-            Try: "create a new entry", "open [entry name]", "delete [entry name]", "search for [term]", or "help"
+            {waitingForFollowUp 
+              ? "Tell me what information to add to your entry..."
+              : 'Try: "create a new entry", "open [entry name]", "delete [entry name]", "search for [term]", or "help"'
+            }
           </p>
         </div>
       )}

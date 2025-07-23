@@ -13,11 +13,19 @@ import { Volume2, Mic, Key, Settings, Play, CheckCircle, AlertCircle } from "luc
 import { 
   getElevenLabsApiKey, 
   setElevenLabsApiKey, 
+  getMiniMaxApiKey,
+  setMiniMaxApiKey,
+  getSelectedTTSService,
+  setSelectedTTSService,
   VOICE_OPTIONS, 
+  MINIMAX_VOICES,
   getSelectedVoice, 
   setSelectedVoice,
+  getSelectedMiniMaxVoice,
+  setSelectedMiniMaxVoice,
   speak,
-  stopCurrentSpeech 
+  stopCurrentSpeech,
+  type TTSService
 } from "@/utils/textToSpeech";
 import { toast } from "sonner";
 
@@ -45,7 +53,10 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
   onOpenChange 
 }) => {
   const [apiKey, setApiKey] = useState(getElevenLabsApiKey() || '');
+  const [miniMaxApiKey, setMiniMaxApiKeyState] = useState(getMiniMaxApiKey() || '');
+  const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>(getSelectedTTSService());
   const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>(getSelectedVoice());
+  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>(getSelectedMiniMaxVoice());
   const [speechLanguage, setSpeechLanguage] = useState(
     localStorage.getItem('speech_language') || 'en-US'
   );
@@ -70,7 +81,14 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
       setElevenLabsApiKey(apiKey);
     }
     
+    if (miniMaxApiKey !== getMiniMaxApiKey()) {
+      setMiniMaxApiKey(miniMaxApiKey);
+    }
+    
+    setSelectedTTSService(selectedTTSService);
     setSelectedVoice(selectedVoice);
+    setSelectedMiniMaxVoice(selectedMiniMaxVoice);
+    
     localStorage.setItem('speech_language', speechLanguage);
     localStorage.setItem('speech_rate', speechRate.toString());
     localStorage.setItem('speech_volume', speechVolume.toString());
@@ -107,33 +125,73 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     }
   };
 
-  // Validate ElevenLabs API key
+  // Validate API keys - similar to VoiceSettings component
   const validateApiKey = async () => {
-    if (!apiKey.trim()) {
-      toast.error('Please enter an API key');
-      return;
-    }
-
-    setIsValidatingKey(true);
-    
-    try {
-      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: {
-          'xi-api-key': apiKey
-        }
-      });
-
-      if (response.ok) {
-        toast.success('API key is valid!');
-        setElevenLabsApiKey(apiKey);
-      } else {
-        toast.error('Invalid API key. Please check and try again.');
+    if (selectedTTSService === 'elevenlabs') {
+      if (!apiKey.trim()) {
+        toast.error('Please enter an ElevenLabs API key');
+        return;
       }
-    } catch (error) {
-      console.error('API key validation failed:', error);
-      toast.error('Failed to validate API key. Please check your connection.');
-    } finally {
-      setIsValidatingKey(false);
+      setIsValidatingKey(true);
+    
+      try {
+        const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+          headers: {
+            'xi-api-key': apiKey
+          }
+        });
+
+        if (response.ok) {
+          toast.success('API key is valid!');
+          setElevenLabsApiKey(apiKey);
+        } else {
+          toast.error('Invalid API key. Please check and try again.');
+        }
+      } catch (error) {
+        console.error('API key validation failed:', error);
+        toast.error('Failed to validate API key. Please check your connection.');
+      } finally {
+        setIsValidatingKey(false);
+      }
+    } else if (selectedTTSService === 'minimax') {
+      if (!miniMaxApiKey.trim()) {
+        toast.error('Please enter a MiniMax API key');
+        return;
+      }
+      setIsValidatingKey(true);
+    
+      try {
+        // Test with a simple TTS request
+        const response = await fetch('https://api.minimax.chat/v1/text_to_speech', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${miniMaxApiKey}`,
+          },
+          body: JSON.stringify({
+            text: 'Test',
+            voice_id: 'male-qn-qingse',
+            speed: 1.0,
+            vol: 1.0,
+            pitch: 0,
+            audio_sample_rate: 32000,
+            bitrate: 128000
+          }),
+        });
+
+        if (response.ok) {
+          toast.success('MiniMax API key is valid!');
+          setMiniMaxApiKey(miniMaxApiKey);
+        } else {
+          toast.error('Invalid MiniMax API key. Please check and try again.');
+        }
+      } catch (error) {
+        console.error('MiniMax API key validation failed:', error);
+        toast.error('Failed to validate MiniMax API key. Please check your connection.');
+      } finally {
+        setIsValidatingKey(false);
+      }
     }
   };
 
@@ -153,7 +211,13 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     setSelectedVoiceState(voiceKey);
   };
 
+  const handleMiniMaxVoiceChange = (voice: string) => {
+    const voiceKey = voice as keyof typeof MINIMAX_VOICES;
+    setSelectedMiniMaxVoiceState(voiceKey);
+  };
+
   const hasElevenLabsKey = !!getElevenLabsApiKey();
+  const hasMiniMaxKey = !!getMiniMaxApiKey();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -233,61 +297,122 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Key className="h-5 w-5" />
-                  ElevenLabs API Configuration
-                  {hasElevenLabsKey && (
-                    <Badge variant="secondary" className="ml-2">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      Connected
-                    </Badge>
-                  )}
+                  <Settings className="h-5 w-5" />
+                  TTS Service Selection
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="apikey">API Key</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="apikey"
-                      type="password"
-                      placeholder="Enter your ElevenLabs API key"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                    />
-                    <Button 
-                      onClick={validateApiKey}
-                      disabled={isValidatingKey || !apiKey.trim()}
-                      variant="outline"
-                    >
-                      {isValidatingKey ? 'Validating...' : 'Validate'}
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Get your API key from{' '}
-                    <a 
-                      href="https://elevenlabs.io" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      elevenlabs.io
-                    </a>
-                  </p>
+                  <Label>Preferred TTS Service</Label>
+                  <Select value={selectedTTSService} onValueChange={(value: TTSService) => setSelectedTTSServiceState(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="elevenlabs">
+                        <div className="flex items-center justify-between w-full">
+                          <span>ElevenLabs</span>
+                          {hasElevenLabsKey && <Badge variant="secondary" className="ml-2 text-xs">Connected</Badge>}
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="minimax">
+                        <div className="flex items-center justify-between w-full">
+                          <span>MiniMax</span>
+                          {hasMiniMaxKey && <Badge variant="secondary" className="ml-2 text-xs">Connected</Badge>}
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="browser">Browser TTS (Free)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                {!hasElevenLabsKey && (
-                  <div className="p-3 bg-muted rounded-md flex items-start gap-2">
-                    <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-medium">Premium voices unavailable</p>
-                      <p className="text-muted-foreground">
-                        Without an API key, you'll use browser voices which may have limited quality and features.
-                      </p>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
+
+            {selectedTTSService === 'elevenlabs' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Key className="h-5 w-5" />
+                    ElevenLabs API Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="apikey">API Key</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="apikey"
+                        type="password"
+                        placeholder="Enter your ElevenLabs API key"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                      />
+                      <Button 
+                        onClick={validateApiKey}
+                        disabled={isValidatingKey || !apiKey.trim()}
+                        variant="outline"
+                      >
+                        {isValidatingKey ? 'Validating...' : 'Validate'}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Get your API key from{' '}
+                      <a 
+                        href="https://elevenlabs.io" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        elevenlabs.io
+                      </a>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {selectedTTSService === 'minimax' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Key className="h-5 w-5" />
+                    MiniMax API Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="minimaxkey">API Key</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="minimaxkey"
+                        type="password"
+                        placeholder="Enter your MiniMax API key"
+                        value={miniMaxApiKey}
+                        onChange={(e) => setMiniMaxApiKeyState(e.target.value)}
+                      />
+                      <Button 
+                        onClick={validateApiKey}
+                        disabled={isValidatingKey || !miniMaxApiKey.trim()}
+                        variant="outline"
+                      >
+                        {isValidatingKey ? 'Validating...' : 'Validate'}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Get your API key from{' '}
+                      <a 
+                        href="https://www.minimax.chat/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        minimax.chat
+                      </a>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
@@ -297,26 +422,41 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Voice Character</Label>
-                  <Select value={selectedVoice} onValueChange={handleVoiceChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(VOICE_OPTIONS).map((voice) => (
-                        <SelectItem key={voice} value={voice}>
-                          <div className="flex items-center justify-between w-full">
+                {selectedTTSService === 'elevenlabs' && (
+                  <div className="space-y-2">
+                    <Label>ElevenLabs Voice</Label>
+                    <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(VOICE_OPTIONS).map((voice) => (
+                          <SelectItem key={voice} value={voice}>
                             <span className="capitalize">{voice}</span>
-                            {!hasElevenLabsKey && (
-                              <Badge variant="outline" className="ml-2 text-xs">Browser</Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {selectedTTSService === 'minimax' && (
+                  <div className="space-y-2">
+                    <Label>MiniMax Voice</Label>
+                    <Select value={selectedMiniMaxVoice} onValueChange={handleMiniMaxVoiceChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(MINIMAX_VOICES).map(([key, name]) => (
+                          <SelectItem key={key} value={key}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Speech Rate: {speechRate.toFixed(1)}x</Label>

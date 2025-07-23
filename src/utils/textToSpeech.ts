@@ -4,6 +4,9 @@ import { toast } from 'sonner';
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
+// MiniMax API configuration
+const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text_to_speech';
+
 // Voice settings for ElevenLabs
 const VOICE_SETTINGS = {
   stability: 0.5,
@@ -25,6 +28,18 @@ export const AVAILABLE_VOICES = {
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
 };
 
+// MiniMax available voices
+export const MINIMAX_VOICES = {
+  'male-qn-qingse': 'Male - Qing Se',
+  'male-qn-jingying': 'Male - Jing Ying',
+  'male-qn-badao': 'Male - Ba Dao',
+  'male-qn-daxuesheng': 'Male - Da Xue Sheng',
+  'female-shaonv': 'Female - Shao Nv',
+  'female-yujie': 'Female - Yu Jie',
+  'female-chengshu': 'Female - Cheng Shu',
+  'female-tianmei': 'Female - Tian Mei'
+};
+
 // Voice options for UI components
 export const VOICE_OPTIONS = {
   'adam': 'Adam',
@@ -41,6 +56,10 @@ export const VOICE_OPTIONS = {
 
 export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 
+// TTS Service type
+export type TTSService = 'elevenlabs' | 'minimax' | 'browser';
+
+// API Key management
 export const getElevenLabsApiKey = (): string | null => {
   return localStorage.getItem('elevenlabs_api_key');
 };
@@ -55,6 +74,33 @@ export const setElevenLabsApiKey = (apiKey: string): void => {
   }
 };
 
+export const getMiniMaxApiKey = (): string | null => {
+  return localStorage.getItem('minimax_api_key');
+};
+
+export const setMiniMaxApiKey = (apiKey: string): void => {
+  if (apiKey.trim()) {
+    localStorage.setItem('minimax_api_key', apiKey.trim());
+    toast.success('MiniMax API key saved successfully');
+  } else {
+    localStorage.removeItem('minimax_api_key');
+    toast.success('MiniMax API key removed');
+  }
+};
+
+// Service preference
+export const getSelectedTTSService = (): TTSService => {
+  const stored = localStorage.getItem('selected_tts_service');
+  if (stored && ['elevenlabs', 'minimax', 'browser'].includes(stored)) {
+    return stored as TTSService;
+  }
+  return 'elevenlabs';
+};
+
+export const setSelectedTTSService = (service: TTSService): void => {
+  localStorage.setItem('selected_tts_service', service);
+};
+
 export const getSelectedVoice = (): VoiceOptionKey => {
   const stored = localStorage.getItem('selected_voice');
   if (stored && stored in VOICE_OPTIONS) {
@@ -65,6 +111,18 @@ export const getSelectedVoice = (): VoiceOptionKey => {
 
 export const setSelectedVoice = (voice: VoiceOptionKey): void => {
   localStorage.setItem('selected_voice', voice);
+};
+
+export const getSelectedMiniMaxVoice = (): keyof typeof MINIMAX_VOICES => {
+  const stored = localStorage.getItem('selected_minimax_voice');
+  if (stored && stored in MINIMAX_VOICES) {
+    return stored as keyof typeof MINIMAX_VOICES;
+  }
+  return 'male-qn-qingse';
+};
+
+export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): void => {
+  localStorage.setItem('selected_minimax_voice', voice);
 };
 
 // Improved TTS cache for speech recognition filtering
@@ -108,7 +166,7 @@ interface SpeechOptions {
   onEnd?: () => void;
 }
 
-// Main speak function with improved singleton coordination
+// Main speak function with service selection
 export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
     console.log('🔊 TTS: Empty text provided, skipping');
@@ -126,7 +184,9 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   console.log('🔊 TTS: Set speaking flag and dispatched tts-started event');
 
   try {
+    const selectedService = getSelectedTTSService();
     const elevenLabsKey = getElevenLabsApiKey();
+    const miniMaxKey = getMiniMaxApiKey();
     
     // Determine voice and options
     let voice: string | undefined;
@@ -138,11 +198,15 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       options = optionsOrVoice;
     }
     
-    if (elevenLabsKey) {
+    // Choose service based on preference and availability
+    if (selectedService === 'elevenlabs' && elevenLabsKey) {
       console.log('🎙️ TTS: Using ElevenLabs TTS');
       await speakWithElevenLabs(text, voice);
+    } else if (selectedService === 'minimax' && miniMaxKey) {
+      console.log('🎙️ TTS: Using MiniMax TTS');
+      await speakWithMiniMax(text);
     } else {
-      console.log('🎙️ TTS: Using browser TTS (no ElevenLabs key)');
+      console.log('🎙️ TTS: Using browser TTS (fallback)');
       await speakWithBrowser(text, options);
     }
   } catch (error) {
@@ -159,7 +223,7 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       (window as any).__tts_is_speaking = false;
       window.dispatchEvent(new CustomEvent('tts-completed'));
       console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
-    }, 1000); // Increased delay to ensure audio is fully complete
+    }, 1000);
   }
 };
 
@@ -212,6 +276,82 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
     audio.onended = () => {
       URL.revokeObjectURL(audioUrl);
       console.log('🔊 TTS: ElevenLabs audio playback completed');
+      resolve();
+    };
+
+    audio.onerror = (error) => {
+      URL.revokeObjectURL(audioUrl);
+      console.error('🚨 TTS: Audio playback error:', error);
+      reject(error);
+    };
+
+    audio.play().catch(reject);
+  });
+};
+
+const speakWithMiniMax = async (text: string): Promise<void> => {
+  const apiKey = getMiniMaxApiKey();
+  if (!apiKey) {
+    throw new Error('MiniMax API key not found');
+  }
+
+  const selectedVoice = getSelectedMiniMaxVoice();
+  console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
+
+  const response = await fetch(MINIMAX_API_URL, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      text: text,
+      voice_id: selectedVoice,
+      speed: 1.0,
+      vol: 1.0,
+      pitch: 0,
+      audio_sample_rate: 32000,
+      bitrate: 128000
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🚨 TTS: MiniMax API error:', response.status, errorText);
+    
+    if (response.status === 401) {
+      toast.error('Invalid MiniMax API key. Please check your settings.');
+      throw new Error('Invalid API key');
+    } else if (response.status === 429) {
+      toast.error('MiniMax API rate limit exceeded. Using browser TTS instead.');
+      throw new Error('Rate limit exceeded');
+    } else {
+      toast.error('MiniMax TTS failed. Using browser TTS instead.');
+      throw new Error(`API error: ${response.status}`);
+    }
+  }
+
+  const result = await response.json();
+  
+  if (result.base_resp?.status_code !== 0) {
+    throw new Error(`MiniMax API error: ${result.base_resp?.status_msg || 'Unknown error'}`);
+  }
+
+  // Convert base64 audio to blob and play
+  const audioData = result.data?.audio;
+  if (!audioData) {
+    throw new Error('No audio data received from MiniMax');
+  }
+
+  const audioBlob = new Blob([Uint8Array.from(atob(audioData), c => c.charCodeAt(0))], { type: 'audio/wav' });
+  const audioUrl = URL.createObjectURL(audioBlob);
+  const audio = new Audio(audioUrl);
+
+  return new Promise((resolve, reject) => {
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      console.log('🔊 TTS: MiniMax audio playback completed');
       resolve();
     };
 

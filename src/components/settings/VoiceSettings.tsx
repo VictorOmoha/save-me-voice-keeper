@@ -12,11 +12,19 @@ import { Volume2, Mic, Key, Settings, Play, CheckCircle, AlertCircle } from "luc
 import { 
   getElevenLabsApiKey, 
   setElevenLabsApiKey, 
+  getMiniMaxApiKey,
+  setMiniMaxApiKey,
+  getSelectedTTSService,
+  setSelectedTTSService,
   VOICE_OPTIONS, 
+  MINIMAX_VOICES,
   getSelectedVoice, 
   setSelectedVoice,
+  getSelectedMiniMaxVoice,
+  setSelectedMiniMaxVoice,
   speak,
-  stopCurrentSpeech 
+  stopCurrentSpeech,
+  type TTSService
 } from "@/utils/textToSpeech";
 import { toast } from "sonner";
 
@@ -36,7 +44,10 @@ const LANGUAGE_OPTIONS = {
 
 export const VoiceSettings: React.FC = () => {
   const [apiKey, setApiKey] = useState(getElevenLabsApiKey() || '');
+  const [miniMaxApiKey, setMiniMaxApiKeyState] = useState(getMiniMaxApiKey() || '');
+  const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>(getSelectedTTSService());
   const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>(getSelectedVoice());
+  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>(getSelectedMiniMaxVoice());
   const [speechLanguage, setSpeechLanguage] = useState(
     localStorage.getItem('speech_language') || 'en-US'
   );
@@ -61,7 +72,14 @@ export const VoiceSettings: React.FC = () => {
       setElevenLabsApiKey(apiKey);
     }
     
+    if (miniMaxApiKey !== getMiniMaxApiKey()) {
+      setMiniMaxApiKey(miniMaxApiKey);
+    }
+    
+    setSelectedTTSService(selectedTTSService);
     setSelectedVoice(selectedVoice);
+    setSelectedMiniMaxVoice(selectedMiniMaxVoice);
+    
     localStorage.setItem('speech_language', speechLanguage);
     localStorage.setItem('speech_rate', speechRate.toString());
     localStorage.setItem('speech_volume', speechVolume.toString());
@@ -99,9 +117,9 @@ export const VoiceSettings: React.FC = () => {
   };
 
   // Validate ElevenLabs API key
-  const validateApiKey = async () => {
+  const validateElevenLabsKey = async () => {
     if (!apiKey.trim()) {
-      toast.error('Please enter an API key');
+      toast.error('Please enter an ElevenLabs API key');
       return;
     }
 
@@ -115,14 +133,57 @@ export const VoiceSettings: React.FC = () => {
       });
 
       if (response.ok) {
-        toast.success('API key is valid!');
+        toast.success('ElevenLabs API key is valid!');
         setElevenLabsApiKey(apiKey);
       } else {
-        toast.error('Invalid API key. Please check and try again.');
+        toast.error('Invalid ElevenLabs API key. Please check and try again.');
       }
     } catch (error) {
-      console.error('API key validation failed:', error);
-      toast.error('Failed to validate API key. Please check your connection.');
+      console.error('ElevenLabs API key validation failed:', error);
+      toast.error('Failed to validate ElevenLabs API key. Please check your connection.');
+    } finally {
+      setIsValidatingKey(false);
+    }
+  };
+
+  // Validate MiniMax API key
+  const validateMiniMaxKey = async () => {
+    if (!miniMaxApiKey.trim()) {
+      toast.error('Please enter a MiniMax API key');
+      return;
+    }
+
+    setIsValidatingKey(true);
+    
+    try {
+      // Test with a simple TTS request
+      const response = await fetch('https://api.minimax.chat/v1/text_to_speech', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${miniMaxApiKey}`,
+        },
+        body: JSON.stringify({
+          text: 'Test',
+          voice_id: 'male-qn-qingse',
+          speed: 1.0,
+          vol: 1.0,
+          pitch: 0,
+          audio_sample_rate: 32000,
+          bitrate: 128000
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('MiniMax API key is valid!');
+        setMiniMaxApiKey(miniMaxApiKey);
+      } else {
+        toast.error('Invalid MiniMax API key. Please check and try again.');
+      }
+    } catch (error) {
+      console.error('MiniMax API key validation failed:', error);
+      toast.error('Failed to validate MiniMax API key. Please check your connection.');
     } finally {
       setIsValidatingKey(false);
     }
@@ -144,7 +205,13 @@ export const VoiceSettings: React.FC = () => {
     setSelectedVoiceState(voiceKey);
   };
 
+  const handleMiniMaxVoiceChange = (voice: string) => {
+    const voiceKey = voice as keyof typeof MINIMAX_VOICES;
+    setSelectedMiniMaxVoiceState(voiceKey);
+  };
+
   const hasElevenLabsKey = !!getElevenLabsApiKey();
+  const hasMiniMaxKey = !!getMiniMaxApiKey();
 
   return (
     <div className="space-y-6">
@@ -218,6 +285,40 @@ export const VoiceSettings: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                TTS Service Selection
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Preferred TTS Service</Label>
+                <Select value={selectedTTSService} onValueChange={(value: TTSService) => setSelectedTTSServiceState(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="elevenlabs">
+                      <div className="flex items-center justify-between w-full">
+                        <span>ElevenLabs</span>
+                        {hasElevenLabsKey && <Badge variant="secondary" className="ml-2 text-xs">Connected</Badge>}
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="minimax">
+                      <div className="flex items-center justify-between w-full">
+                        <span>MiniMax</span>
+                        {hasMiniMaxKey && <Badge variant="secondary" className="ml-2 text-xs">Connected</Badge>}
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="browser">Browser TTS (Free)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Key className="h-5 w-5" />
                 ElevenLabs API Configuration
                 {hasElevenLabsKey && (
@@ -240,7 +341,7 @@ export const VoiceSettings: React.FC = () => {
                     onChange={(e) => setApiKey(e.target.value)}
                   />
                   <Button 
-                    onClick={validateApiKey}
+                    onClick={validateElevenLabsKey}
                     disabled={isValidatingKey || !apiKey.trim()}
                     variant="outline"
                   >
@@ -259,18 +360,53 @@ export const VoiceSettings: React.FC = () => {
                   </a>
                 </p>
               </div>
+            </CardContent>
+          </Card>
 
-              {!hasElevenLabsKey && (
-                <div className="p-3 bg-muted rounded-md flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium">Premium voices unavailable</p>
-                    <p className="text-muted-foreground">
-                      Add an ElevenLabs API key to use premium voices with better quality and features.
-                    </p>
-                  </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                MiniMax API Configuration
+                {hasMiniMaxKey && (
+                  <Badge variant="secondary" className="ml-2">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Connected
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="minimaxkey">API Key</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="minimaxkey"
+                    type="password"
+                    placeholder="Enter your MiniMax API key"
+                    value={miniMaxApiKey}
+                    onChange={(e) => setMiniMaxApiKeyState(e.target.value)}
+                  />
+                  <Button 
+                    onClick={validateMiniMaxKey}
+                    disabled={isValidatingKey || !miniMaxApiKey.trim()}
+                    variant="outline"
+                  >
+                    {isValidatingKey ? 'Validating...' : 'Validate'}
+                  </Button>
                 </div>
-              )}
+                <p className="text-sm text-muted-foreground">
+                  Get your API key from{' '}
+                  <a 
+                    href="https://www.minimax.chat/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    minimax.chat
+                  </a>
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -282,26 +418,49 @@ export const VoiceSettings: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Voice Character</Label>
-                <Select value={selectedVoice} onValueChange={handleVoiceChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(VOICE_OPTIONS).map((voice) => (
-                      <SelectItem key={voice} value={voice}>
-                        <div className="flex items-center justify-between w-full">
+              {selectedTTSService === 'elevenlabs' && (
+                <div className="space-y-2">
+                  <Label>ElevenLabs Voice</Label>
+                  <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(VOICE_OPTIONS).map((voice) => (
+                        <SelectItem key={voice} value={voice}>
                           <span className="capitalize">{voice}</span>
-                          {!hasElevenLabsKey && (
-                            <Badge variant="outline" className="ml-2 text-xs">Browser</Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {selectedTTSService === 'minimax' && (
+                <div className="space-y-2">
+                  <Label>MiniMax Voice</Label>
+                  <Select value={selectedMiniMaxVoice} onValueChange={handleMiniMaxVoiceChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(MINIMAX_VOICES).map(([key, name]) => (
+                        <SelectItem key={key} value={key}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {selectedTTSService === 'browser' && (
+                <div className="p-3 bg-muted rounded-md">
+                  <p className="text-sm text-muted-foreground">
+                    Browser TTS will use your system's default voice. Quality and features may be limited compared to premium services.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Speech Rate: {speechRate.toFixed(1)}x</Label>

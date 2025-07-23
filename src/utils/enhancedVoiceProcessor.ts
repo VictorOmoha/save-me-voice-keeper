@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 export interface EnhancedVoiceCommand {
@@ -31,7 +32,7 @@ class EnhancedVoiceProcessor {
   private expectingFollowUp: boolean = false;
   private commandHistory: string[] = [];
 
-  // Simplified TTS detection - rely primarily on global flag
+  // Improved TTS detection
   private isTTSFeedback(text: string): boolean {
     // Primary check: if TTS is currently speaking
     if ((window as any).__tts_is_speaking) {
@@ -39,7 +40,6 @@ class EnhancedVoiceProcessor {
       return true;
     }
     
-    // Only block very obvious TTS patterns
     const cleanText = text.toLowerCase().trim();
     
     // Block empty or very short inputs
@@ -55,7 +55,8 @@ class EnhancedVoiceProcessor {
       'what would you like',
       'successfully created',
       'entry not found',
-      'operation completed'
+      'operation completed',
+      'tts feedback detected'
     ];
     
     const isSystemPhrase = systemPhrases.some(phrase => cleanText.includes(phrase));
@@ -183,16 +184,27 @@ class EnhancedVoiceProcessor {
   private parseCommand(transcript: string, context: VoiceContext): EnhancedVoiceCommand {
     const cleanText = transcript.toLowerCase().trim();
     
-    // Create commands
-    if (cleanText.includes('create') || cleanText.includes('new') || cleanText.includes('add')) {
+    // Create commands - more specific patterns
+    if (cleanText.includes('create') && (cleanText.includes('entry') || cleanText.includes('new'))) {
       this.expectingFollowUp = true;
       return {
         intent: 'create',
         action: 'initiate_create',
         parameters: {},
-        confidence: 0.8,
+        confidence: 0.9,
         conversationalResponse: 'What information would you like to add to this new entry?',
         followUpExpected: true
+      };
+    }
+    
+    // Simple create commands
+    if (cleanText.includes('create') || cleanText.includes('new entry') || cleanText.includes('add entry')) {
+      return {
+        intent: 'create',
+        action: 'initiate_create',
+        parameters: {},
+        confidence: 0.8,
+        conversationalResponse: 'Creating a new entry for you.'
       };
     }
     
@@ -206,13 +218,21 @@ class EnhancedVoiceProcessor {
           parameters: { entryId: entryMatch.id, title: entryMatch.title },
           confidence: 0.8,
           needsConfirmation: true,
-          conversationalResponse: `Are you sure you want to delete "${entryMatch.title}"?`
+          conversationalResponse: `Are you sure you want to delete "${entryMatch.title}"? Say yes to confirm.`
         };
         return this.pendingConfirmation;
+      } else {
+        return {
+          intent: 'delete',
+          action: 'delete_entry',
+          parameters: { searchTerm: cleanText.replace(/delete|remove/g, '').trim() },
+          confidence: 0.6,
+          conversationalResponse: 'Which entry would you like to delete? Please be more specific.'
+        };
       }
     }
     
-    // Edit commands
+    // Edit/Open commands
     if (cleanText.includes('edit') || cleanText.includes('open') || cleanText.includes('modify')) {
       const entryMatch = this.extractEntryReference(cleanText, context);
       if (entryMatch) {
@@ -223,6 +243,18 @@ class EnhancedVoiceProcessor {
           confidence: 0.8,
           conversationalResponse: `Opening "${entryMatch.title}" for editing`
         };
+      } else {
+        // Try to extract entry name from the command
+        const entryName = cleanText.replace(/edit|open|modify/g, '').trim();
+        if (entryName) {
+          return {
+            intent: 'edit',
+            action: 'open_entry',
+            parameters: { title: entryName },
+            confidence: 0.7,
+            conversationalResponse: `Looking for "${entryName}" to open`
+          };
+        }
       }
     }
     
@@ -255,23 +287,25 @@ class EnhancedVoiceProcessor {
       action: 'unknown_command',
       parameters: { originalText: transcript },
       confidence: 0.3,
-      conversationalResponse: 'I didn\'t understand that. Try saying "create a new entry", "search for documents", or "help" for more options.'
+      conversationalResponse: 'I didn\'t understand that. Try saying "create a new entry", "open [entry name]", "delete [entry name]", or "search for [term]".'
     };
   }
 
   private extractEntryReference(text: string, context: VoiceContext): { id: string; title: string } | null {
-    // Simple title matching - look for entries mentioned in the text
+    // Look for entries mentioned in the text
+    const words = text.split(' ');
+    
     for (const entry of context.availableEntries) {
       const titleWords = entry.title.toLowerCase().split(' ');
-      const hasMatch = titleWords.some(word => text.includes(word) && word.length > 2);
+      
+      // Check if any significant words from the entry title appear in the command
+      const hasMatch = titleWords.some(titleWord => 
+        titleWord.length > 2 && words.some(word => word.includes(titleWord))
+      );
+      
       if (hasMatch) {
         return { id: entry.id, title: entry.title };
       }
-    }
-    
-    // If no specific entry found, use the current entry if available
-    if (context.currentEntry) {
-      return context.currentEntry;
     }
     
     return null;

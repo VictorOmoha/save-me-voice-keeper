@@ -373,13 +373,27 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   }
 
   const result = await response.json();
+  console.log('🔍 MiniMax full response:', JSON.stringify(result, null, 2));
   
-  if (result.base_resp?.status_code !== 0) {
+  // Check for errors in the response
+  if (result.base_resp && result.base_resp.status_code !== 0) {
+    console.error('🚨 MiniMax API returned error:', result.base_resp);
     throw new Error(`MiniMax API error: ${result.base_resp?.status_msg || 'Unknown error'}`);
   }
 
-  // Convert base64 audio to blob and play
-  const audioData = result.data?.audio;
+  // Handle different response formats
+  let audioData;
+  if (result.data?.audio) {
+    audioData = result.data.audio;
+  } else if (result.audio) {
+    audioData = result.audio;
+  } else if (result.data?.extra_info?.audio_content) {
+    audioData = result.data.extra_info.audio_content;
+  } else {
+    console.error('🚨 MiniMax response structure:', Object.keys(result));
+    throw new Error('No audio data found in MiniMax response');
+  }
+
   if (!audioData) {
     throw new Error('No audio data received from MiniMax');
   }

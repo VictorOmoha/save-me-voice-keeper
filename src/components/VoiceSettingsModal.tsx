@@ -85,6 +85,17 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     }
   }, [isOpen]);
 
+  // Sync MiniMax voice selection with localStorage
+  useEffect(() => {
+    if (isOpen) {
+      const storedMiniMaxVoice = getSelectedMiniMaxVoice();
+      if (storedMiniMaxVoice !== selectedMiniMaxVoice) {
+        console.log('🔄 Syncing MiniMax voice selection in modal:', storedMiniMaxVoice);
+        setSelectedMiniMaxVoiceState(storedMiniMaxVoice);
+      }
+    }
+  }, [isOpen, selectedMiniMaxVoice]);
+
   // Save settings to localStorage
   const saveSettings = () => {
     console.log('💾 Saving voice settings from modal...');
@@ -120,7 +131,15 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     
     try {
       const testText = "Hello! This is a test of your voice settings. How does this sound?";
-      console.log('🎙️ Testing voice with:', selectedVoice);
+      const currentService = getSelectedTTSService();
+      
+      if (currentService === 'elevenlabs') {
+        console.log('🎙️ Testing ElevenLabs voice with:', selectedVoice);
+      } else if (currentService === 'minimax') {
+        console.log('🎙️ Testing MiniMax voice with:', selectedMiniMaxVoice);
+      } else {
+        console.log('🎙️ Testing browser voice');
+      }
       
       speak(testText, {
         rate: speechRate,
@@ -219,22 +238,34 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
   const resetToDefaults = () => {
     console.log('🔄 Resetting voice settings to defaults from modal');
     setSelectedVoiceState('aria');
+    setSelectedMiniMaxVoiceState('male-qn-qingse');
     setSpeechLanguage('en-US');
     setSpeechRate(0.9);
     setSpeechVolume(0.8);
     setAutoSpeak(false);
     setContinuousListening(false);
+    
+    // Save defaults to localStorage immediately
+    setSelectedVoice('aria');
+    setSelectedMiniMaxVoice('male-qn-qingse');
+    
     toast.info('Settings reset to defaults');
   };
 
   const handleVoiceChange = (voice: string) => {
     const voiceKey = voice as keyof typeof VOICE_OPTIONS;
+    console.log('🎙️ ElevenLabs voice changed to:', voiceKey);
     setSelectedVoiceState(voiceKey);
+    setSelectedVoice(voiceKey); // Save immediately
+    toast.success(`Voice changed to ${voice}`);
   };
 
   const handleMiniMaxVoiceChange = (voice: string) => {
     const voiceKey = voice as keyof typeof MINIMAX_VOICES;
+    console.log('🎙️ MiniMax voice changed to:', voiceKey, 'Name:', MINIMAX_VOICES[voiceKey]);
     setSelectedMiniMaxVoiceState(voiceKey);
+    setSelectedMiniMaxVoice(voiceKey); // Save immediately to localStorage
+    toast.success(`MiniMax voice changed to ${MINIMAX_VOICES[voiceKey]}`);
   };
 
   const hasElevenLabsKey = !!getElevenLabsApiKey();
@@ -476,6 +507,9 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Current selection: {MINIMAX_VOICES[selectedMiniMaxVoice]}
+                    </p>
                   </div>
                 )}
 

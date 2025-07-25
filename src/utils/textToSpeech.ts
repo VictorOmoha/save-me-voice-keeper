@@ -329,6 +329,9 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
     throw new Error('MiniMax API key not found');
   }
 
+  console.log('🔍 Debug: MiniMax API key length:', apiKey.length);
+  console.log('🔍 Debug: MiniMax API key starts with:', apiKey.substring(0, 50) + '...');
+
   // Extract GroupId from JWT token with enhanced validation
   let groupId = '';
   
@@ -340,15 +343,25 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
     try {
       // Validate JWT structure
       const jwtParts = apiKey.split('.');
+      console.log('🔍 Debug: JWT parts count:', jwtParts.length);
+      
       if (jwtParts.length !== 3) {
         throw new Error('Invalid JWT format: expected 3 parts');
       }
 
+      console.log('🔍 Debug: JWT header:', jwtParts[0]);
+      console.log('🔍 Debug: JWT payload (base64):', jwtParts[1].substring(0, 100) + '...');
+      
       const payload = JSON.parse(atob(jwtParts[1]));
+      console.log('🔍 Debug: Decoded JWT payload:', JSON.stringify(payload, null, 2));
+      
       groupId = payload.GroupID;
+      console.log('🔍 Debug: Extracted GroupID:', groupId);
+      console.log('🔍 Debug: GroupID type:', typeof groupId);
       
       // Validate extracted GroupId
       if (!groupId || typeof groupId !== 'string' || groupId.trim() === '') {
+        console.error('🚨 Debug: Invalid GroupId extracted:', { groupId, type: typeof groupId });
         throw new Error('Invalid or missing GroupId in JWT token');
       }
       
@@ -357,6 +370,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       console.log('🔑 Extracted and cached GroupId from JWT:', groupId);
     } catch (error) {
       console.error('🚨 Failed to extract GroupId from JWT:', error);
+      console.error('🚨 Debug: Raw API key for inspection:', apiKey);
       throw new Error(`Invalid MiniMax API key format: ${error.message}`);
     }
   }

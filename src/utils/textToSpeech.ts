@@ -6,7 +6,7 @@ const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
 // MiniMax API configuration
-const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text_to_speech?GroupId=1758732132631801856';
+const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text_to_speech';
 
 // Voice settings for ElevenLabs
 const VOICE_SETTINGS = {
@@ -378,6 +378,13 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   // Check for errors in the response
   if (result.base_resp && result.base_resp.status_code !== 0) {
     console.error('🚨 MiniMax API returned error:', result.base_resp);
+    
+    // Handle specific error codes
+    if (result.base_resp.status_code === 2049) {
+      toast.error('Invalid MiniMax API key. Please check your settings.');
+      throw new Error('MiniMax API error: invalid api key');
+    }
+    
     throw new Error(`MiniMax API error: ${result.base_resp?.status_msg || 'Unknown error'}`);
   }
 

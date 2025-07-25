@@ -375,7 +375,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
     }
   }
 
-  const apiUrl = `${MINIMAX_API_URL}?GroupId=${groupId}`;
+  const apiUrl = MINIMAX_API_URL; // Use base URL without GroupId parameter
   console.log('🌐 MiniMax API URL:', apiUrl);
 
   const selectedVoice = getSelectedMiniMaxVoice();
@@ -396,12 +396,15 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   
   const startTime = performance.now();
 
-  const response = await fetch(apiUrl, {
+  // Try both URL parameter and header approaches
+  const response = await fetch(`${apiUrl}?GroupId=${groupId}`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
+      'X-Group-ID': groupId, // Also try in header
+      'GroupId': groupId, // Alternative header format
     },
     body: JSON.stringify(requestBody),
   });

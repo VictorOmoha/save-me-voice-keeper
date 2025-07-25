@@ -83,6 +83,14 @@ export const VoiceSettings: React.FC = () => {
     }
   }, [selectedMiniMaxVoice]);
 
+  // Handle TTS service change with immediate persistence
+  const handleTTSServiceChange = (service: TTSService) => {
+    console.log('🔄 TTS service changed to:', service);
+    setSelectedTTSServiceState(service);
+    setSelectedTTSService(service); // Save immediately to localStorage
+    toast.success(`TTS service changed to ${service}`);
+  };
+
   // Save settings to localStorage
   const saveSettings = () => {
     console.log('💾 Saving voice settings...');
@@ -118,29 +126,28 @@ export const VoiceSettings: React.FC = () => {
     
     try {
       const testText = "Hello! This is a test of your voice settings. How does this sound?";
-      const currentService = getSelectedTTSService();
+      console.log('🎙️ Testing voice with current TTS service:', selectedTTSService);
       
-      if (currentService === 'elevenlabs') {
+      if (selectedTTSService === 'elevenlabs') {
         console.log('🎙️ Testing ElevenLabs voice with:', selectedVoice);
-      } else if (currentService === 'minimax') {
+      } else if (selectedTTSService === 'minimax') {
         console.log('🎙️ Testing MiniMax voice with:', selectedMiniMaxVoice);
       } else {
         console.log('🎙️ Testing browser voice');
       }
       
-      speak(testText, {
+      await speak(testText, {
         rate: speechRate,
         pitch: 1,
-        volume: speechVolume,
-        onEnd: () => {
-          toast.success('Voice test completed!');
-          setIsTestingVoice(false);
-        }
+        volume: speechVolume
       });
+      
+      toast.success('Voice test completed!');
       
     } catch (error) {
       console.error('🚨 Voice test failed:', error);
       toast.error('Voice test failed. Please check your settings.');
+    } finally {
       setIsTestingVoice(false);
     }
   };
@@ -227,7 +234,8 @@ export const VoiceSettings: React.FC = () => {
   // Reset to defaults
   const resetToDefaults = () => {
     console.log('🔄 Resetting voice settings to defaults');
-    setSelectedVoiceState('aria');
+    setSelectedTTSServiceState('browser');
+    setSelectedVoiceState('adam');
     setSelectedMiniMaxVoiceState('male-qn-qingse');
     setSpeechLanguage('en-US');
     setSpeechRate(0.9);
@@ -236,7 +244,8 @@ export const VoiceSettings: React.FC = () => {
     setContinuousListening(false);
     
     // Save defaults to localStorage immediately
-    setSelectedVoice('aria');
+    setSelectedTTSService('browser');
+    setSelectedVoice('adam');
     setSelectedMiniMaxVoice('male-qn-qingse');
     
     toast.info('Settings reset to defaults');
@@ -340,7 +349,7 @@ export const VoiceSettings: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Preferred TTS Service</Label>
-                <Select value={selectedTTSService} onValueChange={(value: TTSService) => setSelectedTTSServiceState(value)}>
+                <Select value={selectedTTSService} onValueChange={handleTTSServiceChange}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -360,6 +369,9 @@ export const VoiceSettings: React.FC = () => {
                     <SelectItem value="browser">Browser TTS (Free)</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-sm text-muted-foreground">
+                  Current selection: <span className="font-medium">{selectedTTSService}</span>
+                </p>
               </div>
             </CardContent>
           </Card>

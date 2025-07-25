@@ -320,21 +320,45 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
   });
 };
 
+// Cache for GroupId to avoid repeated JWT parsing
+const groupIdCache = new Map<string, string>();
+
 const speakWithMiniMax = async (text: string): Promise<void> => {
   const apiKey = getMiniMaxApiKey();
   if (!apiKey) {
     throw new Error('MiniMax API key not found');
   }
 
-  // Extract GroupId from JWT token
+  // Extract GroupId from JWT token with enhanced validation
   let groupId = '';
-  try {
-    const payload = JSON.parse(atob(apiKey.split('.')[1]));
-    groupId = payload.GroupID;
-    console.log('🔑 Extracted GroupId from JWT:', groupId);
-  } catch (error) {
-    console.error('🚨 Failed to extract GroupId from JWT:', error);
-    throw new Error('Invalid MiniMax API key format');
+  
+  // Check cache first for performance
+  if (groupIdCache.has(apiKey)) {
+    groupId = groupIdCache.get(apiKey)!;
+    console.log('🔑 Using cached GroupId:', groupId);
+  } else {
+    try {
+      // Validate JWT structure
+      const jwtParts = apiKey.split('.');
+      if (jwtParts.length !== 3) {
+        throw new Error('Invalid JWT format: expected 3 parts');
+      }
+
+      const payload = JSON.parse(atob(jwtParts[1]));
+      groupId = payload.GroupID;
+      
+      // Validate extracted GroupId
+      if (!groupId || typeof groupId !== 'string' || groupId.trim() === '') {
+        throw new Error('Invalid or missing GroupId in JWT token');
+      }
+      
+      // Cache the GroupId for future use
+      groupIdCache.set(apiKey, groupId);
+      console.log('🔑 Extracted and cached GroupId from JWT:', groupId);
+    } catch (error) {
+      console.error('🚨 Failed to extract GroupId from JWT:', error);
+      throw new Error(`Invalid MiniMax API key format: ${error.message}`);
+    }
   }
 
   const apiUrl = `${MINIMAX_API_URL}?GroupId=${groupId}`;
@@ -355,6 +379,8 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   };
 
   console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));
+  
+  const startTime = performance.now();
 
   const response = await fetch(apiUrl, {
     method: 'POST',
@@ -387,20 +413,38 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   }
 
   const result = await response.json();
+  const endTime = performance.now();
+  const requestDuration = endTime - startTime;
+  
   console.log('🔍 MiniMax full response:', JSON.stringify(result, null, 2));
+  console.log('⏱️ MiniMax API request duration:', `${requestDuration.toFixed(2)}ms`);
   
   // Check for errors in the response
   if (result.base_resp && result.base_resp.status_code !== 0) {
     console.error('🚨 MiniMax API returned error:', result.base_resp);
+    console.error('📊 API Call Metrics:', {
+      duration: `${requestDuration.toFixed(2)}ms`,
+      errorCode: result.base_resp.status_code,
+      errorMessage: result.base_resp.status_msg
+    });
     
     // Handle specific error codes
     if (result.base_resp.status_code === 2049) {
+      // Clear cache for this API key since it's invalid
+      groupIdCache.delete(apiKey);
       toast.error('Invalid MiniMax API key. Please check your settings.');
       throw new Error('MiniMax API error: invalid api key');
     }
     
     throw new Error(`MiniMax API error: ${result.base_resp?.status_msg || 'Unknown error'}`);
   }
+
+  // Log successful API call
+  console.log('✅ MiniMax API call successful', {
+    duration: `${requestDuration.toFixed(2)}ms`,
+    textLength: text.length,
+    voice: selectedVoice
+  });
 
   // Handle different response formats
   let audioData;

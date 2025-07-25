@@ -43,31 +43,42 @@ const LANGUAGE_OPTIONS = {
 };
 
 export const VoiceSettings: React.FC = () => {
-  const [apiKey, setApiKey] = useState(getElevenLabsApiKey() || '');
-  const [miniMaxApiKey, setMiniMaxApiKeyState] = useState(getMiniMaxApiKey() || '');
-  const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>(getSelectedTTSService());
-  const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>(getSelectedVoice());
-  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>(getSelectedMiniMaxVoice());
-  const [speechLanguage, setSpeechLanguage] = useState(
-    localStorage.getItem('speech_language') || 'en-US'
-  );
-  const [speechRate, setSpeechRate] = useState(
-    parseFloat(localStorage.getItem('speech_rate') || '0.9')
-  );
-  const [speechVolume, setSpeechVolume] = useState(
-    parseFloat(localStorage.getItem('speech_volume') || '0.8')
-  );
-  const [autoSpeak, setAutoSpeak] = useState(
-    localStorage.getItem('auto_speak') === 'true'
-  );
-  const [continuousListening, setContinuousListening] = useState(
-    localStorage.getItem('continuous_listening') === 'true'
-  );
+  const [apiKey, setApiKey] = useState('');
+  const [miniMaxApiKey, setMiniMaxApiKeyState] = useState('');
+  const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>('elevenlabs');
+  const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>('adam');
+  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>('male-qn-qingse');
+  const [speechLanguage, setSpeechLanguage] = useState('en-US');
+  const [speechRate, setSpeechRate] = useState(0.9);
+  const [speechVolume, setSpeechVolume] = useState(0.8);
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [continuousListening, setContinuousListening] = useState(false);
   const [isTestingVoice, setIsTestingVoice] = useState(false);
   const [isValidatingKey, setIsValidatingKey] = useState(false);
 
+  // Initialize state from localStorage on component mount
+  useEffect(() => {
+    console.log('🔄 Initializing VoiceSettings state from localStorage');
+    
+    setApiKey(getElevenLabsApiKey() || '');
+    setMiniMaxApiKeyState(getMiniMaxApiKey() || '');
+    setSelectedTTSServiceState(getSelectedTTSService());
+    setSelectedVoiceState(getSelectedVoice());
+    setSelectedMiniMaxVoiceState(getSelectedMiniMaxVoice());
+    setSpeechLanguage(localStorage.getItem('speech_language') || 'en-US');
+    setSpeechRate(parseFloat(localStorage.getItem('speech_rate') || '0.9'));
+    setSpeechVolume(parseFloat(localStorage.getItem('speech_volume') || '0.8'));
+    setAutoSpeak(localStorage.getItem('auto_speak') === 'true');
+    setContinuousListening(localStorage.getItem('continuous_listening') === 'true');
+    
+    console.log('✅ VoiceSettings state initialized');
+  }, []);
+
   // Save settings to localStorage
   const saveSettings = () => {
+    console.log('💾 Saving voice settings...');
+    
+    // Save API keys
     if (apiKey !== getElevenLabsApiKey()) {
       setElevenLabsApiKey(apiKey);
     }
@@ -76,6 +87,7 @@ export const VoiceSettings: React.FC = () => {
       setMiniMaxApiKey(miniMaxApiKey);
     }
     
+    // Save other settings
     setSelectedTTSService(selectedTTSService);
     setSelectedVoice(selectedVoice);
     setSelectedMiniMaxVoice(selectedMiniMaxVoice);
@@ -86,6 +98,7 @@ export const VoiceSettings: React.FC = () => {
     localStorage.setItem('auto_speak', autoSpeak.toString());
     localStorage.setItem('continuous_listening', continuousListening.toString());
     
+    console.log('✅ Voice settings saved successfully');
     toast.success('Voice settings saved successfully!');
   };
 
@@ -96,9 +109,8 @@ export const VoiceSettings: React.FC = () => {
     
     try {
       const testText = "Hello! This is a test of your voice settings. How does this sound?";
-      console.log('Testing voice with:', selectedVoice);
+      console.log('🎙️ Testing voice with:', selectedVoice);
       
-      // Test the voice with the correct signature
       speak(testText, {
         rate: speechRate,
         pitch: 1,
@@ -110,8 +122,8 @@ export const VoiceSettings: React.FC = () => {
       });
       
     } catch (error) {
-      console.error('Voice test failed:', error);
-      toast.error('Voice test failed. Please check your ElevenLabs API key.');
+      console.error('🚨 Voice test failed:', error);
+      toast.error('Voice test failed. Please check your settings.');
       setIsTestingVoice(false);
     }
   };
@@ -124,6 +136,7 @@ export const VoiceSettings: React.FC = () => {
     }
 
     setIsValidatingKey(true);
+    console.log('🔍 Validating ElevenLabs API key...');
     
     try {
       const response = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -133,13 +146,15 @@ export const VoiceSettings: React.FC = () => {
       });
 
       if (response.ok) {
-        toast.success('ElevenLabs API key is valid!');
+        console.log('✅ ElevenLabs API key is valid');
         setElevenLabsApiKey(apiKey);
+        toast.success('ElevenLabs API key is valid!');
       } else {
+        console.log('❌ ElevenLabs API key is invalid');
         toast.error('Invalid ElevenLabs API key. Please check and try again.');
       }
     } catch (error) {
-      console.error('ElevenLabs API key validation failed:', error);
+      console.error('🚨 ElevenLabs API key validation failed:', error);
       toast.error('Failed to validate ElevenLabs API key. Please check your connection.');
     } finally {
       setIsValidatingKey(false);
@@ -154,6 +169,7 @@ export const VoiceSettings: React.FC = () => {
     }
 
     setIsValidatingKey(true);
+    console.log('🔍 Validating MiniMax API key...');
     
     try {
       // Test with a simple TTS request
@@ -176,13 +192,15 @@ export const VoiceSettings: React.FC = () => {
       });
 
       if (response.ok) {
-        toast.success('MiniMax API key is valid!');
+        console.log('✅ MiniMax API key is valid');
         setMiniMaxApiKey(miniMaxApiKey);
+        toast.success('MiniMax API key is valid!');
       } else {
+        console.log('❌ MiniMax API key is invalid');
         toast.error('Invalid MiniMax API key. Please check and try again.');
       }
     } catch (error) {
-      console.error('MiniMax API key validation failed:', error);
+      console.error('🚨 MiniMax API key validation failed:', error);
       toast.error('Failed to validate MiniMax API key. Please check your connection.');
     } finally {
       setIsValidatingKey(false);
@@ -191,6 +209,7 @@ export const VoiceSettings: React.FC = () => {
 
   // Reset to defaults
   const resetToDefaults = () => {
+    console.log('🔄 Resetting voice settings to defaults');
     setSelectedVoiceState('aria');
     setSpeechLanguage('en-US');
     setSpeechRate(0.9);

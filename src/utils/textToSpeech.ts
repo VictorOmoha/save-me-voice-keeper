@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 
 // ElevenLabs API configuration
@@ -59,32 +60,62 @@ export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 // TTS Service type
 export type TTSService = 'elevenlabs' | 'minimax' | 'browser';
 
-// API Key management
+// API Key management with improved error handling and logging
 export const getElevenLabsApiKey = (): string | null => {
-  return localStorage.getItem('elevenlabs_api_key');
+  try {
+    const key = localStorage.getItem('elevenlabs_api_key');
+    console.log('🔑 Getting ElevenLabs API key:', key ? 'Found' : 'Not found');
+    return key;
+  } catch (error) {
+    console.error('🚨 Error getting ElevenLabs API key:', error);
+    return null;
+  }
 };
 
 export const setElevenLabsApiKey = (apiKey: string): void => {
-  if (apiKey.trim()) {
-    localStorage.setItem('elevenlabs_api_key', apiKey.trim());
-    toast.success('ElevenLabs API key saved successfully');
-  } else {
-    localStorage.removeItem('elevenlabs_api_key');
-    toast.success('ElevenLabs API key removed');
+  try {
+    console.log('🔑 Setting ElevenLabs API key:', apiKey ? 'Key provided' : 'Empty key');
+    if (apiKey.trim()) {
+      localStorage.setItem('elevenlabs_api_key', apiKey.trim());
+      console.log('✅ ElevenLabs API key saved to localStorage');
+      toast.success('ElevenLabs API key saved successfully');
+    } else {
+      localStorage.removeItem('elevenlabs_api_key');
+      console.log('🗑️ ElevenLabs API key removed from localStorage');
+      toast.success('ElevenLabs API key removed');
+    }
+  } catch (error) {
+    console.error('🚨 Error setting ElevenLabs API key:', error);
+    toast.error('Failed to save ElevenLabs API key');
   }
 };
 
 export const getMiniMaxApiKey = (): string | null => {
-  return localStorage.getItem('minimax_api_key');
+  try {
+    const key = localStorage.getItem('minimax_api_key');
+    console.log('🔑 Getting MiniMax API key:', key ? 'Found' : 'Not found');
+    return key;
+  } catch (error) {
+    console.error('🚨 Error getting MiniMax API key:', error);
+    return null;
+  }
 };
 
 export const setMiniMaxApiKey = (apiKey: string): void => {
-  if (apiKey.trim()) {
-    localStorage.setItem('minimax_api_key', apiKey.trim());
-    toast.success('MiniMax API key saved successfully');
-  } else {
-    localStorage.removeItem('minimax_api_key');
-    toast.success('MiniMax API key removed');
+  try {
+    console.log('🔑 Setting MiniMax API key:', apiKey ? 'Key provided' : 'Empty key');
+    if (apiKey.trim()) {
+      localStorage.setItem('minimax_api_key', apiKey.trim());
+      console.log('✅ MiniMax API key saved to localStorage');
+      toast.success('MiniMax API key saved successfully');
+    } else {
+      localStorage.removeItem('minimax_api_key');
+      console.log('🗑️ MiniMax API key removed from localStorage');
+      toast.success('MiniMax API key removed');
+    }
+  } catch (error) {
+    console.error('🚨 Error setting MiniMax API key:', error);
+    toast.error('Failed to save MiniMax API key');
   }
 };
 

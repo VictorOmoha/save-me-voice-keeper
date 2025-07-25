@@ -6,7 +6,7 @@ const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
 // MiniMax API configuration
-const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text_to_speech';
+const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text_to_speech?GroupId=1758732132631801856';
 
 // Voice settings for ElevenLabs
 const VOICE_SETTINGS = {
@@ -327,7 +327,20 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   }
 
   const selectedVoice = getSelectedMiniMaxVoice();
+  console.log('🔑 Getting MiniMax API key:', apiKey ? 'Found' : 'Not found');
   console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
+
+  const requestBody = {
+    text: text,
+    voice_id: selectedVoice,
+    speed: 1.0,
+    vol: 1.0,
+    pitch: 0,
+    audio_sample_rate: 32000,
+    bitrate: 128000
+  };
+
+  console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));
 
   const response = await fetch(MINIMAX_API_URL, {
     method: 'POST',
@@ -336,30 +349,26 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      text: text,
-      voice_id: selectedVoice,
-      speed: 1.0,
-      vol: 1.0,
-      pitch: 0,
-      audio_sample_rate: 32000,
-      bitrate: 128000
-    }),
+    body: JSON.stringify(requestBody),
   });
 
+  console.log('🌐 MiniMax response status:', response.status);
+  
   if (!response.ok) {
     const errorText = await response.text();
     console.error('🚨 TTS: MiniMax API error:', response.status, errorText);
+    console.error('🚨 TTS: MiniMax request URL:', MINIMAX_API_URL);
+    console.error('🚨 TTS: MiniMax API key (first 10 chars):', apiKey.substring(0, 10) + '...');
     
     if (response.status === 401) {
       toast.error('Invalid MiniMax API key. Please check your settings.');
-      throw new Error('Invalid API key');
+      throw new Error('MiniMax API error: invalid api key');
     } else if (response.status === 429) {
       toast.error('MiniMax API rate limit exceeded. Using browser TTS instead.');
       throw new Error('Rate limit exceeded');
     } else {
       toast.error('MiniMax TTS failed. Using browser TTS instead.');
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(`MiniMax API error: ${errorText}`);
     }
   }
 

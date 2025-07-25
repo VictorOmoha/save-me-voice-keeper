@@ -355,9 +355,18 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       const payload = JSON.parse(atob(jwtParts[1]));
       console.log('🔍 Debug: Decoded JWT payload:', JSON.stringify(payload, null, 2));
       
-      groupId = payload.GroupID;
-      console.log('🔍 Debug: Extracted GroupID:', groupId);
-      console.log('🔍 Debug: GroupID type:', typeof groupId);
+      // Try both GroupID and SubjectID from JWT
+      const extractedGroupId = payload.GroupID;
+      const subjectId = payload.SubjectID;
+      
+      console.log('🔍 Debug: Extracted GroupID:', extractedGroupId);
+      console.log('🔍 Debug: Extracted SubjectID:', subjectId);
+      console.log('🔍 Debug: GroupID type:', typeof extractedGroupId);
+      console.log('🔍 Debug: SubjectID type:', typeof subjectId);
+      
+      // Use GroupID as primary
+      groupId = extractedGroupId;
+      const alternativeId = subjectId;
       
       // Validate extracted GroupId
       if (!groupId || typeof groupId !== 'string' || groupId.trim() === '') {
@@ -396,35 +405,91 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   
   const startTime = performance.now();
 
-  // Use standard approach - GroupId in URL parameter only
-  const response = await fetch(`${apiUrl}?GroupId=${groupId}`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  // Try multiple authentication approaches that MiniMax might expect
+  console.log('🔍 Trying different API endpoint approaches...');
+  
+  // Extract alternative ID for testing
+  const alternativeId = groupIdCache.has(apiKey + '_subject') ? groupIdCache.get(apiKey + '_subject')! : null;
+  
+  let response: Response;
+  let lastError: string = '';
+  
+  // Approach 1: Try with GroupId parameter
+  console.log('🔍 Approach 1: Using GroupId parameter');
+  try {
+    response = await fetch(`${apiUrl}?GroupId=${groupId}`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (response.ok) {
+      console.log('✅ Approach 1 successful!');
+    } else {
+      const errorResult = await response.json();
+      lastError = `Approach 1 failed: ${errorResult.base_resp?.status_msg || 'Unknown error'}`;
+      console.log('❌ Approach 1 failed:', lastError);
+      
+      // Approach 2: Try different parameter name
+      console.log('🔍 Approach 2: Using group_id parameter');
+      response = await fetch(`${apiUrl}?group_id=${groupId}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      if (!response.ok) {
+        const errorResult2 = await response.json();
+        lastError = `Approach 2 failed: ${errorResult2.base_resp?.status_msg || 'Unknown error'}`;
+        console.log('❌ Approach 2 failed:', lastError);
+        
+        // Approach 3: Try without parameter (JWT only)
+        console.log('🔍 Approach 3: Using JWT token only (no parameter)');
+        response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+        
+        if (!response.ok) {
+          const errorResult3 = await response.json();
+          lastError = `All approaches failed. Last error: ${errorResult3.base_resp?.status_msg || 'Unknown error'}`;
+          console.log('❌ All approaches failed:', lastError);
+        } else {
+          console.log('✅ Approach 3 successful!');
+        }
+      } else {
+        console.log('✅ Approach 2 successful!');
+      }
+    }
+  } catch (fetchError) {
+    console.error('🚨 Network error during API call:', fetchError);
+    throw new Error(`Network error: ${fetchError.message}`);
+  }
 
   console.log('🌐 MiniMax response status:', response.status);
   
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('🚨 TTS: MiniMax API error:', response.status, errorText);
-    console.error('🚨 TTS: MiniMax request URL:', MINIMAX_API_URL);
-    console.error('🚨 TTS: MiniMax API key (first 10 chars):', apiKey.substring(0, 10) + '...');
+    console.error('🚨 TTS: All MiniMax API approaches failed');
+    console.error('🚨 TTS: Last error:', lastError);
+    console.error('🚨 TTS: Response status:', response.status);
+    console.error('🚨 TTS: Response text:', errorText);
     
-    if (response.status === 401) {
-      toast.error('Invalid MiniMax API key. Please check your settings.');
-      throw new Error('MiniMax API error: invalid api key');
-    } else if (response.status === 429) {
-      toast.error('MiniMax API rate limit exceeded. Using browser TTS instead.');
-      throw new Error('Rate limit exceeded');
-    } else {
-      toast.error('MiniMax TTS failed. Using browser TTS instead.');
-      throw new Error(`MiniMax API error: ${errorText}`);
-    }
+    toast.error('MiniMax TTS failed with all authentication methods. Using browser TTS instead.');
+    throw new Error(`MiniMax API error: ${lastError}`);
   }
 
   const result = await response.json();

@@ -326,6 +326,20 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
     throw new Error('MiniMax API key not found');
   }
 
+  // Extract GroupId from JWT token
+  let groupId = '';
+  try {
+    const payload = JSON.parse(atob(apiKey.split('.')[1]));
+    groupId = payload.GroupID;
+    console.log('🔑 Extracted GroupId from JWT:', groupId);
+  } catch (error) {
+    console.error('🚨 Failed to extract GroupId from JWT:', error);
+    throw new Error('Invalid MiniMax API key format');
+  }
+
+  const apiUrl = `${MINIMAX_API_URL}?GroupId=${groupId}`;
+  console.log('🌐 MiniMax API URL:', apiUrl);
+
   const selectedVoice = getSelectedMiniMaxVoice();
   console.log('🔑 Getting MiniMax API key:', apiKey ? 'Found' : 'Not found');
   console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
@@ -342,7 +356,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
 
   console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));
 
-  const response = await fetch(MINIMAX_API_URL, {
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',

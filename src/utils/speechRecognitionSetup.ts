@@ -41,7 +41,7 @@ export const setupSpeechRecognition = ({
 
   const recognition = new SpeechRecognition();
   
-  // Configure recognition settings for CONTINUOUS listening
+  // Configure recognition settings
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
@@ -105,7 +105,7 @@ export const setupSpeechRecognition = ({
   };
 
   recognition.onstart = () => {
-    console.log('🎤 SETUP: Continuous speech recognition started');
+    console.log('🎤 SETUP: Speech recognition started');
     setIsListening(true);
     globalRecognitionActive = true;
     (window as any).__speech_recognition_active = true;
@@ -285,9 +285,9 @@ export const setupSpeechRecognition = ({
       clearTimeout(silenceTimeout);
     }
     
-    // Auto-restart unless manually stopped or too many errors
-    if (!(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS) {
-      console.log('🔄 SETUP: Auto-restarting continuous recognition');
+    // Only auto-restart for certain error conditions, not normal manual stops
+    if (!(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS && globalRecognitionActive) {
+      console.log('🔄 SETUP: Auto-restarting recognition');
       setTimeout(() => {
         if (!(window as any).__manual_stop && !globalRecognitionActive) {
           try {
@@ -298,13 +298,13 @@ export const setupSpeechRecognition = ({
             consecutiveErrors++;
           }
         }
-      }, 2500); // Increased delay
+      }, 1500); // Reduced delay
     }
   };
 
   // Enhanced cleanup function
   const cleanup = () => {
-    console.log('🧹 SETUP: Cleaning up continuous speech recognition');
+    console.log('🧹 SETUP: Cleaning up speech recognition');
     
     if (silenceTimeout) {
       clearTimeout(silenceTimeout);

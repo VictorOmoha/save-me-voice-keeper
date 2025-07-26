@@ -19,7 +19,7 @@ export const useSpeechRecognitionControls = ({
   setIsListening,
 }: UseSpeechRecognitionControlsProps) => {
   const startListening = async () => {
-    console.log('=== Starting continuous voice recognition ===');
+    console.log('=== Starting voice recognition ===');
     
     if (!isSupported) {
       toast.error('Speech recognition not supported in this browser');
@@ -27,7 +27,7 @@ export const useSpeechRecognitionControls = ({
     }
     
     if (isListening) {
-      console.log('Already listening continuously');
+      console.log('Already listening');
       return;
     }
     
@@ -48,7 +48,7 @@ export const useSpeechRecognitionControls = ({
     
     // Wait for TTS to finish if speaking
     if ((window as any).__tts_is_speaking) {
-      console.log('Waiting for TTS to finish before starting continuous listening...');
+      console.log('Waiting for TTS to finish before starting listening...');
       toast.info('Waiting for system to finish speaking...');
       
       const waitForTTS = () => {
@@ -63,29 +63,29 @@ export const useSpeechRecognitionControls = ({
     }
     
     try {
-      console.log('Starting continuous speech recognition...');
+      console.log('Starting speech recognition...');
       
       // Clear manual stop flag and reset state
       (window as any).__manual_stop = false;
       setTranscript("");
       setLastProcessedTranscript("");
       
-      // Start continuous recognition
+      // Start recognition
       recognitionRef.current.start();
-      console.log('Continuous speech recognition started successfully');
+      console.log('Speech recognition started successfully');
       
-      toast.success('🎤 Continuous voice recognition active - speak multiple commands!', {
-        description: 'I\'ll keep listening for your commands. Say "stop listening" to pause.',
-        duration: 4000,
+      toast.success('🎤 Voice recognition active - speak your commands!', {
+        description: 'Say your voice commands clearly.',
+        duration: 3000,
       });
       
     } catch (error) {
-      console.error('Error starting continuous speech recognition:', error);
+      console.error('Error starting speech recognition:', error);
       
       if (error.name === 'InvalidStateError') {
         console.log('Recognition already running, continuing...');
         setIsListening(true);
-        toast.success('🎤 Continuous voice recognition already active');
+        toast.success('🎤 Voice recognition already active');
       } else {
         toast.error(`Failed to start voice recognition: ${error.message}`);
       }
@@ -93,7 +93,7 @@ export const useSpeechRecognitionControls = ({
   };
 
   const stopListening = () => {
-    console.log('=== Stopping continuous voice recognition ===');
+    console.log('=== Stopping voice recognition ===');
     
     // Set manual stop flag to prevent auto-restart
     (window as any).__manual_stop = true;
@@ -106,8 +106,8 @@ export const useSpeechRecognitionControls = ({
         }
         
         recognitionRef.current.stop();
-        console.log('Continuous speech recognition stopped manually');
-        toast.info('🔇 Continuous voice recognition stopped - click start to resume');
+        console.log('Speech recognition stopped manually');
+        toast.info('🔇 Voice recognition stopped - click start to resume');
       } catch (error) {
         console.error('Error stopping recognition:', error);
       }
@@ -119,7 +119,7 @@ export const useSpeechRecognitionControls = ({
   };
 
   const resetListening = () => {
-    console.log('=== Resetting continuous voice recognition ===');
+    console.log('=== Resetting voice recognition ===');
     
     // Set manual stop flag and abort
     (window as any).__manual_stop = true;
@@ -149,8 +149,8 @@ export const useSpeechRecognitionControls = ({
       (window as any).__manual_stop = false;
     }, 1000);
     
-    toast.success('🔄 Voice recognition reset - ready for continuous commands', {
-      description: 'Click "Start Voice Commands" to begin listening continuously',
+    toast.success('🔄 Voice recognition reset - ready for commands', {
+      description: 'Click "Start Voice Commands" to begin listening',
     });
   };
 

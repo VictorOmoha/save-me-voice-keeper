@@ -405,38 +405,41 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   
   const startTime = performance.now();
 
-  // Try multiple authentication approaches that MiniMax might expect
-  console.log('🔍 Trying different API endpoint approaches...');
-  
-  // Extract alternative ID for testing
-  const alternativeId = groupIdCache.has(apiKey + '_subject') ? groupIdCache.get(apiKey + '_subject')! : null;
+  // Try multiple authentication approaches systematically
+  console.log('🔍 Trying enhanced MiniMax authentication approaches...');
   
   let response: Response;
   let lastError: string = '';
   
-  // Approach 1: Try with GroupId parameter
-  console.log('🔍 Approach 1: Using GroupId parameter');
+  // Approach 1: GroupID in request body (common for many APIs)
+  console.log('🔍 Approach 1: GroupID in request body');
   try {
-    response = await fetch(`${apiUrl}?GroupId=${groupId}`, {
+    const bodyWithGroupId = {
+      ...requestBody,
+      group_id: groupId,
+      GroupId: groupId
+    };
+    
+    response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(bodyWithGroupId),
     });
     
     if (response.ok) {
       console.log('✅ Approach 1 successful!');
     } else {
       const errorResult = await response.json();
-      lastError = `Approach 1 failed: ${errorResult.base_resp?.status_msg || 'Unknown error'}`;
+      lastError = `Approach 1: ${errorResult.base_resp?.status_msg || errorResult.status_msg || 'Unknown error'}`;
       console.log('❌ Approach 1 failed:', lastError);
       
-      // Approach 2: Try different parameter name
-      console.log('🔍 Approach 2: Using group_id parameter');
-      response = await fetch(`${apiUrl}?group_id=${groupId}`, {
+      // Approach 2: Try with GroupId URL parameter
+      console.log('🔍 Approach 2: GroupId as URL parameter');
+      response = await fetch(`${apiUrl}?GroupId=${groupId}`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -448,12 +451,13 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       
       if (!response.ok) {
         const errorResult2 = await response.json();
-        lastError = `Approach 2 failed: ${errorResult2.base_resp?.status_msg || 'Unknown error'}`;
+        lastError = `Approach 2: ${errorResult2.base_resp?.status_msg || errorResult2.status_msg || 'Unknown error'}`;
         console.log('❌ Approach 2 failed:', lastError);
         
-        // Approach 3: Try without parameter (JWT only)
-        console.log('🔍 Approach 3: Using JWT token only (no parameter)');
-        response = await fetch(apiUrl, {
+        // Approach 3: Try alternative endpoint format
+        console.log('🔍 Approach 3: Alternative endpoint format');
+        const altApiUrl = `https://api.minimax.chat/v1/text_to_speech/${groupId}`;
+        response = await fetch(altApiUrl, {
           method: 'POST',
           headers: {
             'Accept': 'application/json',
@@ -465,8 +469,29 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
         
         if (!response.ok) {
           const errorResult3 = await response.json();
-          lastError = `All approaches failed. Last error: ${errorResult3.base_resp?.status_msg || 'Unknown error'}`;
-          console.log('❌ All approaches failed:', lastError);
+          lastError = `Approach 3: ${errorResult3.base_resp?.status_msg || errorResult3.status_msg || 'Unknown error'}`;
+          console.log('❌ Approach 3 failed:', lastError);
+          
+          // Approach 4: Try with X-Group-ID header (fallback)
+          console.log('🔍 Approach 4: X-Group-ID header');
+          response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'X-Group-ID': groupId,
+            },
+            body: JSON.stringify(requestBody),
+          });
+          
+          if (!response.ok) {
+            const errorResult4 = await response.json();
+            lastError = `All approaches failed. Final: ${errorResult4.base_resp?.status_msg || errorResult4.status_msg || 'Unknown error'}`;
+            console.log('❌ All 4 approaches failed:', lastError);
+          } else {
+            console.log('✅ Approach 4 successful!');
+          }
         } else {
           console.log('✅ Approach 3 successful!');
         }

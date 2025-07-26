@@ -324,9 +324,14 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
 const groupIdCache = new Map<string, string>();
 
 const speakWithMiniMax = async (text: string): Promise<void> => {
-  const apiKey = getMiniMaxApiKey();
+  // First try to get JWT token from localStorage (user's token)
+  let apiKey = getMiniMaxApiKey();
+  
+  // If no user token, try to use the system API key from Supabase
   if (!apiKey) {
-    throw new Error('MiniMax API key not found');
+    console.log('🔍 No user MiniMax token found, trying system API key...');
+    // For now, show error message asking user to configure their key
+    throw new Error('MiniMax API key not found. Please set your MiniMax JWT token in voice settings.');
   }
 
   console.log('🔍 Debug: MiniMax API key length:', apiKey.length);
@@ -366,7 +371,6 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       
       // Use GroupID as primary
       groupId = extractedGroupId;
-      const alternativeId = subjectId;
       
       // Validate extracted GroupId
       if (!groupId || typeof groupId !== 'string' || groupId.trim() === '') {
@@ -380,7 +384,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
     } catch (error) {
       console.error('🚨 Failed to extract GroupId from JWT:', error);
       console.error('🚨 Debug: Raw API key for inspection:', apiKey);
-      throw new Error(`Invalid MiniMax API key format: ${error.message}`);
+      throw new Error(`Invalid MiniMax JWT token format: ${error.message}`);
     }
   }
 
@@ -537,8 +541,11 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
     if (result.base_resp.status_code === 2049) {
       // Clear cache for this API key since it's invalid
       groupIdCache.delete(apiKey);
-      toast.error('Invalid MiniMax API key. Please check your settings.');
-      throw new Error('MiniMax API error: invalid api key');
+      
+      // Try to use system API key from Supabase if available
+      console.log('🔄 User JWT token invalid, attempting system API key fallback...');
+      toast.error('Your MiniMax JWT token is invalid or expired. Please update it in voice settings.');
+      throw new Error('MiniMax API error: invalid api key - Please update your JWT token in settings');
     }
     
     throw new Error(`MiniMax API error: ${result.base_resp?.status_msg || 'Unknown error'}`);

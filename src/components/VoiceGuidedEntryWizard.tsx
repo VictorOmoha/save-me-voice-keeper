@@ -67,19 +67,28 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   useEffect(() => {
     if (conversationState?.currentStep) {
       const stepType = conversationState.currentStep.type;
-      console.log('🎤 VoiceGuidedEntryWizard: Current step type:', stepType);
+      console.log('🧭 Wizard step update - Current step type:', stepType);
+      console.log('🧭 Wizard current steps state:', steps.map(s => ({ id: s.id, current: s.current, completed: s.completed })));
       
-      setSteps(prev => prev.map(step => ({
-        ...step,
-        current: step.id === stepType || 
-                 (stepType === 'more_fields' && step.id === 'fields') ||
-                 (stepType === 'field_name' && step.id === 'fields') ||
-                 (stepType === 'field_type' && step.id === 'fields')
-      })));
+      setSteps(prev => prev.map(step => {
+        // Map conversation step types to wizard step IDs
+        const isCurrentStep = 
+          (stepType === 'title' && step.id === 'title') ||
+          (stepType === 'category' && step.id === 'category') ||
+          (['more_fields', 'field_name', 'field_type'].includes(stepType) && step.id === 'fields') ||
+          (stepType === 'save' && step.id === 'save');
+        
+        return {
+          ...step,
+          current: isCurrentStep
+        };
+      }));
       
       setLastVoiceInput(conversationState.currentStep.question);
       setIsAnimating(true);
       setTimeout(() => setIsAnimating(false), 1000);
+      
+      console.log('🧭 Updated wizard steps after conversation state change');
     } else {
       console.log('🎤 VoiceGuidedEntryWizard: No current step in conversation state');
     }
@@ -254,6 +263,13 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
               </p>
             </div>
           )}
+
+          {/* Debug Display */}
+          <div className="p-3 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30">
+            <p className="text-xs text-muted-foreground mb-2">📝 Entry Title: {entryData.title || 'Not set'}</p>
+            <p className="text-xs text-muted-foreground mb-2">🏷️ Category: {entryData.category}</p>
+            <p className="text-xs text-muted-foreground">🧭 Current Step: {steps.find(s => s.current)?.id || 'None'}</p>
+          </div>
 
           {/* Entry Preview */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

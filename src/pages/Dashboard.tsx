@@ -168,8 +168,13 @@ export default function Dashboard() {
             
             const cleanText = text.toLowerCase();
             
+            // CRITICAL: If we're in a conversation, ALL input goes to unified processor
+            if (isVoiceInConversation) {
+              console.log('🎯 IN CONVERSATION - Routing to unified processor');
+              await unifiedProcessVoiceInput(text);
+            }
             // Check if this is a "create entry" command
-            if ((cleanText.includes('create') && cleanText.includes('entry')) || 
+            else if ((cleanText.includes('create') && cleanText.includes('entry')) || 
                 cleanText.includes('new entry')) {
               console.log('🧠 Wizard launched with create_entry');
               // Start the guided conversation through unified processor

@@ -70,9 +70,11 @@ export default function Dashboard() {
   // Enhanced voice input that handles both commands and conversations
   const enhancedVoiceInputHandler = async (text: string) => {
     console.log('🎤 Dashboard: Enhanced voice input handler called with:', text);
-    console.log('📊 Dashboard: Current state check - showAddEntry:', showAddEntry, 'isVoiceInConversation:', isVoiceInConversation);
+    console.log('📊 Dashboard: Current state check - showAddEntry:', showAddEntry, 'unified isInConversation:', voiceConversationState?.isInConversation);
+    console.log('🔍 Dashboard: Unified conversation state:', voiceConversationState);
     
-    // Always check unified processor first - it handles both commands AND conversations
+    // Always route through unified processor - it handles both commands AND conversations
+    console.log('🎯 Dashboard: Routing to unified processor');
     await unifiedProcessVoiceInput(text);
   };
 

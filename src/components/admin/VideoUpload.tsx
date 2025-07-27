@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Video, Trash2, AlertCircle } from "lucide-react";
+import { Upload, Video, Trash2, AlertCircle, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface DemoVideo {
@@ -425,6 +425,19 @@ export const VideoUpload = () => {
                       checked={video.is_active}
                       onCheckedChange={() => toggleVideoStatus(video.id, video.is_active)}
                     />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = video.video_url;
+                        link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                        link.click();
+                      }}
+                      title="Download video"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

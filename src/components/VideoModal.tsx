@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
 
 interface VideoModalProps {
   open: boolean;
@@ -29,20 +29,40 @@ export const VideoModal = ({ open, onOpenChange, videoUrl, title }: VideoModalPr
       window.removeEventListener('close-video', handleVoiceClose);
     };
   }, [open, onOpenChange]);
+
+  const handleDownload = () => {
+    if (videoUrl) {
+      const link = document.createElement('a');
+      link.href = videoUrl;
+      link.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+      link.click();
+    }
+  };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl w-full p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="flex items-center justify-between">
             {title}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="h-6 w-6 rounded-full"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDownload}
+                className="h-6 w-6 rounded-full"
+                title="Download video"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onOpenChange(false)}
+                className="h-6 w-6 rounded-full"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </DialogTitle>
         </DialogHeader>
         <div className="p-6 pt-2">

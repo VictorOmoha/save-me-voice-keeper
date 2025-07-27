@@ -29,13 +29,16 @@ export const AVAILABLE_VOICES = {
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
 };
 
-// MiniMax available voices - updated for minimax.io
+// MiniMax available voices - restored original Chinese voice IDs
 export const MINIMAX_VOICES = {
-  'voice-001': 'Default Voice 1',
-  'voice-002': 'Default Voice 2', 
-  'voice-003': 'Default Voice 3',
-  'voice-004': 'Default Voice 4',
-  'voice-005': 'Default Voice 5'
+  'male-qn-qingse': 'Male - Qing Se',
+  'male-qn-jingying': 'Male - Jing Ying',
+  'male-qn-badao': 'Male - Ba Dao',
+  'male-qn-daxuesheng': 'Male - Da Xue Sheng',
+  'female-shaonv': 'Female - Shao Nv',
+  'female-yujie': 'Female - Yu Jie',
+  'female-chengshu': 'Female - Cheng Shu',
+  'female-tianmei': 'Female - Tian Mei'
 };
 
 // Voice options for UI components
@@ -146,7 +149,7 @@ export const getSelectedMiniMaxVoice = (): keyof typeof MINIMAX_VOICES => {
   if (stored && stored in MINIMAX_VOICES) {
     return stored as keyof typeof MINIMAX_VOICES;
   }
-  return 'voice-001';
+  return 'male-qn-qingse';
 };
 
 export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): void => {

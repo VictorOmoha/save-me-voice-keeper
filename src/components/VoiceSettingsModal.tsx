@@ -56,7 +56,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
   const [miniMaxApiKey, setMiniMaxApiKeyState] = useState('');
   const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>('elevenlabs');
   const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>('adam');
-  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>('voice-001');
+  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>('male-qn-qingse');
   const [speechLanguage, setSpeechLanguage] = useState('en-US');
   const [speechRate, setSpeechRate] = useState(0.9);
   const [speechVolume, setSpeechVolume] = useState(0.8);
@@ -216,7 +216,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
           body: JSON.stringify({
             model: 'speech-01',  // Required model parameter for MiniMax.io
             text: 'Test',
-            voice_id: 'voice-001',
+            voice_id: 'male-qn-qingse',
             speed: 1.0,
             vol: 1.0,
             pitch: 0,
@@ -247,7 +247,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     console.log('🔄 Resetting voice settings to defaults from modal');
     setSelectedTTSServiceState('elevenlabs');
     setSelectedVoiceState('adam');
-    setSelectedMiniMaxVoiceState('voice-001');
+    setSelectedMiniMaxVoiceState('male-qn-qingse');
     setSpeechLanguage('en-US');
     setSpeechRate(0.9);
     setSpeechVolume(0.8);
@@ -257,7 +257,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     // Save defaults to localStorage immediately
     setSelectedTTSService('elevenlabs');
     setSelectedVoice('adam');
-    setSelectedMiniMaxVoice('voice-001');
+    setSelectedMiniMaxVoice('male-qn-qingse');
     
     toast.info('Settings reset to defaults');
   };

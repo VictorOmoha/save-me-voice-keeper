@@ -206,7 +206,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     
       try {
         // Test with a simple TTS request
-        const response = await fetch('https://api.minimax.chat/v1/text_to_speech', {
+        const response = await fetch('https://api.minimax.io/v1/text_to_speech', {
           method: 'POST',
           headers: {
             'Accept': 'application/json',
@@ -464,12 +464,12 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                     <p className="text-sm text-muted-foreground">
                       Get your API key from{' '}
                       <a 
-                        href="https://www.minimax.chat/" 
+                        href="https://www.minimax.io/" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-primary hover:underline"
                       >
-                        minimax.chat
+                        minimax.io
                       </a>
                     </p>
                   </div>

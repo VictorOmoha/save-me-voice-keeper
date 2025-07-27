@@ -6,7 +6,7 @@ const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
 // MiniMax API configuration
-const MINIMAX_API_URL = 'https://api.minimax.chat/v1/text_to_speech';
+const MINIMAX_API_URL = 'https://api.minimax.io/v1/text_to_speech';
 
 // Voice settings for ElevenLabs
 const VOICE_SETTINGS = {
@@ -450,7 +450,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
         
         // Approach 3: Try alternative endpoint format
         console.log('🔍 Approach 3: Alternative endpoint format');
-        const altApiUrl = `https://api.minimax.chat/v1/text_to_speech/${groupId}`;
+        const altApiUrl = `https://api.minimax.io/v1/text_to_speech/${groupId}`;
         response = await fetch(altApiUrl, {
           method: 'POST',
           headers: {

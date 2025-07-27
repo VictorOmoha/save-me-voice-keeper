@@ -50,6 +50,8 @@ export default function Dashboard() {
     cancelCurrentOperation,
   } = useDashboard();
 
+  console.log('🔄 Dashboard render: Form states ->', { showAddEntry, editingEntry: !!editingEntry, fillingEntry: !!fillingEntry });
+
   // Add voice processor for enhanced voice integration with forms
   const {
     conversationState: voiceConversationState,
@@ -120,15 +122,20 @@ export default function Dashboard() {
       onCancelEdit={handleCancelEdit}
     >
       {(showAddEntry || editingEntry || fillingEntry) ? (
-        <DataEntryForm
-          mode={getFormMode()}
-          editEntry={editingEntry}
-          templateEntry={fillingEntry}
-          onSave={saveEntry}
-          onCancel={handleCancelEdit}
-          isVoiceActive={isVoiceInConversation}
-          voiceConversationState={voiceConversationState}
-        />
+        <>
+          <div className="bg-green-100 text-green-800 p-4 border border-green-500 rounded mb-4">
+            🟢 FORM IS SHOWING: showAddEntry={showAddEntry.toString()}, editingEntry={!!editingEntry}, fillingEntry={!!fillingEntry}
+          </div>
+          <DataEntryForm
+            mode={getFormMode()}
+            editEntry={editingEntry}
+            templateEntry={fillingEntry}
+            onSave={saveEntry}
+            onCancel={handleCancelEdit}
+            isVoiceActive={isVoiceInConversation}
+            voiceConversationState={voiceConversationState}
+          />
+        </>
       ) : (
         <DashboardMainContent
           userName={user?.user_metadata?.full_name || user?.email || 'User'}

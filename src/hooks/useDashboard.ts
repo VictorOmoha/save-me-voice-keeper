@@ -167,13 +167,16 @@ export const useDashboard = () => {
   // Execute voice commands
   const executeVoiceCommand = useCallback(async (command: EnhancedVoiceCommand) => {
     console.log('🚀 Dashboard: Executing command:', command.action);
+    console.log('🚀 Dashboard: Current state before command:', { showAddEntry, editingEntry, fillingEntry });
 
     switch (command.action) {
       case 'create_entry':
       case 'initiate_create':
+        console.log('🟢 EXECUTING CREATE ENTRY COMMAND - Setting showAddEntry to TRUE');
         setShowAddEntry(true);
         setEditingEntry(null);
         setFillingEntry(null);
+        console.log('🟢 CREATE ENTRY STATE CHANGES DISPATCHED');
         break;
 
       case 'create_entry_with_content':

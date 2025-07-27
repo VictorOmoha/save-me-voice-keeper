@@ -91,16 +91,19 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
       const draft = conversationState.entryDraft;
       console.log('🎤 VoiceGuidedEntryWizard: Updating entry data from draft:', draft);
       
-      setEntryData(prev => ({
-        ...prev,
-        title: draft.title || prev.title,
-        category: draft.category || prev.category,
+      const newEntryData = {
+        ...entryData,
+        title: draft.title || entryData.title,
+        category: draft.category || entryData.category,
         customFields: draft.fields?.map((field: any, index: number) => ({
           name: field.name,
           type: field.type,
           value: ''
-        })) || prev.customFields
-      }));
+        })) || entryData.customFields
+      };
+      
+      console.log('🎤 VoiceGuidedEntryWizard: Setting new entry data:', newEntryData);
+      setEntryData(newEntryData);
 
       // Mark completed steps
       setSteps(prev => prev.map(step => {

@@ -115,6 +115,9 @@ export const useUnifiedVoiceProcessor = ({
         const title = transcript.trim();
         const newEntryDraft = { ...entryDraft, title };
         
+        console.log('🎤 Title captured:', title);
+        console.log('📝 Updated entry draft:', newEntryDraft);
+        
         setConversationState({
           ...conversationState,
           currentStep: CONVERSATION_STEPS.CATEGORY,
@@ -128,6 +131,7 @@ export const useUnifiedVoiceProcessor = ({
         
         speak(CONVERSATION_STEPS.CATEGORY.question);
         toast.success(`✅ Title set: "${title}"`);
+        console.log('➡️ Moving to category selection');
         break;
 
       case 'category':
@@ -140,7 +144,10 @@ export const useUnifiedVoiceProcessor = ({
           matchedCategory.charAt(0).toUpperCase() + matchedCategory.slice(1) : 
           'Personal';
         
+        console.log('🎤 Category captured:', categoryName);
         const updatedDraft = { ...entryDraft, category: categoryName };
+        console.log('📝 Updated entry draft with category:', updatedDraft);
+        
         setConversationState({
           ...conversationState,
           currentStep: CONVERSATION_STEPS.MORE_FIELDS,
@@ -153,6 +160,7 @@ export const useUnifiedVoiceProcessor = ({
         
         speak(CONVERSATION_STEPS.MORE_FIELDS.question);
         toast.success(`✅ Category set: ${categoryName}`);
+        console.log('➡️ Moving to custom fields question');
         break;
 
       case 'more_fields':

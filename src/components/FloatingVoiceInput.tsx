@@ -39,6 +39,12 @@ export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
     }
   }, []);
 
+  // Create a custom voice handler that bridges to dashboard
+  const handleVoiceInput = async (transcript: string) => {
+    console.log('🌉 FloatingVoiceInput: Bridging voice input to dashboard:', transcript);
+    await onEnhancedVoiceInput(transcript);
+  };
+
   return (
     <div className="fixed bottom-4 right-20 z-40">
       <ConversationalVoiceInterface 
@@ -48,6 +54,7 @@ export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
         onDeleteEntry={onDeleteEntry}
         onSaveEntry={onSaveEntry}
         onCancelEdit={onCancelEdit}
+        onEnhancedVoiceInput={handleVoiceInput}
       />
     </div>
   );

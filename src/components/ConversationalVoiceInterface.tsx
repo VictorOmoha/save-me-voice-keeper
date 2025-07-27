@@ -18,6 +18,7 @@ interface ConversationalVoiceInterfaceProps {
   onDeleteEntry: (id: string) => void;
   onSaveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancelEdit: () => void;
+  onEnhancedVoiceInput?: (transcript: string) => Promise<void>;
 }
 
 export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterfaceProps> = ({
@@ -27,6 +28,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   onDeleteEntry,
   onSaveEntry,
   onCancelEdit,
+  onEnhancedVoiceInput,
 }) => {
   const [lastTranscript, setLastTranscript] = useState<string>("");
   const [isActive, setIsActive] = useState(false);
@@ -64,7 +66,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     setIsListening,
   });
 
-  // Handle voice input with unified processor
+  // Handle voice input with unified processor or dashboard handler
   const handleVoiceInput = async (transcript: string) => {
     console.log('🎙️ ConversationalVoiceInterface: Processing voice input:', transcript);
     
@@ -75,7 +77,15 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     }
     
     try {
-      await processVoiceInput(transcript);
+      // If dashboard handler is provided, use it (priority for state management)
+      if (onEnhancedVoiceInput) {
+        console.log('🌉 ConversationalVoiceInterface: Using dashboard enhanced voice handler');
+        await onEnhancedVoiceInput(transcript);
+      } else {
+        // Otherwise use the unified processor
+        console.log('🔧 ConversationalVoiceInterface: Using internal unified processor');
+        await processVoiceInput(transcript);
+      }
     } catch (error) {
       console.error('❌ ConversationalVoiceInterface: Error processing voice input:', error);
       toast.error('Sorry, I had trouble understanding that command.');

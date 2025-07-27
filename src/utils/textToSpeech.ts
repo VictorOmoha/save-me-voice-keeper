@@ -21,12 +21,15 @@ export const AVAILABLE_VOICES = {
   'Adam': 'pNInz6obpgDQGcFmaJgB',
   'Antoni': 'ErXwobaYiN019PkySvjV',
   'Arnold': 'VR6AewLTigWG4xSOukaG',
+  'Aria': '9BWtsMINqrJLrRacOk9x',
   'Bella': 'EXAVITQu4vr4xnSDxMaL',
   'Domi': 'AZnzlk1XvdvUeBnXmlld',
   'Elli': 'MF3mGyEYCl7XYWbV9V6O',
   'Josh': 'TxGEqnHWrfWFTfGW9XjX',
   'Rachel': 'pqHfZKP75CvOlQylNhV4',
-  'Sam': 'yoZ06aMxZJJ28mfd3POQ'
+  'Sam': 'yoZ06aMxZJJ28mfd3POQ',
+  'Sarah': 'EXAVITQu4vr4xnSDxMaL',
+  'Laura': 'FGY2WhTYpPnrIDTdsKH5'
 };
 
 // MiniMax voices with proper parameters - Updated with commonly supported voice types
@@ -44,13 +47,15 @@ export const VOICE_OPTIONS = {
   'adam': 'Adam',
   'antoni': 'Antoni', 
   'arnold': 'Arnold',
+  'aria': 'Aria',
   'bella': 'Bella',
   'domi': 'Domi',
   'elli': 'Elli',
   'josh': 'Josh',
+  'laura': 'Laura',
   'rachel': 'Rachel',
   'sam': 'Sam',
-  'aria': 'Aria' // Browser voice fallback
+  'sarah': 'Sarah'
 } as const;
 
 export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;

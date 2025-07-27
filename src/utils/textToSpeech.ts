@@ -22,14 +22,14 @@ export const AVAILABLE_VOICES = {
   'Antoni': 'ErXwobaYiN019PkySvjV',
   'Arnold': 'VR6AewLTigWG4xSOukaG',
   'Aria': '9BWtsMINqrJLrRacOk9x',
-  'Bella': 'EXAVITQu4vr4xnSDxMaL',
+  'Bella': 'XB0fDUnXU5powFXDhCwa', // Charlotte voice ID (female)
   'Domi': 'AZnzlk1XvdvUeBnXmlld',
   'Elli': 'MF3mGyEYCl7XYWbV9V6O',
   'Josh': 'TxGEqnHWrfWFTfGW9XjX',
+  'Laura': 'FGY2WhTYpPnrIDTdsKH5',
   'Rachel': 'pqHfZKP75CvOlQylNhV4',
   'Sam': 'yoZ06aMxZJJ28mfd3POQ',
-  'Sarah': 'EXAVITQu4vr4xnSDxMaL',
-  'Laura': 'FGY2WhTYpPnrIDTdsKH5'
+  'Sarah': 'EXAVITQu4vr4xnSDxMaL'
 };
 
 // MiniMax voices with proper parameters - Updated with commonly supported voice types
@@ -310,7 +310,9 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
   }
 
   const selectedVoice = voice || getSelectedVoice();
-  const voiceId = AVAILABLE_VOICES[selectedVoice as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
+  // Capitalize the voice name for lookup in AVAILABLE_VOICES
+  const capitalizedVoice = selectedVoice.charAt(0).toUpperCase() + selectedVoice.slice(1);
+  const voiceId = AVAILABLE_VOICES[capitalizedVoice as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
 
   console.log('🎙️ TTS: Using ElevenLabs voice:', selectedVoice, 'ID:', voiceId);
   console.log('🔑 TTS: API key length:', apiKey.length, 'starts with:', apiKey.substring(0, 10) + '...');

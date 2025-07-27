@@ -29,11 +29,12 @@ export const AVAILABLE_VOICES = {
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
 };
 
-// MiniMax models - speech-02 series
+// MiniMax models - using standard voices
 export const MINIMAX_VOICES = {
-  'speech-02': 'Speech-02 (Standard)',
-  'speech-02-turbo': 'Speech-02 Turbo (Fast)',
-  'speech-02-hd': 'Speech-02 HD (High Quality)'
+  'male-01': 'Male Voice 01',
+  'female-01': 'Female Voice 01', 
+  'male-02': 'Male Voice 02',
+  'female-02': 'Female Voice 02'
 };
 
 // Voice options for UI components
@@ -144,7 +145,7 @@ export const getSelectedMiniMaxVoice = (): keyof typeof MINIMAX_VOICES => {
   if (stored && stored in MINIMAX_VOICES) {
     return stored as keyof typeof MINIMAX_VOICES;
   }
-  return 'speech-02';
+  return 'male-01';
 };
 
 export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): void => {
@@ -224,16 +225,58 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       options = optionsOrVoice;
     }
     
-    // Choose service based on preference and availability
+    // Try primary service first, then fallback to secondary or browser
+    let primaryFailed = false;
+    
     if (selectedService === 'elevenlabs' && elevenLabsKey) {
-      console.log('🎙️ TTS: Using ElevenLabs TTS');
-      await speakWithElevenLabs(text, voice);
+      try {
+        console.log('🎙️ TTS: Using ElevenLabs TTS');
+        await speakWithElevenLabs(text, voice);
+        return; // Success, exit early
+      } catch (error) {
+        console.warn('⚠️ TTS: ElevenLabs failed, trying fallback:', error.message);
+        primaryFailed = true;
+      }
     } else if (selectedService === 'minimax' && miniMaxKey) {
-      console.log('🎙️ TTS: Using MiniMax TTS');
-      await speakWithMiniMax(text);
-    } else {
-      // No API key available for selected service
-      throw new Error(`No API key available for ${selectedService} TTS service. Please set your API key in voice settings.`);
+      try {
+        console.log('🎙️ TTS: Using MiniMax TTS');
+        await speakWithMiniMax(text);
+        return; // Success, exit early
+      } catch (error) {
+        console.warn('⚠️ TTS: MiniMax failed, trying fallback:', error.message);
+        primaryFailed = true;
+      }
+    }
+    
+    // Try secondary service if primary failed or no key available
+    if (primaryFailed || !(selectedService === 'elevenlabs' ? elevenLabsKey : miniMaxKey)) {
+      const fallbackService = selectedService === 'elevenlabs' ? 'minimax' : 'elevenlabs';
+      const fallbackKey = fallbackService === 'elevenlabs' ? elevenLabsKey : miniMaxKey;
+      
+      if (fallbackKey) {
+        try {
+          console.log(`🔄 TTS: Trying fallback service: ${fallbackService}`);
+          if (fallbackService === 'elevenlabs') {
+            await speakWithElevenLabs(text, voice);
+          } else {
+            await speakWithMiniMax(text);
+          }
+          return; // Success with fallback
+        } catch (fallbackError) {
+          console.warn('⚠️ TTS: Fallback service also failed:', fallbackError.message);
+        }
+      }
+    }
+    
+    // Final fallback to browser TTS
+    console.log('🔄 TTS: All API services failed or unavailable, falling back to browser TTS');
+    try {
+      const speechRate = parseFloat(localStorage.getItem('speech_rate') || '0.9');
+      const speechVolume = parseFloat(localStorage.getItem('speech_volume') || '0.8');
+      await speakWithBrowser(text, { rate: speechRate, pitch: 1, volume: speechVolume });
+    } catch (browserError) {
+      console.error('🚨 TTS: All services failed including browser TTS:', browserError);
+      throw new Error('All TTS services failed. Please check your API keys or browser compatibility.');
     }
   } catch (error) {
     console.error('🚨 TTS: Error during speech:', error);
@@ -278,19 +321,21 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
       const errorData = await response.json();
       console.error('🚨 TTS: ElevenLabs API error:', response.status, JSON.stringify(errorData));
       
-      // Check for specific error types
-      if (errorData.detail?.status === 'quota_exceeded') {
-        toast.error(`ElevenLabs quota exceeded: ${errorData.detail.message}`);
-        throw new Error(`ElevenLabs quota exceeded: ${errorData.detail.message}`);
+      // Check for specific error types - improved error detection
+      if (errorData.detail?.status === 'quota_exceeded' || errorData.detail?.message?.includes('quota')) {
+        const quotaMessage = errorData.detail.message || 'Credits exhausted';
+        toast.error(`ElevenLabs quota exceeded: ${quotaMessage}`);
+        throw new Error(`ElevenLabs quota exceeded: ${quotaMessage}`);
       } else if (response.status === 401) {
         toast.error('ElevenLabs API key is invalid or expired');
         throw new Error('ElevenLabs API key is invalid or expired');
       } else if (response.status === 429) {
         toast.error('ElevenLabs rate limit exceeded');
-        throw new Error('Rate limit exceeded');
+        throw new Error('ElevenLabs rate limit exceeded');
       } else {
-        toast.error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
-        throw new Error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
+        const errorMessage = errorData.detail?.message || `HTTP ${response.status}`;
+        toast.error(`ElevenLabs API error: ${errorMessage}`);
+        throw new Error(`ElevenLabs API error: ${errorMessage}`);
       }
     } catch (parseError) {
       // Fallback if response isn't JSON
@@ -393,13 +438,14 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
 
   const requestBody = {
-    model: selectedVoice,  // Use the selected model (speech-02, speech-02-turbo, etc.)
+    model: "speech-01",  // Use standard speech model
     text: text,
-    speed: 1.0,
-    vol: 1.0,
-    pitch: 0,
-    audio_sample_rate: 32000,
-    bitrate: 128000
+    voice_id: selectedVoice,  // voice_id is required parameter
+    audio_setting: {
+      audio_sample_rate: 24000,
+      bitrate: 128000,
+      format: "wav"
+    }
   };
 
   console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));

@@ -57,6 +57,22 @@ export default function Dashboard() {
     getUser();
   }, [navigate]);
 
+  // Listen for voice command to close entry forms
+  useEffect(() => {
+    const handleCloseFormCommand = () => {
+      if (showAddEntry || editingEntry || fillingEntry) {
+        console.log('🎤 Voice command: Closing entry form');
+        handleCancelEdit();
+      }
+    };
+
+    window.addEventListener('close-entry-form', handleCloseFormCommand);
+    
+    return () => {
+      window.removeEventListener('close-entry-form', handleCloseFormCommand);
+    };
+  }, [showAddEntry, editingEntry, fillingEntry, handleCancelEdit]);
+
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);
   };

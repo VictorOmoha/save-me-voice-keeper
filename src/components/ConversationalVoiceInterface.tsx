@@ -99,10 +99,11 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         break;
         
       case 'close_entry':
-        console.log('🚪 Closing entry view');
-        // Trigger close events for any open entry dialogs/modals
+        console.log('🚪 Closing entry view/form');
+        // Trigger close events for any open entry dialogs/modals and forms
         window.dispatchEvent(new CustomEvent('close-entry-dialog'));
-        toast.success('Entry view closed');
+        window.dispatchEvent(new CustomEvent('close-entry-form'));
+        toast.success('Entry closed');
         break;
         
       case 'greeting':

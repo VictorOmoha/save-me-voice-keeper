@@ -43,15 +43,24 @@ class EnhancedVoiceProcessor {
     console.log('🎤 Transcript received:', text);
     console.log('🤖 Last TTS prompt:', this.lastTTSPrompt);
     
-    // Skip very short inputs
-    if (cleanText.length < 3) {
-      console.log('🚫 Enhanced Processor: Text too short, skipping');
-      return true;
-    }
-    
     // Check if TTS is currently speaking
     if ((window as any).__tts_is_speaking) {
       console.log('🚫 Enhanced Processor: TTS currently speaking, blocking input');
+      return true;
+    }
+    
+    // Only block if it's clearly a help message being read back
+    const helpPatterns = [
+      /i didn't understand that.*try saying/,
+      /try saying.*create a new entry/,
+      /voice mode activated.*how can i help/,
+      /starting guided entry creation/,
+      /bling bling bling/
+    ];
+    
+    const isHelpMessage = helpPatterns.some(pattern => pattern.test(cleanText));
+    if (isHelpMessage) {
+      console.log('🚫 Enhanced Processor: Help message detected, blocking');
       return true;
     }
     
@@ -61,42 +70,10 @@ class EnhancedVoiceProcessor {
       return true;
     }
     
-    // Enhanced system prompts to filter out
-    const systemPhrases = [
-      'voice mode activated',
-      'how can i help you',
-      'what would you like to call this entry',
-      'what category should this entry be in',
-      'would you like to add any custom fields',
-      'tell me what to add',
-      'what information would you like to add',
-      'starting guided entry creation',
-      'bling bling bling',
-      'activated how can i help',
-      'guided entry creation'
-    ];
-    
-    // Check for exact system phrase matches and partial matches
-    for (const phrase of systemPhrases) {
-      if (cleanText === phrase || cleanText.includes(phrase)) {
-        console.log('🚫 Enhanced Processor: System phrase match, blocking:', phrase);
-        return true;
-      }
-    }
-    
-    // Check recent TTS cache
-    if ((window as any).__recent_tts_texts) {
-      const recentTTS = (window as any).__recent_tts_texts as string[];
-      
-      for (const ttsText of recentTTS) {
-        const ttsClean = ttsText.toLowerCase().trim();
-        if (cleanText === ttsClean || 
-            (cleanText.length > 10 && ttsClean.includes(cleanText)) ||
-            (ttsClean.length > 10 && ttsClean.includes(cleanText))) {
-          console.log('🚫 Enhanced Processor: Close TTS match, blocking');
-          return true;
-        }
-      }
+    // For short user responses like "people story", don't block
+    if (cleanText.length < 50 && !cleanText.includes('try saying') && !cleanText.includes('understand')) {
+      console.log('✅ Enhanced Processor: Allowing short user response:', cleanText);
+      return false;
     }
     
     return false;

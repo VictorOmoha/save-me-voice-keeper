@@ -296,13 +296,19 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
 const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> => {
   const apiKey = getElevenLabsApiKey();
   if (!apiKey) {
-    throw new Error('ElevenLabs API key not found');
+    throw new Error('ElevenLabs API key not found. Please set your API key in voice settings.');
+  }
+
+  // Validate API key format
+  if (apiKey.length < 20 || !apiKey.startsWith('sk-')) {
+    throw new Error('Invalid ElevenLabs API key format. Please check your API key in settings.');
   }
 
   const selectedVoice = voice || getSelectedVoice();
   const voiceId = AVAILABLE_VOICES[selectedVoice as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
 
   console.log('🎙️ TTS: Using ElevenLabs voice:', selectedVoice, 'ID:', voiceId);
+  console.log('🔑 TTS: API key length:', apiKey.length, 'starts with:', apiKey.substring(0, 10) + '...');
 
   const response = await fetch(`${ELEVENLABS_API_URL}/${voiceId}`, {
     method: 'POST',
@@ -313,7 +319,7 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
     },
     body: JSON.stringify({
       text: text,
-      model_id: 'eleven_monolingual_v1',
+      model_id: 'eleven_multilingual_v2', // Use better model
       voice_settings: VOICE_SETTINGS,
     }),
   });
@@ -713,4 +719,72 @@ export const stopCurrentSpeech = stopSpeaking;
 // Check if TTS is currently speaking
 export const isSpeaking = (): boolean => {
   return !!(window as any).__tts_is_speaking;
+};
+
+// API Key validation functions
+export const validateElevenLabsApiKey = async (apiKey: string): Promise<{ valid: boolean; error?: string }> => {
+  if (!apiKey || apiKey.trim() === '') {
+    return { valid: false, error: 'API key is required' };
+  }
+
+  if (!apiKey.startsWith('sk-')) {
+    return { valid: false, error: 'Invalid API key format. Should start with "sk-"' };
+  }
+
+  try {
+    console.log('🔍 Validating ElevenLabs API key...');
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey,
+      },
+    });
+
+    if (response.ok) {
+      console.log('✅ ElevenLabs API key is valid');
+      return { valid: true };
+    } else {
+      const errorData = await response.json();
+      console.error('❌ ElevenLabs API key validation failed:', errorData);
+      return { 
+        valid: false, 
+        error: errorData.detail?.message || `HTTP ${response.status}` 
+      };
+    }
+  } catch (error) {
+    console.error('❌ ElevenLabs API key validation error:', error);
+    return { 
+      valid: false, 
+      error: 'Network error during validation' 
+    };
+  }
+};
+
+export const validateMiniMaxApiKey = async (apiKey: string): Promise<{ valid: boolean; error?: string }> => {
+  if (!apiKey || apiKey.trim() === '') {
+    return { valid: false, error: 'JWT token is required' };
+  }
+
+  try {
+    // Validate JWT structure
+    const jwtParts = apiKey.split('.');
+    if (jwtParts.length !== 3) {
+      return { valid: false, error: 'Invalid JWT format' };
+    }
+
+    // Try to decode payload
+    const payload = JSON.parse(atob(jwtParts[1]));
+    if (!payload.GroupID) {
+      return { valid: false, error: 'JWT missing GroupID' };
+    }
+
+    console.log('✅ MiniMax JWT token format is valid');
+    return { valid: true };
+  } catch (error) {
+    console.error('❌ MiniMax JWT validation error:', error);
+    return { 
+      valid: false, 
+      error: 'Invalid JWT token format' 
+    };
+  }
 };

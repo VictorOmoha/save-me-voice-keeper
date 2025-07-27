@@ -24,6 +24,8 @@ import {
   setSelectedMiniMaxVoice,
   speak,
   stopCurrentSpeech,
+  validateElevenLabsApiKey,
+  validateMiniMaxApiKey,
   type TTSService
 } from "@/utils/textToSpeech";
 import { toast } from "sonner";
@@ -163,19 +165,12 @@ export const VoiceSettings: React.FC = () => {
     console.log('🔍 Validating ElevenLabs API key...');
     
     try {
-      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-        headers: {
-          'xi-api-key': apiKey
-        }
-      });
-
-      if (response.ok) {
-        console.log('✅ ElevenLabs API key is valid');
+      const result = await validateElevenLabsApiKey(apiKey);
+      if (result.valid) {
         setElevenLabsApiKey(apiKey);
         toast.success('ElevenLabs API key is valid!');
       } else {
-        console.log('❌ ElevenLabs API key is invalid');
-        toast.error('Invalid ElevenLabs API key. Please check and try again.');
+        toast.error(`ElevenLabs API key validation failed: ${result.error}`);
       }
     } catch (error) {
       console.error('🚨 ElevenLabs API key validation failed:', error);
@@ -188,44 +183,24 @@ export const VoiceSettings: React.FC = () => {
   // Validate MiniMax API key
   const validateMiniMaxKey = async () => {
     if (!miniMaxApiKey.trim()) {
-      toast.error('Please enter a MiniMax API key');
+      toast.error('Please enter a MiniMax JWT token');
       return;
     }
 
     setIsValidatingKey(true);
-    console.log('🔍 Validating MiniMax API key...');
+    console.log('🔍 Validating MiniMax JWT token...');
     
     try {
-      // Test with a simple TTS request
-      const response = await fetch('https://api.minimax.io/v1/text_to_speech', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${miniMaxApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'speech-01',  // Use speech-01 model for testing
-          text: 'Test',
-          speed: 1.0,
-          vol: 1.0,
-          pitch: 0,
-          audio_sample_rate: 32000,
-          bitrate: 128000
-        }),
-      });
-
-      if (response.ok) {
-        console.log('✅ MiniMax API key is valid');
+      const result = await validateMiniMaxApiKey(miniMaxApiKey);
+      if (result.valid) {
         setMiniMaxApiKey(miniMaxApiKey);
-        toast.success('MiniMax API key is valid!');
+        toast.success('MiniMax JWT token is valid!');
       } else {
-        console.log('❌ MiniMax API key is invalid');
-        toast.error('Invalid MiniMax API key. Please check and try again.');
+        toast.error(`MiniMax JWT validation failed: ${result.error}`);
       }
     } catch (error) {
-      console.error('🚨 MiniMax API key validation failed:', error);
-      toast.error('Failed to validate MiniMax API key. Please check your connection.');
+      console.error('🚨 MiniMax JWT validation failed:', error);
+      toast.error('Failed to validate MiniMax JWT token. Please check your connection.');
     } finally {
       setIsValidatingKey(false);
     }

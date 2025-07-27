@@ -56,7 +56,8 @@ export default function Dashboard() {
   // Add voice processor for enhanced voice integration with forms
   const {
     conversationState: voiceConversationState,
-    isInConversation: isVoiceInConversation
+    isInConversation: isVoiceInConversation,
+    processVoiceInput: unifiedProcessVoiceInput
   } = useUnifiedVoiceProcessor({
     savedEntries: savedEntries,
     onCreateEntry: handleAddEntry,
@@ -126,12 +127,12 @@ export default function Dashboard() {
         <>
           
           {/* Use VoiceGuidedEntryWizard for new entries with voice conversation */}
-          {showAddEntry && isVoiceInConversation ? (
+          {showAddEntry && voiceConversationState?.isInConversation ? (
             <VoiceGuidedEntryWizard
               onSave={saveEntry}
               onCancel={handleCancelEdit}
               conversationState={voiceConversationState}
-              isVoiceActive={isVoiceInConversation}
+              isVoiceActive={voiceConversationState.isInConversation}
             />
           ) : (
             <DataEntryForm
@@ -140,7 +141,7 @@ export default function Dashboard() {
               templateEntry={fillingEntry}
               onSave={saveEntry}
               onCancel={handleCancelEdit}
-              isVoiceActive={isVoiceInConversation}
+              isVoiceActive={voiceConversationState?.isInConversation || false}
               voiceConversationState={voiceConversationState}
             />
           )}
@@ -162,7 +163,7 @@ export default function Dashboard() {
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={() => {}}
-          onEnhancedVoiceInput={handleEnhancedVoiceInput}
+          onEnhancedVoiceInput={unifiedProcessVoiceInput}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}

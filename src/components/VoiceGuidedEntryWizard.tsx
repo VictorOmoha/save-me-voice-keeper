@@ -67,6 +67,8 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   useEffect(() => {
     if (conversationState?.currentStep) {
       const stepType = conversationState.currentStep.type;
+      console.log('🎤 VoiceGuidedEntryWizard: Current step type:', stepType);
+      
       setSteps(prev => prev.map(step => ({
         ...step,
         current: step.id === stepType || 
@@ -78,6 +80,8 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
       setLastVoiceInput(conversationState.currentStep.question);
       setIsAnimating(true);
       setTimeout(() => setIsAnimating(false), 1000);
+    } else {
+      console.log('🎤 VoiceGuidedEntryWizard: No current step in conversation state');
     }
   }, [conversationState]);
 
@@ -85,6 +89,8 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   useEffect(() => {
     if (conversationState?.entryDraft) {
       const draft = conversationState.entryDraft;
+      console.log('🎤 VoiceGuidedEntryWizard: Updating entry data from draft:', draft);
+      
       setEntryData(prev => ({
         ...prev,
         title: draft.title || prev.title,

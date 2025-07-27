@@ -17,7 +17,8 @@ import {
   Plus, 
   Save,
   Sparkles,
-  Volume2
+  Volume2,
+  Eye
 } from "lucide-react";
 
 interface VoiceStep {
@@ -50,7 +51,7 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
     { id: 'title', title: 'Entry Title', question: 'What would you like to call this entry?', completed: false, current: true },
     { id: 'category', title: 'Category', question: 'What category should this entry be in?', completed: false, current: false },
     { id: 'fields', title: 'Custom Fields', question: 'Would you like to add any custom fields?', completed: false, current: false },
-    { id: 'save', title: 'Save Entry', question: 'Ready to save your entry?', completed: false, current: false }
+    { id: 'preview', title: 'Preview & Save', question: 'Review your entry and save', completed: false, current: false }
   ]);
 
   const [entryData, setEntryData] = useState({
@@ -76,7 +77,7 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
           (stepType === 'title' && step.id === 'title') ||
           (stepType === 'category' && step.id === 'category') ||
           (['more_fields', 'field_name', 'field_type'].includes(stepType) && step.id === 'fields') ||
-          (stepType === 'save' && step.id === 'save');
+          (stepType === 'preview' && step.id === 'preview');
         
         return {
           ...step,
@@ -271,39 +272,95 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
             <p className="text-xs text-muted-foreground">🧭 Current Step: {steps.find(s => s.current)?.id || 'None'}</p>
           </div>
 
-          {/* Entry Preview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Title Section */}
-            <div className={`space-y-2 transition-all duration-300 ${
-              steps.find(s => s.id === 'title')?.current ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-3' : ''
-            }`}>
-              <Label htmlFor="preview-title">Entry Title</Label>
-              <Input
-                id="preview-title"
-                value={entryData.title}
-                onChange={(e) => setEntryData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Enter your entry title..."
-                className={`transition-all duration-300 ${
-                  steps.find(s => s.id === 'title')?.current ? 'border-blue-500 ring-1 ring-blue-500/30' : ''
-                }`}
-                disabled={conversationState?.isInConversation}
-              />
+          {/* Conditional Content Based on Step */}
+          {steps.find(s => s.id === 'preview')?.current ? (
+            /* Preview Step - Detailed Entry Overview */
+            <div className="space-y-6">
+              <div className="flex items-center space-x-2 mb-4">
+                <Eye className="h-5 w-5 text-blue-500" />
+                <h3 className="text-lg font-semibold text-foreground">Preview Your Entry</h3>
+              </div>
+              
+              {/* Detailed entry preview */}
+              <div className="space-y-4 p-6 bg-accent/5 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Title</Label>
+                    <div className="p-3 bg-background border border-border rounded-md">
+                      <span className="text-foreground font-medium">{entryData.title || 'Untitled Entry'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Category</Label>
+                    <div className="p-3 bg-background border border-border rounded-md">
+                      <span className="text-foreground">{entryData.category}</span>
+                    </div>
+                  </div>
+                  
+                  {entryData.customFields && entryData.customFields.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Custom Fields</Label>
+                      <div className="space-y-2">
+                        {entryData.customFields.map((field, index) => (
+                          <div key={index} className="p-3 bg-background border border-border rounded-md">
+                            <div className="flex items-center justify-between">
+                              <span className="text-foreground font-medium">{field.name}</span>
+                              <Badge variant="outline" className="text-xs">{field.type}</Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-foreground font-medium mb-2">Ready to save this entry?</p>
+                <p className="text-sm text-muted-foreground">
+                  Say <strong>"save"</strong> to create your entry or <strong>"edit"</strong> to make changes
+                </p>
+              </div>
             </div>
+          ) : (
+            /* Regular Wizard Steps */
+            <div className="space-y-6">
+              {/* Entry Input Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Title Section */}
+                <div className={`space-y-2 transition-all duration-300 ${
+                  steps.find(s => s.id === 'title')?.current ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-3' : ''
+                }`}>
+                  <Label htmlFor="preview-title">Entry Title</Label>
+                  <Input
+                    id="preview-title"
+                    value={entryData.title}
+                    onChange={(e) => setEntryData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter your entry title..."
+                    className={`transition-all duration-300 ${
+                      steps.find(s => s.id === 'title')?.current ? 'border-blue-500 ring-1 ring-blue-500/30' : ''
+                    }`}
+                    disabled={conversationState?.isInConversation}
+                  />
+                </div>
 
-            {/* Category Section */}
-            <div className={`space-y-2 transition-all duration-300 ${
-              steps.find(s => s.id === 'category')?.current ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-3' : ''
-            }`}>
-              <Label>Category</Label>
-              <CategorySelector
-                selectedCategory={entryData.category}
-                onCategoryChange={(category) => setEntryData(prev => ({ ...prev, category }))}
-                isReadonly={conversationState?.isInConversation}
-                categories={['Documents', 'Health', 'Contacts', 'Finance', 'Personal']}
-                highlightedField={steps.find(s => s.id === 'category')?.current ? 'category' : null}
-              />
+                {/* Category Section */}
+                <div className={`space-y-2 transition-all duration-300 ${
+                  steps.find(s => s.id === 'category')?.current ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-3' : ''
+                }`}>
+                  <Label>Category</Label>
+                  <CategorySelector
+                    selectedCategory={entryData.category}
+                    onCategoryChange={(category) => setEntryData(prev => ({ ...prev, category }))}
+                    isReadonly={conversationState?.isInConversation}
+                    categories={['Documents', 'Health', 'Contacts', 'Finance', 'Personal']}
+                    highlightedField={steps.find(s => s.id === 'category')?.current ? 'category' : null}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Custom Fields Section */}
           {entryData.customFields.length > 0 && (

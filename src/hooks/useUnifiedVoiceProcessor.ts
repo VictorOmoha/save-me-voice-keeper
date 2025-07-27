@@ -5,7 +5,7 @@ import { SavedEntry } from '@/types/dashboard';
 import { voiceProcessor, EnhancedVoiceCommand } from '@/utils/enhancedVoiceProcessor';
 
 interface ConversationStep {
-  type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'confirm';
+  type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'preview' | 'confirm';
   question: string;
   expectedResponse?: string[];
 }
@@ -59,6 +59,10 @@ const CONVERSATION_STEPS = {
     question: "What type of field should this be? You can say text, number, date, or textarea.",
     expectedResponse: ['text', 'number', 'date', 'textarea']
   },
+  PREVIEW: {
+    type: 'preview' as const,
+    question: "Here's your entry preview. Would you like to save this entry or edit something?",
+  },
 };
 
 export const useUnifiedVoiceProcessor = ({
@@ -100,6 +104,34 @@ export const useUnifiedVoiceProcessor = ({
     }, 500);
   }, [onCreateEntry]);
 
+  // Helper function to clean voice input from system prompts
+  const cleanVoiceInput = useCallback((text: string, currentStep: any): string => {
+    let cleaned = text.trim();
+    
+    // Remove common system prompt phrases that might get picked up
+    const promptPhrases = [
+      "What would you like to call this entry",
+      "What category should this entry be in",
+      "Would you like to add any custom fields",
+      "What would you like to name this field",
+      "What type of field should this be",
+      "Here's your entry preview",
+      "Would you like to save this entry or edit something"
+    ];
+    
+    // Remove prompt phrases (case insensitive)
+    for (const phrase of promptPhrases) {
+      const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      cleaned = cleaned.replace(regex, '').trim();
+    }
+    
+    // Remove common filler words and punctuation at the beginning
+    cleaned = cleaned.replace(/^(uh|um|er|ah|well|so|okay|alright|let me see|i want to|i would like to|the|question mark|\?|\.)\s*/gi, '').trim();
+    
+    console.log(`🧹 Cleaned input "${text}" → "${cleaned}"`);
+    return cleaned;
+  }, []);
+
   const processConversationStep = useCallback((transcript: string) => {
     console.log('🎯 processConversationStep called with:', transcript);
     console.log('🔍 Current conversation state:', { 
@@ -112,14 +144,27 @@ export const useUnifiedVoiceProcessor = ({
       return false;
     }
 
-    const lowerTranscript = transcript.toLowerCase().trim();
     const { currentStep, entryDraft } = conversationState;
-
-    console.log('📝 Processing conversation step:', currentStep.type, 'with input:', transcript);
+    
+    // Clean the input text
+    const cleanedText = cleanVoiceInput(transcript, currentStep);
+    const lowerTranscript = cleanedText.toLowerCase().trim();
+    
+    console.log('📝 Processing conversation step:', currentStep.type, 'with cleaned input:', cleanedText);
+    
+    // If cleaned text is empty, ask for clarification
+    if (!cleanedText) {
+      const clarificationMessage = `I didn't catch that clearly. ${currentStep.question}`;
+      setTimeout(() => {
+        speak(clarificationMessage);
+        toast.info(clarificationMessage);
+      }, 300);
+      return false;
+    }
 
     switch (currentStep.type) {
       case 'title':
-        const title = transcript.trim();
+        const title = cleanedText;
         const newEntryDraft = { ...entryDraft, title };
         
         console.log('🎤 Title captured:', title);
@@ -159,7 +204,7 @@ export const useUnifiedVoiceProcessor = ({
         
         setConversationState(prev => ({
           ...prev,
-          currentStep: CONVERSATION_STEPS.MORE_FIELDS,
+          currentStep: CONVERSATION_STEPS.PREVIEW,
           entryDraft: updatedDraft,
         }));
         
@@ -168,10 +213,10 @@ export const useUnifiedVoiceProcessor = ({
         }
         
         setTimeout(() => {
-          speak(CONVERSATION_STEPS.MORE_FIELDS.question);
-          toast.success(`✅ Category set: ${categoryName}`);
+          speak(CONVERSATION_STEPS.PREVIEW.question);
+          toast.success(`✅ Category set: ${categoryName} - Showing preview`);
         }, 300);
-        console.log('➡️ Moving to custom fields question');
+        console.log('➡️ Moving to preview step');
         break;
 
       case 'more_fields':
@@ -183,8 +228,15 @@ export const useUnifiedVoiceProcessor = ({
           speak(CONVERSATION_STEPS.FIELD_NAME.question);
           toast.info("📝 Adding custom field - what should it be called?");
         } else {
-          // Create the entry
-          createEntryFromDraft(entryDraft);
+          // Move to preview instead of creating directly
+          setConversationState(prev => ({
+            ...prev,
+            currentStep: CONVERSATION_STEPS.PREVIEW,
+          }));
+          setTimeout(() => {
+            speak(CONVERSATION_STEPS.PREVIEW.question);
+            toast.info("📋 Showing entry preview");
+          }, 300);
         }
         break;
 
@@ -192,10 +244,10 @@ export const useUnifiedVoiceProcessor = ({
         setConversationState({
           ...conversationState,
           currentStep: CONVERSATION_STEPS.FIELD_TYPE,
-          currentFieldName: transcript.trim(),
+          currentFieldName: cleanedText,
         });
         speak(CONVERSATION_STEPS.FIELD_TYPE.question);
-        toast.success(`📝 Field name set: "${transcript.trim()}"`);
+        toast.success(`📝 Field name set: "${cleanedText}"`);
         break;
 
       case 'field_type':
@@ -229,10 +281,33 @@ export const useUnifiedVoiceProcessor = ({
         speak(`Added ${matchedType} field "${newField.name}". ${CONVERSATION_STEPS.MORE_FIELDS.question}`);
         toast.success(`✅ Added field: ${newField.name} (${matchedType})`);
         break;
+
+      case 'preview':
+        if (lowerTranscript.includes('save') || lowerTranscript.includes('yes') || lowerTranscript.includes('looks good') || lowerTranscript.includes('create')) {
+          createEntryFromDraft(entryDraft);
+        } else if (lowerTranscript.includes('edit') || lowerTranscript.includes('change') || lowerTranscript.includes('no') || lowerTranscript.includes('modify')) {
+          // Go back to title for editing
+          setConversationState(prev => ({
+            ...prev,
+            currentStep: CONVERSATION_STEPS.TITLE,
+            entryDraft: { fields: [] },
+          }));
+          setTimeout(() => {
+            speak("Let's start over. What would you like to call this entry?");
+            toast.info("🔄 Restarting entry creation");
+          }, 300);
+        } else {
+          // Ask for clarification
+          setTimeout(() => {
+            speak("Please say 'save' to create the entry or 'edit' to make changes.");
+            toast.info("Say 'save' to create or 'edit' to modify");
+          }, 300);
+        }
+        break;
     }
 
     return true;
-  }, [conversationState, formTitleSetter, formCategorySetter, formAddFieldFunction]);
+  }, [conversationState, formTitleSetter, formCategorySetter, formAddFieldFunction, cleanVoiceInput]);
 
   const createEntryFromDraft = useCallback((draft: EntryDraft) => {
     const entry = {

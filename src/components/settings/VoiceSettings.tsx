@@ -234,7 +234,7 @@ export const VoiceSettings: React.FC = () => {
   // Reset to defaults
   const resetToDefaults = () => {
     console.log('🔄 Resetting voice settings to defaults');
-    setSelectedTTSServiceState('browser');
+    setSelectedTTSServiceState('elevenlabs');
     setSelectedVoiceState('adam');
     setSelectedMiniMaxVoiceState('male-qn-qingse');
     setSpeechLanguage('en-US');
@@ -244,7 +244,7 @@ export const VoiceSettings: React.FC = () => {
     setContinuousListening(false);
     
     // Save defaults to localStorage immediately
-    setSelectedTTSService('browser');
+    setSelectedTTSService('elevenlabs');
     setSelectedVoice('adam');
     setSelectedMiniMaxVoice('male-qn-qingse');
     
@@ -366,7 +366,6 @@ export const VoiceSettings: React.FC = () => {
                         {hasMiniMaxKey && <Badge variant="secondary" className="ml-2 text-xs">Connected</Badge>}
                       </div>
                     </SelectItem>
-                    <SelectItem value="browser">Browser TTS (Free)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
@@ -517,13 +516,6 @@ export const VoiceSettings: React.FC = () => {
                 </div>
               )}
 
-              {selectedTTSService === 'browser' && (
-                <div className="p-3 bg-muted rounded-md">
-                  <p className="text-sm text-muted-foreground">
-                    Browser TTS will use your system's default voice. Quality and features may be limited compared to premium services.
-                  </p>
-                </div>
-              )}
 
               <div className="space-y-2">
                 <Label>Speech Rate: {speechRate.toFixed(1)}x</Label>

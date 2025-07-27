@@ -244,7 +244,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
   // Reset to defaults
   const resetToDefaults = () => {
     console.log('🔄 Resetting voice settings to defaults from modal');
-    setSelectedTTSServiceState('browser');
+    setSelectedTTSServiceState('elevenlabs');
     setSelectedVoiceState('adam');
     setSelectedMiniMaxVoiceState('male-qn-qingse');
     setSpeechLanguage('en-US');
@@ -254,7 +254,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     setContinuousListening(false);
     
     // Save defaults to localStorage immediately
-    setSelectedTTSService('browser');
+    setSelectedTTSService('elevenlabs');
     setSelectedVoice('adam');
     setSelectedMiniMaxVoice('male-qn-qingse');
     
@@ -382,7 +382,6 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                           {hasMiniMaxKey && <Badge variant="secondary" className="ml-2 text-xs">Connected</Badge>}
                         </div>
                       </SelectItem>
-                      <SelectItem value="browser">Browser TTS (Free)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground">
@@ -525,13 +524,6 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                   </div>
                 )}
 
-                {selectedTTSService === 'browser' && (
-                  <div className="p-3 bg-muted rounded-md">
-                    <p className="text-sm text-muted-foreground">
-                      Browser TTS will use your system's default voice. Quality and features may be limited compared to premium services.
-                    </p>
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label>Speech Rate: {speechRate.toFixed(1)}x</Label>
@@ -593,7 +585,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
                     <p>• If voice recognition doesn't work, check microphone permissions</p>
                     <p>• For better accuracy, speak clearly and avoid background noise</p>
                     <p>• ElevenLabs voices require an internet connection</p>
-                    <p>• Browser voices work offline but have limited quality</p>
+                    <p>• Make sure your API keys are valid and have credits</p>
                   </div>
                 </div>
 

@@ -58,7 +58,7 @@ export const VOICE_OPTIONS = {
 export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 
 // TTS Service type
-export type TTSService = 'elevenlabs' | 'minimax' | 'browser';
+export type TTSService = 'elevenlabs' | 'minimax';
 
 // API Key management with improved error handling and logging
 export const getElevenLabsApiKey = (): string | null => {
@@ -122,7 +122,7 @@ export const setMiniMaxApiKey = (apiKey: string): void => {
 // Service preference
 export const getSelectedTTSService = (): TTSService => {
   const stored = localStorage.getItem('selected_tts_service');
-  if (stored && ['elevenlabs', 'minimax', 'browser'].includes(stored)) {
+  if (stored && ['elevenlabs', 'minimax'].includes(stored)) {
     return stored as TTSService;
   }
   return 'elevenlabs';
@@ -237,17 +237,12 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       console.log('🎙️ TTS: Using MiniMax TTS');
       await speakWithMiniMax(text);
     } else {
-      console.log('🎙️ TTS: Using browser TTS (fallback)');
-      await speakWithBrowser(text, options);
+      // No API key available for selected service
+      throw new Error(`No API key available for ${selectedService} TTS service. Please set your API key in voice settings.`);
     }
   } catch (error) {
     console.error('🚨 TTS: Error during speech:', error);
-    // Fallback to browser TTS
-    try {
-      await speakWithBrowser(text, typeof optionsOrVoice === 'object' ? optionsOrVoice : undefined);
-    } catch (fallbackError) {
-      console.error('🚨 TTS: Fallback TTS also failed:', fallbackError);
-    }
+    toast.error('TTS failed. Please check your API key and try again.');
   } finally {
     // Clear TTS flag and dispatch completion event after a brief delay
     setTimeout(() => {

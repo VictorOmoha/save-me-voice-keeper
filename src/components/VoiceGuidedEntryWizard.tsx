@@ -65,6 +65,21 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Listen for voice input from Dashboard when in conversation mode
+  useEffect(() => {
+    const handleWizardVoiceInput = (event: CustomEvent) => {
+      const { text } = event.detail;
+      console.log('🧙 VoiceGuidedEntryWizard: Received voice input from Dashboard:', text);
+      console.log('🧙 VoiceGuidedEntryWizard: This should trigger the unified processor in the parent');
+    };
+
+    window.addEventListener('wizard-voice-input', handleWizardVoiceInput as EventListener);
+    
+    return () => {
+      window.removeEventListener('wizard-voice-input', handleWizardVoiceInput as EventListener);
+    };
+  }, []);
+
   // Update steps based on conversation state
   useEffect(() => {
     if (conversationState?.currentStep) {

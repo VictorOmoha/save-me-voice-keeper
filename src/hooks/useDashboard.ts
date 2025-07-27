@@ -42,6 +42,20 @@ export const useDashboard = () => {
       console.log('🎯 Dashboard Voice Handler: Called with text:', text);
       console.log('🎯 Dashboard Voice Handler: Current state - showAddEntry:', showAddEntry);
 
+      // CRITICAL: Check if we're in conversation mode first
+      // If the VoiceGuidedEntryWizard is active (showAddEntry is true), 
+      // we should route voice input to the unified processor instead of command processing
+      const isInWizardConversation = showAddEntry && text !== 'Create a new entry.' && text !== 'create a new entry';
+      
+      if (isInWizardConversation) {
+        console.log('🧙 Dashboard: In wizard conversation mode - routing to unified processor');
+        // Use the unified processor directly instead of dispatching event
+        // We'll need access to the unified processor here
+        console.log('🧙 Dashboard: Voice input should be processed as conversation step:', text);
+        // For now, just return and let the parent handle this differently
+        return;
+      }
+
       // Handle structured entry creation from brain dumps
       if (text.startsWith('CREATE_STRUCTURED_ENTRY:')) {
         await handleStructuredEntryCreation(text);

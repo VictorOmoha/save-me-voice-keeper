@@ -67,6 +67,21 @@ export default function Dashboard() {
     onCancelEdit: handleCancelEdit,
   });
 
+  // Enhanced voice input that handles both commands and conversations
+  const enhancedVoiceInputHandler = async (text: string) => {
+    console.log('🎤 Dashboard: Enhanced voice input handler called with:', text);
+    
+    // If we're in a wizard conversation, use the unified processor
+    if (showAddEntry && isVoiceInConversation) {
+      console.log('🧙 Dashboard: Routing to unified processor for wizard conversation');
+      await unifiedProcessVoiceInput(text);
+    } else {
+      // Otherwise use the standard dashboard voice handler
+      console.log('🎯 Dashboard: Using standard voice handler');
+      await handleEnhancedVoiceInput(text);
+    }
+  };
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -163,27 +178,7 @@ export default function Dashboard() {
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={() => {}}
-          onEnhancedVoiceInput={async (text) => {
-            console.log('🧠 Dashboard: Voice input received:', text);
-            
-            const cleanText = text.toLowerCase();
-            
-            // CRITICAL: If we're in a conversation, ALL input goes to unified processor
-            if (isVoiceInConversation) {
-              console.log('🎯 IN CONVERSATION - Routing to unified processor');
-              await unifiedProcessVoiceInput(text);
-            }
-            // Check if this is a "create entry" command
-            else if ((cleanText.includes('create') && cleanText.includes('entry')) || 
-                cleanText.includes('new entry')) {
-              console.log('🧠 Wizard launched with create_entry');
-              // Start the guided conversation through unified processor
-              await unifiedProcessVoiceInput(text);
-            } else {
-              // Handle other commands with regular voice processor
-              await handleEnhancedVoiceInput(text);
-            }
-          }}
+          onEnhancedVoiceInput={enhancedVoiceInputHandler}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}

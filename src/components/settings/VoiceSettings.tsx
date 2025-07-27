@@ -47,7 +47,7 @@ export const VoiceSettings: React.FC = () => {
   const [miniMaxApiKey, setMiniMaxApiKeyState] = useState('');
   const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>('elevenlabs');
   const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>('adam');
-  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>('broadcaster_m');
+  const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>('speech-02');
   const [speechLanguage, setSpeechLanguage] = useState('en-US');
   const [speechRate, setSpeechRate] = useState(0.9);
   const [speechVolume, setSpeechVolume] = useState(0.8);
@@ -205,9 +205,8 @@ export const VoiceSettings: React.FC = () => {
           'Authorization': `Bearer ${miniMaxApiKey}`,
         },
         body: JSON.stringify({
-          model: 'speech-01',  // Required model parameter for MiniMax.io
+          model: 'speech-02',  // Use speech-02 model for testing
           text: 'Test',
-          voice_id: 'broadcaster_m',
           speed: 1.0,
           vol: 1.0,
           pitch: 0,
@@ -237,7 +236,7 @@ export const VoiceSettings: React.FC = () => {
     console.log('🔄 Resetting voice settings to defaults');
     setSelectedTTSServiceState('elevenlabs');
     setSelectedVoiceState('adam');
-    setSelectedMiniMaxVoiceState('broadcaster_m');
+    setSelectedMiniMaxVoiceState('speech-02');
     setSpeechLanguage('en-US');
     setSpeechRate(0.9);
     setSpeechVolume(0.8);
@@ -247,7 +246,7 @@ export const VoiceSettings: React.FC = () => {
     // Save defaults to localStorage immediately
     setSelectedTTSService('elevenlabs');
     setSelectedVoice('adam');
-    setSelectedMiniMaxVoice('broadcaster_m');
+    setSelectedMiniMaxVoice('speech-02');
     
     toast.info('Settings reset to defaults');
   };

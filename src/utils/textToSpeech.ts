@@ -29,14 +29,11 @@ export const AVAILABLE_VOICES = {
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
 };
 
-// MiniMax available voices - simplified common voice IDs
+// MiniMax models - speech-02 series
 export const MINIMAX_VOICES = {
-  'broadcaster_m': 'Male Broadcaster',
-  'broadcaster_f': 'Female Broadcaster', 
-  'audiobook_m': 'Male Audiobook',
-  'audiobook_f': 'Female Audiobook',
-  'podcaster_m': 'Male Podcaster',
-  'podcaster_f': 'Female Podcaster'
+  'speech-02': 'Speech-02 (Standard)',
+  'speech-02-turbo': 'Speech-02 Turbo (Fast)',
+  'speech-02-hd': 'Speech-02 HD (High Quality)'
 };
 
 // Voice options for UI components
@@ -147,7 +144,7 @@ export const getSelectedMiniMaxVoice = (): keyof typeof MINIMAX_VOICES => {
   if (stored && stored in MINIMAX_VOICES) {
     return stored as keyof typeof MINIMAX_VOICES;
   }
-  return 'broadcaster_m';
+  return 'speech-02';
 };
 
 export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): void => {
@@ -396,9 +393,8 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
 
   const requestBody = {
-    model: 'speech-01',  // Required model parameter for MiniMax.io
+    model: selectedVoice,  // Use the selected model (speech-02, speech-02-turbo, etc.)
     text: text,
-    voice_id: selectedVoice,
     speed: 1.0,
     vol: 1.0,
     pitch: 0,

@@ -347,12 +347,26 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
               Cancel Creation
             </Button>
             
-            {!conversationState?.isInConversation && (
-              <Button onClick={handleManualSave} className="space-x-2">
-                <Save className="h-4 w-4" />
-                <span>Save Entry Now</span>
+            <div className="flex space-x-2">
+              {/* Debug button for testing step advancement */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  console.log('🔧 DEBUG: Force advancing to category step');
+                  // This will help us test if the UI responds to step changes
+                }}
+              >
+                🔧 Debug Step
               </Button>
-            )}
+              
+              {!conversationState?.isInConversation && (
+                <Button onClick={handleManualSave} className="space-x-2">
+                  <Save className="h-4 w-4" />
+                  <span>Save Entry Now</span>
+                </Button>
+              )}
+            </div>
             
             {conversationState?.isInConversation && (
               <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400">

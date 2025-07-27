@@ -118,19 +118,21 @@ export const useUnifiedVoiceProcessor = ({
         console.log('🎤 Title captured:', title);
         console.log('📝 Updated entry draft:', newEntryDraft);
         
-        setConversationState({
-          ...conversationState,
+        setConversationState(prev => ({
+          ...prev,
           currentStep: CONVERSATION_STEPS.CATEGORY,
           entryDraft: newEntryDraft,
-        });
+        }));
         
         // Update form immediately
         if (formTitleSetter) {
           formTitleSetter(title);
         }
         
-        speak(CONVERSATION_STEPS.CATEGORY.question);
-        toast.success(`✅ Title set: "${title}"`);
+        setTimeout(() => {
+          speak(CONVERSATION_STEPS.CATEGORY.question);
+          toast.success(`✅ Title set: "${title}" - Now selecting category`);
+        }, 300);
         console.log('➡️ Moving to category selection');
         break;
 
@@ -148,18 +150,20 @@ export const useUnifiedVoiceProcessor = ({
         const updatedDraft = { ...entryDraft, category: categoryName };
         console.log('📝 Updated entry draft with category:', updatedDraft);
         
-        setConversationState({
-          ...conversationState,
+        setConversationState(prev => ({
+          ...prev,
           currentStep: CONVERSATION_STEPS.MORE_FIELDS,
           entryDraft: updatedDraft,
-        });
+        }));
         
         if (formCategorySetter) {
           formCategorySetter(categoryName);
         }
         
-        speak(CONVERSATION_STEPS.MORE_FIELDS.question);
-        toast.success(`✅ Category set: ${categoryName}`);
+        setTimeout(() => {
+          speak(CONVERSATION_STEPS.MORE_FIELDS.question);
+          toast.success(`✅ Category set: ${categoryName}`);
+        }, 300);
         console.log('➡️ Moving to custom fields question');
         break;
 

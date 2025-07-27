@@ -18,6 +18,8 @@ interface CustomFieldItemProps {
   onUpdateField: (id: string, key: keyof CustomField, value: any) => void;
   onRemoveField: (id: string) => void;
   onMoveField?: (id: string, direction: 'up' | 'down') => void;
+  highlightedField?: string | null;
+  isVoiceCreated?: boolean;
 }
 
 export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
@@ -28,7 +30,9 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   isFillMode,
   onUpdateField,
   onRemoveField,
-  onMoveField
+  onMoveField,
+  highlightedField,
+  isVoiceCreated
 }) => {
   const canMoveUp = index > 0;
   const canMoveDown = index < fieldsLength - 1;
@@ -156,7 +160,9 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   };
 
   return (
-    <div className="p-4 border border-border rounded-lg bg-card">
+    <div className={`p-4 border border-border rounded-lg bg-card transition-all duration-300 ${
+      isVoiceCreated ? 'ring-2 ring-green-500/50 border-green-500/30 bg-green-500/5' : ''
+    } ${highlightedField === 'field_type' && field.name ? 'ring-2 ring-blue-500/50 animate-pulse' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           {!isFillMode && (

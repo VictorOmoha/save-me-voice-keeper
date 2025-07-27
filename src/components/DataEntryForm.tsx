@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,8 @@ import { CategorySelector } from "./forms/CategorySelector";
 import { FormFieldManager } from "./forms/FormFieldManager";
 import { CustomFieldItem } from "./forms/CustomFieldItem";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
+import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
+import { Mic, MicOff } from "lucide-react";
 
 interface DataEntryFormProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -17,6 +19,12 @@ interface DataEntryFormProps {
   templateEntry?: SavedEntry | null;
   mode?: 'create' | 'edit' | 'fill';
   preselectedCategory?: string;
+  isVoiceActive?: boolean;
+  voiceConversationState?: {
+    isInConversation: boolean;
+    currentStep?: { type: string; question: string };
+    entryDraft?: any;
+  };
 }
 
 export const DataEntryForm: React.FC<DataEntryFormProps> = ({ 
@@ -25,8 +33,12 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   editEntry, 
   templateEntry,
   mode = 'create',
-  preselectedCategory
+  preselectedCategory,
+  isVoiceActive = false,
+  voiceConversationState
 }) => {
+  const [lastVoiceUpdate, setLastVoiceUpdate] = useState<string>('');
+  const [highlightedField, setHighlightedField] = useState<string | null>(null);
   const {
     title,
     setTitle,
@@ -44,6 +56,21 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   const { registerFormSetters, unregisterFormSetters } = useVoiceFormContext();
 
+  // Handle voice conversation state changes for animations
+  useEffect(() => {
+    if (voiceConversationState?.currentStep) {
+      const stepType = voiceConversationState.currentStep.type;
+      setHighlightedField(stepType);
+      
+      // Clear highlight after animation
+      const timer = setTimeout(() => {
+        setHighlightedField(null);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [voiceConversationState?.currentStep]);
+
   // Register form setters for voice input when component mounts  
   useEffect(() => {
     console.log('🔧 DataEntryForm: useEffect triggered');
@@ -56,15 +83,21 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
       const timer = setTimeout(() => {
         // Create enhanced addField function that can handle voice parameters
         const voiceAddField = (fieldName?: string, fieldType?: string) => {
+          setLastVoiceUpdate(`Adding field: ${fieldName || 'Custom Field'}`);
+          setHighlightedField('field_name');
+          
           addField();
           // If we have field details from voice, we'll set them after the field is added
           if (fieldName) {
             // The field will be added with empty name, so we'll update it after
             setTimeout(() => {
-              const newFieldId = Date.now().toString();
-              updateField(newFieldId, 'name', fieldName);
-              if (fieldType && fieldType !== 'text') {
-                updateField(newFieldId, 'type', fieldType as any);
+              const newFields = fields;
+              const lastFieldId = newFields[newFields.length - 1]?.id;
+              if (lastFieldId) {
+                updateField(lastFieldId, 'name', fieldName);
+                if (fieldType && fieldType !== 'text') {
+                  updateField(lastFieldId, 'type', fieldType as any);
+                }
               }
             }, 100);
           }
@@ -94,28 +127,76 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   const isCategoryReadonly = !!preselectedCategory || (templateEntry && mode === 'fill');
 
   return (
-    <div className={`bg-background text-foreground transition-all duration-300 ${
+    <div className={`bg-background text-foreground transition-all duration-500 animate-fade-in ${
       isDirty ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20 bg-primary/5' : ''
-    } ${mode === 'create' || mode === 'edit' ? 'mb-20' : ''}`}>
+    } ${mode === 'create' || mode === 'edit' ? 'mb-20' : ''} ${
+      isVoiceActive ? 'ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10' : ''
+    }`}>
+      {isVoiceActive && (
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-3 border-b border-border animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Mic className="h-4 w-4 text-blue-500 animate-pulse" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                Voice Creation Mode
+              </span>
+            </div>
+            <VoiceStatusIndicator
+              connectionStatus="connected"
+              isVoiceProcessing={highlightedField !== null}
+              conversationState={voiceConversationState?.isInConversation ? 'listening' : 'idle'}
+              hasPendingConfirmation={false}
+            />
+          </div>
+          {voiceConversationState?.currentStep && (
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 animate-slide-in-right">
+              {voiceConversationState.currentStep.question}
+            </p>
+          )}
+          {lastVoiceUpdate && (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1 animate-bounce">
+              ✅ {lastVoiceUpdate}
+            </p>
+          )}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-6 p-6">
-        <div className="space-y-2">
+        <div className={`space-y-2 transition-all duration-300 ${
+          highlightedField === 'title' ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-2' : ''
+        }`}>
           <Label htmlFor="title" className="text-foreground">Entry Title</Label>
           <Input
             id="title"
             placeholder="Give your entry a title (e.g., 'Medication Info', 'Insurance Policy')"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (title !== e.target.value) {
+                setLastVoiceUpdate(`Title updated: ${e.target.value}`);
+              }
+            }}
+            className={`bg-background border-border text-foreground placeholder:text-muted-foreground transition-all duration-300 ${
+              highlightedField === 'title' ? 'border-blue-500 ring-1 ring-blue-500/30' : ''
+            }`}
             required
           />
         </div>
 
-        <CategorySelector
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          isReadonly={isCategoryReadonly}
-          categories={categories}
-        />
+        <div className={`transition-all duration-300 ${
+          highlightedField === 'category' ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-2' : ''
+        }`}>
+          <CategorySelector
+            selectedCategory={selectedCategory}
+            onCategoryChange={(category) => {
+              setSelectedCategory(category);
+              setLastVoiceUpdate(`Category set: ${category}`);
+            }}
+            isReadonly={isCategoryReadonly}
+            categories={categories}
+            highlightedField={highlightedField}
+          />
+        </div>
 
         <div className="space-y-4">
           <FormFieldManager
@@ -125,20 +206,33 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
             onRemoveField={removeField}
             isEditMode={isEditMode}
             isFillMode={isFillMode}
+            highlightedField={highlightedField}
+            isVoiceActive={isVoiceActive}
           />
 
           {fields.map((field, index) => (
-            <CustomFieldItem
+            <div 
               key={field.id}
-              field={field}
-              index={index}
-              fieldsLength={fields.length}
-              isEditMode={isEditMode}
-              isFillMode={isFillMode}
-              onUpdateField={updateField}
-              onRemoveField={removeField}
-              onMoveField={moveField}
-            />
+              className={`animate-fade-in ${
+                index === fields.length - 1 && highlightedField === 'field_name' 
+                  ? 'animate-scale-in animate-bounce' 
+                  : ''
+              }`}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <CustomFieldItem
+                field={field}
+                index={index}
+                fieldsLength={fields.length}
+                isEditMode={isEditMode}
+                isFillMode={isFillMode}
+                onUpdateField={updateField}
+                onRemoveField={removeField}
+                onMoveField={moveField}
+                highlightedField={highlightedField}
+                isVoiceCreated={index === fields.length - 1 && highlightedField === 'field_name'}
+              />
+            </div>
           ))}
         </div>
 

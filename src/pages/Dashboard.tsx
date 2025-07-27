@@ -8,6 +8,7 @@ import { DataEntryForm } from '@/components/DataEntryForm';
 import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -42,6 +43,19 @@ export default function Dashboard() {
     handleAddEntry,
     handleEnhancedVoiceInput,
   } = useDashboard();
+
+  // Add voice processor for enhanced voice integration with forms
+  const {
+    conversationState: voiceConversationState,
+    isInConversation: isVoiceInConversation
+  } = useUnifiedVoiceProcessor({
+    savedEntries: savedEntries,
+    onCreateEntry: handleAddEntry,
+    onEditEntry: editEntry,
+    onDeleteEntry: deleteEntry,
+    onSaveEntry: saveEntry,
+    onCancelEdit: handleCancelEdit,
+  });
 
   useEffect(() => {
     const getUser = async () => {
@@ -106,6 +120,8 @@ export default function Dashboard() {
           templateEntry={fillingEntry}
           onSave={saveEntry}
           onCancel={handleCancelEdit}
+          isVoiceActive={isVoiceInConversation}
+          voiceConversationState={voiceConversationState}
         />
       ) : (
         <DashboardMainContent

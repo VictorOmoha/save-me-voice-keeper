@@ -8,13 +8,15 @@ interface CategorySelectorProps {
   onCategoryChange: (category: string) => void;
   isReadonly: boolean;
   categories: string[];
+  highlightedField?: string | null;
 }
 
 export const CategorySelector: React.FC<CategorySelectorProps> = ({
   selectedCategory,
   onCategoryChange,
   isReadonly,
-  categories
+  categories,
+  highlightedField
 }) => {
   return (
     <div className="space-y-2">
@@ -28,7 +30,9 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
         />
       ) : (
         <Select value={selectedCategory} onValueChange={onCategoryChange} required>
-          <SelectTrigger className="bg-background border-border text-foreground">
+          <SelectTrigger className={`bg-background border-border text-foreground transition-all duration-300 ${
+            highlightedField === 'category' ? 'border-blue-500 ring-1 ring-blue-500/30' : ''
+          }`}>
             <SelectValue placeholder="Select a category" />
           </SelectTrigger>
           <SelectContent className="bg-background border-border">

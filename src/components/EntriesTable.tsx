@@ -3,12 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Table,
   TableBody,
   TableCell,
@@ -20,6 +14,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download } from "lucide-react";
 import { toast } from "sonner";
 import { ExportButton } from "@/components/export/ExportButton";
+import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -44,6 +39,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   const [sortField, setSortField] = useState<SortField>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);
 
   if (entries.length === 0) {
@@ -205,6 +201,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
       return;
     }
     setViewingEntry(entry);
+    setIsViewDialogOpen(true);
   };
 
   return (
@@ -356,84 +353,24 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
       </div>
 
       {/* View Entry Dialog */}
-      <Dialog open={viewingEntry !== null} onOpenChange={() => setViewingEntry(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              {viewingEntry?.title}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {viewingEntry && (
-            <div className="space-y-6">
-              {/* Entry Metadata */}
-              <div className="flex items-center justify-between text-sm text-gray-600 border-b pb-4">
-                <div>
-                  <p>Created: {new Date(viewingEntry.createdAt).toLocaleDateString()}</p>
-                  <p>Last Modified: {new Date(viewingEntry.updatedAt).toLocaleDateString()}</p>
-                </div>
-                <Badge variant="outline">{getEntryType(viewingEntry)}</Badge>
-              </div>
-
-              {/* Entry Fields */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Entry Details</h3>
-                <div className="grid gap-4">
-                  {Object.entries(viewingEntry.fields).map(([key, value]) => (
-                    <div key={key} className="space-y-1">
-                      <label className="text-sm font-medium text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </label>
-                      <div className="p-3 bg-gray-50 rounded-md border">
-                        <p className="text-gray-900 whitespace-pre-wrap">
-                          {String(value) || 'No data'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                {viewingEntry.fields.hasUploadedFile && viewingEntry.fields.fileName && (
-                  <Button
-                    onClick={() => handleDownload(viewingEntry)}
-                    variant="outline"
-                    disabled={downloadingFiles.includes(viewingEntry.id)}
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    {downloadingFiles.includes(viewingEntry.id) ? 'Downloading...' : 'Download'}
-                  </Button>
-                )}
-                <Button
-                  onClick={() => {
-                    onFill(viewingEntry);
-                    setViewingEntry(null);
-                  }}
-                  variant="outline"
-                  className="text-green-600 hover:text-green-700"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Fill Form
-                </Button>
-                <Button
-                  onClick={() => {
-                    onEdit(viewingEntry);
-                    setViewingEntry(null);
-                  }}
-                  variant="outline"
-                  className="text-blue-600 hover:text-blue-700"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Entry
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <EntryViewDialog
+        entry={viewingEntry}
+        isOpen={isViewDialogOpen}
+        onClose={() => {
+          setIsViewDialogOpen(false);
+          setViewingEntry(null);
+        }}
+        onEdit={(entry) => {
+          onEdit(entry);
+          setIsViewDialogOpen(false);
+          setViewingEntry(null);
+        }}
+        onFill={(entry) => {
+          onFill(entry);
+          setIsViewDialogOpen(false);
+          setViewingEntry(null);
+        }}
+      />
     </div>
   );
 };

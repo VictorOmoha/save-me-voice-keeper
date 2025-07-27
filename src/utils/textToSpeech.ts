@@ -29,14 +29,14 @@ export const AVAILABLE_VOICES = {
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
 };
 
-// MiniMax voices with proper parameters - Updated with working voice configurations
+// MiniMax voices with proper parameters - Updated with commonly supported voice types
 export const MINIMAX_VOICES = {
-  'female_young_1': 'Young Female 1',
-  'female_young_2': 'Young Female 2',
-  'male_young_1': 'Young Male 1',
-  'male_young_2': 'Young Male 2',
-  'presentation_male': 'Professional Male',
-  'presentation_female': 'Professional Female'
+  'male-qn-qingse': 'Male Voice (清晰)',
+  'female-shaonv': 'Female Voice (少女)',
+  'male-qn-jingying': 'Male Professional',
+  'female-qn-qingse': 'Female Professional',
+  'broadcaster_male': 'Broadcaster Male',
+  'broadcaster_female': 'Broadcaster Female'
 };
 
 // Voice options for UI components
@@ -147,7 +147,7 @@ export const getSelectedMiniMaxVoice = (): keyof typeof MINIMAX_VOICES => {
   if (stored && stored in MINIMAX_VOICES) {
     return stored as keyof typeof MINIMAX_VOICES;
   }
-  return 'male_young_1';
+  return 'male-qn-qingse';
 };
 
 export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): void => {
@@ -299,8 +299,8 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
     throw new Error('ElevenLabs API key not found. Please set your API key in voice settings.');
   }
 
-  // Validate API key format
-  if (apiKey.length < 20 || !apiKey.startsWith('sk-')) {
+  // Validate API key format - ElevenLabs keys can have various formats
+  if (apiKey.length < 10) {
     throw new Error('Invalid ElevenLabs API key format. Please check your API key in settings.');
   }
 
@@ -453,7 +453,9 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
     vol: 1.0,
     pitch: 0,
     audio_sample_rate: 32000,
-    bitrate: 128000
+    bitrate: 128000,
+    // Include GroupId in base request
+    group_id: groupId
   };
 
   console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));

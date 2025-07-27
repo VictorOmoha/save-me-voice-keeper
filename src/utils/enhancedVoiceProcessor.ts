@@ -61,7 +61,7 @@ class EnhancedVoiceProcessor {
       return true;
     }
     
-    // System prompts to filter out
+    // Enhanced system prompts to filter out
     const systemPhrases = [
       'voice mode activated',
       'how can i help you',
@@ -69,10 +69,14 @@ class EnhancedVoiceProcessor {
       'what category should this entry be in',
       'would you like to add any custom fields',
       'tell me what to add',
-      'what information would you like to add'
+      'what information would you like to add',
+      'starting guided entry creation',
+      'bling bling bling',
+      'activated how can i help',
+      'guided entry creation'
     ];
     
-    // Check for exact system phrase matches
+    // Check for exact system phrase matches and partial matches
     for (const phrase of systemPhrases) {
       if (cleanText === phrase || cleanText.includes(phrase)) {
         console.log('🚫 Enhanced Processor: System phrase match, blocking:', phrase);

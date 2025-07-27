@@ -70,9 +70,13 @@ export default function Dashboard() {
   // Enhanced voice input that handles both commands and conversations
   const enhancedVoiceInputHandler = async (text: string) => {
     console.log('🎤 Dashboard: Enhanced voice input handler called with:', text);
+    console.log('📊 Dashboard: Current state check - showAddEntry:', showAddEntry, 'isVoiceInConversation:', isVoiceInConversation);
     
-    // If we're in a wizard conversation, use the unified processor
-    if (showAddEntry && isVoiceInConversation) {
+    // CRITICAL FIX: Check if this is a conversation response (not the initial "create entry" command)
+    const isCreateCommand = text.toLowerCase().includes('create') && text.toLowerCase().includes('entry');
+    
+    // If we're in a wizard conversation OR this is not the initial create command, use unified processor
+    if ((showAddEntry || isVoiceInConversation) && !isCreateCommand) {
       console.log('🧙 Dashboard: Routing to unified processor for wizard conversation');
       await unifiedProcessVoiceInput(text);
     } else {

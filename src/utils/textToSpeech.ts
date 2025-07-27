@@ -29,16 +29,14 @@ export const AVAILABLE_VOICES = {
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
 };
 
-// MiniMax available voices - restored original Chinese voice IDs
+// MiniMax available voices - simplified common voice IDs
 export const MINIMAX_VOICES = {
-  'male-qn-qingse': 'Male - Qing Se',
-  'male-qn-jingying': 'Male - Jing Ying',
-  'male-qn-badao': 'Male - Ba Dao',
-  'male-qn-daxuesheng': 'Male - Da Xue Sheng',
-  'female-shaonv': 'Female - Shao Nv',
-  'female-yujie': 'Female - Yu Jie',
-  'female-chengshu': 'Female - Cheng Shu',
-  'female-tianmei': 'Female - Tian Mei'
+  'broadcaster_m': 'Male Broadcaster',
+  'broadcaster_f': 'Female Broadcaster', 
+  'audiobook_m': 'Male Audiobook',
+  'audiobook_f': 'Female Audiobook',
+  'podcaster_m': 'Male Podcaster',
+  'podcaster_f': 'Female Podcaster'
 };
 
 // Voice options for UI components
@@ -149,7 +147,7 @@ export const getSelectedMiniMaxVoice = (): keyof typeof MINIMAX_VOICES => {
   if (stored && stored in MINIMAX_VOICES) {
     return stored as keyof typeof MINIMAX_VOICES;
   }
-  return 'male-qn-qingse';
+  return 'broadcaster_m';
 };
 
 export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): void => {
@@ -279,17 +277,29 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('🚨 TTS: ElevenLabs API error:', response.status, errorText);
-    
-    if (response.status === 401) {
-      toast.error('Invalid ElevenLabs API key. Please check your settings.');
-      throw new Error('Invalid API key');
-    } else if (response.status === 429) {
-      toast.error('ElevenLabs API rate limit exceeded. Using browser TTS instead.');
-      throw new Error('Rate limit exceeded');
-    } else {
-      toast.error('ElevenLabs TTS failed. Using browser TTS instead.');
+    try {
+      const errorData = await response.json();
+      console.error('🚨 TTS: ElevenLabs API error:', response.status, JSON.stringify(errorData));
+      
+      // Check for specific error types
+      if (errorData.detail?.status === 'quota_exceeded') {
+        toast.error(`ElevenLabs quota exceeded: ${errorData.detail.message}`);
+        throw new Error(`ElevenLabs quota exceeded: ${errorData.detail.message}`);
+      } else if (response.status === 401) {
+        toast.error('ElevenLabs API key is invalid or expired');
+        throw new Error('ElevenLabs API key is invalid or expired');
+      } else if (response.status === 429) {
+        toast.error('ElevenLabs rate limit exceeded');
+        throw new Error('Rate limit exceeded');
+      } else {
+        toast.error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
+        throw new Error(`ElevenLabs API error: ${errorData.detail?.message || 'Unknown error'}`);
+      }
+    } catch (parseError) {
+      // Fallback if response isn't JSON
+      const errorText = await response.text();
+      console.error('🚨 TTS: ElevenLabs API error (non-JSON):', response.status, errorText);
+      toast.error(`ElevenLabs API error: ${response.status}`);
       throw new Error(`API error: ${response.status}`);
     }
   }

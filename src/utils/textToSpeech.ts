@@ -5,8 +5,8 @@ import { toast } from 'sonner';
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
-// MiniMax API configuration
-const MINIMAX_API_URL = 'https://api.minimax.io/v1/text_to_speech';
+// MiniMax API configuration - Updated with correct endpoint
+const MINIMAX_API_URL = 'https://api.minimax.io/v1/t2a_v2';
 
 // Voice settings for ElevenLabs
 const VOICE_SETTINGS = {
@@ -29,12 +29,14 @@ export const AVAILABLE_VOICES = {
   'Sam': 'yoZ06aMxZJJ28mfd3POQ'
 };
 
-// MiniMax models - using standard voices
+// MiniMax voices with proper parameters - Updated with working voice configurations
 export const MINIMAX_VOICES = {
-  'male-01': 'Male Voice 01',
-  'female-01': 'Female Voice 01', 
-  'male-02': 'Male Voice 02',
-  'female-02': 'Female Voice 02'
+  'female_young_1': 'Young Female 1',
+  'female_young_2': 'Young Female 2',
+  'male_young_1': 'Young Male 1',
+  'male_young_2': 'Young Male 2',
+  'presentation_male': 'Professional Male',
+  'presentation_female': 'Professional Female'
 };
 
 // Voice options for UI components
@@ -145,7 +147,7 @@ export const getSelectedMiniMaxVoice = (): keyof typeof MINIMAX_VOICES => {
   if (stored && stored in MINIMAX_VOICES) {
     return stored as keyof typeof MINIMAX_VOICES;
   }
-  return 'male-01';
+  return 'male_young_1';
 };
 
 export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): void => {
@@ -438,14 +440,14 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
 
   const requestBody = {
-    model: "speech-01",  // Use standard speech model
+    model: "speech-01",
     text: text,
-    voice_id: selectedVoice,  // voice_id is required parameter
-    audio_setting: {
-      audio_sample_rate: 24000,
-      bitrate: 128000,
-      format: "wav"
-    }
+    voice_id: selectedVoice,
+    speed: 1.0,
+    vol: 1.0,
+    pitch: 0,
+    audio_sample_rate: 32000,
+    bitrate: 128000
   };
 
   console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));

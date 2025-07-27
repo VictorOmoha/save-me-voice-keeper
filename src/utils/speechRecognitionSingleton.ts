@@ -67,16 +67,38 @@ export class SpeechRecognitionSingleton {
       }
 
       let finalTranscript = '';
+      let interimTranscript = '';
+      
+      console.log('🎤 Recognition Singleton: onresult event:', {
+        resultIndex: event.resultIndex,
+        resultsLength: event.results.length,
+        isTTSSpeaking: (window as any).__tts_is_speaking
+      });
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript.trim();
+        const confidence = event.results[i][0].confidence;
+        
+        console.log(`🎤 Recognition Singleton: Result ${i}:`, {
+          transcript,
+          confidence,
+          isFinal: event.results[i].isFinal
+        });
+        
         if (event.results[i].isFinal) {
           finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
         }
       }
 
+      if (interimTranscript) {
+        console.log('🎤 Recognition Singleton: Interim transcript:', interimTranscript);
+      }
+
       if (finalTranscript) {
-        console.log('✅ Recognition Singleton: Processing transcript:', finalTranscript);
+        console.log('✅ Recognition Singleton: Final transcript received:', finalTranscript);
+        console.log('🔄 Recognition Singleton: Calling onResult callback');
         this.callbacks.onResult?.(finalTranscript);
         
         // Dispatch transcript update event

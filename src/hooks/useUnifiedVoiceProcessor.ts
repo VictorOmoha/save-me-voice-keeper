@@ -421,9 +421,10 @@ export const useUnifiedVoiceProcessor = ({
   }, [onSaveEntry]);
 
   const processVoiceInput = useCallback(async (transcript: string) => {
-    console.log('🎙️ Processing voice input:', transcript);
-    console.log('🔍 Conversation state check - isInConversation:', conversationState.isInConversation);
-    console.log('🔍 Current step:', conversationState.currentStep?.type);
+    console.log('🎙️ DEBUG UNIFIED: Processing voice input:', transcript);
+    console.log('🔍 DEBUG UNIFIED: Conversation state check - isInConversation:', conversationState.isInConversation);
+    console.log('🔍 DEBUG UNIFIED: Current step:', conversationState.currentStep?.type);
+    console.log('🔍 DEBUG UNIFIED: Full conversation state:', conversationState);
     
     // CRITICAL: If we're in a conversation, ONLY process conversation steps
     if (conversationState.isInConversation) {

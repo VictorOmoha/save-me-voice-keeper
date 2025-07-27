@@ -232,14 +232,13 @@ class EnhancedVoiceProcessor {
         cleanText.includes('new entry') || 
         cleanText.includes('add entry') ||
         cleanText.includes('make entry')) {
-      this.expectingFollowUp = true;
       return {
         intent: 'create',
-        action: 'initiate_create',
+        action: 'create_entry',
         parameters: {},
-        confidence: 0.9,
-        conversationalResponse: 'What information would you like to add to this new entry?',
-        followUpExpected: true
+        confidence: 0.95,
+        conversationalResponse: 'Starting guided entry creation...',
+        followUpExpected: false
       };
     }
     

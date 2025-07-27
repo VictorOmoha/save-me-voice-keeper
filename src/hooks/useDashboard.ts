@@ -39,6 +39,8 @@ export const useDashboard = () => {
 
     try {
       console.log('🎤 Dashboard: Processing enhanced voice input:', text);
+      console.log('🎯 Dashboard Voice Handler: Called with text:', text);
+      console.log('🎯 Dashboard Voice Handler: Current state - showAddEntry:', showAddEntry);
 
       // Handle structured entry creation from brain dumps
       if (text.startsWith('CREATE_STRUCTURED_ENTRY:')) {

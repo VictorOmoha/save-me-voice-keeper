@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
+import { VoiceGuidedEntryWizard } from '@/components/VoiceGuidedEntryWizard';
 import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { useDashboard } from '@/hooks/useDashboard';
@@ -50,7 +51,7 @@ export default function Dashboard() {
     cancelCurrentOperation,
   } = useDashboard();
 
-  console.log('🔄 Dashboard render: Form states ->', { showAddEntry, editingEntry: !!editingEntry, fillingEntry: !!fillingEntry });
+  
 
   // Add voice processor for enhanced voice integration with forms
   const {
@@ -77,17 +78,6 @@ export default function Dashboard() {
     };
 
     getUser();
-    
-    // Add global test function for debugging
-    (window as any).testFormOpen = () => {
-      console.log('🧪 Manual test: Calling handleAddEntry()');
-      handleAddEntry();
-    };
-    
-    (window as any).testVoiceCommand = () => {
-      console.log('🧪 Manual test: Calling handleEnhancedVoiceInput with create command');
-      handleEnhancedVoiceInput('create a new entry');
-    };
   }, [navigate, handleAddEntry, handleEnhancedVoiceInput]);
 
   // Listen for voice command to close entry forms
@@ -132,31 +122,28 @@ export default function Dashboard() {
       onSaveEntry={saveEntry}
       onCancelEdit={handleCancelEdit}
     >
-      {/* DEBUG: Always show form state indicators */}
-      <div className="bg-blue-100 text-blue-800 p-2 border border-blue-500 rounded mb-2 text-xs">
-        🔍 RENDER DEBUG: showAddEntry={showAddEntry.toString()}, editingEntry={!!editingEntry}, fillingEntry={!!fillingEntry}
-      </div>
-      
-      {showAddEntry && (
-        <div className="bg-green-100 text-green-800 p-2 border border-green-500 rounded mb-2">
-          ✅ DEBUG: showAddEntry is TRUE - Form should be rendering now
-        </div>
-      )}
-      
       {(showAddEntry || editingEntry || fillingEntry) ? (
         <>
-          <div className="bg-green-100 text-green-800 p-4 border border-green-500 rounded mb-4">
-            🟢 FORM IS SHOWING: showAddEntry={showAddEntry.toString()}, editingEntry={!!editingEntry}, fillingEntry={!!fillingEntry}
-          </div>
-          <DataEntryForm
-            mode={getFormMode()}
-            editEntry={editingEntry}
-            templateEntry={fillingEntry}
-            onSave={saveEntry}
-            onCancel={handleCancelEdit}
-            isVoiceActive={isVoiceInConversation}
-            voiceConversationState={voiceConversationState}
-          />
+          
+          {/* Use VoiceGuidedEntryWizard for new entries with voice conversation */}
+          {showAddEntry && isVoiceInConversation ? (
+            <VoiceGuidedEntryWizard
+              onSave={saveEntry}
+              onCancel={handleCancelEdit}
+              conversationState={voiceConversationState}
+              isVoiceActive={isVoiceInConversation}
+            />
+          ) : (
+            <DataEntryForm
+              mode={getFormMode()}
+              editEntry={editingEntry}
+              templateEntry={fillingEntry}
+              onSave={saveEntry}
+              onCancel={handleCancelEdit}
+              isVoiceActive={isVoiceInConversation}
+              voiceConversationState={voiceConversationState}
+            />
+          )}
         </>
       ) : (
         <DashboardMainContent

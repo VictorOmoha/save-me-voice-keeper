@@ -8,7 +8,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { speechRecognition } from "@/utils/speechRecognitionSingleton";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
-import { voiceProcessor, EnhancedVoiceCommand } from "@/utils/enhancedVoiceProcessor";
+import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
 import { useTTSEventHandler } from "@/hooks/useTTSEventHandler";
 
 interface ConversationalVoiceInterfaceProps {
@@ -31,15 +31,30 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const [lastTranscript, setLastTranscript] = useState<string>("");
   const [isActive, setIsActive] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [isInConversation, setIsInConversation] = useState(false);
-  const [conversationState, setConversationState] = useState<{ currentStep: any }>({ currentStep: null });
-  const [waitingForFollowUp, setWaitingForFollowUp] = useState(false);
   
   // Create a ref to track the recognition instance for TTS event handler
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   
   // Get form context if available
   const formContext = useVoiceFormContext();
+
+  // Use the unified voice processor for proper conversation flow
+  const {
+    processVoiceInput,
+    conversationState,
+    cancelConversation,
+    isInConversation
+  } = useUnifiedVoiceProcessor({
+    onCreateEntry,
+    onEditEntry,
+    onDeleteEntry,
+    onSaveEntry,
+    onCancelEdit,
+    savedEntries,
+    formTitleSetter: formContext?.formTitleSetter || undefined,
+    formCategorySetter: formContext?.formCategorySetter || undefined,
+    formAddFieldFunction: formContext?.formAddFieldFunction || undefined
+  });
 
   // Use TTS event handler to restart recognition after TTS completes
   useTTSEventHandler({
@@ -49,142 +64,8 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     setIsListening,
   });
 
-  // Execute voice commands
-  const executeVoiceCommand = async (command: EnhancedVoiceCommand) => {
-    console.log('🚀 ConversationalVoiceInterface: Executing command:', command.action, command.parameters);
-    
-    // Don't execute if it's just feedback
-    if (command.action === 'tts_feedback_blocked') {
-      console.log('🚫 ConversationalVoiceInterface: Skipping TTS feedback');
-      return;
-    }
-    
-    // Set conversation state based on command
-    setIsInConversation(true);
-    
-    switch (command.action) {
-      case 'initiate_create':
-        console.log('📝 Executing create entry command');
-        onCreateEntry();
-        setWaitingForFollowUp(true);
-        toast.success('Creating new entry - tell me what to add');
-        break;
-        
-      case 'open_entry':
-        if (command.parameters.entryId) {
-          const entry = savedEntries.find(e => e.id === command.parameters.entryId);
-          if (entry) {
-            console.log('📂 Opening entry:', entry.title);
-            onEditEntry(entry);
-            toast.success(`Opening: ${entry.title}`);
-          }
-        } else if (command.parameters.title) {
-          const entry = savedEntries.find(e => 
-            e.title.toLowerCase().includes(command.parameters.title.toLowerCase())
-          );
-          if (entry) {
-            console.log('📂 Opening entry by title:', entry.title);
-            onEditEntry(entry);
-            toast.success(`Opening: ${entry.title}`);
-          } else {
-            toast.error(`Entry "${command.parameters.title}" not found`);
-          }
-        }
-        break;
-        
-      case 'delete_entry':
-        if (command.parameters.confirmed) {
-          if (command.parameters.entryId) {
-            const entry = savedEntries.find(e => e.id === command.parameters.entryId);
-            if (entry) {
-              console.log('🗑️ Deleting entry:', entry.title);
-              onDeleteEntry(command.parameters.entryId);
-              toast.success(`Deleted: ${entry.title}`);
-            }
-          }
-        }
-        break;
-        
-      case 'execute_search':
-        console.log('🔍 Search command:', command.parameters.query);
-        toast.info(`Searching for: ${command.parameters.query}`);
-        break;
-        
-      case 'close_entry':
-        console.log('🚪 Closing entry view/form');
-        // Trigger close events for any open entry dialogs/modals and forms
-        window.dispatchEvent(new CustomEvent('close-entry-dialog'));
-        window.dispatchEvent(new CustomEvent('close-entry-form'));
-        toast.success('Entry closed');
-        break;
-        
-      case 'close_settings':
-        console.log('⚙️ Closing settings modal');
-        window.dispatchEvent(new CustomEvent('close-settings'));
-        toast.success('Settings closed');
-        break;
-        
-      case 'close_export':
-        console.log('📤 Closing export modal');
-        window.dispatchEvent(new CustomEvent('close-export'));
-        toast.success('Export modal closed');
-        break;
-        
-      case 'close_video':
-        console.log('🎥 Closing video modal');
-        window.dispatchEvent(new CustomEvent('close-video'));
-        toast.success('Video modal closed');
-        break;
-        
-      case 'close_modal':
-        console.log('🚪 Closing all modals');
-        // Generic modal close - dispatch multiple events to cover all modals
-        window.dispatchEvent(new CustomEvent('close-modal'));
-        window.dispatchEvent(new CustomEvent('close-entry-dialog'));
-        window.dispatchEvent(new CustomEvent('close-entry-form'));
-        toast.success('Modal closed');
-        break;
-        
-      case 'greeting':
-        console.log('👋 Greeting command');
-        break;
-        
-      case 'create_entry_with_content':
-        console.log('📝 Creating entry with content');
-        const newEntry = {
-          title: command.parameters.title || `Voice Entry - ${new Date().toLocaleDateString()}`,
-          fields: {
-            category: command.parameters.category || 'Personal',
-            description: command.parameters.description || '',
-            ...command.parameters.additionalFields
-          },
-          fieldDefinitions: [
-            { id: 'category', name: 'category', type: 'text' as const },
-            { id: 'description', name: 'Description', type: 'textarea' as const },
-          ],
-          category: command.parameters.category || 'Personal',
-        };
-        
-        onSaveEntry(newEntry);
-        toast.success(`Created: "${newEntry.title}"`);
-        setWaitingForFollowUp(false);
-        break;
-        
-      case 'clarify_confirmation':
-        console.log('❓ Clarification needed');
-        break;
-        
-      case 'unknown_command':
-        console.log('❓ Unknown command:', command.parameters.originalText);
-        break;
-        
-      default:
-        console.log('❓ Unhandled command action:', command.action);
-    }
-  };
-
-  // Process voice input
-  const processVoiceInput = async (transcript: string) => {
+  // Handle voice input with unified processor
+  const handleVoiceInput = async (transcript: string) => {
     console.log('🎙️ ConversationalVoiceInterface: Processing voice input:', transcript);
     
     // Skip very short inputs
@@ -194,39 +75,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     }
     
     try {
-      // Create context for voice processing
-      const context = {
-        currentView: 'dashboard',
-        availableEntries: savedEntries.map(entry => ({
-          id: entry.id,
-          title: entry.title,
-          category: entry.fields.category || 'Personal'
-        })),
-        previousCommands: [],
-        waitingForFollowUp
-      };
-      
-      // Process the command
-      const command = await voiceProcessor.processVoiceCommand(transcript, context);
-      console.log('🎯 ConversationalVoiceInterface: Processed command:', command);
-      
-      // Only execute if it's not TTS feedback
-      if (command.action !== 'tts_feedback_blocked') {
-        // Execute the command
-        await executeVoiceCommand(command);
-        
-        // Provide conversational response
-        if (command.conversationalResponse) {
-          console.log('🔊 ConversationalVoiceInterface: Speaking response:', command.conversationalResponse);
-          speak(command.conversationalResponse);
-        }
-      }
-      
-      // Update conversation state
-      if (command.followUpExpected) {
-        setWaitingForFollowUp(true);
-      }
-      
+      await processVoiceInput(transcript);
     } catch (error) {
       console.error('❌ ConversationalVoiceInterface: Error processing voice input:', error);
       toast.error('Sorry, I had trouble understanding that command.');
@@ -248,8 +97,8 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         console.log('🎯 ConversationalVoiceInterface: Received transcript:', transcript);
         setLastTranscript(transcript);
         
-        // Process the voice input
-        processVoiceInput(transcript);
+        // Process the voice input with unified processor
+        handleVoiceInput(transcript);
         
         // Dispatch transcript update event for debug panel
         window.dispatchEvent(new CustomEvent('voice-transcript-update', {
@@ -279,13 +128,11 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     return () => {
       speechRecognition.stop();
     };
-  }, [savedEntries, waitingForFollowUp]);
+  }, [savedEntries, handleVoiceInput]);
 
   const activateConversation = () => {
     console.log('🚀 ConversationalVoiceInterface: Activating conversation');
     setIsActive(true);
-    setIsInConversation(false);
-    setWaitingForFollowUp(false);
     
     if (speechRecognition.start()) {
       // Store the recognition instance for TTS event handler
@@ -301,20 +148,16 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const deactivateConversation = () => {
     console.log('🛑 ConversationalVoiceInterface: Deactivating conversation');
     setIsActive(false);
-    setIsInConversation(false);
-    setWaitingForFollowUp(false);
     speechRecognition.stop();
-    voiceProcessor.clearPendingConfirmation();
+    cancelConversation();
     toast.info('Voice mode deactivated');
   };
 
-  const cancelConversation = () => {
+  const handleCancelConversation = () => {
     console.log('❌ ConversationalVoiceInterface: Cancelling conversation');
     setIsActive(false);
-    setIsInConversation(false);
-    setWaitingForFollowUp(false);
     speechRecognition.stop();
-    voiceProcessor.clearPendingConfirmation();
+    cancelConversation();
     toast.info('Voice conversation cancelled');
   };
 
@@ -333,7 +176,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const displayConversationState = {
     isActive: isActive || isInConversation,
     currentStep: conversationState.currentStep,
-    waitingForFollowUp,
+    waitingForFollowUp: conversationState.isInConversation,
   };
 
   return (
@@ -341,7 +184,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
       <VoiceStatus 
         isActive={isActive}
         isListening={isListening}
-        isInConversation={isInConversation || waitingForFollowUp}
+        isInConversation={isInConversation}
         conversationState={displayConversationState}
       />
 
@@ -349,8 +192,8 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         isActive={isActive}
         onActivate={activateConversation}
         onDeactivate={deactivateConversation}
-        onCancelConversation={cancelConversation}
-        isInConversation={isInConversation || waitingForFollowUp}
+        onCancelConversation={handleCancelConversation}
+        isInConversation={isInConversation}
       />
 
       {lastTranscript && (
@@ -362,14 +205,14 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
 
       <ConversationDisplay conversationState={displayConversationState} />
 
-      {(isActive || isInConversation || waitingForFollowUp) && (
+      {(isActive || isInConversation) && (
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
           <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
             🎤 Voice Mode Active
           </p>
           <p className="text-xs text-blue-600 dark:text-blue-400">
-            {waitingForFollowUp 
-              ? "Tell me what information to add to your entry..."
+            {isInConversation && conversationState.currentStep
+              ? conversationState.currentStep.question || "Tell me what information to add to your entry..."
               : 'Try: "create a new entry", "open [entry name]", "delete [entry name]", "search for [term]", or "help"'
             }
           </p>

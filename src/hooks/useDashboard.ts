@@ -170,6 +170,7 @@ export const useDashboard = () => {
 
     switch (command.action) {
       case 'create_entry':
+      case 'initiate_create':
         setShowAddEntry(true);
         setEditingEntry(null);
         setFillingEntry(null);

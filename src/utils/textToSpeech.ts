@@ -727,8 +727,9 @@ export const validateElevenLabsApiKey = async (apiKey: string): Promise<{ valid:
     return { valid: false, error: 'API key is required' };
   }
 
-  if (!apiKey.startsWith('sk-')) {
-    return { valid: false, error: 'Invalid API key format. Should start with "sk-"' };
+  // ElevenLabs API keys can have various formats, including some that start with "sk-"
+  if (apiKey.length < 10) {
+    return { valid: false, error: 'API key appears to be too short' };
   }
 
   try {

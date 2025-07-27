@@ -138,7 +138,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     return () => {
       speechRecognition.stop();
     };
-  }, [savedEntries, handleVoiceInput]);
+  }, []); // Remove savedEntries and handleVoiceInput from deps to prevent loop
 
   const activateConversation = () => {
     console.log('🚀 ConversationalVoiceInterface: Activating conversation');

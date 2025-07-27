@@ -108,16 +108,22 @@ export const useUnifiedVoiceProcessor = ({
   const cleanVoiceInput = useCallback((text: string, currentStep: any): string => {
     let cleaned = text.trim();
     
+    // First, remove any leading punctuation or question marks that might get added
+    cleaned = cleaned.replace(/^[\?\!\.\,\;\:]+\s*/, '');
+    
     // Remove system retry/clarification messages that might get mixed in
     const retryPhrases = [
       "I didn't catch that clearly",
       "I didn't catch that",
       "Did you say",
       "I couldn't quite hear that",
-      "Please try again"
+      "Please try again",
+      "Please repeat",
+      "I didn't understand",
+      "I didn't hear you"
     ];
     
-    // Remove retry phrases first
+    // Remove retry phrases first (more aggressive matching)
     for (const phrase of retryPhrases) {
       const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
       cleaned = cleaned.replace(regex, '').trim();
@@ -131,7 +137,9 @@ export const useUnifiedVoiceProcessor = ({
       "What would you like to name this field",
       "What type of field should this be",
       "Here's your entry preview",
-      "Would you like to save this entry or edit something"
+      "Would you like to save this entry or edit something",
+      "Say save to create",
+      "Say edit to modify"
     ];
     
     // Remove prompt phrases (case insensitive)
@@ -141,27 +149,40 @@ export const useUnifiedVoiceProcessor = ({
     }
     
     // Remove common filler words and punctuation at the beginning and end
-    cleaned = cleaned.replace(/^(uh|um|er|ah|well|so|okay|alright|let me see|i want to|i would like to|the|question mark|\?|\.)\s*/gi, '').trim();
-    cleaned = cleaned.replace(/\s*(question mark|\?|\.)$/gi, '').trim();
+    cleaned = cleaned.replace(/^(uh|um|er|ah|well|so|okay|alright|let me see|i want to|i would like to|the|question mark)\s*/gi, '').trim();
+    cleaned = cleaned.replace(/\s*(question mark|\?|\.|!|,)$/gi, '').trim();
+    
+    // Final cleanup: remove any remaining leading/trailing punctuation
+    cleaned = cleaned.replace(/^[\?\!\.\,\;\:]+\s*/, '').replace(/\s*[\?\!\.\,\;\:]+$/, '').trim();
     
     console.log(`🧹 Cleaned input "${text}" → "${cleaned}"`);
     return cleaned;
   }, []);
 
-  // Fuzzy matching for categories
+  // Fuzzy matching for categories with better similarity
   const matchCategory = useCallback((input: string): string | null => {
     const categoryMappings = {
-      'documents': ['documents', 'document', 'docs', 'doc', 'files', 'file'],
-      'health': ['health', 'medical', 'healthcare', 'medicine', 'doctor'],
-      'contacts': ['contacts', 'contact', 'people', 'person', 'friends', 'friend', 'family'],
-      'finance': ['finance', 'financial', 'money', 'bank', 'budget', 'expense'],
-      'personal': ['personal', 'private', 'myself', 'self', 'misc', 'other']
+      'documents': ['documents', 'document', 'docs', 'doc', 'files', 'file', 'paperwork', 'papers'],
+      'health': ['health', 'medical', 'healthcare', 'medicine', 'doctor', 'wellness', 'fitness'],
+      'contacts': ['contacts', 'contact', 'people', 'person', 'friends', 'friend', 'family', 'relationships'],
+      'finance': ['finance', 'financial', 'money', 'bank', 'budget', 'expense', 'income', 'banking'],
+      'personal': ['personal', 'private', 'myself', 'self', 'misc', 'other', 'general']
     };
     
     const lowerInput = input.toLowerCase().trim();
     
+    // First, try exact word matching
     for (const [category, variations] of Object.entries(categoryMappings)) {
-      if (variations.some(variation => lowerInput.includes(variation))) {
+      if (variations.some(variation => lowerInput === variation || lowerInput.includes(variation))) {
+        return category.charAt(0).toUpperCase() + category.slice(1);
+      }
+    }
+    
+    // Then try partial matching with higher confidence threshold
+    for (const [category, variations] of Object.entries(categoryMappings)) {
+      if (variations.some(variation => 
+        variation.length > 3 && lowerInput.includes(variation.substring(0, 4))
+      )) {
         return category.charAt(0).toUpperCase() + category.slice(1);
       }
     }

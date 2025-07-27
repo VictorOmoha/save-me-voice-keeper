@@ -9,6 +9,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { CategorySelector } from "./forms/CategorySelector";
 import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
 import { TypewriterText } from "./TypewriterText";
+import { VoiceLiveFeedback } from "./VoiceLiveFeedback";
 import { 
   Mic, 
   MicOff, 
@@ -264,6 +265,15 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
               </p>
             </div>
           )}
+
+          {/* Live Voice Feedback Component */}
+          <VoiceLiveFeedback
+            title={entryData.title}
+            category={entryData.category}
+            fields={entryData.customFields}
+            currentStep={steps.find(s => s.current)?.id}
+            isListening={isVoiceActive && conversationState?.isInConversation}
+          />
 
           {/* Debug Display */}
           <div className="p-3 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30">

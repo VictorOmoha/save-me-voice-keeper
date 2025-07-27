@@ -230,6 +230,18 @@ class EnhancedVoiceProcessor {
       }
     }
     
+    
+    // Close commands
+    if (cleanText.includes('close') && (cleanText.includes('entry') || cleanText.includes('dialog') || cleanText.includes('modal'))) {
+      return {
+        intent: 'navigate',
+        action: 'close_entry',
+        parameters: {},
+        confidence: 0.9,
+        conversationalResponse: 'Closing the current entry view'
+      };
+    }
+    
     // Edit/Open commands
     if (cleanText.includes('edit') || cleanText.includes('open') || cleanText.includes('modify')) {
       const entryMatch = this.extractEntryReference(cleanText, context);

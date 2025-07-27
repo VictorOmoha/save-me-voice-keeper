@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -31,6 +31,22 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   onFill,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Listen for voice command to close entry
+  useEffect(() => {
+    const handleCloseCommand = () => {
+      if (isOpen) {
+        console.log('🎤 Voice command: Closing entry dialog');
+        onClose();
+      }
+    };
+
+    window.addEventListener('close-entry-dialog', handleCloseCommand);
+    
+    return () => {
+      window.removeEventListener('close-entry-dialog', handleCloseCommand);
+    };
+  }, [isOpen, onClose]);
 
   if (!entry) return null;
 

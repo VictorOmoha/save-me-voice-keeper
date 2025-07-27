@@ -98,6 +98,13 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         toast.info(`Searching for: ${command.parameters.query}`);
         break;
         
+      case 'close_entry':
+        console.log('🚪 Closing entry view');
+        // Trigger close events for any open entry dialogs/modals
+        window.dispatchEvent(new CustomEvent('close-entry-dialog'));
+        toast.success('Entry view closed');
+        break;
+        
       case 'greeting':
         console.log('👋 Greeting command');
         break;

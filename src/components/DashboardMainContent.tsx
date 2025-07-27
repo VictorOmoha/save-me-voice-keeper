@@ -31,6 +31,7 @@ interface DashboardMainContentProps {
   onEnhancedVoiceInput: (text: string) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
+  onDeleteEntry: (id: string) => void;
   isVoiceProcessing?: boolean;
   lastVoiceCommand?: any;
   conversationState?: 'listening' | 'confirming' | 'idle';
@@ -67,6 +68,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onEnhancedVoiceInput,
   onEditEntry,
   onFillEntry,
+  onDeleteEntry,
   isVoiceProcessing,
   lastVoiceCommand,
   conversationState,
@@ -216,7 +218,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         savedEntries={savedEntries}
         onCreateEntry={onAddEntry}
         onEditEntry={onEditEntry}
-        onDeleteEntry={(id: string) => {}}
+        onDeleteEntry={onDeleteEntry}
         onSaveEntry={onSaveEntry}
         onCancelEdit={onCancelEdit}
         onEnhancedVoiceInput={onEnhancedVoiceInput}

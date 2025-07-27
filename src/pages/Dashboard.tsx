@@ -42,6 +42,12 @@ export default function Dashboard() {
     getFormTitle,
     handleAddEntry,
     handleEnhancedVoiceInput,
+    isVoiceProcessing,
+    lastVoiceCommand,
+    conversationState,
+    hasPendingConfirmation,
+    conversationData,
+    cancelCurrentOperation,
   } = useDashboard();
 
   // Add voice processor for enhanced voice integration with forms
@@ -143,6 +149,13 @@ export default function Dashboard() {
           onEnhancedVoiceInput={handleEnhancedVoiceInput}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
+          onDeleteEntry={deleteEntry}
+          isVoiceProcessing={isVoiceProcessing}
+          lastVoiceCommand={lastVoiceCommand}
+          conversationState={conversationState}
+          hasPendingConfirmation={hasPendingConfirmation}
+          onCancelVoice={cancelCurrentOperation}
+          conversationData={conversationData}
         />
       )}
       

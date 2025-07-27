@@ -11,7 +11,7 @@ interface FloatingVoiceInputProps {
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
   conversationData?: { isActive: boolean; currentStep?: { question: string } };
-  // Add required props for ConversationalVoiceInterface
+  // Dashboard props passed through
   savedEntries?: SavedEntry[];
   onCreateEntry?: () => void;
   onEditEntry?: (entry: SavedEntry) => void;
@@ -21,6 +21,7 @@ interface FloatingVoiceInputProps {
 }
 
 export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
+  onEnhancedVoiceInput,
   savedEntries = [],
   onCreateEntry = () => {},
   onEditEntry = () => {},
@@ -34,7 +35,7 @@ export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
     // Auto-initialize voice input only once
     if (!hasInitialized.current) {
       hasInitialized.current = true;
-      console.log('🎤 FloatingVoiceInput: Using ConversationalVoiceInterface');
+      console.log('🎤 FloatingVoiceInput: Connected to Dashboard voice system');
     }
   }, []);
 

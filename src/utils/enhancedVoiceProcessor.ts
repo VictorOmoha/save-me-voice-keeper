@@ -33,9 +33,15 @@ class EnhancedVoiceProcessor {
   private expectingFollowUp: boolean = false;
   private commandHistory: string[] = [];
 
+  // Store last TTS prompt for comparison
+  private lastTTSPrompt: string = '';
+
   // Improved TTS detection with better filtering
   private isTTSFeedback(text: string): boolean {
     const cleanText = text.toLowerCase().trim();
+    
+    console.log('🎤 Transcript received:', text);
+    console.log('🤖 Last TTS prompt:', this.lastTTSPrompt);
     
     // Skip very short inputs
     if (cleanText.length < 3) {
@@ -49,11 +55,19 @@ class EnhancedVoiceProcessor {
       return true;
     }
     
-    // Only block exact matches to system responses
+    // Check if transcript matches recent TTS prompts exactly
+    if (this.lastTTSPrompt && cleanText === this.lastTTSPrompt.toLowerCase().trim()) {
+      console.log('🚫 Enhanced Processor: Exact TTS prompt match, blocking');
+      return true;
+    }
+    
+    // System prompts to filter out
     const systemPhrases = [
       'voice mode activated',
       'how can i help you',
-      'creating new entry',
+      'what would you like to call this entry',
+      'what category should this entry be in',
+      'would you like to add any custom fields',
       'tell me what to add',
       'what information would you like to add'
     ];
@@ -61,20 +75,20 @@ class EnhancedVoiceProcessor {
     // Check for exact system phrase matches
     for (const phrase of systemPhrases) {
       if (cleanText === phrase || cleanText.includes(phrase)) {
-        console.log('🚫 Enhanced Processor: Exact system phrase match, blocking:', phrase);
+        console.log('🚫 Enhanced Processor: System phrase match, blocking:', phrase);
         return true;
       }
     }
     
-    // Check recent TTS with more lenient matching
+    // Check recent TTS cache
     if ((window as any).__recent_tts_texts) {
       const recentTTS = (window as any).__recent_tts_texts as string[];
       
-      // Only block if it's a very close match to recent TTS
       for (const ttsText of recentTTS) {
         const ttsClean = ttsText.toLowerCase().trim();
         if (cleanText === ttsClean || 
-            (cleanText.length > 10 && ttsClean.includes(cleanText))) {
+            (cleanText.length > 10 && ttsClean.includes(cleanText)) ||
+            (ttsClean.length > 10 && ttsClean.includes(cleanText))) {
           console.log('🚫 Enhanced Processor: Close TTS match, blocking');
           return true;
         }
@@ -82,6 +96,11 @@ class EnhancedVoiceProcessor {
     }
     
     return false;
+  }
+
+  // Method to track TTS prompts
+  public setLastTTSPrompt(prompt: string): void {
+    this.lastTTSPrompt = prompt.toLowerCase().trim();
   }
 
   async processVoiceCommand(transcript: string, context: VoiceContext): Promise<EnhancedVoiceCommand> {

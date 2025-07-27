@@ -34,8 +34,11 @@ export const useTTSEventHandler = ({
       if (conversationState?.isActive && !isListening && recognitionRef.current) {
         console.log('🔄 TTS Event Handler: Scheduling recognition restart after TTS completion');
         
-        // Wait longer for TTS to fully complete before restarting
-        restartTimeoutRef.current = setTimeout(() => {
+        // Retry restart with exponential backoff for reliability
+        let retryAttempts = 0;
+        const maxRetries = 3;
+        
+        const attemptRestart = () => {
           try {
             // Double-check conditions before restart
             if (recognitionRef.current && 
@@ -43,15 +46,27 @@ export const useTTSEventHandler = ({
                 !isListening &&
                 !(window as any).__tts_is_speaking) {
               
-              console.log('🎤 TTS Event Handler: Restarting speech recognition');
+              console.log('🎤 TTS Event Handler: Restarting speech recognition (attempt ' + (retryAttempts + 1) + ')');
               recognitionRef.current.start();
+              setIsListening(true);
             } else {
               console.log('🚫 TTS Event Handler: Conditions changed, skipping restart');
             }
           } catch (error) {
-            console.log('⚠️ TTS Event Handler: Restart failed, will be handled by orchestrator:', error);
+            if (error.name === 'InvalidStateError' && retryAttempts < maxRetries) {
+              retryAttempts++;
+              const delay = Math.min(1000 * Math.pow(2, retryAttempts - 1), 3000);
+              console.log(`⚠️ TTS Event Handler: Restart failed, retrying in ${delay}ms (attempt ${retryAttempts}/${maxRetries})`);
+              
+              restartTimeoutRef.current = setTimeout(attemptRestart, delay);
+            } else {
+              console.log('⚠️ TTS Event Handler: Restart failed permanently:', error);
+            }
           }
-        }, 2500); // Increased delay significantly
+        };
+        
+        // Initial delay before first attempt
+        restartTimeoutRef.current = setTimeout(attemptRestart, 1500);
       }
     };
 

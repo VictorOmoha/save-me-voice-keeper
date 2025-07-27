@@ -97,8 +97,9 @@ export const useUnifiedVoiceProcessor = ({
       entryDraft: { fields: [] },
     });
     
-    // Ask the first question
+    // Ask the first question and track TTS
     setTimeout(() => {
+      voiceProcessor.setLastTTSPrompt(CONVERSATION_STEPS.TITLE.question);
       speak(CONVERSATION_STEPS.TITLE.question);
       toast.info("🎤 Let's create your entry! " + CONVERSATION_STEPS.TITLE.question);
     }, 500);
@@ -247,6 +248,7 @@ export const useUnifiedVoiceProcessor = ({
         }));
         
         setTimeout(() => {
+          voiceProcessor.setLastTTSPrompt(CONVERSATION_STEPS.CATEGORY.question);
           speak(CONVERSATION_STEPS.CATEGORY.question);
           toast.success(`✅ Title set: "${title}"`);
         }, 300);
@@ -259,10 +261,11 @@ export const useUnifiedVoiceProcessor = ({
         
         if (!matchedCategory) {
           const retryMessage = `I heard "${cleanedText}" - please say one of: Documents, Health, Contacts, Finance, or Personal.`;
-          setTimeout(() => {
-            speak(retryMessage);
-            toast.info(retryMessage);
-          }, 300);
+            setTimeout(() => {
+              voiceProcessor.setLastTTSPrompt(retryMessage);
+              speak(retryMessage);
+              toast.info(retryMessage);
+            }, 300);
           return false;
         }
         
@@ -286,7 +289,9 @@ export const useUnifiedVoiceProcessor = ({
         }));
         
         setTimeout(() => {
-          speak(`Perfect! Entry preview: Title "${updatedDraft.title}" in ${matchedCategory} category. Say "save" to create it or "edit" to make changes.`);
+          const previewMessage = `Perfect! Entry preview: Title "${updatedDraft.title}" in ${matchedCategory} category. Say "save" to create it or "edit" to make changes.`;
+          voiceProcessor.setLastTTSPrompt(previewMessage);
+          speak(previewMessage);
           toast.success(`✅ Category set: ${matchedCategory}`);
         }, 300);
         console.log('➡️ Moving to preview step');
@@ -445,9 +450,23 @@ export const useUnifiedVoiceProcessor = ({
       
       console.log('🎯 Processed command:', command);
       
+      // Block fallback commands during active conversation
+      if (command.action === 'tts_feedback_blocked') {
+        console.log('🚫 TTS feedback blocked, ignoring');
+        return;
+      }
+      
+      // Don't restart wizard if we're already in conversation
+      if (command.action === 'create_entry' && conversationState.isInConversation) {
+        console.log('🚫 Already in conversation, not restarting wizard');
+        return;
+      }
+
       switch (command.action) {
         case 'create_entry':
-          startCreateEntryConversation();
+          if (!conversationState.isInConversation) {
+            startCreateEntryConversation();
+          }
           break;
           
         case 'open_entry':

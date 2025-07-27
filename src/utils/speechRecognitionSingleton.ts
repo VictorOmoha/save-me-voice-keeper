@@ -180,15 +180,6 @@ export class SpeechRecognitionSingleton {
 
     if ((window as any).__tts_is_speaking) {
       console.log('⏸️ Recognition Singleton: Waiting for TTS to finish');
-      // Schedule start after TTS completes
-      const checkTTS = () => {
-        if (!(window as any).__tts_is_speaking) {
-          this.start();
-        } else {
-          setTimeout(checkTTS, 500);
-        }
-      };
-      setTimeout(checkTTS, 500);
       return false;
     }
 
@@ -199,6 +190,12 @@ export class SpeechRecognitionSingleton {
       console.log('🎤 Recognition Singleton: Started');
       return true;
     } catch (error) {
+      if (error.name === 'InvalidStateError') {
+        console.log('⚠️ Recognition Singleton: Invalid state, will retry');
+        // Don't return false immediately for InvalidStateError, let the restart mechanism handle it
+        this.scheduleRestart();
+        return false;
+      }
       console.error('❌ Recognition Singleton: Start failed:', error);
       return false;
     }

@@ -77,7 +77,18 @@ export default function Dashboard() {
     };
 
     getUser();
-  }, [navigate]);
+    
+    // Add global test function for debugging
+    (window as any).testFormOpen = () => {
+      console.log('🧪 Manual test: Calling handleAddEntry()');
+      handleAddEntry();
+    };
+    
+    (window as any).testVoiceCommand = () => {
+      console.log('🧪 Manual test: Calling handleEnhancedVoiceInput with create command');
+      handleEnhancedVoiceInput('create a new entry');
+    };
+  }, [navigate, handleAddEntry, handleEnhancedVoiceInput]);
 
   // Listen for voice command to close entry forms
   useEffect(() => {
@@ -121,6 +132,17 @@ export default function Dashboard() {
       onSaveEntry={saveEntry}
       onCancelEdit={handleCancelEdit}
     >
+      {/* DEBUG: Always show form state indicators */}
+      <div className="bg-blue-100 text-blue-800 p-2 border border-blue-500 rounded mb-2 text-xs">
+        🔍 RENDER DEBUG: showAddEntry={showAddEntry.toString()}, editingEntry={!!editingEntry}, fillingEntry={!!fillingEntry}
+      </div>
+      
+      {showAddEntry && (
+        <div className="bg-green-100 text-green-800 p-2 border border-green-500 rounded mb-2">
+          ✅ DEBUG: showAddEntry is TRUE - Form should be rendering now
+        </div>
+      )}
+      
       {(showAddEntry || editingEntry || fillingEntry) ? (
         <>
           <div className="bg-green-100 text-green-800 p-4 border border-green-500 rounded mb-4">

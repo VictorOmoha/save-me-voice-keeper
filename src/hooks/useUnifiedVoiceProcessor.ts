@@ -82,6 +82,12 @@ export const useUnifiedVoiceProcessor = ({
     entryDraft: { fields: [] },
   });
 
+  // Use ref to track current conversation state for immediate access
+  const conversationStateRef = useRef<UnifiedVoiceState>(conversationState);
+  
+  // Keep ref in sync with state
+  conversationStateRef.current = conversationState;
+
   const pendingDeleteEntry = useRef<SavedEntry | null>(null);
 
   const startCreateEntryConversation = useCallback(() => {
@@ -185,17 +191,20 @@ export const useUnifiedVoiceProcessor = ({
 
   const processConversationStep = useCallback((transcript: string) => {
     console.log('🎯 processConversationStep called with:', transcript);
+    
+    // Use ref for current state to avoid stale closure
+    const currentState = conversationStateRef.current;
     console.log('🔍 Current conversation state:', { 
-      isInConversation: conversationState.isInConversation, 
-      stepType: conversationState.currentStep?.type 
+      isInConversation: currentState.isInConversation, 
+      stepType: currentState.currentStep?.type 
     });
     
-    if (!conversationState.isInConversation || !conversationState.currentStep) {
+    if (!currentState.isInConversation || !currentState.currentStep) {
       console.log('❌ Not in conversation or no current step');
       return false;
     }
 
-    const { currentStep, entryDraft } = conversationState;
+    const { currentStep, entryDraft } = currentState;
     
     // Clean the input text
     const cleanedText = cleanVoiceInput(transcript);
@@ -385,7 +394,7 @@ export const useUnifiedVoiceProcessor = ({
     }
 
     return true;
-  }, [conversationState, formTitleSetter, formCategorySetter, formAddFieldFunction, cleanVoiceInput]);
+  }, [formTitleSetter, formCategorySetter, formAddFieldFunction, cleanVoiceInput, matchCategory]);
 
   const createEntryFromDraft = useCallback((draft: EntryDraft) => {
     const entry = {
@@ -422,12 +431,15 @@ export const useUnifiedVoiceProcessor = ({
 
   const processVoiceInput = useCallback(async (transcript: string) => {
     console.log('🎙️ DEBUG UNIFIED: Processing voice input:', transcript);
-    console.log('🔍 DEBUG UNIFIED: Conversation state check - isInConversation:', conversationState.isInConversation);
-    console.log('🔍 DEBUG UNIFIED: Current step:', conversationState.currentStep?.type);
-    console.log('🔍 DEBUG UNIFIED: Full conversation state:', conversationState);
+    
+    // Use ref to get the current state (not stale closure state)
+    const currentState = conversationStateRef.current;
+    console.log('🔍 DEBUG UNIFIED: Conversation state check - isInConversation:', currentState.isInConversation);
+    console.log('🔍 DEBUG UNIFIED: Current step:', currentState.currentStep?.type);
+    console.log('🔍 DEBUG UNIFIED: Full conversation state:', currentState);
     
     // CRITICAL: If we're in a conversation, ONLY process conversation steps
-    if (conversationState.isInConversation) {
+    if (currentState.isInConversation) {
       console.log('🎯 IN CONVERSATION MODE - Processing step input');
       const handled = processConversationStep(transcript);
       console.log('🔍 Step processing result:', handled);
@@ -458,14 +470,14 @@ export const useUnifiedVoiceProcessor = ({
       }
       
       // Don't restart wizard if we're already in conversation
-      if (command.action === 'create_entry' && conversationState.isInConversation) {
+      if (command.action === 'create_entry' && currentState.isInConversation) {
         console.log('🚫 Already in conversation, not restarting wizard');
         return;
       }
 
       switch (command.action) {
         case 'create_entry':
-          if (!conversationState.isInConversation) {
+          if (!currentState.isInConversation) {
             startCreateEntryConversation();
           }
           break;
@@ -500,7 +512,7 @@ export const useUnifiedVoiceProcessor = ({
           break;
           
         case 'cancel_operation':
-          if (conversationState.isInConversation) {
+          if (currentState.isInConversation) {
             setConversationState({
               isInConversation: false,
               currentStep: null,
@@ -536,7 +548,7 @@ export const useUnifiedVoiceProcessor = ({
       speak("Sorry, I had trouble understanding that. Please try again.");
       toast.error("❌ Voice processing error");
     }
-  }, [conversationState, savedEntries, startCreateEntryConversation, processConversationStep, onEditEntry, onDeleteEntry, onCancelEdit]);
+  }, [savedEntries, startCreateEntryConversation, processConversationStep, onEditEntry, onDeleteEntry, onCancelEdit]);
 
   const cancelConversation = useCallback(() => {
     setConversationState({

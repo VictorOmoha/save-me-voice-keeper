@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 import { VoiceStatus } from "./voice/VoiceStatus";
 import { VoiceControls } from "./voice/VoiceControls";
@@ -9,6 +9,7 @@ import { speechRecognition } from "@/utils/speechRecognitionSingleton";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
 import { voiceProcessor, EnhancedVoiceCommand } from "@/utils/enhancedVoiceProcessor";
+import { useTTSEventHandler } from "@/hooks/useTTSEventHandler";
 
 interface ConversationalVoiceInterfaceProps {
   savedEntries: SavedEntry[];
@@ -34,8 +35,19 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const [conversationState, setConversationState] = useState<{ currentStep: any }>({ currentStep: null });
   const [waitingForFollowUp, setWaitingForFollowUp] = useState(false);
   
+  // Create a ref to track the recognition instance for TTS event handler
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  
   // Get form context if available
   const formContext = useVoiceFormContext();
+
+  // Use TTS event handler to restart recognition after TTS completes
+  useTTSEventHandler({
+    conversationState: { isActive },
+    isListening,
+    recognitionRef,
+    setIsListening,
+  });
 
   // Execute voice commands
   const executeVoiceCommand = async (command: EnhancedVoiceCommand) => {
@@ -249,6 +261,8 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     setWaitingForFollowUp(false);
     
     if (speechRecognition.start()) {
+      // Store the recognition instance for TTS event handler
+      recognitionRef.current = speechRecognition.getRecognition();
       toast.success('🎤 Voice mode activated - I\'m listening!');
       speak('Voice mode activated. How can I help you?');
     } else {

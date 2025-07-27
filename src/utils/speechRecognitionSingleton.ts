@@ -241,6 +241,10 @@ export class SpeechRecognitionSingleton {
   public resetRestartAttempts(): void {
     this.restartAttempts = 0;
   }
+
+  public getRecognition(): SpeechRecognition | null {
+    return this.recognition;
+  }
 }
 
 export const speechRecognition = SpeechRecognitionSingleton.getInstance();

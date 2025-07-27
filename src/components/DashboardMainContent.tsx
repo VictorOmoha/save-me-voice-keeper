@@ -213,6 +213,12 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
 
       {/* Floating Voice Input - Always Available */}
       <FloatingVoiceInput
+        savedEntries={savedEntries}
+        onCreateEntry={onAddEntry}
+        onEditEntry={onEditEntry}
+        onDeleteEntry={(id: string) => {}}
+        onSaveEntry={onSaveEntry}
+        onCancelEdit={onCancelEdit}
         onEnhancedVoiceInput={onEnhancedVoiceInput}
         isVoiceProcessing={isVoiceProcessing}
         lastVoiceCommand={lastVoiceCommand}

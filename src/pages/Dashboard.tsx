@@ -146,17 +146,6 @@ export default function Dashboard() {
         />
       )}
       
-      {/* Main Voice Interface - now properly connected */}
-      <div className="fixed bottom-4 left-4 z-50">
-        <ConversationalVoiceInterface
-          savedEntries={savedEntries}
-          onCreateEntry={handleAddEntry}
-          onEditEntry={editEntry}
-          onDeleteEntry={deleteEntry}
-          onSaveEntry={saveEntry}
-          onCancelEdit={handleCancelEdit}
-        />
-      </div>
       
       {/* Debug panel for voice system monitoring */}
       <VoiceDebugPanel />

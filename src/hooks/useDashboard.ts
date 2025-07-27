@@ -170,12 +170,9 @@ export const useDashboard = () => {
 
     switch (command.action) {
       case 'create_entry':
-        // Only open form if this is an intentional "create" command
-        if (command.confidence > 0.8 && command.action === 'create_entry') {
-          setShowAddEntry(true);
-          setEditingEntry(null);
-          setFillingEntry(null);
-        }
+        setShowAddEntry(true);
+        setEditingEntry(null);
+        setFillingEntry(null);
         break;
 
       case 'create_entry_with_content':

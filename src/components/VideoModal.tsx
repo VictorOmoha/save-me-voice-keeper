@@ -1,4 +1,5 @@
 
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
@@ -11,6 +12,23 @@ interface VideoModalProps {
 }
 
 export const VideoModal = ({ open, onOpenChange, videoUrl, title }: VideoModalProps) => {
+  // Add voice command close event listener
+  useEffect(() => {
+    const handleVoiceClose = () => {
+      if (open) {
+        console.log('🎙️ Voice command: closing video modal');
+        onOpenChange(false);
+      }
+    };
+
+    window.addEventListener('close-modal', handleVoiceClose);
+    window.addEventListener('close-video', handleVoiceClose);
+    
+    return () => {
+      window.removeEventListener('close-modal', handleVoiceClose);
+      window.removeEventListener('close-video', handleVoiceClose);
+    };
+  }, [open, onOpenChange]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl w-full p-0">

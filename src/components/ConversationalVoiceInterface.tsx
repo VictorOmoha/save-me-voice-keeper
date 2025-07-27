@@ -118,6 +118,33 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         toast.success('Entry closed');
         break;
         
+      case 'close_settings':
+        console.log('⚙️ Closing settings modal');
+        window.dispatchEvent(new CustomEvent('close-settings'));
+        toast.success('Settings closed');
+        break;
+        
+      case 'close_export':
+        console.log('📤 Closing export modal');
+        window.dispatchEvent(new CustomEvent('close-export'));
+        toast.success('Export modal closed');
+        break;
+        
+      case 'close_video':
+        console.log('🎥 Closing video modal');
+        window.dispatchEvent(new CustomEvent('close-video'));
+        toast.success('Video modal closed');
+        break;
+        
+      case 'close_modal':
+        console.log('🚪 Closing all modals');
+        // Generic modal close - dispatch multiple events to cover all modals
+        window.dispatchEvent(new CustomEvent('close-modal'));
+        window.dispatchEvent(new CustomEvent('close-entry-dialog'));
+        window.dispatchEvent(new CustomEvent('close-entry-form'));
+        toast.success('Modal closed');
+        break;
+        
       case 'greeting':
         console.log('👋 Greeting command');
         break;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,24 @@ export function WaitingListModal({ open, onOpenChange }: WaitingListModalProps) 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Add voice command close event listener
+  useEffect(() => {
+    const handleVoiceClose = () => {
+      if (open) {
+        console.log('🎙️ Voice command: closing waiting list modal');
+        onOpenChange(false);
+      }
+    };
+
+    window.addEventListener('close-modal', handleVoiceClose);
+    window.addEventListener('close-waitlist', handleVoiceClose);
+    
+    return () => {
+      window.removeEventListener('close-modal', handleVoiceClose);
+      window.removeEventListener('close-waitlist', handleVoiceClose);
+    };
+  }, [open, onOpenChange]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

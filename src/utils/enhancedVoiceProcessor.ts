@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 
 export interface EnhancedVoiceCommand {
-  intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'unknown';
+  intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'close' | 'unknown';
   action: string;
   parameters: Record<string, any>;
   confidence: number;
@@ -176,6 +176,56 @@ class EnhancedVoiceProcessor {
     const cleanText = transcript.toLowerCase().trim();
     
     console.log('🔍 Enhanced Processor: Parsing command:', cleanText);
+    
+    // Handle close commands with expanded patterns
+    if (cleanText.includes('close') || cleanText.includes('dismiss') || cleanText.includes('cancel') || 
+        cleanText.includes('exit') || cleanText.match(/^(stop|end|quit)$/)) {
+      // Context-specific closes
+      if (cleanText.includes('settings') || cleanText.includes('preferences')) {
+        return {
+          intent: 'close',
+          action: 'close_settings',
+          parameters: {},
+          confidence: 0.95,
+          conversationalResponse: "Closing settings modal."
+        };
+      }
+      if (cleanText.includes('export')) {
+        return {
+          intent: 'close',
+          action: 'close_export',
+          parameters: {},
+          confidence: 0.95,
+          conversationalResponse: "Closing export modal."
+        };
+      }
+      if (cleanText.includes('video')) {
+        return {
+          intent: 'close',
+          action: 'close_video',
+          parameters: {},
+          confidence: 0.95,
+          conversationalResponse: "Closing video modal."
+        };
+      }
+      if (cleanText.includes('entry') || cleanText.includes('dialog') || cleanText.includes('modal') || cleanText.includes('window')) {
+        return {
+          intent: 'close',
+          action: 'close_entry',
+          parameters: {},
+          confidence: 0.9,
+          conversationalResponse: "Closing the current dialog."
+        };
+      }
+      // Generic close for any open modal
+      return {
+        intent: 'close',
+        action: 'close_modal',
+        parameters: {},
+        confidence: 0.85,
+        conversationalResponse: "Closing the current modal or dialog."
+      };
+    }
     
     // Create commands - more specific patterns
     if ((cleanText.includes('create') && cleanText.includes('entry')) || 

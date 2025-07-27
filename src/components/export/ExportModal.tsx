@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -47,6 +47,24 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     pageBreakBetweenEntries: false,
     fontSize: 'medium'
   });
+
+  // Add voice command close event listener
+  useEffect(() => {
+    const handleVoiceClose = () => {
+      if (open) {
+        console.log('🎙️ Voice command: closing export modal');
+        onClose();
+      }
+    };
+
+    window.addEventListener('close-modal', handleVoiceClose);
+    window.addEventListener('close-export', handleVoiceClose);
+    
+    return () => {
+      window.removeEventListener('close-modal', handleVoiceClose);
+      window.removeEventListener('close-export', handleVoiceClose);
+    };
+  }, [open, onClose]);
 
   const entriesToExport = selectedEntries.length > 0 
     ? entries.filter(entry => selectedEntries.includes(entry.id))

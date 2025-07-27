@@ -87,6 +87,24 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
     }
   }, [isOpen]);
 
+  // Add voice command close event listener
+  useEffect(() => {
+    const handleVoiceClose = () => {
+      if (isOpen) {
+        console.log('🎙️ Voice command: closing settings modal');
+        onOpenChange(false);
+      }
+    };
+
+    window.addEventListener('close-modal', handleVoiceClose);
+    window.addEventListener('close-settings', handleVoiceClose);
+    
+    return () => {
+      window.removeEventListener('close-modal', handleVoiceClose);
+      window.removeEventListener('close-settings', handleVoiceClose);
+    };
+  }, [isOpen, onOpenChange]);
+
   // Sync MiniMax voice selection with localStorage
   useEffect(() => {
     if (isOpen) {

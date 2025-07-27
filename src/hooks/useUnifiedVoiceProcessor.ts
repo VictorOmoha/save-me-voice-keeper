@@ -104,89 +104,64 @@ export const useUnifiedVoiceProcessor = ({
     }, 500);
   }, [onCreateEntry]);
 
-  // Helper function to clean voice input from system prompts and retry messages
-  const cleanVoiceInput = useCallback((text: string, currentStep: any): string => {
+  // Helper function to clean voice input - simplified and more reliable
+  const cleanVoiceInput = useCallback((text: string): string => {
     let cleaned = text.trim();
     
-    // First, remove any leading punctuation or question marks that might get added
+    // Only remove obvious system artifacts, not actual user content
+    // Remove leading punctuation that might get added by speech recognition
     cleaned = cleaned.replace(/^[\?\!\.\,\;\:]+\s*/, '');
     
-    // Remove system retry/clarification messages that might get mixed in
-    const retryPhrases = [
+    // Remove trailing punctuation
+    cleaned = cleaned.replace(/\s*[\?\!\.\,\;\:]+$/, '');
+    
+    // Remove only obvious system retry messages if they're the entire input
+    const obviousSystemMessages = [
       "I didn't catch that clearly",
       "I didn't catch that",
-      "Did you say",
-      "I couldn't quite hear that",
       "Please try again",
-      "Please repeat",
-      "I didn't understand",
-      "I didn't hear you"
+      "I didn't understand"
     ];
     
-    // Remove retry phrases first (more aggressive matching)
-    for (const phrase of retryPhrases) {
-      const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-      cleaned = cleaned.replace(regex, '').trim();
+    for (const message of obviousSystemMessages) {
+      if (cleaned.toLowerCase() === message.toLowerCase()) {
+        return ''; // Return empty if it's just a system message
+      }
     }
-    
-    // Remove common system prompt phrases that might get picked up
-    const promptPhrases = [
-      "What would you like to call this entry",
-      "What category should this entry be in",
-      "Would you like to add any custom fields",
-      "What would you like to name this field",
-      "What type of field should this be",
-      "Here's your entry preview",
-      "Would you like to save this entry or edit something",
-      "Say save to create",
-      "Say edit to modify"
-    ];
-    
-    // Remove prompt phrases (case insensitive)
-    for (const phrase of promptPhrases) {
-      const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-      cleaned = cleaned.replace(regex, '').trim();
-    }
-    
-    // Remove common filler words and punctuation at the beginning and end
-    cleaned = cleaned.replace(/^(uh|um|er|ah|well|so|okay|alright|let me see|i want to|i would like to|the|question mark)\s*/gi, '').trim();
-    cleaned = cleaned.replace(/\s*(question mark|\?|\.|!|,)$/gi, '').trim();
-    
-    // Final cleanup: remove any remaining leading/trailing punctuation
-    cleaned = cleaned.replace(/^[\?\!\.\,\;\:]+\s*/, '').replace(/\s*[\?\!\.\,\;\:]+$/, '').trim();
     
     console.log(`🧹 Cleaned input "${text}" → "${cleaned}"`);
     return cleaned;
   }, []);
 
-  // Fuzzy matching for categories with better similarity
+  // Enhanced fuzzy matching for categories
   const matchCategory = useCallback((input: string): string | null => {
     const categoryMappings = {
-      'documents': ['documents', 'document', 'docs', 'doc', 'files', 'file', 'paperwork', 'papers'],
-      'health': ['health', 'medical', 'healthcare', 'medicine', 'doctor', 'wellness', 'fitness'],
-      'contacts': ['contacts', 'contact', 'people', 'person', 'friends', 'friend', 'family', 'relationships'],
-      'finance': ['finance', 'financial', 'money', 'bank', 'budget', 'expense', 'income', 'banking'],
-      'personal': ['personal', 'private', 'myself', 'self', 'misc', 'other', 'general']
+      'Documents': ['documents', 'document', 'docs', 'doc', 'files', 'file', 'paperwork', 'papers'],
+      'Health': ['health', 'medical', 'healthcare', 'medicine', 'doctor', 'wellness', 'fitness'],
+      'Contacts': ['contacts', 'contact', 'people', 'person', 'friends', 'friend', 'family', 'relationships'],
+      'Finance': ['finance', 'financial', 'money', 'bank', 'budget', 'expense', 'income', 'banking'],
+      'Personal': ['personal', 'private', 'myself', 'self', 'misc', 'other', 'general']
     };
     
     const lowerInput = input.toLowerCase().trim();
     
-    // First, try exact word matching
+    // First, try exact matches
     for (const [category, variations] of Object.entries(categoryMappings)) {
-      if (variations.some(variation => lowerInput === variation || lowerInput.includes(variation))) {
-        return category.charAt(0).toUpperCase() + category.slice(1);
+      if (variations.some(variation => lowerInput === variation)) {
+        console.log(`🎯 Exact category match: "${input}" → "${category}"`);
+        return category;
       }
     }
     
-    // Then try partial matching with higher confidence threshold
+    // Then try substring matches with higher confidence
     for (const [category, variations] of Object.entries(categoryMappings)) {
-      if (variations.some(variation => 
-        variation.length > 3 && lowerInput.includes(variation.substring(0, 4))
-      )) {
-        return category.charAt(0).toUpperCase() + category.slice(1);
+      if (variations.some(variation => lowerInput.includes(variation) && variation.length >= 4)) {
+        console.log(`🎯 Fuzzy category match: "${input}" → "${category}"`);
+        return category;
       }
     }
     
+    console.log(`❌ No category match found for: "${input}"`);
     return null;
   }, []);
 
@@ -222,14 +197,14 @@ export const useUnifiedVoiceProcessor = ({
     const { currentStep, entryDraft } = conversationState;
     
     // Clean the input text
-    const cleanedText = cleanVoiceInput(transcript, currentStep);
+    const cleanedText = cleanVoiceInput(transcript);
     const lowerTranscript = cleanedText.toLowerCase().trim();
     
     console.log('📝 Processing conversation step:', currentStep.type, 'with cleaned input:', cleanedText);
     
-    // If cleaned text is empty, ask for clarification
-    if (!cleanedText) {
-      const clarificationMessage = `I didn't catch that clearly. ${currentStep.question}`;
+    // If cleaned text is empty or too short, ask for clarification
+    if (!cleanedText || cleanedText.length < 1) {
+      const clarificationMessage = `I didn't catch that. ${currentStep.question}`;
       setTimeout(() => {
         speak(clarificationMessage);
         toast.info(clarificationMessage);
@@ -239,9 +214,9 @@ export const useUnifiedVoiceProcessor = ({
 
     switch (currentStep.type) {
       case 'title':
-        // Check confidence for title input
-        if (!isInputConfident(cleanedText, 'title')) {
-          const retryMessage = `I didn't catch that clearly. Did you say "${cleanedText}"? Please repeat the title clearly.`;
+        // Require minimum length but be more lenient
+        if (cleanedText.length < 2) {
+          const retryMessage = `Please say the title more clearly.`;
           setTimeout(() => {
             speak(retryMessage);
             toast.info(retryMessage);
@@ -266,9 +241,14 @@ export const useUnifiedVoiceProcessor = ({
           formTitleSetter(title);
         }
         
+        // Update live feedback
+        window.dispatchEvent(new CustomEvent('voice-data-update', {
+          detail: { type: 'title', value: title }
+        }));
+        
         setTimeout(() => {
           speak(CONVERSATION_STEPS.CATEGORY.question);
-          toast.success(`✅ Title set: "${title}" - Now selecting category`);
+          toast.success(`✅ Title set: "${title}"`);
         }, 300);
         console.log('➡️ Moving to category selection');
         break;
@@ -278,7 +258,7 @@ export const useUnifiedVoiceProcessor = ({
         const matchedCategory = matchCategory(cleanedText);
         
         if (!matchedCategory) {
-          const retryMessage = `I didn't recognize "${cleanedText}" as a category. Please say Documents, Health, Contacts, Finance, or Personal.`;
+          const retryMessage = `I heard "${cleanedText}" - please say one of: Documents, Health, Contacts, Finance, or Personal.`;
           setTimeout(() => {
             speak(retryMessage);
             toast.info(retryMessage);
@@ -300,9 +280,14 @@ export const useUnifiedVoiceProcessor = ({
           formCategorySetter(matchedCategory);
         }
         
+        // Update live feedback
+        window.dispatchEvent(new CustomEvent('voice-data-update', {
+          detail: { type: 'category', value: matchedCategory }
+        }));
+        
         setTimeout(() => {
           speak(`Perfect! Entry preview: Title "${updatedDraft.title}" in ${matchedCategory} category. Say "save" to create it or "edit" to make changes.`);
-          toast.success(`✅ Category set: ${matchedCategory} - Showing preview`);
+          toast.success(`✅ Category set: ${matchedCategory}`);
         }, 300);
         console.log('➡️ Moving to preview step');
         break;

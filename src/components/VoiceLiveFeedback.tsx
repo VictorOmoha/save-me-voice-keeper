@@ -18,6 +18,27 @@ export const VoiceLiveFeedback: React.FC<VoiceLiveFeedbackProps> = ({
   currentStep,
   isListening
 }) => {
+  const [liveData, setLiveData] = React.useState({ title, category, fields });
+
+  // Listen for real-time updates from voice processor
+  React.useEffect(() => {
+    const handleUpdate = (event: CustomEvent) => {
+      const { type, value } = event.detail;
+      setLiveData(prev => ({
+        ...prev,
+        [type]: value
+      }));
+    };
+
+    window.addEventListener('voice-data-update', handleUpdate as EventListener);
+    return () => window.removeEventListener('voice-data-update', handleUpdate as EventListener);
+  }, []);
+
+  // Update when props change
+  React.useEffect(() => {
+    setLiveData({ title, category, fields });
+  }, [title, category, fields]);
+
   return (
     <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
       <CardContent className="p-4 space-y-3">
@@ -36,10 +57,10 @@ export const VoiceLiveFeedback: React.FC<VoiceLiveFeedbackProps> = ({
           <div className="flex items-center justify-between p-2 bg-white/60 dark:bg-gray-800/60 rounded border">
             <span className="text-sm text-gray-600 dark:text-gray-300">Title:</span>
             <div className="flex items-center space-x-2">
-              {title ? (
+              {liveData.title ? (
                 <>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{title}</span>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 animate-fade-in">{liveData.title}</span>
+                  <CheckCircle className="h-4 w-4 text-green-500 animate-scale-in" />
                 </>
               ) : (
                 <>
@@ -54,10 +75,10 @@ export const VoiceLiveFeedback: React.FC<VoiceLiveFeedbackProps> = ({
           <div className="flex items-center justify-between p-2 bg-white/60 dark:bg-gray-800/60 rounded border">
             <span className="text-sm text-gray-600 dark:text-gray-300">Category:</span>
             <div className="flex items-center space-x-2">
-              {category ? (
+              {liveData.category ? (
                 <>
-                  <Badge variant="secondary" className="text-xs">{category}</Badge>
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <Badge variant="secondary" className="text-xs animate-fade-in">{liveData.category}</Badge>
+                  <CheckCircle className="h-4 w-4 text-green-500 animate-scale-in" />
                 </>
               ) : (
                 <>

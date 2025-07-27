@@ -93,9 +93,9 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     }
   };
 
-  // Initialize speech recognition
+  // Initialize speech recognition - only set callbacks, don't start automatically
   useEffect(() => {
-    console.log('🎤 ConversationalVoiceInterface: Initializing speech recognition');
+    console.log('🎤 ConversationalVoiceInterface: Setting up speech recognition callbacks');
     
     if (!speechRecognition.isSupported()) {
       console.warn('Speech recognition not supported');
@@ -136,9 +136,11 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     });
 
     return () => {
-      speechRecognition.stop();
+      if (isActive) {
+        speechRecognition.stop();
+      }
     };
-  }, []); // Remove savedEntries and handleVoiceInput from deps to prevent loop
+  }, [])
 
   const activateConversation = () => {
     console.log('🚀 ConversationalVoiceInterface: Activating conversation');

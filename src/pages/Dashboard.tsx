@@ -163,7 +163,22 @@ export default function Dashboard() {
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={() => {}}
-          onEnhancedVoiceInput={unifiedProcessVoiceInput}
+          onEnhancedVoiceInput={async (text) => {
+            console.log('🧠 Dashboard: Voice input received:', text);
+            
+            const cleanText = text.toLowerCase();
+            
+            // Check if this is a "create entry" command
+            if ((cleanText.includes('create') && cleanText.includes('entry')) || 
+                cleanText.includes('new entry')) {
+              console.log('🧠 Wizard launched with create_entry');
+              // Start the guided conversation through unified processor
+              await unifiedProcessVoiceInput(text);
+            } else {
+              // Handle other commands with regular voice processor
+              await handleEnhancedVoiceInput(text);
+            }
+          }}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}

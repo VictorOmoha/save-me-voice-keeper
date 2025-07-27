@@ -101,7 +101,14 @@ export const useUnifiedVoiceProcessor = ({
   }, [onCreateEntry]);
 
   const processConversationStep = useCallback((transcript: string) => {
+    console.log('🎯 processConversationStep called with:', transcript);
+    console.log('🔍 Current conversation state:', { 
+      isInConversation: conversationState.isInConversation, 
+      stepType: conversationState.currentStep?.type 
+    });
+    
     if (!conversationState.isInConversation || !conversationState.currentStep) {
+      console.log('❌ Not in conversation or no current step');
       return false;
     }
 
@@ -262,13 +269,16 @@ export const useUnifiedVoiceProcessor = ({
 
   const processVoiceInput = useCallback(async (transcript: string) => {
     console.log('🎙️ Processing voice input:', transcript);
+    console.log('🔍 Conversation state check - isInConversation:', conversationState.isInConversation);
+    console.log('🔍 Current step:', conversationState.currentStep?.type);
     
-    // First check if we're in a conversation
+    // CRITICAL: If we're in a conversation, ONLY process conversation steps
     if (conversationState.isInConversation) {
+      console.log('🎯 IN CONVERSATION MODE - Processing step input');
       const handled = processConversationStep(transcript);
-      if (handled) {
-        return;
-      }
+      console.log('🔍 Step processing result:', handled);
+      // ALWAYS return when in conversation mode - never fall through to commands
+      return;
     }
     
     // Otherwise, process as a command using the enhanced processor

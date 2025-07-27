@@ -386,6 +386,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
 
   const requestBody = {
+    model: 'speech-01',  // Required model parameter for MiniMax.io
     text: text,
     voice_id: selectedVoice,
     speed: 1.0,

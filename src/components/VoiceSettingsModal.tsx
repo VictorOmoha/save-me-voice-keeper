@@ -214,6 +214,7 @@ export const VoiceSettingsModal: React.FC<VoiceSettingsModalProps> = ({
             'Authorization': `Bearer ${miniMaxApiKey}`,
           },
           body: JSON.stringify({
+            model: 'speech-01',  // Required model parameter for MiniMax.io
             text: 'Test',
             voice_id: 'male-qn-qingse',
             speed: 1.0,

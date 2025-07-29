@@ -111,30 +111,39 @@ export const useUnifiedVoiceProcessor = ({
     }, 500);
   }, [onCreateEntry]);
 
-  // Helper function to clean voice input - simplified and more reliable
+  // Helper function to clean voice input - improved to separate TTS from user input
   const cleanVoiceInput = useCallback((text: string): string => {
     let cleaned = text.trim();
     
-    // Only remove obvious system artifacts, not actual user content
-    // Remove leading punctuation that might get added by speech recognition
-    cleaned = cleaned.replace(/^[\?\!\.\,\;\:]+\s*/, '');
-    
-    // Remove trailing punctuation
-    cleaned = cleaned.replace(/\s*[\?\!\.\,\;\:]+$/, '');
-    
-    // Remove only obvious system retry messages if they're the entire input
-    const obviousSystemMessages = [
-      "I didn't catch that clearly",
-      "I didn't catch that",
-      "Please try again",
-      "I didn't understand"
+    // Try to extract only the user's actual response by removing TTS echo
+    // Common TTS patterns that get picked up by speech recognition
+    const ttsPatterns = [
+      /^(what would you like to call this entry\??\s*)/i,
+      /^(what category should this entry be in\??\s*you can say[^.]*\.\s*)/i,
+      /^(perfect\!?\s*entry preview[^.]*\.\s*say save[^.]*\.\s*)/i,
+      /^(would you like to add any custom fields\??\s*)/i,
+      /^(what should this field be called\??\s*)/i,
+      /^(what type of field should this be\??\s*)/i,
     ];
     
-    for (const message of obviousSystemMessages) {
-      if (cleaned.toLowerCase() === message.toLowerCase()) {
-        return ''; // Return empty if it's just a system message
+    // Remove TTS prompts from the beginning
+    for (const pattern of ttsPatterns) {
+      cleaned = cleaned.replace(pattern, '').trim();
+    }
+    
+    // If we have multiple sentences, try to get the last one as the user response
+    const sentences = cleaned.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    if (sentences.length > 1) {
+      // Take the last substantial sentence as the user's response
+      const lastSentence = sentences[sentences.length - 1].trim();
+      if (lastSentence.length >= 2) {
+        cleaned = lastSentence;
       }
     }
+    
+    // Remove leading/trailing punctuation
+    cleaned = cleaned.replace(/^[\?\!\.\,\;\:]+\s*/, '');
+    cleaned = cleaned.replace(/\s*[\?\!\.\,\;\:]+$/, '');
     
     console.log(`🧹 Cleaned input "${text}" → "${cleaned}"`);
     return cleaned;
@@ -370,9 +379,25 @@ export const useUnifiedVoiceProcessor = ({
         break;
 
       case 'preview':
-        if (lowerTranscript.includes('save') || lowerTranscript.includes('yes') || lowerTranscript.includes('looks good') || lowerTranscript.includes('create')) {
+        // Check for custom fields request first
+        if (lowerTranscript.includes('add custom') || lowerTranscript.includes('custom field') || 
+            lowerTranscript.includes('add field') || lowerTranscript.includes('more field')) {
+          console.log('🎯 User wants to add custom fields, moving to field creation');
+          setConversationState(prev => ({
+            ...prev,
+            currentStep: CONVERSATION_STEPS.FIELD_NAME,
+          }));
+          setTimeout(() => {
+            voiceProcessor.setLastTTSPrompt(CONVERSATION_STEPS.FIELD_NAME.question);
+            speak(CONVERSATION_STEPS.FIELD_NAME.question);
+            toast.info("📝 Adding custom field - what should it be called?");
+          }, 300);
+        } else if (lowerTranscript.includes('save') || lowerTranscript.includes('yes') || 
+                   lowerTranscript.includes('looks good') || lowerTranscript.includes('create')) {
+          console.log('🎯 User wants to save entry');
           createEntryFromDraft(entryDraft);
-        } else if (lowerTranscript.includes('edit') || lowerTranscript.includes('change') || lowerTranscript.includes('no') || lowerTranscript.includes('modify')) {
+        } else if (lowerTranscript.includes('edit') || lowerTranscript.includes('change') || 
+                   lowerTranscript.includes('no') || lowerTranscript.includes('modify')) {
           // Go back to title for editing
           setConversationState(prev => ({
             ...prev,
@@ -380,14 +405,17 @@ export const useUnifiedVoiceProcessor = ({
             entryDraft: { fields: [] },
           }));
           setTimeout(() => {
+            voiceProcessor.setLastTTSPrompt("Let's start over. What would you like to call this entry?");
             speak("Let's start over. What would you like to call this entry?");
             toast.info("🔄 Restarting entry creation");
           }, 300);
         } else {
-          // Ask for clarification
+          // Ask for clarification with more options
           setTimeout(() => {
-            speak("Please say 'save' to create the entry or 'edit' to make changes.");
-            toast.info("Say 'save' to create or 'edit' to modify");
+            const clarificationMessage = "Please say 'save' to create the entry, 'add custom fields' to add fields, or 'edit' to make changes.";
+            voiceProcessor.setLastTTSPrompt(clarificationMessage);
+            speak(clarificationMessage);
+            toast.info("Say 'save', 'add custom fields', or 'edit'");
           }, 300);
         }
         break;

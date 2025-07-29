@@ -77,9 +77,13 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     }
     
     try {
+      // Check the actual conversation state from the unified processor
+      const actuallyInConversation = isInConversation || conversationState.isInConversation;
+      console.log('🔍 ConversationalVoiceInterface: Conversation state check - interface:', isInConversation, 'unified:', conversationState.isInConversation, 'actual:', actuallyInConversation);
+      
       // Always use internal processor to maintain conversation state
       // If we're in conversation mode, the dashboard handler should not interfere
-      if (isInConversation) {
+      if (actuallyInConversation) {
         console.log('🔧 ConversationalVoiceInterface: In conversation - using internal unified processor');
         await processVoiceInput(transcript);
       } else if (onEnhancedVoiceInput) {

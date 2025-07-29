@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sun, Moon, Mic, RefreshCcw, Zap, Users, Briefcase, User, Brain } from "lucide-react";
+import { Check, Sun, Moon, Mic, RefreshCcw, Zap, Users, Briefcase, User, Brain, Mail } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListModal } from "@/components/WaitingListModal";
@@ -586,7 +586,30 @@ const Index = () => {
             />
             <span className="text-xl font-bold transition-all duration-300 group-hover:scale-105">Save Me</span>
           </div>
-          <p className="text-gray-400 mb-4">Your personal information, perfectly organized.</p>
+          <p className="text-gray-400 mb-6">Your personal information, perfectly organized.</p>
+          
+          {/* Social Links */}
+          <div className="flex justify-center items-center space-x-6 mb-6">
+            <a 
+              href="mailto:info@saveme.space" 
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-all duration-300 hover:scale-105"
+            >
+              <Mail className="w-5 h-5" />
+              <span>info@saveme.space</span>
+            </a>
+            <a 
+              href="https://www.tiktok.com/@saveme.space" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-all duration-300 hover:scale-105"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.321 5.562a5.124 5.124 0 0 1-.443-.258 6.228 6.228 0 0 1-1.137-.966c-.849-.946-1.316-2.172-1.316-3.453V0h-3.188v16.326c0 .815-.268 1.604-.776 2.252a3.729 3.729 0 0 1-1.946 1.296 3.797 3.797 0 0 1-2.27-.035 3.706 3.706 0 0 1-1.846-1.065 3.618 3.618 0 0 1-1.076-2.573c0-.976.395-1.913 1.098-2.604a3.743 3.743 0 0 1 2.633-1.086c.27 0 .537.026.798.078v-3.29a7.068 7.068 0 0 0-.798-.045c-1.921 0-3.773.76-5.146 2.112A7.222 7.222 0 0 0 2 16.326c0 1.92.768 3.762 2.137 5.123A7.376 7.376 0 0 0 9.282 24c.689 0 1.371-.135 2.01-.396a7.415 7.415 0 0 0 3.196-2.275c.849-.946 1.316-2.172 1.316-3.453V9.828a9.292 9.292 0 0 0 5.196 1.592V8.22c-1.024 0-2.025-.309-2.885-.85-.86-.541-1.553-1.310-1.999-2.218l-.795.41z"/>
+              </svg>
+              <span>@saveme.space</span>
+            </a>
+          </div>
+
           <div className="flex justify-center space-x-6 text-sm text-gray-400">
             <a href="#" className="hover:text-white transition-all duration-300 hover:scale-105">Privacy Policy</a>
             <a href="#" className="hover:text-white transition-all duration-300 hover:scale-105">Terms of Service</a>

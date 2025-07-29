@@ -77,13 +77,16 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     }
     
     try {
-      // If dashboard handler is provided, use it (priority for state management)
-      if (onEnhancedVoiceInput) {
-        console.log('🌉 ConversationalVoiceInterface: Using dashboard enhanced voice handler');
+      // Always use internal processor to maintain conversation state
+      // If we're in conversation mode, the dashboard handler should not interfere
+      if (isInConversation) {
+        console.log('🔧 ConversationalVoiceInterface: In conversation - using internal unified processor');
+        await processVoiceInput(transcript);
+      } else if (onEnhancedVoiceInput) {
+        console.log('🌉 ConversationalVoiceInterface: Not in conversation - using dashboard enhanced voice handler');
         await onEnhancedVoiceInput(transcript);
       } else {
-        // Otherwise use the unified processor
-        console.log('🔧 ConversationalVoiceInterface: Using internal unified processor');
+        console.log('🔧 ConversationalVoiceInterface: Using internal unified processor as fallback');
         await processVoiceInput(transcript);
       }
     } catch (error) {

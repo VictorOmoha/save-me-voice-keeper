@@ -73,8 +73,15 @@ export default function Dashboard() {
     console.log('📊 Dashboard: Current state check - showAddEntry:', showAddEntry, 'unified isInConversation:', voiceConversationState?.isInConversation);
     console.log('🔍 Dashboard: Unified conversation state:', voiceConversationState);
     
-    // Always route through unified processor - it handles both commands AND conversations
-    console.log('🎯 Dashboard: Routing to unified processor');
+    // If we're in a voice conversation, let the ConversationalVoiceInterface handle it directly
+    // to maintain conversation context. Otherwise, use unified processor for commands.
+    if (voiceConversationState?.isInConversation) {
+      console.log('🎯 Dashboard: In conversation mode - letting ConversationalVoiceInterface handle internally');
+      // Don't process here - let the ConversationalVoiceInterface use its internal processor
+      return;
+    }
+    
+    console.log('🎯 Dashboard: Not in conversation - routing to unified processor for commands');
     await unifiedProcessVoiceInput(text);
   };
 

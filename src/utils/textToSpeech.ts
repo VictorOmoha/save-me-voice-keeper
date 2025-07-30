@@ -293,6 +293,7 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     // Clear TTS flag and dispatch completion event after a brief delay
     setTimeout(() => {
       (window as any).__tts_is_speaking = false;
+      (window as any).__last_tts_end_time = Date.now();
       window.dispatchEvent(new CustomEvent('tts-completed'));
       console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
     }, 1000);
@@ -716,8 +717,9 @@ export const stopSpeaking = (): void => {
     window.speechSynthesis.cancel();
   }
   
-  // Clear TTS flag
+  // Clear TTS flag and track end time
   (window as any).__tts_is_speaking = false;
+  (window as any).__last_tts_end_time = Date.now();
   
   // Dispatch completion event
   window.dispatchEvent(new CustomEvent('tts-completed'));

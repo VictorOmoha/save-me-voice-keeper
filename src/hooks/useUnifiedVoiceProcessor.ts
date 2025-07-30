@@ -630,6 +630,19 @@ export const useUnifiedVoiceProcessor = ({
           }
           break;
           
+        case 'close_entry':
+          // Close the currently open entry by calling the cancel edit function
+          onCancelEdit();
+          const closeMessage = "Closing entry";
+          
+          // Set TTS prompt BEFORE speaking to prevent feedback loop
+          setTimeout(() => {
+            voiceProcessor.setLastTTSPrompt(closeMessage);
+            speak(closeMessage);
+            toast.success("📄 Entry closed");
+          }, 300);
+          break;
+          
         case 'delete_entry':
           if (command.parameters.entryTitle) {
             const entry = savedEntries.find(e => 

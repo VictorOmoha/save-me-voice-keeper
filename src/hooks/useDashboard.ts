@@ -204,11 +204,8 @@ export const useDashboard = () => {
         break;
 
       case 'delete_entry':
-        if (command.parameters.confirmed) {
-          await handleDeleteEntry(command.parameters);
-        } else {
-          await handleDeleteEntry(command.parameters);
-        }
+        console.log('🗑️ Dashboard: Delete entry command with params:', command.parameters);
+        await handleDeleteEntry(command.parameters);
         break;
 
       case 'cancel_operation':
@@ -302,8 +299,27 @@ export const useDashboard = () => {
 
   // Handle deleting entry
   const handleDeleteEntry = useCallback(async (params: any) => {
-    const { entryTitle, searchTerm, confirmed } = params;
-    const searchText = entryTitle || searchTerm;
+    console.log('🗑️ Dashboard: handleDeleteEntry called with params:', params);
+    const { entryId, entryTitle, title, searchTerm, confirmed } = params;
+    
+    // Use entryId if available, otherwise fall back to title matching
+    if (entryId) {
+      console.log('🗑️ Dashboard: Using entryId for deletion:', entryId);
+      if (confirmed) {
+        await deleteEntry(entryId);
+        const entryName = title || entryTitle || 'entry';
+        toast.success(`Deleted: "${entryName}"`);
+        setHasPendingConfirmation(false);
+        speak(`Successfully deleted ${entryName}.`);
+      } else {
+        toast.info(`Deletion cancelled.`);
+        speak('Deletion cancelled.');
+      }
+      return;
+    }
+    
+    // Fallback to title matching
+    const searchText = entryTitle || title || searchTerm;
 
     if (!searchText) {
       toast.info('Please specify which entry to delete');
@@ -318,6 +334,8 @@ export const useDashboard = () => {
       if (confirmed) {
         await deleteEntry(matchingEntries[0].id);
         toast.success(`Deleted: "${matchingEntries[0].title}"`);
+        setHasPendingConfirmation(false);
+        speak(`Successfully deleted ${matchingEntries[0].title}.`);
       } else {
         // This shouldn't happen as confirmation is handled at command level
         toast.info(`Are you sure you want to delete "${matchingEntries[0].title}"?`);

@@ -609,12 +609,24 @@ export const useUnifiedVoiceProcessor = ({
           
           if (entry) {
             onEditEntry(entry);
-            speak(`Opening ${entry.title}`);
-            toast.success(`📂 Opening: ${entry.title}`);
+            const successMessage = `Opening ${entry.title}`;
+            
+            // Set TTS prompt BEFORE speaking to prevent feedback loop
+            setTimeout(() => {
+              voiceProcessor.setLastTTSPrompt(successMessage);
+              speak(successMessage);
+              toast.success(`📂 Opening: ${entry.title}`);
+            }, 300);
           } else {
             const searchTerm = command.parameters.entryTitle || command.parameters.title || 'entry';
-            speak(`Entry "${searchTerm}" not found`);
-            toast.error(`❌ Entry "${searchTerm}" not found`);
+            const errorMessage = `Entry "${searchTerm}" not found`;
+            
+            // Set TTS prompt BEFORE speaking to prevent feedback loop
+            setTimeout(() => {
+              voiceProcessor.setLastTTSPrompt(errorMessage);
+              speak(errorMessage);
+              toast.error(`❌ Entry "${searchTerm}" not found`);
+            }, 300);
           }
           break;
           

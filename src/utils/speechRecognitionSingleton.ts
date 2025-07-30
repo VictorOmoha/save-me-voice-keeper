@@ -60,10 +60,10 @@ export class SpeechRecognitionSingleton {
     };
 
     this.recognition.onresult = (event) => {
-      // Skip if TTS is speaking or just finished (500ms grace period)
+      // Skip if TTS is speaking or just finished (increased grace period)
       const now = Date.now();
       const lastTTSEnd = (window as any).__last_tts_end_time || 0;
-      const gracePeriod = 500; // 500ms grace period after TTS ends
+      const gracePeriod = 1500; // Increased to 1.5 seconds grace period after TTS ends
       
       if ((window as any).__tts_is_speaking || (now - lastTTSEnd < gracePeriod)) {
         console.log('🚫 Recognition Singleton: Skipping - TTS is speaking or just finished');

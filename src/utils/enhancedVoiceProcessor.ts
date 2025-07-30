@@ -49,13 +49,16 @@ class EnhancedVoiceProcessor {
       return true;
     }
     
-    // Only block if it's clearly a help message being read back
+    // Only block if it's clearly a help message or TTS confirmation being read back
     const helpPatterns = [
       /i didn't understand that.*try saying/,
       /try saying.*create a new entry/,
       /voice mode activated.*how can i help/,
       /starting guided entry creation/,
-      /bling bling bling/
+      /bling bling bling/,
+      /please say yes to confirm.*no to cancel/,
+      /to confirm or no.*to cancel/,
+      /say yes to confirm/
     ];
     
     const isHelpMessage = helpPatterns.some(pattern => pattern.test(cleanText));

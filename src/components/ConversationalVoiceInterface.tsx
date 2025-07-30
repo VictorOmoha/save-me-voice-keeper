@@ -76,6 +76,17 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
       return;
     }
     
+    // Check if this looks like TTS feedback
+    const lowerTranscript = transcript.toLowerCase();
+    if (lowerTranscript.includes('what would you like to call') ||
+        lowerTranscript.includes('what category should') ||
+        lowerTranscript.includes('perfect entry preview') ||
+        lowerTranscript.includes('voice mode activated') ||
+        lowerTranscript.includes('how can i help you')) {
+      console.log('🎤 ConversationalVoiceInterface: Detected TTS feedback, ignoring...');
+      return;
+    }
+    
     try {
       // Check the actual conversation state from the unified processor
       const actuallyInConversation = isInConversation || conversationState.isInConversation;

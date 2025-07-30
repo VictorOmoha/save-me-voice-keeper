@@ -111,41 +111,52 @@ export const useUnifiedVoiceProcessor = ({
     }, 500);
   }, [onCreateEntry]);
 
-  // Helper function to clean voice input - improved to separate TTS from user input
-  const cleanVoiceInput = useCallback((text: string): string => {
-    let cleaned = text.trim();
+  const cleanVoiceInput = useCallback((input: string): string => {
+    if (!input) return '';
     
-    // Try to extract only the user's actual response by removing TTS echo
-    // Common TTS patterns that get picked up by speech recognition
+    console.log('🧹 Cleaning voice input:', input);
+    
+    // Remove common TTS feedback patterns but be more intelligent about it
     const ttsPatterns = [
-      /^(what would you like to call this entry\??\s*)/i,
-      /^(what category should this entry be in\??\s*you can say[^.]*\.\s*)/i,
-      /^(perfect\!?\s*entry preview[^.]*\.\s*say save[^.]*\.\s*)/i,
-      /^(would you like to add any custom fields\??\s*)/i,
-      /^(what should this field be called\??\s*)/i,
-      /^(what type of field should this be\??\s*)/i,
+      /^(What would you like to call this entry\?)\s*/i,
+      /^(What category should this entry be in\?)\s*/i,
+      /^(Perfect.*entry preview.*)\s*/i,
+      /^(Would you like to add any custom fields\?)\s*/i,
+      /^(What type of field.*)\s*/i,
+      /^(I didn't catch that\.)\s*/i,
+      /^(Please try again\.)\s*/i,
+      /^(Voice mode activated\.)\s*/i,
+      /^(How can I help you\?)\s*/i
     ];
     
-    // Remove TTS prompts from the beginning
-    for (const pattern of ttsPatterns) {
-      cleaned = cleaned.replace(pattern, '').trim();
-    }
+    let cleaned = input.trim();
     
-    // If we have multiple sentences, try to get the last one as the user response
-    const sentences = cleaned.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    if (sentences.length > 1) {
-      // Take the last substantial sentence as the user's response
-      const lastSentence = sentences[sentences.length - 1].trim();
-      if (lastSentence.length >= 2) {
-        cleaned = lastSentence;
+    // Remove TTS patterns from the beginning
+    for (const pattern of ttsPatterns) {
+      if (pattern.test(cleaned)) {
+        cleaned = cleaned.replace(pattern, '').trim();
+        console.log('🧹 Removed TTS pattern, remaining:', cleaned);
+        // If nothing meaningful remains after removing TTS, return empty
+        if (cleaned.length < 2) {
+          console.log('🧹 Input was mostly TTS feedback, returning empty');
+          return '';
+        }
       }
     }
     
-    // Remove leading/trailing punctuation
-    cleaned = cleaned.replace(/^[\?\!\.\,\;\:]+\s*/, '');
-    cleaned = cleaned.replace(/\s*[\?\!\.\,\;\:]+$/, '');
+    // Extract meaningful content from mixed TTS+user input
+    // Look for content after question marks, periods, or common TTS endings
+    const meaningfulParts = cleaned.split(/[.?!]\s+/);
+    if (meaningfulParts.length > 1) {
+      // Take the last meaningful part that's not too short
+      const lastPart = meaningfulParts[meaningfulParts.length - 1].trim();
+      if (lastPart.length >= 2) {
+        console.log('🧹 Extracted meaningful part:', lastPart);
+        cleaned = lastPart;
+      }
+    }
     
-    console.log(`🧹 Cleaned input "${text}" → "${cleaned}"`);
+    console.log('🧹 Final cleaned input:', cleaned);
     return cleaned;
   }, []);
 
@@ -221,8 +232,19 @@ export const useUnifiedVoiceProcessor = ({
     
     console.log('📝 Processing conversation step:', currentStep.type, 'with cleaned input:', cleanedText);
     
-    // If cleaned text is empty or too short, ask for clarification
+    // If cleaned text is empty or too short, check if this was TTS feedback
     if (!cleanedText || cleanedText.length < 1) {
+      // Check the original transcript for TTS patterns
+      const originalLower = transcript.toLowerCase();
+      if (originalLower.includes('what would you like to call') || 
+          originalLower.includes('what category should') ||
+          originalLower.includes('perfect entry preview') ||
+          originalLower.includes('voice mode activated') ||
+          originalLower.includes('how can i help you')) {
+        console.log('🎤 Detected TTS feedback, ignoring...');
+        return false;
+      }
+      
       const clarificationMessage = `I didn't catch that. ${currentStep.question}`;
       setTimeout(() => {
         speak(clarificationMessage);

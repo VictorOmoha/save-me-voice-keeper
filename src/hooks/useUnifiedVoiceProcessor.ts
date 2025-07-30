@@ -338,12 +338,16 @@ export const useUnifiedVoiceProcessor = ({
 
       case 'more_fields':
         if (lowerTranscript.includes('yes') || lowerTranscript.includes('add')) {
-          setConversationState({
-            ...conversationState,
+          setConversationState(prev => ({
+            ...prev,
             currentStep: CONVERSATION_STEPS.FIELD_NAME,
-          });
-          speak(CONVERSATION_STEPS.FIELD_NAME.question);
-          toast.info("📝 Adding custom field - what should it be called?");
+            isInConversation: true,
+          }));
+          setTimeout(() => {
+            voiceProcessor.setLastTTSPrompt(CONVERSATION_STEPS.FIELD_NAME.question);
+            speak(CONVERSATION_STEPS.FIELD_NAME.question);
+            toast.info("📝 Adding custom field - what should it be called?");
+          }, 300);
         } else {
           // Move to preview instead of creating directly
           setConversationState(prev => ({
@@ -358,13 +362,17 @@ export const useUnifiedVoiceProcessor = ({
         break;
 
       case 'field_name':
-        setConversationState({
-          ...conversationState,
+        setConversationState(prev => ({
+          ...prev,
           currentStep: CONVERSATION_STEPS.FIELD_TYPE,
           currentFieldName: cleanedText,
-        });
-        speak(CONVERSATION_STEPS.FIELD_TYPE.question);
-        toast.success(`📝 Field name set: "${cleanedText}"`);
+          isInConversation: true,
+        }));
+        setTimeout(() => {
+          voiceProcessor.setLastTTSPrompt(CONVERSATION_STEPS.FIELD_TYPE.question);
+          speak(CONVERSATION_STEPS.FIELD_TYPE.question);
+          toast.success(`📝 Field name set: "${cleanedText}"`);
+        }, 300);
         break;
 
       case 'field_type':
@@ -383,20 +391,24 @@ export const useUnifiedVoiceProcessor = ({
           fields: [...entryDraft.fields, newField]
         };
         
-        setConversationState({
-          ...conversationState,
+        setConversationState(prev => ({
+          ...prev,
           currentStep: CONVERSATION_STEPS.MORE_FIELDS,
           entryDraft: draftWithField,
           currentFieldName: undefined,
-        });
+          isInConversation: true,
+        }));
         
         // Add field to form
         if (formAddFieldFunction) {
           formAddFieldFunction(newField.name, matchedType);
         }
         
-        speak(`Added ${matchedType} field "${newField.name}". ${CONVERSATION_STEPS.MORE_FIELDS.question}`);
-        toast.success(`✅ Added field: ${newField.name} (${matchedType})`);
+        setTimeout(() => {
+          voiceProcessor.setLastTTSPrompt(CONVERSATION_STEPS.MORE_FIELDS.question);
+          speak(`Added ${matchedType} field "${newField.name}". ${CONVERSATION_STEPS.MORE_FIELDS.question}`);
+          toast.success(`✅ Added field: ${newField.name} (${matchedType})`);
+        }, 300);
         break;
 
       case 'preview':

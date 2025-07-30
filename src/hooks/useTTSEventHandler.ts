@@ -33,97 +33,48 @@ export const useTTSEventHandler = ({
         restartTimeoutRef.current = null;
       }
       
-      // Only restart if we're in an active conversation and not already listening
-      // Also check if TTS is truly finished to prevent feedback loops
-      // Check the actual recognition state from singleton to avoid race conditions
-      const isActuallyListening = recognitionRef.current && 
-        (recognitionRef.current as any).state === 'started';
-      
-      if (conversationState?.isActive && !isListening && !isActuallyListening && 
-          recognitionRef.current && !(window as any).__tts_is_speaking) {
+      // Only restart if we're in an active conversation
+      if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
         console.log('🔄 TTS Event Handler: Scheduling recognition restart after TTS completion');
-        
-        // Retry restart with exponential backoff for reliability
-        let retryAttempts = 0;
-        const maxRetries = 3;
         
         const attemptRestart = () => {
           try {
-            // Check if recognition is already running to prevent InvalidStateError
-            const recognitionState = recognitionRef.current ? (recognitionRef.current as any).state : 'null';
-            const isAlreadyRunning = recognitionState === 'started';
+            // Get fresh state
+            const currentState = recognitionRef.current ? (recognitionRef.current as any).state : 'null';
             
-            console.log('🧪 TTS Event Handler: Restart attempt diagnosis', {
-              attempt: retryAttempts + 1,
+            console.log('🧪 TTS Event Handler: Restart attempt', {
               hasRecognition: !!recognitionRef.current,
-              recognitionState,
+              recognitionState: currentState,
               isActive: conversationState?.isActive,
-              isListening,
-              isAlreadyRunning,
-              isTTSSpeaking: !!(window as any).__tts_is_speaking,
-              globalListening: (window as any).__speech_listening
+              isTTSSpeaking: !!(window as any).__tts_is_speaking
             });
             
-            // If recognition is already started, we need to handle this properly
-            if (isAlreadyRunning && recognitionRef.current) {
-              console.log('🛑 TTS Event Handler: Recognition already running, forcing proper state');
-              
-              // Set up event handler for when it actually stops
-              const handleEnded = () => {
-                recognitionRef.current?.removeEventListener('end', handleEnded);
-                console.log('🎤 TTS Event Handler: Recognition ended, starting fresh');
-                
-                if (recognitionRef.current && conversationState?.isActive) {
-                  try {
-                    recognitionRef.current.start();
-                    setIsListening(true);
-                    console.log('✅ TTS Event Handler: Successfully restarted recognition');
-                  } catch (error) {
-                    console.log('❌ TTS Event Handler: Failed to restart after stop:', error);
-                  }
-                }
-              };
-              
-              recognitionRef.current.addEventListener('end', handleEnded);
-              
-              try {
-                recognitionRef.current.stop();
-                console.log('🛑 TTS Event Handler: Stopped existing recognition, waiting for end event');
-              } catch (error) {
-                console.log('❌ TTS Event Handler: Error stopping recognition:', error);
-                recognitionRef.current?.removeEventListener('end', handleEnded);
-              }
+            // If already started, we're good
+            if (currentState === 'started') {
+              console.log('✅ TTS Event Handler: Recognition already running');
+              setIsListening(true);
               return;
             }
             
-            // Double-check conditions before restart
-            if (recognitionRef.current && 
-                conversationState?.isActive && 
-                !isListening &&
-                !isAlreadyRunning &&
-                !(window as any).__tts_is_speaking) {
-              
-              console.log('🎤 TTS Event Handler: Restarting speech recognition (attempt ' + (retryAttempts + 1) + ')');
+            // If not started and conditions are met, start it
+            if (conversationState?.isActive && !(window as any).__tts_is_speaking) {
+              console.log('🎤 TTS Event Handler: Starting recognition');
               recognitionRef.current.start();
               setIsListening(true);
-            } else {
-              console.log('🚫 TTS Event Handler: Conditions not met for restart');
+              console.log('✅ TTS Event Handler: Successfully started recognition');
             }
           } catch (error) {
-            if (error.name === 'InvalidStateError' && retryAttempts < maxRetries) {
-              retryAttempts++;
-              const delay = Math.min(1000 * Math.pow(2, retryAttempts - 1), 3000);
-              console.log(`⚠️ TTS Event Handler: Restart failed, retrying in ${delay}ms (attempt ${retryAttempts}/${maxRetries})`);
-              
-              restartTimeoutRef.current = setTimeout(attemptRestart, delay);
-            } else {
-              console.log('⚠️ TTS Event Handler: Restart failed permanently:', error);
+            console.log('⚠️ TTS Event Handler: Restart failed:', error);
+            // If we get InvalidStateError, recognition might already be running
+            if (error.name === 'InvalidStateError') {
+              console.log('✅ TTS Event Handler: Recognition likely already running');
+              setIsListening(true);
             }
           }
         };
         
-        // Initial delay before first attempt
-        restartTimeoutRef.current = setTimeout(attemptRestart, 1500);
+        // Give a brief delay for TTS to fully complete
+        restartTimeoutRef.current = setTimeout(attemptRestart, 800);
       }
     };
 

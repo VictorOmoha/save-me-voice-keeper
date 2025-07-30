@@ -84,12 +84,14 @@ export const useDashboard = () => {
       setLastVoiceCommand(command);
 
       // Handle confirmation prompts
-      if (command.needsConfirmation) {
+      if (command.needsConfirmation && !command.parameters.confirmed) {
         console.log('🤔 Dashboard: Command needs confirmation, setting up confirmation state');
         setHasPendingConfirmation(true);
         setConversationState('confirming');
         setLastVoiceCommand(command);
+        // Track the TTS prompt for better filtering
         if (command.conversationalResponse) {
+          voiceProcessor.setLastTTSPrompt(command.conversationalResponse);
           speak(command.conversationalResponse);
         }
         return;
@@ -210,15 +212,8 @@ export const useDashboard = () => {
 
       case 'delete_entry':
         console.log('🗑️ Dashboard: Delete entry command with params:', command.parameters);
-        // Check if this is a confirmation-requiring command
-        if (command.needsConfirmation && !command.parameters.confirmed) {
-          console.log('🗑️ Dashboard: Setting pending confirmation state');
-          setHasPendingConfirmation(true);
-          setConversationState('confirming');
-          speak(command.conversationalResponse);
-        } else {
-          await handleDeleteEntry(command.parameters);
-        }
+        // Always execute the delete handler - it will check for confirmation internally
+        await handleDeleteEntry(command.parameters);
         break;
 
       case 'cancel_operation':
@@ -318,60 +313,104 @@ export const useDashboard = () => {
       conversationState,
       voiceProcessorHasPending: voiceProcessor.hasPendingConfirmation()
     });
+    
     const { entryId, entryTitle, title, searchTerm, confirmed } = params;
     
-    // Use entryId if available, otherwise fall back to title matching
-    if (entryId) {
-      console.log('🗑️ Dashboard: Using entryId for deletion:', entryId);
-      if (confirmed) {
-        console.log('🗑️ Dashboard: Deletion confirmed, proceeding with delete');
+    // Handle confirmed deletion
+    if (confirmed === true) {
+      console.log('✅ Dashboard: Deletion confirmed, proceeding');
+      
+      if (entryId) {
         await deleteEntry(entryId);
         const entryName = title || entryTitle || 'entry';
-        // Clear confirmation state
-        setHasPendingConfirmation(false);
-        setConversationState('idle');
-        voiceProcessor.clearPendingConfirmation();
+        toast.success(`Deleted: "${entryName}"`);
         speak(`Successfully deleted ${entryName}.`);
       } else {
-        console.log('🗑️ Dashboard: Deletion cancelled by user');
-        setHasPendingConfirmation(false);
-        setConversationState('idle');
-        voiceProcessor.clearPendingConfirmation();
-        toast.info(`Deletion cancelled.`);
-        speak('Deletion cancelled.');
+        const searchText = entryTitle || title || searchTerm;
+        const matchingEntries = savedEntries.filter(entry =>
+          entry.title.toLowerCase().includes(searchText.toLowerCase())
+        );
+        
+        if (matchingEntries.length === 1) {
+          await deleteEntry(matchingEntries[0].id);
+          toast.success(`Deleted: "${matchingEntries[0].title}"`);
+          speak(`Successfully deleted ${matchingEntries[0].title}.`);
+        }
       }
+      
+      // Clear all confirmation states
+      setHasPendingConfirmation(false);
+      setConversationState('idle');
+      voiceProcessor.clearPendingConfirmation();
       return;
     }
     
-    // Fallback to title matching
-    const searchText = entryTitle || title || searchTerm;
-
-    if (!searchText) {
-      toast.info('Please specify which entry to delete');
+    // Handle cancelled deletion
+    if (confirmed === false) {
+      console.log('❌ Dashboard: Deletion cancelled by user');
+      setHasPendingConfirmation(false);
+      setConversationState('idle');
+      voiceProcessor.clearPendingConfirmation();
+      toast.info('Deletion cancelled.');
+      speak('Deletion cancelled.');
       return;
     }
-
-    const matchingEntries = savedEntries.filter(entry =>
-      entry.title.toLowerCase().includes(searchText.toLowerCase())
-    );
-
-    if (matchingEntries.length === 1) {
-      if (confirmed) {
-        await deleteEntry(matchingEntries[0].id);
-        toast.success(`Deleted: "${matchingEntries[0].title}"`);
-        setHasPendingConfirmation(false);
-        speak(`Successfully deleted ${matchingEntries[0].title}.`);
-      } else {
-        // This shouldn't happen as confirmation is handled at command level
-        toast.info(`Are you sure you want to delete "${matchingEntries[0].title}"?`);
+    
+    // This is the initial delete request - find entry and show confirmation
+    console.log('🔍 Dashboard: Processing initial delete request');
+    
+    // Use entryId if available, otherwise search by text
+    let targetEntryId = entryId;
+    let targetEntryTitle = title || entryTitle;
+    
+    if (!targetEntryId) {
+      const searchText = entryTitle || title || searchTerm;
+      if (!searchText) {
+        toast.info('Please specify which entry to delete');
+        return;
       }
-    } else if (matchingEntries.length > 1) {
-      const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
-      toast.info(`Found ${matchingEntries.length} matches: ${matches}. Please be more specific.`);
-    } else {
-      toast.info(`No entries found matching "${searchText}"`);
+      
+      const matchingEntries = savedEntries.filter(entry =>
+        entry.title.toLowerCase().includes(searchText.toLowerCase())
+      );
+      
+      if (matchingEntries.length === 1) {
+        targetEntryId = matchingEntries[0].id;
+        targetEntryTitle = matchingEntries[0].title;
+      } else if (matchingEntries.length > 1) {
+        const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
+        toast.info(`Found ${matchingEntries.length} matches: ${matches}. Please be more specific.`);
+        return;
+      } else {
+        toast.info(`No entries found matching "${searchText}"`);
+        return;
+      }
     }
-  }, [savedEntries]);
+    
+    if (targetEntryId && targetEntryTitle) {
+      console.log('🤔 Dashboard: Requesting deletion confirmation for:', targetEntryTitle);
+      
+      // Set up confirmation state
+      setHasPendingConfirmation(true);
+      setConversationState('confirming');
+      
+      // Create the confirmation command and store it
+      const confirmationCommand = {
+        intent: 'delete' as const,
+        action: 'delete_entry',
+        parameters: { entryId: targetEntryId, title: targetEntryTitle },
+        confidence: 0.8,
+        needsConfirmation: true,
+        conversationalResponse: `Are you sure you want to delete "${targetEntryTitle}"? Say yes to confirm or no to cancel.`
+      };
+      
+      setLastVoiceCommand(confirmationCommand);
+      
+      // Track TTS and speak confirmation
+      voiceProcessor.setLastTTSPrompt(confirmationCommand.conversationalResponse);
+      speak(confirmationCommand.conversationalResponse);
+    }
+  }, [savedEntries, hasPendingConfirmation, conversationState]);
 
   // Handle cancel operation
   const handleCancelOperation = useCallback(() => {

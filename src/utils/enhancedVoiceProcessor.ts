@@ -135,26 +135,40 @@ class EnhancedVoiceProcessor {
   }
 
   private handleConfirmation(transcript: string): EnhancedVoiceCommand {
-    const cleanText = transcript.toLowerCase().trim();
-    const isYes = ['yes', 'yeah', 'yep', 'confirm', 'do it', 'proceed'].some(word => cleanText.includes(word));
-    const isNo = ['no', 'nope', 'cancel', 'stop', 'abort', 'never mind'].some(word => cleanText.includes(word));
+    console.log('🤔 Enhanced Processor: Handling confirmation for transcript:', transcript);
+    console.log('🤔 Enhanced Processor: Pending confirmation:', this.pendingConfirmation);
     
-    if (isYes) {
+    const cleanText = transcript.toLowerCase().trim();
+    const isYes = ['yes', 'yeah', 'yep', 'confirm', 'do it', 'proceed', 'okay', 'ok'].some(word => 
+      cleanText === word || cleanText.includes(word)
+    );
+    const isNo = ['no', 'nope', 'cancel', 'stop', 'abort', 'never mind', 'nevermind'].some(word => 
+      cleanText === word || cleanText.includes(word)
+    );
+    
+    console.log('🤔 Enhanced Processor: Confirmation analysis:', { cleanText, isYes, isNo });
+    
+    if (isYes && this.pendingConfirmation) {
+      console.log('✅ Enhanced Processor: User confirmed action');
       const command = { 
         ...this.pendingConfirmation!, 
-        parameters: { ...this.pendingConfirmation!.parameters, confirmed: true } 
+        parameters: { ...this.pendingConfirmation!.parameters, confirmed: true },
+        needsConfirmation: false
       };
       this.pendingConfirmation = null;
       return command;
-    } else if (isNo) {
+    } else if (isNo && this.pendingConfirmation) {
+      console.log('❌ Enhanced Processor: User cancelled action');
       const command = { 
         ...this.pendingConfirmation!, 
-        parameters: { ...this.pendingConfirmation!.parameters, confirmed: false } 
+        parameters: { ...this.pendingConfirmation!.parameters, confirmed: false },
+        needsConfirmation: false
       };
       this.pendingConfirmation = null;
       return command;
     }
     
+    console.log('🔄 Enhanced Processor: Asking for clarification');
     return {
       intent: 'conversation',
       action: 'clarify_confirmation',
@@ -268,25 +282,35 @@ class EnhancedVoiceProcessor {
     
     // Delete commands
     if (cleanText.includes('delete') || cleanText.includes('remove')) {
+      console.log('🗑️ Enhanced Processor: Processing delete command');
       const entryMatch = this.extractEntryReference(cleanText, context);
+      
       if (entryMatch) {
+        console.log('🗑️ Enhanced Processor: Found entry match for deletion:', entryMatch);
+        // Store the confirmation command but also return it
         this.pendingConfirmation = {
           intent: 'delete',
           action: 'delete_entry',
           parameters: { entryId: entryMatch.id, title: entryMatch.title },
           confidence: 0.8,
           needsConfirmation: true,
-          conversationalResponse: `Are you sure you want to delete "${entryMatch.title}"? Say yes to confirm.`
+          conversationalResponse: `Are you sure you want to delete "${entryMatch.title}"? Say yes to confirm or no to cancel.`
         };
         return this.pendingConfirmation;
       } else {
-        return {
+        // Try to extract the search term
+        const searchTerm = cleanText.replace(/delete|remove/g, '').trim();
+        console.log('🗑️ Enhanced Processor: No exact match, using search term:', searchTerm);
+        
+        this.pendingConfirmation = {
           intent: 'delete',
           action: 'delete_entry',
-          parameters: { searchTerm: cleanText.replace(/delete|remove/g, '').trim() },
+          parameters: { searchTerm },
           confidence: 0.6,
-          conversationalResponse: 'Which entry would you like to delete? Please be more specific.'
+          needsConfirmation: true,
+          conversationalResponse: `Looking for entries matching "${searchTerm}" to delete. Say yes to confirm or no to cancel.`
         };
+        return this.pendingConfirmation;
       }
     }
     

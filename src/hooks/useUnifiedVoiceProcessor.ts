@@ -515,16 +515,21 @@ export const useUnifiedVoiceProcessor = ({
 
     onSaveEntry(entry);
     
-    const successMessage = `🎉 Created entry "${entry.title}" in ${entry.fields.category}${draft.fields.length > 0 ? ` with ${draft.fields.length} custom fields` : ''}`;
-    toast.success(successMessage);
-    speak(successMessage);
-    
-    // Reset conversation
+    // Reset conversation IMMEDIATELY before speaking to prevent TTS feedback loop
     setConversationState({
       isInConversation: false,
       currentStep: null,
       entryDraft: { fields: [] },
     });
+    
+    const successMessage = `🎉 Created entry "${entry.title}" in ${entry.fields.category}${draft.fields.length > 0 ? ` with ${draft.fields.length} custom fields` : ''}`;
+    toast.success(successMessage);
+    
+    // Set TTS prompt to prevent feedback loop and speak after a delay
+    setTimeout(() => {
+      voiceProcessor.setLastTTSPrompt(successMessage);
+      speak(successMessage);
+    }, 300);
   }, [onSaveEntry]);
 
   const processVoiceInput = useCallback(async (transcript: string) => {

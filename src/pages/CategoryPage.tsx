@@ -5,6 +5,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { CategoryView } from "@/components/CategoryView";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { SavedEntry } from "@/types/dashboard";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const VALID_CATEGORIES = ['Documents', 'Health', 'Contacts', 'Finance', 'Personal'];
@@ -27,46 +28,76 @@ export default function CategoryPage() {
     loadEntries();
   }, []);
 
-  const loadEntries = () => {
+  const loadEntries = async () => {
     try {
-      const saved = localStorage.getItem('savedEntries');
-      const loadedEntries = saved ? JSON.parse(saved) : [];
-      setEntries(loadedEntries);
+      const { data: entries, error } = await supabase
+        .from('entries')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading entries:', error);
+        toast.error('Failed to load entries');
+        setEntries([]);
+        return;
+      }
+
+      const entriesArray = entries || [];
+      const formattedEntries: SavedEntry[] = entriesArray.map(entry => ({
+        id: entry.id,
+        title: entry.title,
+        fields: (entry.fields as Record<string, any>) || {},
+        fieldDefinitions: entry.field_definitions as any || undefined,
+        createdAt: new Date(entry.created_at),
+        updatedAt: new Date(entry.updated_at)
+      }));
+
+      setEntries(formattedEntries);
     } catch (error) {
       console.error('Error loading entries:', error);
       toast.error("Failed to load entries");
+      setEntries([]);
     }
   };
 
-  const handleSaveEntry = (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      let updatedEntries;
       if (editingEntry) {
         // Update existing entry
-        updatedEntries = entries.map(entry =>
-          entry.id === editingEntry.id
-            ? { ...entry, ...entryData, updatedAt: new Date() }
-            : entry
-        );
+        const { error } = await supabase
+          .from('entries')
+          .update({
+            title: entryData.title,
+            fields: entryData.fields,
+            field_definitions: entryData.fieldDefinitions as any,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingEntry.id);
+
+        if (error) throw error;
         toast.success("Entry updated successfully!");
       } else {
         // Create new entry with category pre-filled
-        const newEntry: SavedEntry = {
-          ...entryData,
-          fields: {
-            ...entryData.fields,
-            category: categoryName,
-          },
-          id: Date.now().toString(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        updatedEntries = [...entries, newEntry];
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        const { error } = await supabase
+          .from('entries')
+          .insert({
+            title: entryData.title,
+            fields: {
+              ...entryData.fields,
+              category: categoryName,
+            },
+            field_definitions: entryData.fieldDefinitions as any,
+            user_id: user.id
+          });
+
+        if (error) throw error;
         toast.success("Entry created successfully!");
       }
 
-      setEntries(updatedEntries);
-      localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
+      await loadEntries(); // Reload entries from database
       setShowAddEntry(false);
       setShowDocumentCreator(false);
       setEditingEntry(null);
@@ -77,11 +108,16 @@ export default function CategoryPage() {
     }
   };
 
-  const handleDeleteEntry = (id: string) => {
+  const handleDeleteEntry = async (id: string) => {
     try {
-      const updatedEntries = entries.filter(entry => entry.id !== id);
-      setEntries(updatedEntries);
-      localStorage.setItem('savedEntries', JSON.stringify(updatedEntries));
+      const { error } = await supabase
+        .from('entries')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      await loadEntries(); // Reload entries from database
       toast.success("Entry deleted successfully!");
     } catch (error) {
       console.error('Error deleting entry:', error);

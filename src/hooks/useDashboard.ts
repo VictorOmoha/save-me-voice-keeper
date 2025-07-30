@@ -210,7 +210,15 @@ export const useDashboard = () => {
 
       case 'delete_entry':
         console.log('🗑️ Dashboard: Delete entry command with params:', command.parameters);
-        await handleDeleteEntry(command.parameters);
+        // Check if this is a confirmation-requiring command
+        if (command.needsConfirmation && !command.parameters.confirmed) {
+          console.log('🗑️ Dashboard: Setting pending confirmation state');
+          setHasPendingConfirmation(true);
+          setConversationState('confirming');
+          speak(command.conversationalResponse);
+        } else {
+          await handleDeleteEntry(command.parameters);
+        }
         break;
 
       case 'cancel_operation':
@@ -305,6 +313,11 @@ export const useDashboard = () => {
   // Handle deleting entry
   const handleDeleteEntry = useCallback(async (params: any) => {
     console.log('🗑️ Dashboard: handleDeleteEntry called with params:', params);
+    console.log('🗑️ Dashboard: Current confirmation state:', {
+      hasPendingConfirmation,
+      conversationState,
+      voiceProcessorHasPending: voiceProcessor.hasPendingConfirmation()
+    });
     const { entryId, entryTitle, title, searchTerm, confirmed } = params;
     
     // Use entryId if available, otherwise fall back to title matching

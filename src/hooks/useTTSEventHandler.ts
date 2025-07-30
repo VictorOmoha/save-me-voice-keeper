@@ -18,10 +18,13 @@ export const useTTSEventHandler = ({
 
   useEffect(() => {
     const handleTTSCompleted = (event: CustomEvent) => {
+      const recognitionState = recognitionRef.current ? (recognitionRef.current as any).state : 'null';
       console.log('🔊 TTS Event Handler: TTS completed', {
         isConversationActive: conversationState?.isActive,
         isCurrentlyListening: isListening,
-        recognitionExists: !!recognitionRef.current
+        recognitionExists: !!recognitionRef.current,
+        recognitionState,
+        ttsSpeaking: !!(window as any).__tts_is_speaking
       });
       
       // Clear any existing restart timeout
@@ -47,8 +50,51 @@ export const useTTSEventHandler = ({
         const attemptRestart = () => {
           try {
             // Check if recognition is already running to prevent InvalidStateError
-            const isAlreadyRunning = recognitionRef.current && 
-              (recognitionRef.current as any).state === 'started';
+            const recognitionState = recognitionRef.current ? (recognitionRef.current as any).state : 'null';
+            const isAlreadyRunning = recognitionState === 'started';
+            
+            console.log('🧪 TTS Event Handler: Restart attempt diagnosis', {
+              attempt: retryAttempts + 1,
+              hasRecognition: !!recognitionRef.current,
+              recognitionState,
+              isActive: conversationState?.isActive,
+              isListening,
+              isAlreadyRunning,
+              isTTSSpeaking: !!(window as any).__tts_is_speaking,
+              globalListening: (window as any).__speech_listening
+            });
+            
+            // If recognition is already started, we need to handle this properly
+            if (isAlreadyRunning && recognitionRef.current) {
+              console.log('🛑 TTS Event Handler: Recognition already running, forcing proper state');
+              
+              // Set up event handler for when it actually stops
+              const handleEnded = () => {
+                recognitionRef.current?.removeEventListener('end', handleEnded);
+                console.log('🎤 TTS Event Handler: Recognition ended, starting fresh');
+                
+                if (recognitionRef.current && conversationState?.isActive) {
+                  try {
+                    recognitionRef.current.start();
+                    setIsListening(true);
+                    console.log('✅ TTS Event Handler: Successfully restarted recognition');
+                  } catch (error) {
+                    console.log('❌ TTS Event Handler: Failed to restart after stop:', error);
+                  }
+                }
+              };
+              
+              recognitionRef.current.addEventListener('end', handleEnded);
+              
+              try {
+                recognitionRef.current.stop();
+                console.log('🛑 TTS Event Handler: Stopped existing recognition, waiting for end event');
+              } catch (error) {
+                console.log('❌ TTS Event Handler: Error stopping recognition:', error);
+                recognitionRef.current?.removeEventListener('end', handleEnded);
+              }
+              return;
+            }
             
             // Double-check conditions before restart
             if (recognitionRef.current && 
@@ -61,13 +107,7 @@ export const useTTSEventHandler = ({
               recognitionRef.current.start();
               setIsListening(true);
             } else {
-              console.log('🚫 TTS Event Handler: Conditions changed, skipping restart', {
-                hasRecognition: !!recognitionRef.current,
-                isActive: conversationState?.isActive,
-                isListening,
-                isAlreadyRunning,
-                isTTSSpeaking: !!(window as any).__tts_is_speaking
-              });
+              console.log('🚫 TTS Event Handler: Conditions not met for restart');
             }
           } catch (error) {
             if (error.name === 'InvalidStateError' && retryAttempts < maxRetries) {

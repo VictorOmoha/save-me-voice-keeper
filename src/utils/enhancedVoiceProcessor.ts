@@ -50,6 +50,7 @@ class EnhancedVoiceProcessor {
     }
     
     // Only block if it's clearly a help message or TTS confirmation being read back
+    // BUT don't block simple yes/no responses during confirmations
     const helpPatterns = [
       /i didn't understand that.*try saying/,
       /try saying.*create a new entry/,
@@ -60,6 +61,13 @@ class EnhancedVoiceProcessor {
       /to confirm or no.*to cancel/,
       /say yes to confirm/
     ];
+    
+    // Don't block simple confirmation responses when we have pending confirmation
+    const isSimpleConfirmation = /^(yes|no|yeah|yep|confirm|cancel)$/i.test(cleanText);
+    if (this.pendingConfirmation && isSimpleConfirmation) {
+      console.log('✅ Enhanced Processor: Allowing confirmation response during pending confirmation:', cleanText);
+      return false;
+    }
     
     const isHelpMessage = helpPatterns.some(pattern => pattern.test(cleanText));
     if (isHelpMessage) {

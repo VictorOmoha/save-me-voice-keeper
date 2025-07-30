@@ -73,17 +73,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </Button>
           </Link>
           
-          <Button 
-            onClick={onAllEntriesSelect}
-            variant="ghost" 
-            className="w-full justify-start"
-          >
-            <FileText className="w-4 h-4 mr-3" />
-            All Entries
-            <Badge variant="secondary" className="ml-auto">
-              {savedEntriesCount}
-            </Badge>
-          </Button>
+          
+          <Link to="/all-entries">
+            <Button 
+              variant={location.pathname === "/all-entries" ? "default" : "ghost"} 
+              className="w-full justify-start transition-colors duration-200 hover:bg-muted"
+            >
+              <FileText className="w-4 h-4 mr-3" />
+              All Entries
+              <Badge variant="secondary" className="ml-auto">
+                {savedEntriesCount}
+              </Badge>
+            </Button>
+          </Link>
           
           <Button onClick={onAddEntry} variant="ghost" className="w-full justify-start">
             <Plus className="w-4 h-4 mr-3" />
@@ -114,20 +116,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
               const count = categoryEntries.length;
               
               return (
-                <Button
-                  key={category.name}
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => onCategorySelect(category.name)}
-                >
-                  <div className={`w-4 h-4 mr-3 rounded-sm ${category.color} flex items-center justify-center`}>
-                    <Icon className="w-3 h-3" />
-                  </div>
-                  {category.name}
-                  <Badge variant="outline" className="ml-auto text-xs">
-                    {count}
-                  </Badge>
-                </Button>
+                <Link key={category.name} to={`/category/${category.name}`}>
+                  <Button
+                    variant={location.pathname === `/category/${category.name}` ? "default" : "ghost"}
+                    className="w-full justify-start transition-colors duration-200 hover:bg-muted"
+                  >
+                    <div className={`w-4 h-4 mr-3 rounded-sm ${category.color} flex items-center justify-center`}>
+                      <Icon className="w-3 h-3" />
+                    </div>
+                    {category.name}
+                    <Badge variant="outline" className="ml-auto text-xs">
+                      {count}
+                    </Badge>
+                  </Button>
+                </Link>
               );
             })}
           </div>

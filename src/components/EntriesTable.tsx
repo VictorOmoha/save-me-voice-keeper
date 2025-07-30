@@ -15,6 +15,7 @@ import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Downloa
 import { toast } from "sonner";
 import { ExportButton } from "@/components/export/ExportButton";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -41,6 +42,9 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<SavedEntry | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   if (entries.length === 0) {
     return (
@@ -173,8 +177,26 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
 
   const handleBulkDelete = () => {
     if (selectedEntries.length > 0) {
-      onBulkDelete(selectedEntries);
-      setSelectedEntries([]);
+      setBulkDeleteDialogOpen(true);
+    }
+  };
+
+  const confirmBulkDelete = () => {
+    onBulkDelete(selectedEntries);
+    setSelectedEntries([]);
+    setBulkDeleteDialogOpen(false);
+  };
+
+  const handleDeleteEntry = (entry: SavedEntry) => {
+    setEntryToDelete(entry);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteEntry = () => {
+    if (entryToDelete) {
+      onDelete(entryToDelete.id);
+      setEntryToDelete(null);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -315,7 +337,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        onClick={() => onDelete(entry.id)}
+                        onClick={() => handleDeleteEntry(entry)}
                         variant="ghost"
                         size="sm"
                         className="text-red-600 hover:text-red-700"
@@ -370,6 +392,26 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
           setIsViewDialogOpen(false);
           setViewingEntry(null);
         }}
+      />
+
+      {/* Delete Confirmation Dialogs */}
+      <DeleteConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setEntryToDelete(null);
+        }}
+        onConfirm={confirmDeleteEntry}
+        title={entryToDelete?.title || ""}
+      />
+
+      <DeleteConfirmDialog
+        isOpen={bulkDeleteDialogOpen}
+        onClose={() => setBulkDeleteDialogOpen(false)}
+        onConfirm={confirmBulkDelete}
+        title=""
+        isMultiple={true}
+        count={selectedEntries.length}
       />
     </div>
   );

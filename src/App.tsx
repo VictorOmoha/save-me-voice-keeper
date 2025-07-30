@@ -12,6 +12,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
+import AllEntries from "./pages/AllEntries";
+import CategoryPage from "./pages/CategoryPage";
 import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
 import VoiceTest from "./pages/VoiceTest";
@@ -34,6 +36,8 @@ const App = () => (
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/all-entries" element={<AllEntries />} />
+                <Route path="/category/:categoryName" element={<CategoryPage />} />
                 <Route path="/subscription" element={<Subscription />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/voice-test" element={<VoiceTest />} />

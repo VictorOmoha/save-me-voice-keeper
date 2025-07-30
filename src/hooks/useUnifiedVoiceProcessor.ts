@@ -249,6 +249,22 @@ export const useUnifiedVoiceProcessor = ({
 
     const { currentStep, entryDraft } = currentState;
     
+    // First check if this looks like TTS feedback before cleaning
+    const originalLower = transcript.toLowerCase().trim();
+    const isTTSFeedback = originalLower.includes('what type of field should this be') ||
+                         originalLower.includes('you can say text') ||
+                         originalLower.includes('number') && originalLower.includes('date') ||
+                         originalLower.includes('what would you like to call') ||
+                         originalLower.includes('what category should') ||
+                         originalLower.includes('perfect entry preview') ||
+                         originalLower.includes('voice mode activated') ||
+                         originalLower.includes('how can i help you');
+    
+    if (isTTSFeedback) {
+      console.log('🎤 Detected TTS feedback, ignoring transcript:', transcript);
+      return false;
+    }
+    
     // Clean the input text
     const cleanedText = cleanVoiceInput(transcript);
     const lowerTranscript = cleanedText.toLowerCase().trim();
@@ -257,26 +273,15 @@ export const useUnifiedVoiceProcessor = ({
     
     // Handle special TTS feedback marker
     if (cleanedText === '__TTS_FEEDBACK__') {
-      console.log('🎤 Detected TTS feedback, ignoring...');
+      console.log('🎤 Detected TTS feedback marker, ignoring...');
       return false;
     }
     
-    // If cleaned text is empty or too short, check if this was TTS feedback
+    // If cleaned text is empty or too short after cleaning
     if (!cleanedText || cleanedText.length < 1) {
-      // Check the original transcript for TTS patterns
-      const originalLower = transcript.toLowerCase();
-      if (originalLower.includes('what would you like to call') || 
-          originalLower.includes('what category should') ||
-          originalLower.includes('what type of field should this be') ||
-          originalLower.includes('perfect entry preview') ||
-          originalLower.includes('voice mode activated') ||
-          originalLower.includes('how can i help you')) {
-        console.log('🎤 Detected TTS feedback, ignoring...');
-        return false;
-      }
-      
       const clarificationMessage = `I didn't catch that. ${currentStep.question}`;
       setTimeout(() => {
+        voiceProcessor.setLastTTSPrompt(clarificationMessage);
         speak(clarificationMessage);
         toast.info(clarificationMessage);
       }, 300);

@@ -586,18 +586,35 @@ export const useUnifiedVoiceProcessor = ({
           break;
           
         case 'open_entry':
-          if (command.parameters.entryTitle) {
-            const entry = savedEntries.find(e => 
+          let entry = null;
+          
+          // First try to find by entryId if provided
+          if (command.parameters.entryId) {
+            entry = savedEntries.find(e => e.id === command.parameters.entryId);
+          }
+          
+          // Fallback to finding by title if entryId didn't work or wasn't provided
+          if (!entry && command.parameters.entryTitle) {
+            entry = savedEntries.find(e => 
               e.title.toLowerCase().includes(command.parameters.entryTitle.toLowerCase())
             );
-            if (entry) {
-              onEditEntry(entry);
-              speak(`Opening ${entry.title}`);
-              toast.success(`📂 Opening: ${entry.title}`);
-            } else {
-              speak(`Entry "${command.parameters.entryTitle}" not found`);
-              toast.error(`❌ Entry "${command.parameters.entryTitle}" not found`);
-            }
+          }
+          
+          // Also try using the title from parameters if available
+          if (!entry && command.parameters.title) {
+            entry = savedEntries.find(e => 
+              e.title.toLowerCase().includes(command.parameters.title.toLowerCase())
+            );
+          }
+          
+          if (entry) {
+            onEditEntry(entry);
+            speak(`Opening ${entry.title}`);
+            toast.success(`📂 Opening: ${entry.title}`);
+          } else {
+            const searchTerm = command.parameters.entryTitle || command.parameters.title || 'entry';
+            speak(`Entry "${searchTerm}" not found`);
+            toast.error(`❌ Entry "${searchTerm}" not found`);
           }
           break;
           

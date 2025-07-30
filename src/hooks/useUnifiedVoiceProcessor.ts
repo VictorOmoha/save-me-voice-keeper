@@ -315,7 +315,7 @@ export const useUnifiedVoiceProcessor = ({
         
         setConversationState(prev => ({
           ...prev,
-          currentStep: CONVERSATION_STEPS.PREVIEW,
+          currentStep: CONVERSATION_STEPS.MORE_FIELDS,
           entryDraft: updatedDraft,
         }));
         
@@ -329,9 +329,8 @@ export const useUnifiedVoiceProcessor = ({
         }));
         
         setTimeout(() => {
-          const previewMessage = `Perfect! Entry preview: Title "${updatedDraft.title}" in ${matchedCategory} category. Say "save" to create it or "edit" to make changes.`;
-          voiceProcessor.setLastTTSPrompt(previewMessage);
-          speak(previewMessage);
+          voiceProcessor.setLastTTSPrompt(CONVERSATION_STEPS.MORE_FIELDS.question);
+          speak(CONVERSATION_STEPS.MORE_FIELDS.question);
           toast.success(`✅ Category set: ${matchedCategory}`);
         }, 300);
         console.log('➡️ Moving to preview step');

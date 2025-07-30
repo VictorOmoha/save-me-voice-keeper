@@ -83,8 +83,10 @@ export const useDashboard = () => {
 
       // Handle confirmation prompts
       if (command.needsConfirmation) {
+        console.log('🤔 Dashboard: Command needs confirmation, setting up confirmation state');
         setHasPendingConfirmation(true);
         setConversationState('confirming');
+        setLastVoiceCommand(command);
         if (command.conversationalResponse) {
           speak(command.conversationalResponse);
         }
@@ -92,6 +94,7 @@ export const useDashboard = () => {
       }
 
       // Execute the command
+      console.log('🚀 Dashboard: Executing voice command:', command);
       await executeVoiceCommand(command);
 
       // Provide conversational response
@@ -306,12 +309,19 @@ export const useDashboard = () => {
     if (entryId) {
       console.log('🗑️ Dashboard: Using entryId for deletion:', entryId);
       if (confirmed) {
+        console.log('🗑️ Dashboard: Deletion confirmed, proceeding with delete');
         await deleteEntry(entryId);
         const entryName = title || entryTitle || 'entry';
-        toast.success(`Deleted: "${entryName}"`);
+        // Clear confirmation state
         setHasPendingConfirmation(false);
+        setConversationState('idle');
+        voiceProcessor.clearPendingConfirmation();
         speak(`Successfully deleted ${entryName}.`);
       } else {
+        console.log('🗑️ Dashboard: Deletion cancelled by user');
+        setHasPendingConfirmation(false);
+        setConversationState('idle');
+        voiceProcessor.clearPendingConfirmation();
         toast.info(`Deletion cancelled.`);
         speak('Deletion cancelled.');
       }
@@ -383,8 +393,9 @@ export const useDashboard = () => {
 
   const deleteEntry = useCallback(async (id: string) => {
     try {
+      console.log('🗑️ Dashboard: deleteEntry called for ID:', id);
       await baseDeleteEntry(id);
-      toast.success('Entry deleted successfully!');
+      // Don't show duplicate toast here since it's shown in handleDeleteEntry
     } catch (error) {
       console.error('Error deleting entry:', error);
       toast.error('Failed to delete entry');

@@ -32,8 +32,12 @@ export const useTTSEventHandler = ({
       
       // Only restart if we're in an active conversation and not already listening
       // Also check if TTS is truly finished to prevent feedback loops
-      if (conversationState?.isActive && !isListening && recognitionRef.current && 
-          !(window as any).__tts_is_speaking) {
+      // Check the actual recognition state from singleton to avoid race conditions
+      const isActuallyListening = recognitionRef.current && 
+        (recognitionRef.current as any).state === 'started';
+      
+      if (conversationState?.isActive && !isListening && !isActuallyListening && 
+          recognitionRef.current && !(window as any).__tts_is_speaking) {
         console.log('🔄 TTS Event Handler: Scheduling recognition restart after TTS completion');
         
         // Retry restart with exponential backoff for reliability

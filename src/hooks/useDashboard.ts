@@ -74,6 +74,8 @@ export const useDashboard = () => {
         isFormOpen: showAddEntry || !!editingEntry || !!fillingEntry,
         editingEntry,
         fillingEntry,
+        hasPendingConfirmation,
+        conversationState,
       };
 
       const command = await voiceProcessor.processVoiceCommand(text, context);
@@ -122,7 +124,7 @@ export const useDashboard = () => {
       setIsVoiceProcessing(false);
       processingRef.current = false;
     }
-  }, [savedEntries, showAddEntry, editingEntry, fillingEntry]);
+  }, [savedEntries, showAddEntry, editingEntry, fillingEntry, hasPendingConfirmation, conversationState]);
 
   // Handle structured entry creation from brain dumps
   const handleStructuredEntryCreation = useCallback(async (structuredData: string) => {

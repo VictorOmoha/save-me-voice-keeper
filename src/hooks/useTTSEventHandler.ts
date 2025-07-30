@@ -46,17 +46,28 @@ export const useTTSEventHandler = ({
         
         const attemptRestart = () => {
           try {
+            // Check if recognition is already running to prevent InvalidStateError
+            const isAlreadyRunning = recognitionRef.current && 
+              (recognitionRef.current as any).state === 'started';
+            
             // Double-check conditions before restart
             if (recognitionRef.current && 
                 conversationState?.isActive && 
                 !isListening &&
+                !isAlreadyRunning &&
                 !(window as any).__tts_is_speaking) {
               
               console.log('🎤 TTS Event Handler: Restarting speech recognition (attempt ' + (retryAttempts + 1) + ')');
               recognitionRef.current.start();
               setIsListening(true);
             } else {
-              console.log('🚫 TTS Event Handler: Conditions changed, skipping restart');
+              console.log('🚫 TTS Event Handler: Conditions changed, skipping restart', {
+                hasRecognition: !!recognitionRef.current,
+                isActive: conversationState?.isActive,
+                isListening,
+                isAlreadyRunning,
+                isTTSSpeaking: !!(window as any).__tts_is_speaking
+              });
             }
           } catch (error) {
             if (error.name === 'InvalidStateError' && retryAttempts < maxRetries) {

@@ -588,10 +588,16 @@ export const useUnifiedVoiceProcessor = ({
     toast.info("❌ Voice conversation cancelled");
   }, []);
 
+  const processHybridSelection = useCallback((value: string) => {
+    console.log('🔘 HYBRID: Processing button selection:', value);
+    processConversationStep(value);
+  }, [processConversationStep]);
+
   return {
     processVoiceInput,
     conversationState,
     cancelConversation,
+    processHybridSelection,
     isInConversation: conversationState.isInConversation,
   };
 };

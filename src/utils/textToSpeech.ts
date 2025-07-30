@@ -8,12 +8,13 @@ const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 // MiniMax API configuration - Updated with correct endpoint
 const MINIMAX_API_URL = 'https://api.minimax.io/v1/t2a_v2';
 
-// Voice settings for ElevenLabs
+// Voice settings for ElevenLabs - Optimized for speed and clarity
 const VOICE_SETTINGS = {
-  stability: 0.5,
-  similarity_boost: 0.8,
-  style: 0.0,
-  use_speaker_boost: true
+  stability: 0.7,
+  similarity_boost: 0.9,
+  style: 0.2,
+  use_speaker_boost: true,
+  rate: 1.3 // Faster speech rate for improved UX
 };
 
 // Available voices - exported for use in other components

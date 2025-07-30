@@ -57,7 +57,8 @@ export default function Dashboard() {
   const {
     conversationState: voiceConversationState,
     isInConversation: isVoiceInConversation,
-    processVoiceInput: unifiedProcessVoiceInput
+    processVoiceInput: unifiedProcessVoiceInput,
+    processHybridSelection
   } = useUnifiedVoiceProcessor({
     savedEntries: savedEntries,
     onCreateEntry: handleAddEntry,
@@ -151,6 +152,7 @@ export default function Dashboard() {
               onCancel={handleCancelEdit}
               conversationState={voiceConversationState}
               isVoiceActive={voiceConversationState.isInConversation}
+              onHybridSelection={processHybridSelection}
             />
           ) : (
             <DataEntryForm

@@ -10,6 +10,7 @@ import { CategorySelector } from "./forms/CategorySelector";
 import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
 import { TypewriterText } from "./TypewriterText";
 import { VoiceLiveFeedback } from "./VoiceLiveFeedback";
+import { VoiceVisualHybridInterface } from "./voice/VoiceVisualHybridInterface";
 import { 
   Mic, 
   MicOff, 
@@ -40,13 +41,15 @@ interface VoiceGuidedEntryWizardProps {
     entryDraft?: any;
   };
   isVoiceActive: boolean;
+  onHybridSelection?: (value: string) => void;
 }
 
 export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   onSave,
   onCancel,
   conversationState,
-  isVoiceActive
+  isVoiceActive,
+  onHybridSelection
 }) => {
   const [steps, setSteps] = useState<VoiceStep[]>([
     { id: 'title', title: 'Entry Title', question: 'What would you like to call this entry?', completed: false, current: true },
@@ -279,6 +282,25 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
                 <TypewriterText text={lastVoiceInput} />
               </p>
             </div>
+          )}
+
+          {/* Hybrid Voice + Visual Interface */}
+          {conversationState?.currentStep && (
+            <VoiceVisualHybridInterface
+              step={conversationState.currentStep.type}
+              onSelection={(value) => {
+                if (onHybridSelection) {
+                  onHybridSelection(value);
+                } else {
+                  // Fallback to event dispatch
+                  window.dispatchEvent(new CustomEvent('hybrid-selection', {
+                    detail: { value, step: conversationState.currentStep.type }
+                  }));
+                }
+              }}
+              isListening={isVoiceActive && conversationState?.isInConversation}
+              question={conversationState.currentStep.question}
+            />
           )}
 
           {/* Live Voice Feedback Component */}

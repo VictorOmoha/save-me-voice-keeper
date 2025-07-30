@@ -188,20 +188,20 @@ export const useVoiceOrchestrator = (
     };
   }, [finalConfig.autoStart, activateConversation, deactivateConversation]);
 
-  // Handle TTS completion events - improved coordination
+  // Handle TTS completion events - improved coordination for continuous listening
   useEffect(() => {
     const handleTTSCompleted = () => {
       console.log('🔊 Voice Orchestrator: TTS completed, checking if should restart recognition');
       
-      // Only restart if conversation is active and we're not currently listening
-      if (conversationState.isActive && !conversationState.isListening) {
-        // Wait a bit longer for TTS to fully complete
+      // Only restart if conversation is active and not manually stopped
+      if (conversationState.isActive && !isManualStopRef.current) {
+        // Wait for TTS to fully complete, then restart recognition for continuous listening
         setTimeout(() => {
           if (speechRecognition.isSupported() && !speechRecognition.isCurrentlyListening()) {
-            console.log('🔄 Voice Orchestrator: Restarting recognition after TTS completion');
+            console.log('🔄 Voice Orchestrator: Auto-restarting recognition for continuous listening');
             speechRecognition.start();
           }
-        }, 1500);
+        }, 800); // Reduced delay for smoother experience
       }
     };
 

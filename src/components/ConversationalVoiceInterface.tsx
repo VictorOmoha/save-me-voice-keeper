@@ -142,6 +142,16 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
       onEnd: () => {
         console.log('🔚 ConversationalVoiceInterface: Recognition ended');
         setIsListening(false);
+        
+        // Auto-restart for continuous listening if still active
+        if (isActive && !speechRecognition.isCurrentlyListening()) {
+          setTimeout(() => {
+            if (isActive) {
+              console.log('🔄 ConversationalVoiceInterface: Auto-restarting for continuous listening');
+              speechRecognition.start();
+            }
+          }, 1000);
+        }
       },
       
       onError: (error: string) => {

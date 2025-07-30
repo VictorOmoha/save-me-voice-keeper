@@ -116,7 +116,30 @@ export const useUnifiedVoiceProcessor = ({
     
     console.log('🧹 Cleaning voice input:', input);
     
-    // Remove common TTS feedback patterns but be more intelligent about it
+    // Check if this is pure TTS feedback that should be completely ignored
+    const pureTtsPatterns = [
+      /^What would you like to call this entry\?$/i,
+      /^What category should this entry be in\? You can say Documents, Health, Contacts, Finance, or Personal\.$/i,
+      /^What type of field should this be\? You can say text,? number,? date,? or text ?area\.?$/i,
+      /^Would you like to add any custom fields\? Say yes to add fields, or no to create the entry now\.$/i,
+      /^What would you like to name this field\?$/i,
+      /^Perfect.*entry preview.*$/i,
+      /^I didn't catch that\..*$/i,
+      /^Please try again\.$/i,
+      /^Voice mode activated\.$/i,
+      /^How can I help you\?$/i
+    ];
+    
+    // If it's pure TTS feedback, return special marker
+    const trimmedInput = input.trim();
+    for (const pattern of pureTtsPatterns) {
+      if (pattern.test(trimmedInput)) {
+        console.log('🧹 Detected pure TTS feedback, returning marker');
+        return '__TTS_FEEDBACK__';
+      }
+    }
+    
+    // Remove common TTS feedback patterns from mixed input
     const ttsPatterns = [
       /^(What would you like to call this entry\?)\s*/i,
       /^(What category should this entry be in\?)\s*/i,
@@ -129,7 +152,7 @@ export const useUnifiedVoiceProcessor = ({
       /^(How can I help you\?)\s*/i
     ];
     
-    let cleaned = input.trim();
+    let cleaned = trimmedInput;
     
     // Remove TTS patterns from the beginning
     for (const pattern of ttsPatterns) {
@@ -232,12 +255,19 @@ export const useUnifiedVoiceProcessor = ({
     
     console.log('📝 Processing conversation step:', currentStep.type, 'with cleaned input:', cleanedText);
     
+    // Handle special TTS feedback marker
+    if (cleanedText === '__TTS_FEEDBACK__') {
+      console.log('🎤 Detected TTS feedback, ignoring...');
+      return false;
+    }
+    
     // If cleaned text is empty or too short, check if this was TTS feedback
     if (!cleanedText || cleanedText.length < 1) {
       // Check the original transcript for TTS patterns
       const originalLower = transcript.toLowerCase();
       if (originalLower.includes('what would you like to call') || 
           originalLower.includes('what category should') ||
+          originalLower.includes('what type of field should this be') ||
           originalLower.includes('perfect entry preview') ||
           originalLower.includes('voice mode activated') ||
           originalLower.includes('how can i help you')) {

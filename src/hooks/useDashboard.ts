@@ -6,6 +6,8 @@ import { speak } from "@/utils/textToSpeech";
 import { voiceProcessor, EnhancedVoiceCommand } from "@/utils/enhancedVoiceProcessor";
 
 export const useDashboard = () => {
+  console.log('🔍 useDashboard: Hook initializing...');
+  
   const {
     savedEntries,
     isLoading,

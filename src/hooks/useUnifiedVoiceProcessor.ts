@@ -329,6 +329,8 @@ export const useUnifiedVoiceProcessor = ({
         // Use fuzzy matching for category
         const matchedCategory = matchCategory(cleanedText);
         
+        console.log(`🎯 Category matching result: input="${cleanedText}", matched="${matchedCategory}"`);
+        
         if (!matchedCategory) {
           const retryMessage = `I heard "${cleanedText}" - please say one of: Documents, Health, Contacts, Finance, or Personal.`;
             setTimeout(() => {

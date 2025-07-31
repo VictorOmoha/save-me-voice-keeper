@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useSavedEntries } from "./useSavedEntries";
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
@@ -23,6 +23,14 @@ export const useDashboard = () => {
   const [conversationState, setConversationState] = useState<'listening' | 'confirming' | 'idle'>('idle');
   const [hasPendingConfirmation, setHasPendingConfirmation] = useState(false);
   const [conversationData, setConversationData] = useState({ isActive: false });
+  
+  // Clear any stuck state on mount
+  useEffect(() => {
+    console.log('🧹 Dashboard: Clearing any stuck voice processor state on mount');
+    voiceProcessor.clearConfirmationState();
+    setHasPendingConfirmation(false);
+    setConversationState('idle');
+  }, []);
 
   const processingRef = useRef(false);
 

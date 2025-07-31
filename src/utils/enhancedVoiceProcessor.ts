@@ -1,5 +1,6 @@
 
 import { toast } from 'sonner';
+import { speak } from '@/utils/textToSpeech';
 
 export interface EnhancedVoiceCommand {
   intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'close' | 'unknown';
@@ -32,20 +33,48 @@ class EnhancedVoiceProcessor {
   private pendingConfirmation: EnhancedVoiceCommand | null = null;
   private expectingFollowUp: boolean = false;
   private commandHistory: string[] = [];
+  private confirmationTimeout: NodeJS.Timeout | null = null;
+  private debugMode: boolean = true; // Enable debug mode for troubleshooting
 
   // Store last TTS prompt for comparison
   private lastTTSPrompt: string = '';
+
+  // Clear stuck confirmation state immediately
+  public clearConfirmationState(): void {
+    if (this.debugMode) console.log('🧹 Enhanced Processor: Clearing confirmation state');
+    this.pendingConfirmation = null;
+    this.expectingFollowUp = false;
+    if (this.confirmationTimeout) {
+      clearTimeout(this.confirmationTimeout);
+      this.confirmationTimeout = null;
+    }
+  }
+
+  // Start confirmation timeout
+  private startConfirmationTimeout(): void {
+    if (this.confirmationTimeout) {
+      clearTimeout(this.confirmationTimeout);
+    }
+    
+    this.confirmationTimeout = setTimeout(() => {
+      if (this.debugMode) console.log('⏰ Enhanced Processor: Confirmation timeout - clearing state');
+      this.clearConfirmationState();
+      speak("Confirmation timeout. Please try your command again.");
+    }, 30000); // 30 second timeout
+  }
 
   // Improved TTS detection with better filtering
   private isTTSFeedback(text: string): boolean {
     const cleanText = text.toLowerCase().trim();
     
-    console.log('🎤 Transcript received:', text);
-    console.log('🤖 Last TTS prompt:', this.lastTTSPrompt);
+    if (this.debugMode) {
+      console.log('🎤 Transcript received:', text);
+      console.log('🤖 Last TTS prompt:', this.lastTTSPrompt);
+    }
     
     // Check if TTS is currently speaking
     if ((window as any).__tts_is_speaking) {
-      console.log('🚫 Enhanced Processor: TTS currently speaking, blocking input');
+      if (this.debugMode) console.log('🚫 Enhanced Processor: TTS currently speaking, blocking input');
       return true;
     }
     
@@ -120,9 +149,23 @@ class EnhancedVoiceProcessor {
       this.commandHistory.shift();
     }
 
+    // Check for escape commands first (higher priority than confirmation)
+    const cleanText = transcript.toLowerCase().trim();
+    if (cleanText.includes('start over') || cleanText.includes('reset') || cleanText.includes('clear')) {
+      if (this.debugMode) console.log('🔄 Enhanced Processor: User requested reset/start over');
+      this.clearConfirmationState();
+      return {
+        intent: 'conversation',
+        action: 'reset_conversation',
+        parameters: {},
+        confidence: 0.9,
+        conversationalResponse: 'Starting fresh. What would you like to do?'
+      };
+    }
+
     // Handle pending confirmation
     if (this.pendingConfirmation) {
-      return this.handleConfirmation(transcript);
+      return this.handleConfirmation(transcript, context);
     }
 
     // Handle follow-up expected (waiting for content after "create entry")
@@ -134,7 +177,7 @@ class EnhancedVoiceProcessor {
     return this.parseCommand(transcript, context);
   }
 
-  private handleConfirmation(transcript: string): EnhancedVoiceCommand {
+  private handleConfirmation(transcript: string, context?: VoiceContext): EnhancedVoiceCommand {
     console.log('🤔 Enhanced Processor: Handling confirmation for transcript:', transcript);
     console.log('🤔 Enhanced Processor: Pending confirmation:', this.pendingConfirmation);
     
@@ -164,26 +207,35 @@ class EnhancedVoiceProcessor {
     });
     
     if (isYes && this.pendingConfirmation) {
-      console.log('✅ Enhanced Processor: User confirmed action - EXECUTING');
-      const command = { 
-        ...this.pendingConfirmation!, 
-        parameters: { ...this.pendingConfirmation!.parameters, confirmed: true },
-        needsConfirmation: false,
-        conversationalResponse: 'Confirmed. Executing action now.'
-      };
-      this.pendingConfirmation = null;
-      console.log('✅ Enhanced Processor: Returning confirmed command:', command);
-      return command;
-    } else if (isNo && this.pendingConfirmation) {
-      console.log('❌ Enhanced Processor: User cancelled action');
-      const command = { 
-        ...this.pendingConfirmation!, 
-        parameters: { ...this.pendingConfirmation!.parameters, confirmed: false },
-        needsConfirmation: false,
-        conversationalResponse: 'Action cancelled.'
-      };
-      this.pendingConfirmation = null;
-      return command;
+        console.log('✅ Enhanced Processor: User confirmed action - EXECUTING');
+        const command = { 
+          ...this.pendingConfirmation!, 
+          parameters: { ...this.pendingConfirmation!.parameters, confirmed: true },
+          needsConfirmation: false,
+          conversationalResponse: 'Confirmed. Executing action now.'
+        };
+        this.clearConfirmationState();
+        console.log('✅ Enhanced Processor: Returning confirmed command:', command);
+        return command;
+      } else if (isNo && this.pendingConfirmation) {
+        console.log('❌ Enhanced Processor: User cancelled action');
+        const command = { 
+          ...this.pendingConfirmation!, 
+          parameters: { ...this.pendingConfirmation!.parameters, confirmed: false },
+          needsConfirmation: false,
+          conversationalResponse: 'Action cancelled.'
+        };
+        this.clearConfirmationState();
+        return command;
+    }
+    
+    // Check if this is a completely different command instead of unclear confirmation
+    const isNewCommand = this.isLikelyNewCommand(cleanText);
+    if (isNewCommand && context) {
+      if (this.debugMode) console.log('🎯 Enhanced Processor: User gave new command during confirmation, clearing and processing:', cleanText);
+      this.clearConfirmationState();
+      // Process the new command
+      return this.parseCommand(transcript, context);
     }
     
     console.log('🔄 Enhanced Processor: Asking for clarification');
@@ -314,6 +366,7 @@ class EnhancedVoiceProcessor {
           needsConfirmation: true,
           conversationalResponse: `Are you sure you want to delete "${entryMatch.title}"? Say yes to confirm or no to cancel.`
         };
+        this.startConfirmationTimeout();
         return this.pendingConfirmation;
       } else {
         // Try to extract the search term
@@ -433,6 +486,26 @@ class EnhancedVoiceProcessor {
     return text.replace(/search|find|show|look/g, '').trim();
   }
 
+  // Helper to detect if user is giving a new command instead of confirmation
+  private isLikelyNewCommand(text: string): boolean {
+    const commandWords = [
+      'create', 'add', 'new', 'make', 'open', 'show', 'delete', 'remove', 'edit', 'update', 'search', 'find', 'list', 'help'
+    ];
+    const words = text.split(' ');
+    
+    // If the first word is a command word, likely a new command
+    if (commandWords.includes(words[0])) {
+      return true;
+    }
+    
+    // Check for question patterns that aren't confirmations
+    if (text.includes('what') || text.includes('how') || text.includes('where') || text.includes('when')) {
+      return true;
+    }
+    
+    return false;
+  }
+
   public hasPendingConfirmation(): boolean {
     return this.pendingConfirmation !== null;
   }
@@ -441,9 +514,10 @@ class EnhancedVoiceProcessor {
     return this.expectingFollowUp;
   }
 
+  // Clear pending confirmation (legacy method for backwards compatibility)
   public clearPendingConfirmation(): void {
-    this.pendingConfirmation = null;
-    this.expectingFollowUp = false;
+    if (this.debugMode) console.log('🧹 Enhanced Processor: clearPendingConfirmation called (legacy)');
+    this.clearConfirmationState();
   }
 }
 

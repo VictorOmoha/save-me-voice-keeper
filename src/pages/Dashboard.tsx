@@ -7,6 +7,7 @@ import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { VoiceGuidedEntryWizard } from '@/components/VoiceGuidedEntryWizard';
 import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
+import { VoiceStatusDebug } from '@/components/VoiceStatusDebug';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
@@ -199,6 +200,14 @@ export default function Dashboard() {
       
       {/* Debug panel for voice system monitoring */}
       <VoiceDebugPanel />
+      
+      <VoiceStatusDebug
+        isListening={false}
+        conversationState={conversationState}
+        hasPendingConfirmation={hasPendingConfirmation}
+        lastCommand={lastVoiceCommand?.action}
+        debugMode={true}
+      />
     </DashboardLayout>
   );
 }

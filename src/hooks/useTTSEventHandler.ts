@@ -56,9 +56,30 @@ export const useTTSEventHandler = ({
               return;
             }
             
-            // If not started and conditions are met, start it
-            if (conversationState?.isActive && !(window as any).__tts_is_speaking) {
-              console.log('🎤 TTS Event Handler: Starting recognition');
+            // CRITICAL FIX: Always stop before starting to prevent InvalidStateError
+            if (recognitionRef.current && currentState !== 'inactive') {
+              console.log('🛑 TTS Event Handler: Stopping recognition before restart');
+              recognitionRef.current.stop();
+              
+              // Wait for stop to complete before starting
+              setTimeout(() => {
+                if (conversationState?.isActive && !(window as any).__tts_is_speaking && recognitionRef.current) {
+                  try {
+                    console.log('🎤 TTS Event Handler: Starting recognition after stop');
+                    recognitionRef.current.start();
+                    setIsListening(true);
+                    console.log('✅ TTS Event Handler: Successfully started recognition');
+                  } catch (startError) {
+                    console.log('⚠️ TTS Event Handler: Start after stop failed:', startError);
+                    if (startError.name === 'InvalidStateError') {
+                      console.log('✅ TTS Event Handler: Recognition likely already running');
+                      setIsListening(true);
+                    }
+                  }
+                }
+              }, 200);
+            } else if (conversationState?.isActive && !(window as any).__tts_is_speaking) {
+              console.log('🎤 TTS Event Handler: Starting recognition (inactive state)');
               recognitionRef.current.start();
               setIsListening(true);
               console.log('✅ TTS Event Handler: Successfully started recognition');

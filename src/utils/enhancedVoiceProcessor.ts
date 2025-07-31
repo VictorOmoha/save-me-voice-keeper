@@ -139,30 +139,48 @@ class EnhancedVoiceProcessor {
     console.log('🤔 Enhanced Processor: Pending confirmation:', this.pendingConfirmation);
     
     const cleanText = transcript.toLowerCase().trim();
-    const isYes = ['yes', 'yeah', 'yep', 'confirm', 'do it', 'proceed', 'okay', 'ok'].some(word => 
-      cleanText === word || cleanText.includes(word)
-    );
-    const isNo = ['no', 'nope', 'cancel', 'stop', 'abort', 'never mind', 'nevermind'].some(word => 
-      cleanText === word || cleanText.includes(word)
-    );
     
-    console.log('🤔 Enhanced Processor: Confirmation analysis:', { cleanText, isYes, isNo });
+    // Enhanced confirmation patterns - more flexible matching
+    const yesPatterns = [
+      /^yes$/i, /^yeah$/i, /^yep$/i, /^confirm$/i, /^do it$/i, /^proceed$/i, 
+      /^okay$/i, /^ok$/i, /^sure$/i, /^absolutely$/i, /^definitely$/i,
+      /yes.*delete/i, /delete.*yes/i, /go.*ahead/i, /^correct$/i
+    ];
+    
+    const noPatterns = [
+      /^no$/i, /^nope$/i, /^cancel$/i, /^stop$/i, /^abort$/i, 
+      /never.*mind/i, /^nevermind$/i, /^don't$/i, /^dont$/i,
+      /no.*delete/i, /cancel.*delete/i, /^negative$/i, /^wait$/i
+    ];
+    
+    const isYes = yesPatterns.some(pattern => pattern.test(cleanText));
+    const isNo = noPatterns.some(pattern => pattern.test(cleanText));
+    
+    console.log('🤔 Enhanced Processor: Confirmation analysis:', { 
+      cleanText, 
+      isYes, 
+      isNo,
+      hasPendingConfirmation: !!this.pendingConfirmation 
+    });
     
     if (isYes && this.pendingConfirmation) {
-      console.log('✅ Enhanced Processor: User confirmed action');
+      console.log('✅ Enhanced Processor: User confirmed action - EXECUTING');
       const command = { 
         ...this.pendingConfirmation!, 
         parameters: { ...this.pendingConfirmation!.parameters, confirmed: true },
-        needsConfirmation: false
+        needsConfirmation: false,
+        conversationalResponse: 'Confirmed. Executing action now.'
       };
       this.pendingConfirmation = null;
+      console.log('✅ Enhanced Processor: Returning confirmed command:', command);
       return command;
     } else if (isNo && this.pendingConfirmation) {
       console.log('❌ Enhanced Processor: User cancelled action');
       const command = { 
         ...this.pendingConfirmation!, 
         parameters: { ...this.pendingConfirmation!.parameters, confirmed: false },
-        needsConfirmation: false
+        needsConfirmation: false,
+        conversationalResponse: 'Action cancelled.'
       };
       this.pendingConfirmation = null;
       return command;
@@ -174,7 +192,7 @@ class EnhancedVoiceProcessor {
       action: 'clarify_confirmation',
       parameters: {},
       confidence: 0.8,
-      conversationalResponse: 'Please say yes to confirm or no to cancel.'
+      conversationalResponse: 'I need a clear yes or no. Please say yes to confirm or no to cancel.'
     };
   }
 

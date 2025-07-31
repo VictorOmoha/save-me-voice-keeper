@@ -181,7 +181,7 @@ class EnhancedVoiceProcessor {
     console.log('🤔 Enhanced Processor: Handling confirmation for transcript:', transcript);
     console.log('🤔 Enhanced Processor: Pending confirmation:', this.pendingConfirmation);
     
-    const cleanText = transcript.toLowerCase().trim();
+    const cleanText = transcript.toLowerCase().trim().replace(/[.,!?]+$/g, ''); // Remove trailing punctuation
     
     // Enhanced confirmation patterns - more flexible matching
     const yesPatterns = [

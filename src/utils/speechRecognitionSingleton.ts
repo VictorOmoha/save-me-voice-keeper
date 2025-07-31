@@ -173,9 +173,16 @@ export class SpeechRecognitionSingleton {
       return;
     }
 
+    // Don't restart if already listening
+    if (this.isListening) {
+      console.log('🔄 Recognition Singleton: Already listening, skipping restart');
+      return;
+    }
+
     try {
       console.log('🔄 Recognition Singleton: Attempting restart');
       this.recognition.start();
+      this.isListening = true;
     } catch (error) {
       console.log('⚠️ Recognition Singleton: Restart failed:', error);
       if (this.restartAttempts < this.maxRestartAttempts) {

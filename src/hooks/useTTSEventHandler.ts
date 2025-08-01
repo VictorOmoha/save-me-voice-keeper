@@ -34,119 +34,118 @@ export const useTTSEventHandler = ({
         restartTimeoutRef.current = null;
       }
       
-      // Only restart if we're in an active conversation (including confirmation prompts)
+      // Enhanced restart logic with robust retry mechanism
       if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
-        console.log('🔄 TTS Event Handler: Scheduling recognition restart after TTS completion', {
-          conversationActive: conversationState?.isActive,
-          hasRecognition: !!recognitionRef.current,
-          ttsNotSpeaking: !(window as any).__tts_is_speaking,
-          currentStep: conversationState?.currentStep?.question
-        });
+        console.log('🔄 TTS Event Handler: Scheduling recognition restart after TTS completion');
         
-        const attemptRestart = async () => {
-          try {
-            // Shorter wait for confirmation prompts to be more responsive
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Check if we should still proceed
-            if (!conversationState?.isActive || (window as any).__tts_is_speaking || !recognitionRef.current) {
-              console.log('🚫 TTS Event Handler: Aborting restart - conditions changed');
-              return;
-            }
-            
-            // Get fresh state
-            const currentState = recognitionRef.current ? (recognitionRef.current as any).state : 'null';
-            
-            console.log('🧪 TTS Event Handler: Restart attempt', {
-              hasRecognition: !!recognitionRef.current,
-              recognitionState: currentState,
-              isActive: conversationState?.isActive,
-              isTTSSpeaking: !!(window as any).__tts_is_speaking
-            });
-            
-            // If already started, we're good
-            if (currentState === 'started') {
-              console.log('✅ TTS Event Handler: Recognition already running');
-              setIsListening(true);
-              return;
-            }
-            
-            // ENHANCED FIX: More robust restart sequence
-            const performSafeRestart = () => {
-              return new Promise<void>((resolve, reject) => {
+        const performRobustRestart = async () => {
+          let retryCount = 0;
+          const maxRetries = 3;
+          const baseDelay = 300;
+          
+          while (retryCount < maxRetries) {
+            try {
+              // Exponential backoff delay
+              const delay = baseDelay * Math.pow(1.5, retryCount);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              
+              // Check if conditions still valid
+              if (!conversationState?.isActive || (window as any).__tts_is_speaking || !recognitionRef.current) {
+                console.log('🚫 TTS Event Handler: Aborting restart - conditions changed');
+                return;
+              }
+              
+              const currentState = recognitionRef.current ? (recognitionRef.current as any).state : 'null';
+              console.log(`🧪 TTS Event Handler: Restart attempt ${retryCount + 1}/${maxRetries}`, {
+                recognitionState: currentState,
+                isActive: conversationState?.isActive,
+                delay
+              });
+              
+              // If already started, we're good
+              if (currentState === 'started') {
+                console.log('✅ TTS Event Handler: Recognition already running');
+                setIsListening(true);
+                return;
+              }
+              
+              // Stop if not inactive
+              if (currentState !== 'inactive') {
+                console.log('🛑 TTS Event Handler: Stopping recognition before restart');
+                recognitionRef.current.stop();
+                await new Promise(resolve => setTimeout(resolve, 200));
+              }
+              
+              // Safe restart with promise wrapper
+              await new Promise<void>((resolve, reject) => {
+                if (!recognitionRef.current) {
+                  reject(new Error('No recognition object'));
+                  return;
+                }
+                
+                const timeout = setTimeout(() => {
+                  cleanup();
+                  reject(new Error('Start timeout'));
+                }, 2000);
+                
+                const onStart = () => {
+                  console.log('✅ TTS Event Handler: Recognition successfully started');
+                  setIsListening(true);
+                  cleanup();
+                  resolve();
+                };
+                
+                const onError = (error: any) => {
+                  console.log('⚠️ TTS Event Handler: Recognition start error:', error);
+                  cleanup();
+                  reject(error);
+                };
+                
+                const cleanup = () => {
+                  clearTimeout(timeout);
+                  if (recognitionRef.current) {
+                    recognitionRef.current.removeEventListener('start', onStart);
+                    recognitionRef.current.removeEventListener('error', onError);
+                  }
+                };
+                
+                recognitionRef.current.addEventListener('start', onStart);
+                recognitionRef.current.addEventListener('error', onError);
+                
                 try {
-                  if (!recognitionRef.current) {
-                    reject(new Error('No recognition object'));
-                    return;
-                  }
-                  
-                  // Add event listeners for this restart attempt
-                  const onStart = () => {
-                    console.log('✅ TTS Event Handler: Recognition successfully started');
-                    setIsListening(true);
-                    cleanup();
-                    resolve();
-                  };
-                  
-                  const onError = (error: any) => {
-                    console.log('⚠️ TTS Event Handler: Recognition start error:', error);
-                    if (error.error === 'not-allowed' || error.error === 'service-not-allowed') {
-                      console.log('🚫 TTS Event Handler: Permission denied for microphone');
-                    }
-                    cleanup();
-                    reject(error);
-                  };
-                  
-                  const cleanup = () => {
-                    if (recognitionRef.current) {
-                      recognitionRef.current.removeEventListener('start', onStart);
-                      recognitionRef.current.removeEventListener('error', onError);
-                    }
-                  };
-                  
-                  recognitionRef.current.addEventListener('start', onStart);
-                  recognitionRef.current.addEventListener('error', onError);
-                  
-                  // Start with error handling
-                  try {
-                    recognitionRef.current.start();
-                  } catch (immediateError) {
-                    cleanup();
-                    reject(immediateError);
-                  }
-                } catch (setupError) {
-                  reject(setupError);
+                  recognitionRef.current.start();
+                } catch (immediateError) {
+                  cleanup();
+                  reject(immediateError);
                 }
               });
-            };
-            
-            // If not inactive, stop first
-            if (currentState !== 'inactive') {
-              console.log('🛑 TTS Event Handler: Stopping recognition before restart');
-              recognitionRef.current.stop();
               
-              // Wait for stop to complete
-              await new Promise(resolve => setTimeout(resolve, 300));
-            }
-            
-            // Now try to start
-            await performSafeRestart();
-            
-          } catch (error: any) {
-            console.log('⚠️ TTS Event Handler: Restart failed:', error);
-            // If we get InvalidStateError, recognition might already be running
-            if (error.name === 'InvalidStateError') {
-              console.log('✅ TTS Event Handler: Recognition likely already running (InvalidStateError)');
-              setIsListening(true);
-            } else if (error.error === 'already-listening') {
-              console.log('✅ TTS Event Handler: Recognition already listening');
-              setIsListening(true);
+              // Success - exit retry loop
+              return;
+              
+            } catch (error: any) {
+              retryCount++;
+              console.log(`⚠️ TTS Event Handler: Restart attempt ${retryCount} failed:`, error);
+              
+              if (error.name === 'InvalidStateError' || error.error === 'already-listening') {
+                console.log('✅ TTS Event Handler: Recognition likely already running');
+                setIsListening(true);
+                return;
+              }
+              
+              if (retryCount >= maxRetries) {
+                console.log('❌ TTS Event Handler: Max retries reached, providing visual fallback');
+                // Dispatch event for visual fallback
+                window.dispatchEvent(new CustomEvent('voice-restart-failed', {
+                  detail: { reason: 'max_retries_exceeded', error }
+                }));
+                return;
+              }
             }
           }
         };
         
-        // Start the restart attempt
-        attemptRestart();
+        performRobustRestart();
       }
     };
 

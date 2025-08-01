@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';
@@ -89,6 +89,12 @@ export const useUnifiedVoiceProcessor = ({
   conversationStateRef.current = conversationState;
 
   const pendingDeleteEntry = useRef<SavedEntry | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogData, setConfirmDialogData] = useState<{
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const startCreateEntryConversation = useCallback(() => {
     console.log('🎯 Starting create entry conversation');
@@ -651,12 +657,13 @@ export const useUnifiedVoiceProcessor = ({
               onDeleteEntry(entry.id);
               const successMessage = `Deleted "${entry.title}"`;
               
-              // Set TTS prompt BEFORE speaking to prevent feedback loop
-              setTimeout(() => {
-                voiceProcessor.setLastTTSPrompt(successMessage);
-                speak(successMessage);
-                toast.success(`🗑️ Deleted: ${entry.title}`);
-              }, 300);
+              // Clear pending state and reset processor
+              pendingDeleteEntry.current = null;
+              voiceProcessor.clearConfirmationState();
+              
+              voiceProcessor.setLastTTSPrompt(successMessage);
+              speak(successMessage);
+              toast.success(`🗑️ Deleted: ${entry.title}`);
             }
           }
           // Handle initial delete request  
@@ -668,12 +675,9 @@ export const useUnifiedVoiceProcessor = ({
               pendingDeleteEntry.current = entry;
               const confirmMessage = `Are you sure you want to delete "${entry.title}"? Say "yes" or "no".`;
               
-              // Set TTS prompt BEFORE speaking to prevent feedback loop
-              setTimeout(() => {
-                voiceProcessor.setLastTTSPrompt(confirmMessage);
-                speak(confirmMessage);
-                toast.info(`🗑️ Confirm deletion: "${entry.title}" - Say "yes" or "no"`);
-              }, 300);
+              voiceProcessor.setLastTTSPrompt(confirmMessage);
+              speak(confirmMessage);
+              toast.info(`🗑️ Confirm deletion: "${entry.title}" - Say "yes" or "no"`);
             }
           }
           break;
@@ -701,19 +705,33 @@ export const useUnifiedVoiceProcessor = ({
           }
       }
       
-      // Handle legacy delete confirmation (fallback)
-      if (transcript.toLowerCase().includes('confirm delete') && pendingDeleteEntry.current) {
-        const entry = pendingDeleteEntry.current;
-        onDeleteEntry(entry.id);
-        const successMessage = `Deleted "${entry.title}"`;
-        
-        // Set TTS prompt BEFORE speaking to prevent feedback loop
-        setTimeout(() => {
+      // Handle simple yes/no confirmation for pending delete
+      const trimmedLower = transcript.toLowerCase().trim();
+      if (pendingDeleteEntry.current) {
+        if (trimmedLower === 'yes' || trimmedLower === 'confirm' || trimmedLower === 'delete') {
+          const entry = pendingDeleteEntry.current;
+          onDeleteEntry(entry.id);
+          const successMessage = `Deleted "${entry.title}"`;
+          
+          pendingDeleteEntry.current = null;
+          voiceProcessor.clearConfirmationState();
+          
           voiceProcessor.setLastTTSPrompt(successMessage);
           speak(successMessage);
           toast.success(`🗑️ Deleted: ${entry.title}`);
-        }, 300);
-        pendingDeleteEntry.current = null;
+          return;
+        } else if (trimmedLower === 'no' || trimmedLower === 'cancel' || trimmedLower === 'nevermind') {
+          const entry = pendingDeleteEntry.current;
+          const cancelMessage = `Cancelled deletion of "${entry.title}"`;
+          
+          pendingDeleteEntry.current = null;
+          voiceProcessor.clearConfirmationState();
+          
+          voiceProcessor.setLastTTSPrompt(cancelMessage);
+          speak(cancelMessage);
+          toast.info(`❌ Cancelled: Deletion of "${entry.title}"`);
+          return;
+        }
       }
       
     } catch (error) {
@@ -738,11 +756,44 @@ export const useUnifiedVoiceProcessor = ({
     processConversationStep(value);
   }, [processConversationStep]);
 
+  // Handle voice restart failures with visual fallback
+  useEffect(() => {
+    const handleVoiceRestartFailed = () => {
+      if (pendingDeleteEntry.current) {
+        const entry = pendingDeleteEntry.current;
+        setConfirmDialogData({
+          title: "Confirm Deletion",
+          description: `Are you sure you want to delete "${entry.title}"?`,
+          onConfirm: () => {
+            onDeleteEntry(entry.id);
+            toast.success(`🗑️ Deleted: ${entry.title}`);
+            pendingDeleteEntry.current = null;
+            setShowConfirmDialog(false);
+            setConfirmDialogData(null);
+          }
+        });
+        setShowConfirmDialog(true);
+      }
+    };
+
+    window.addEventListener('voice-restart-failed', handleVoiceRestartFailed);
+    return () => window.removeEventListener('voice-restart-failed', handleVoiceRestartFailed);
+  }, [onDeleteEntry]);
+
   return {
     processVoiceInput,
     conversationState,
     cancelConversation,
     processHybridSelection,
     isInConversation: conversationState.isInConversation,
+    // Visual confirmation fallback
+    showConfirmDialog,
+    confirmDialogData,
+    onCancelConfirm: () => {
+      pendingDeleteEntry.current = null;
+      setShowConfirmDialog(false);
+      setConfirmDialogData(null);
+      toast.info('Deletion cancelled');
+    }
   };
 };

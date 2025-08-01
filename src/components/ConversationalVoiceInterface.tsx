@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
 import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
 import { useTTSEventHandler } from "@/hooks/useTTSEventHandler";
+import { VoiceConfirmationDialog } from "./VoiceConfirmationDialog";
 
 interface ConversationalVoiceInterfaceProps {
   savedEntries: SavedEntry[];
@@ -45,7 +46,10 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     processVoiceInput,
     conversationState,
     cancelConversation,
-    isInConversation
+    isInConversation,
+    showConfirmDialog,
+    confirmDialogData,
+    onCancelConfirm
   } = useUnifiedVoiceProcessor({
     onCreateEntry,
     onEditEntry,

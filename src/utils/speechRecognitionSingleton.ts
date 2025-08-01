@@ -173,18 +173,32 @@ export class SpeechRecognitionSingleton {
       return;
     }
 
-    // Don't restart if already listening
-    if (this.isListening) {
+    // Check actual recognition state instead of just our flag
+    const actualState = (this.recognition as any).state;
+    if (actualState === 'started' || this.isListening) {
       console.log('🔄 Recognition Singleton: Already listening, skipping restart');
       return;
     }
 
     try {
       console.log('🔄 Recognition Singleton: Attempting restart');
+      // Don't set isListening until onstart fires successfully
       this.recognition.start();
-      this.isListening = true;
-    } catch (error) {
+    } catch (error: any) {
       console.log('⚠️ Recognition Singleton: Restart failed:', error);
+      
+      // Reset listening state on failure
+      this.isListening = false;
+      
+      // Handle specific error types
+      if (error.name === 'InvalidStateError' || error.message?.includes('already started')) {
+        // Recognition is already running, update our state
+        console.log('✅ Recognition Singleton: Recognition already running, updating state');
+        this.isListening = true;
+        this.restartAttempts = 0;
+        return;
+      }
+      
       if (this.restartAttempts < this.maxRestartAttempts) {
         this.scheduleRestart();
       }

@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 
 interface UseTTSEventHandlerProps {
-  conversationState?: { isActive: boolean };
+  conversationState?: { isActive: boolean; currentStep?: { question: string } };
   isListening: boolean;
   recognitionRef: React.MutableRefObject<SpeechRecognition | null>;
   setIsListening: (value: boolean) => void;
@@ -24,7 +24,8 @@ export const useTTSEventHandler = ({
         isCurrentlyListening: isListening,
         recognitionExists: !!recognitionRef.current,
         recognitionState,
-        ttsSpeaking: !!(window as any).__tts_is_speaking
+        ttsSpeaking: !!(window as any).__tts_is_speaking,
+        currentStep: conversationState?.currentStep?.question
       });
       
       // Clear any existing restart timeout
@@ -33,14 +34,14 @@ export const useTTSEventHandler = ({
         restartTimeoutRef.current = null;
       }
       
-      // Only restart if we're in an active conversation
+      // Only restart if we're in an active conversation (including confirmation prompts)
       if (conversationState?.isActive && recognitionRef.current && !(window as any).__tts_is_speaking) {
-        console.log('🔄 TTS Event Handler: Scheduling recognition restart after TTS completion');
+        console.log('🔄 TTS Event Handler: Scheduling recognition restart after TTS completion (confirmation mode)');
         
         const attemptRestart = async () => {
           try {
-            // Wait a bit longer for TTS to fully complete
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Shorter wait for confirmation prompts to be more responsive
+            await new Promise(resolve => setTimeout(resolve, 500));
             
             // Check if we should still proceed
             if (!conversationState?.isActive || (window as any).__tts_is_speaking || !recognitionRef.current) {

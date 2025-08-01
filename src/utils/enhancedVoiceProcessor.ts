@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 
 export interface EnhancedVoiceCommand {
-  intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'close' | 'unknown';
+  intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'close' | 'cancel' | 'clarification' | 'unknown';
   action: string;
   parameters: Record<string, any>;
   confidence: number;
@@ -178,73 +178,73 @@ class EnhancedVoiceProcessor {
   }
 
   private handleConfirmation(transcript: string, context?: VoiceContext): EnhancedVoiceCommand {
-    console.log('🤔 Enhanced Processor: Handling confirmation for transcript:', transcript);
-    console.log('🤔 Enhanced Processor: Pending confirmation:', this.pendingConfirmation);
-    
-    const cleanText = transcript.toLowerCase().trim().replace(/[.,!?]+$/g, ''); // Remove trailing punctuation
-    
-    // Enhanced confirmation patterns - more flexible matching
-    const yesPatterns = [
-      /^yes$/i, /^yeah$/i, /^yep$/i, /^confirm$/i, /^do it$/i, /^proceed$/i, 
-      /^okay$/i, /^ok$/i, /^sure$/i, /^absolutely$/i, /^definitely$/i,
-      /yes.*delete/i, /delete.*yes/i, /go.*ahead/i, /^correct$/i
-    ];
-    
-    const noPatterns = [
-      /^no$/i, /^nope$/i, /^cancel$/i, /^stop$/i, /^abort$/i, 
-      /never.*mind/i, /^nevermind$/i, /^don't$/i, /^dont$/i,
-      /no.*delete/i, /cancel.*delete/i, /^negative$/i, /^wait$/i
-    ];
-    
-    const isYes = yesPatterns.some(pattern => pattern.test(cleanText));
-    const isNo = noPatterns.some(pattern => pattern.test(cleanText));
-    
-    console.log('🤔 Enhanced Processor: Confirmation analysis:', { 
-      cleanText, 
-      isYes, 
-      isNo,
-      hasPendingConfirmation: !!this.pendingConfirmation 
+    console.log('🤔 Enhanced Processor: Handling confirmation for transcript:', transcript, {
+      hasPending: !!this.pendingConfirmation,
+      pendingAction: this.pendingConfirmation?.action,
+      pendingParams: this.pendingConfirmation?.parameters
     });
     
-    if (isYes && this.pendingConfirmation) {
-        console.log('✅ Enhanced Processor: User confirmed action - EXECUTING');
-        const command = { 
-          ...this.pendingConfirmation!, 
-          parameters: { ...this.pendingConfirmation!.parameters, confirmed: true },
-          needsConfirmation: false,
-          conversationalResponse: 'Confirmed. Executing action now.'
-        };
-        this.clearConfirmationState();
-        console.log('✅ Enhanced Processor: Returning confirmed command:', command);
-        return command;
-      } else if (isNo && this.pendingConfirmation) {
-        console.log('❌ Enhanced Processor: User cancelled action');
-        const command = { 
-          ...this.pendingConfirmation!, 
-          parameters: { ...this.pendingConfirmation!.parameters, confirmed: false },
-          needsConfirmation: false,
-          conversationalResponse: 'Action cancelled.'
-        };
-        this.clearConfirmationState();
-        return command;
+    if (!this.pendingConfirmation) {
+      console.log('⚠️ Enhanced Processor: No pending confirmation found');
+      return {
+        intent: 'unknown',
+        action: 'none',
+        parameters: {},
+        confidence: 0,
+        conversationalResponse: "I'm not waiting for any confirmation right now. What would you like to do?"
+      };
+    }
+    
+    const cleanText = transcript.toLowerCase().trim().replace(/[.,!?]+$/g, '');
+    console.log('🔍 Enhanced Processor: Checking confirmation text:', cleanText);
+    
+    // More robust positive confirmation patterns
+    const positivePatterns = ['yes', 'yeah', 'yep', 'confirm', 'ok', 'okay', 'sure', 'do it', 'go ahead', 'proceed'];
+    const isPositive = positivePatterns.some(pattern => cleanText.includes(pattern));
+    
+    if (isPositive) {
+      console.log('✅ Enhanced Processor: Positive confirmation received');
+      const confirmedCommand = { 
+        ...this.pendingConfirmation, 
+        parameters: { ...this.pendingConfirmation.parameters, confirmed: true },
+        conversationalResponse: `Confirmed! ${this.pendingConfirmation.action === 'delete_entry' ? 'Deleting entry now.' : 'Processing your request now.'}`
+      };
+      this.clearConfirmationState();
+      return confirmedCommand;
+    }
+    
+    // More robust negative confirmation patterns
+    const negativePatterns = ['no', 'nope', 'cancel', 'stop', 'never mind', 'nevermind', 'abort', 'don\'t'];
+    const isNegative = negativePatterns.some(pattern => cleanText.includes(pattern));
+    
+    if (isNegative) {
+      console.log('❌ Enhanced Processor: Negative confirmation received');
+      this.clearConfirmationState();
+      return {
+        intent: 'cancel',
+        action: 'cancel',
+        parameters: {},
+        confidence: 0.9,
+        conversationalResponse: "Okay, I've cancelled that action."
+      };
     }
     
     // Check if this is a completely different command instead of unclear confirmation
     const isNewCommand = this.isLikelyNewCommand(cleanText);
     if (isNewCommand && context) {
-      if (this.debugMode) console.log('🎯 Enhanced Processor: User gave new command during confirmation, clearing and processing:', cleanText);
+      console.log('🎯 Enhanced Processor: User gave new command during confirmation, clearing and processing:', cleanText);
       this.clearConfirmationState();
-      // Process the new command
       return this.parseCommand(transcript, context);
     }
     
-    console.log('🔄 Enhanced Processor: Asking for clarification');
+    // If unclear response, ask again but don't clear the confirmation state
+    console.log('❓ Enhanced Processor: Unclear confirmation response, asking again');
     return {
-      intent: 'conversation',
-      action: 'clarify_confirmation',
+      intent: 'clarification',
+      action: 'none',
       parameters: {},
-      confidence: 0.8,
-      conversationalResponse: 'I need a clear yes or no. Please say yes to confirm or no to cancel.'
+      confidence: 0.5,
+      conversationalResponse: "I didn't catch that clearly. Please say 'yes' to confirm or 'no' to cancel."
     };
   }
 

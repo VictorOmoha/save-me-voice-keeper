@@ -7,9 +7,10 @@ import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { VoiceGuidedEntryWizard } from '@/components/VoiceGuidedEntryWizard';
 import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
-import { SimplifiedVoiceInterface } from '@/components/SimplifiedVoiceInterface';
-import { useDashboardState } from '@/hooks/useDashboardState';
-import { useSavedEntries } from '@/hooks/useSavedEntries';
+import { VoiceStatusDebug } from '@/components/VoiceStatusDebug';
+import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
+import { useDashboard } from '@/hooks/useDashboard';
+import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -25,82 +26,65 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
-  // Use simplified dashboard state management
+  // Use the comprehensive dashboard hook that includes voice handling
   const {
     savedEntries,
     isLoading: entriesLoading,
     searchQuery,
     setSearchQuery,
     showAddEntry,
-    setShowAddEntry,
     editingEntry,
-    setEditingEntry,
     fillingEntry,
-    setFillingEntry,
-  } = useDashboardState();
+    saveEntry,
+    deleteEntry,
+    editEntry,
+    fillEntry,
+    handleCancelEdit,
+    getFormMode,
+    getFormTitle,
+    handleAddEntry,
+    handleEnhancedVoiceInput,
+    isVoiceProcessing,
+    lastVoiceCommand,
+    conversationState,
+    hasPendingConfirmation,
+    conversationData,
+    cancelCurrentOperation,
+  } = useDashboard();
 
-  // Use saved entries hook for CRUD operations  
+  
+
+  // Add voice processor for enhanced voice integration with forms
   const {
-    saveEntry: saveSavedEntry,
-    deleteEntry: deleteSavedEntry,
-  } = useSavedEntries();
+    conversationState: voiceConversationState,
+    isInConversation: isVoiceInConversation,
+    processVoiceInput: unifiedProcessVoiceInput,
+    processHybridSelection
+  } = useUnifiedVoiceProcessor({
+    savedEntries: savedEntries,
+    onCreateEntry: handleAddEntry,
+    onEditEntry: editEntry,
+    onDeleteEntry: deleteEntry,
+    onSaveEntry: saveEntry,
+    onCancelEdit: handleCancelEdit,
+  });
 
-  // Simplified handlers
-  const handleAddEntry = () => {
-    console.log('📝 Dashboard: Opening add entry form - setting showAddEntry to true');
-    console.log('📝 Dashboard: Current showAddEntry state:', showAddEntry);
-    setShowAddEntry(true);
-    console.log('📝 Dashboard: Called setShowAddEntry(true)');
-  };
-
-  const editEntry = (entry: any) => {
-    console.log('✏️ Dashboard: Opening edit form for:', entry.title);
-    setEditingEntry(entry);
-    setShowAddEntry(false);
-  };
-
-  const fillEntry = (entry: any) => {
-    console.log('📝 Dashboard: Opening fill form for:', entry.title);
-    setFillingEntry(entry);
-    setShowAddEntry(false);
-  };
-
-  const saveEntry = async (entryData: any) => {
-    console.log('💾 Dashboard: Saving entry:', entryData);
-    try {
-      await saveSavedEntry(entryData);
-      handleCancelEdit();
-    } catch (error) {
-      console.error('❌ Dashboard: Save failed:', error);
+  // Enhanced voice input that handles both commands and conversations
+  const enhancedVoiceInputHandler = async (text: string) => {
+    console.log('🎤 Dashboard: Enhanced voice input handler called with:', text);
+    console.log('📊 Dashboard: Current state check - showAddEntry:', showAddEntry, 'unified isInConversation:', voiceConversationState?.isInConversation);
+    console.log('🔍 Dashboard: Unified conversation state:', voiceConversationState);
+    
+    // If we're in a voice conversation, let the ConversationalVoiceInterface handle it directly
+    // to maintain conversation context. Otherwise, use unified processor for commands.
+    if (voiceConversationState?.isInConversation) {
+      console.log('🎯 Dashboard: In conversation mode - letting ConversationalVoiceInterface handle internally');
+      // Don't process here - let the ConversationalVoiceInterface use its internal processor
+      return;
     }
-  };
-
-  const deleteEntry = async (entryId: string) => {
-    console.log('🗑️ Dashboard: Deleting entry:', entryId);
-    try {
-      await deleteSavedEntry(entryId);
-    } catch (error) {
-      console.error('❌ Dashboard: Delete failed:', error);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    console.log('❌ Dashboard: Cancelling edit');
-    setShowAddEntry(false);
-    setEditingEntry(null);
-    setFillingEntry(null);
-  };
-
-  const getFormMode = () => {
-    if (editingEntry) return 'edit';
-    if (fillingEntry) return 'fill';
-    return 'create';
-  };
-
-  const getFormTitle = () => {
-    if (editingEntry) return `Edit ${editingEntry.title}`;
-    if (fillingEntry) return `Fill ${fillingEntry.title}`;
-    return 'Create New Entry';
+    
+    console.log('🎯 Dashboard: Not in conversation - routing to unified processor for commands');
+    await unifiedProcessVoiceInput(text);
   };
 
   useEffect(() => {
@@ -115,7 +99,23 @@ export default function Dashboard() {
     };
 
     getUser();
-  }, [navigate]);
+  }, [navigate, handleAddEntry, handleEnhancedVoiceInput]);
+
+  // Listen for voice command to close entry forms
+  useEffect(() => {
+    const handleCloseFormCommand = () => {
+      if (showAddEntry || editingEntry || fillingEntry) {
+        console.log('🎤 Voice command: Closing entry form');
+        handleCancelEdit();
+      }
+    };
+
+    window.addEventListener('close-entry-form', handleCloseFormCommand);
+    
+    return () => {
+      window.removeEventListener('close-entry-form', handleCloseFormCommand);
+    };
+  }, [showAddEntry, editingEntry, fillingEntry, handleCancelEdit]);
 
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);
@@ -144,14 +144,29 @@ export default function Dashboard() {
       onCancelEdit={handleCancelEdit}
     >
       {(showAddEntry || editingEntry || fillingEntry) ? (
-        <DataEntryForm
-          mode={getFormMode()}
-          editEntry={editingEntry}
-          templateEntry={fillingEntry}
-          onSave={saveEntry}
-          onCancel={handleCancelEdit}
-          isVoiceActive={false}
-        />
+        <>
+          
+          {/* Use VoiceGuidedEntryWizard for new entries with voice conversation */}
+          {showAddEntry && voiceConversationState?.isInConversation ? (
+            <VoiceGuidedEntryWizard
+              onSave={saveEntry}
+              onCancel={handleCancelEdit}
+              conversationState={voiceConversationState}
+              isVoiceActive={voiceConversationState.isInConversation}
+              onHybridSelection={processHybridSelection}
+            />
+          ) : (
+            <DataEntryForm
+              mode={getFormMode()}
+              editEntry={editingEntry}
+              templateEntry={fillingEntry}
+              onSave={saveEntry}
+              onCancel={handleCancelEdit}
+              isVoiceActive={voiceConversationState?.isInConversation || false}
+              voiceConversationState={voiceConversationState}
+            />
+          )}
+        </>
       ) : (
         <DashboardMainContent
           userName={user?.user_metadata?.full_name || user?.email || 'User'}
@@ -169,20 +184,29 @@ export default function Dashboard() {
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={() => {}}
+          onEnhancedVoiceInput={enhancedVoiceInputHandler}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}
-          onEnhancedVoiceInput={() => Promise.resolve()}
+          isVoiceProcessing={isVoiceProcessing}
+          lastVoiceCommand={lastVoiceCommand}
+          conversationState={conversationState}
+          hasPendingConfirmation={hasPendingConfirmation}
+          onCancelVoice={cancelCurrentOperation}
+          conversationData={conversationData}
         />
       )}
       
-      {/* Simplified Voice Interface */}
-      <SimplifiedVoiceInterface
-        savedEntries={savedEntries}
-        onCreateEntry={handleAddEntry}
-        onEditEntry={editEntry}
-        onDeleteEntry={deleteEntry}
-        onCloseModal={handleCancelEdit}
+      
+      {/* Debug panel for voice system monitoring */}
+      <VoiceDebugPanel />
+      
+      <VoiceStatusDebug
+        isListening={false}
+        conversationState={conversationState}
+        hasPendingConfirmation={hasPendingConfirmation}
+        lastCommand={lastVoiceCommand?.action}
+        debugMode={true}
       />
     </DashboardLayout>
   );

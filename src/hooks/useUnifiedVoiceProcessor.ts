@@ -88,7 +88,7 @@ export const useUnifiedVoiceProcessor = ({
   // Keep ref in sync with state
   conversationStateRef.current = conversationState;
 
-  const pendingDeleteEntry = useRef<any>(null);
+  const pendingDeleteEntry = useRef<SavedEntry | null>(null);
 
   const startCreateEntryConversation = useCallback(() => {
     console.log('🎯 Starting create entry conversation');
@@ -541,47 +541,6 @@ export const useUnifiedVoiceProcessor = ({
     console.log('🔍 DEBUG UNIFIED: Current step:', currentState.currentStep?.type);
     console.log('🔍 DEBUG UNIFIED: Full conversation state:', currentState);
     
-    // Handle confirmations for enhanced processor commands FIRST
-    if (voiceProcessor.hasPendingConfirmation() && pendingDeleteEntry.current) {
-      const cleanText = transcript.toLowerCase().trim().replace(/[.,!?]+$/g, '');
-      console.log('🤔 UNIFIED: Checking confirmation for pending delete:', cleanText);
-      
-      const yesPatterns = ['yes', 'yeah', 'yep', 'confirm', 'delete', 'do it', 'proceed'];
-      const noPatterns = ['no', 'nope', 'cancel', 'stop', 'abort', 'nevermind', 'never mind'];
-      
-      const isConfirmation = yesPatterns.some(pattern => cleanText.includes(pattern));
-      const isCancellation = noPatterns.some(pattern => cleanText.includes(pattern));
-      
-      if (isConfirmation || isCancellation) {
-        console.log('✅ UNIFIED: Processing confirmation response:', isConfirmation ? 'confirmed' : 'cancelled');
-        
-        // Clear pending state first
-        const deleteParams = pendingDeleteEntry.current;
-        pendingDeleteEntry.current = null;
-        voiceProcessor.clearConfirmationState();
-        
-        // Execute the delete through dashboard handler
-        if (isConfirmation && deleteParams.entryId) {
-          await onDeleteEntry(deleteParams.entryId);
-        } else if (isConfirmation && deleteParams.entryTitle) {
-          const entry = savedEntries.find(e => 
-            e.title.toLowerCase().includes(deleteParams.entryTitle.toLowerCase())
-          );
-          if (entry) {
-            await onDeleteEntry(entry.id);
-          }
-        } else if (isCancellation) {
-          const cancelMessage = "Deletion cancelled.";
-          setTimeout(() => {
-            voiceProcessor.setLastTTSPrompt(cancelMessage);
-            speak(cancelMessage);
-            toast.info(cancelMessage);
-          }, 300);
-        }
-        return;
-      }
-    }
-    
     // CRITICAL: If we're in a conversation, ONLY process conversation steps
     if (currentState.isInConversation) {
       console.log('🎯 IN CONVERSATION MODE - Processing step input');
@@ -685,27 +644,14 @@ export const useUnifiedVoiceProcessor = ({
           break;
           
         case 'delete_entry':
-          // Handle enhanced processor commands that need confirmation
-          if (command.needsConfirmation) {
-            console.log('🔄 UNIFIED: Enhanced processor command needs confirmation, storing as pending');
-            pendingDeleteEntry.current = command.parameters;
-            
-            // Speak the confirmation message and track TTS
-            const confirmationMessage = command.conversationalResponse || "Are you sure you want to delete this entry? Say yes to confirm or no to cancel.";
-            setTimeout(() => {
-              voiceProcessor.setLastTTSPrompt(confirmationMessage);
-              speak(confirmationMessage);
-              toast.info(confirmationMessage);
-            }, 300);
-          } else {
-            // Handle simple delete commands
-            if (command.parameters.entryTitle) {
-              const entry = savedEntries.find(e => 
-                e.title.toLowerCase().includes(command.parameters.entryTitle.toLowerCase())
-              );
-              if (entry) {
-                onDeleteEntry(entry.id);
-              }
+          if (command.parameters.entryTitle) {
+            const entry = savedEntries.find(e => 
+              e.title.toLowerCase().includes(command.parameters.entryTitle.toLowerCase())
+            );
+            if (entry) {
+              pendingDeleteEntry.current = entry;
+              speak(`Are you sure you want to delete "${entry.title}"? Say "confirm delete" to proceed.`);
+              toast.info(`🗑️ Confirm deletion: "${entry.title}" - Say "confirm delete"`);
             }
           }
           break;
@@ -733,14 +679,13 @@ export const useUnifiedVoiceProcessor = ({
           }
       }
       
-      // Legacy delete confirmation handling (keeping for compatibility)
+      // Handle delete confirmation
       if (transcript.toLowerCase().includes('confirm delete') && pendingDeleteEntry.current) {
         const entry = pendingDeleteEntry.current;
-        pendingDeleteEntry.current = null;
-        voiceProcessor.clearConfirmationState();
         onDeleteEntry(entry.id);
         speak(`Deleted "${entry.title}"`);
         toast.success(`🗑️ Deleted: ${entry.title}`);
+        pendingDeleteEntry.current = null;
       }
       
     } catch (error) {

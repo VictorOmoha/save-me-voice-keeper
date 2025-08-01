@@ -427,8 +427,22 @@ class EnhancedVoiceProcessor {
 
     // Edit/Open commands - CHECK THESE FIRST before generic entry matching
     if (cleanText.includes('edit') || cleanText.includes('open') || cleanText.includes('modify')) {
+      console.log('🔍 Enhanced Processor: Edit/Open command detected:', {
+        cleanText,
+        hasEdit: cleanText.includes('edit'),
+        hasOpen: cleanText.includes('open'),
+        hasModify: cleanText.includes('modify')
+      });
+      
       const entryMatch = this.extractEntryReference(cleanText, context);
+      console.log('🔍 Enhanced Processor: Entry match result in edit/open block:', {
+        entryMatch,
+        contextEntries: context.availableEntries?.length || 0,
+        firstEntry: context.availableEntries?.[0]?.title || 'none'
+      });
+      
       if (entryMatch) {
+        console.log('✅ Enhanced Processor: Found entry match in edit/open block, returning edit action:', entryMatch);
         return {
           intent: 'edit',
           action: 'open_entry',
@@ -437,9 +451,11 @@ class EnhancedVoiceProcessor {
           conversationalResponse: `Opening "${entryMatch.title}" for editing`
         };
       } else {
+        console.log('❌ Enhanced Processor: No entry match found in edit/open block');
         // Try to extract entry name from the command
         const entryName = cleanText.replace(/edit|open|modify/g, '').trim();
         if (entryName) {
+          console.log('🔍 Enhanced Processor: Extracted entry name from command:', entryName);
           return {
             intent: 'edit',
             action: 'open_entry',

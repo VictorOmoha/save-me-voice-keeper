@@ -539,24 +539,65 @@ export const useUnifiedVoiceProcessor = ({
   }, [onSaveEntry]);
 
   const processVoiceInput = useCallback(async (transcript: string) => {
-    console.log('🎙️ DEBUG UNIFIED: Processing voice input:', transcript);
-    
-    // Use ref to get the current state (not stale closure state)
+    console.log('🎙️ Voice input received:', transcript);
+
+    const cleanInput = cleanVoiceInput(transcript);
+    console.log('🧹 Cleaned input:', cleanInput);
+
+    // Handle pending delete confirmation first
+    if (pendingDeleteEntry.current) {
+      console.log('🔍 Handling delete confirmation for:', pendingDeleteEntry.current.title);
+      const confirmationText = cleanInput.toLowerCase();
+      
+      if (confirmationText.includes('yes') || confirmationText.includes('confirm') || confirmationText.includes('delete')) {
+        console.log('✅ User confirmed deletion');
+        const entryToDelete = pendingDeleteEntry.current;
+        
+        // Clear pending state first
+        pendingDeleteEntry.current = null;
+        voiceProcessor.clearConfirmationState();
+        
+        // Execute deletion
+        try {
+          onDeleteEntry(entryToDelete.id);
+          const successMessage = `"${entryToDelete.title}" has been deleted.`;
+          voiceProcessor.setLastTTSPrompt(successMessage);
+          speak(successMessage);
+          toast.success(`🗑️ Deleted: ${entryToDelete.title}`);
+        } catch (error) {
+          console.error('❌ Error deleting entry:', error);
+          speak("Sorry, there was an error deleting the entry.");
+          toast.error("❌ Error deleting entry");
+        }
+        return;
+      } else if (confirmationText.includes('no') || confirmationText.includes('cancel')) {
+        console.log('❌ User cancelled deletion');
+        const entry = pendingDeleteEntry.current;
+        pendingDeleteEntry.current = null;
+        voiceProcessor.clearConfirmationState();
+        const cancelMessage = `Deletion of "${entry.title}" cancelled.`;
+        voiceProcessor.setLastTTSPrompt(cancelMessage);
+        speak(cancelMessage);
+        toast.info(`❌ Cancelled: Deletion of "${entry.title}"`);
+        return;
+      } else {
+        // User said something else - treat as new command
+        console.log('🔄 User gave new command during confirmation, clearing state');
+        pendingDeleteEntry.current = null;
+        voiceProcessor.clearConfirmationState();
+        // Continue processing as new command
+      }
+    }
+
+    // Check if we're in a conversation flow
     const currentState = conversationStateRef.current;
-    console.log('🔍 DEBUG UNIFIED: Conversation state check - isInConversation:', currentState.isInConversation);
-    console.log('🔍 DEBUG UNIFIED: Current step:', currentState.currentStep?.type);
-    console.log('🔍 DEBUG UNIFIED: Full conversation state:', currentState);
-    
-    // CRITICAL: If we're in a conversation, ONLY process conversation steps
-    if (currentState.isInConversation) {
-      console.log('🎯 IN CONVERSATION MODE - Processing step input');
-      const handled = processConversationStep(transcript);
-      console.log('🔍 Step processing result:', handled);
-      // ALWAYS return when in conversation mode - never fall through to commands
+    if (currentState.isInConversation && currentState.currentStep) {
+      console.log('🔄 Processing conversation step:', currentState.currentStep.type);
+      await processConversationStep(cleanInput);
       return;
     }
-    
-    // Otherwise, process as a command using the enhanced processor
+
+    // Process as command using the enhanced voice processor
     try {
       const context = {
         currentView: 'dashboard',
@@ -567,72 +608,84 @@ export const useUnifiedVoiceProcessor = ({
         })),
         previousCommands: []
       };
-      
-      const command: EnhancedVoiceCommand = await voiceProcessor.processVoiceCommand(transcript, context);
-      
+
+      const command = await voiceProcessor.processVoiceCommand(transcript, context);
       console.log('🎯 Processed command:', command);
-      
-      // Block fallback commands during active conversation
-      if (command.action === 'tts_feedback_blocked') {
-        console.log('🚫 TTS feedback blocked, ignoring');
-        return;
-      }
-      
-      // Don't restart wizard if we're already in conversation
-      if (command.action === 'create_entry' && currentState.isInConversation) {
-        console.log('🚫 Already in conversation, not restarting wizard');
+
+      if (command.intent === 'unknown' || command.action === 'tts_feedback_blocked') {
+        console.log('🚫 Ignoring feedback/unknown command');
         return;
       }
 
+      // Handle delegated confirmation
+      if (command.intent === 'delegate_confirmation') {
+        console.log('🔄 Handling delegated confirmation');
+        return; // Already handled above
+      }
+
+      // Execute the command
       switch (command.action) {
         case 'create_entry':
-          if (!currentState.isInConversation) {
-            startCreateEntryConversation();
-          }
+          console.log('🆕 Starting create entry conversation');
+          startCreateEntryConversation();
+          break;
+          
+        case 'initiate_create':
+          setConversationState(prev => ({ ...prev, waitingForContent: true }));
+          speak("What would you like to add?");
           break;
           
         case 'open_entry':
-          let entry = null;
-          
-          // First try to find by entryId if provided
-          if (command.parameters.entryId) {
-            entry = savedEntries.find(e => e.id === command.parameters.entryId);
-          }
-          
-          // Fallback to finding by title if entryId didn't work or wasn't provided
-          if (!entry && command.parameters.entryTitle) {
-            entry = savedEntries.find(e => 
+          if (command.parameters?.entryId) {
+            const entry = savedEntries?.find(e => e.id === command.parameters.entryId);
+            if (entry) {
+              console.log('📝 Opening entry for editing:', entry.title);
+              onEditEntry?.(entry);
+              const successMessage = `Opening "${entry.title}" for editing`;
+              
+              // Set TTS prompt BEFORE speaking to prevent feedback loop
+              setTimeout(() => {
+                voiceProcessor.setLastTTSPrompt(successMessage);
+                speak(successMessage);
+                toast.success(`📂 Opening: ${entry.title}`);
+              }, 300);
+            } else {
+              const searchTerm = command.parameters.entryTitle || command.parameters.title || 'entry';
+              const errorMessage = `Entry "${searchTerm}" not found`;
+              
+              // Set TTS prompt BEFORE speaking to prevent feedback loop
+              setTimeout(() => {
+                voiceProcessor.setLastTTSPrompt(errorMessage);
+                speak(errorMessage);
+                toast.error(`❌ Entry "${searchTerm}" not found`);
+              }, 300);
+            }
+          } else if (command.parameters?.entryTitle) {
+            const entry = savedEntries?.find(e => 
               e.title.toLowerCase().includes(command.parameters.entryTitle.toLowerCase())
             );
-          }
-          
-          // Also try using the title from parameters if available
-          if (!entry && command.parameters.title) {
-            entry = savedEntries.find(e => 
-              e.title.toLowerCase().includes(command.parameters.title.toLowerCase())
-            );
-          }
-          
-          if (entry) {
-            onEditEntry(entry);
-            const successMessage = `Opening ${entry.title}`;
-            
-            // Set TTS prompt BEFORE speaking to prevent feedback loop
-            setTimeout(() => {
-              voiceProcessor.setLastTTSPrompt(successMessage);
-              speak(successMessage);
-              toast.success(`📂 Opening: ${entry.title}`);
-            }, 300);
-          } else {
-            const searchTerm = command.parameters.entryTitle || command.parameters.title || 'entry';
-            const errorMessage = `Entry "${searchTerm}" not found`;
-            
-            // Set TTS prompt BEFORE speaking to prevent feedback loop
-            setTimeout(() => {
-              voiceProcessor.setLastTTSPrompt(errorMessage);
-              speak(errorMessage);
-              toast.error(`❌ Entry "${searchTerm}" not found`);
-            }, 300);
+            if (entry) {
+              console.log('📝 Opening entry for editing:', entry.title);
+              onEditEntry?.(entry);
+              const successMessage = `Opening "${entry.title}" for editing`;
+              
+              // Set TTS prompt BEFORE speaking to prevent feedback loop
+              setTimeout(() => {
+                voiceProcessor.setLastTTSPrompt(successMessage);
+                speak(successMessage);
+                toast.success(`📂 Opening: ${entry.title}`);
+              }, 300);
+            } else {
+              const searchTerm = command.parameters.entryTitle || command.parameters.title || 'entry';
+              const errorMessage = `Entry "${searchTerm}" not found`;
+              
+              // Set TTS prompt BEFORE speaking to prevent feedback loop
+              setTimeout(() => {
+                voiceProcessor.setLastTTSPrompt(errorMessage);
+                speak(errorMessage);
+                toast.error(`❌ Entry "${searchTerm}" not found`);
+              }, 300);
+            }
           }
           break;
           
@@ -650,30 +703,13 @@ export const useUnifiedVoiceProcessor = ({
           break;
           
         case 'delete_entry':
-          // Handle confirmed deletion
-          if (command.parameters.confirmed && command.parameters.entryId) {
-            const entry = savedEntries.find(e => e.id === command.parameters.entryId);
-            if (entry) {
-              onDeleteEntry(entry.id);
-              const successMessage = `Deleted "${entry.title}"`;
-              
-              // Clear pending state and reset processor
-              pendingDeleteEntry.current = null;
-              voiceProcessor.clearConfirmationState();
-              
-              voiceProcessor.setLastTTSPrompt(successMessage);
-              speak(successMessage);
-              toast.success(`🗑️ Deleted: ${entry.title}`);
-            }
-          }
-          // Handle initial delete request  
-          else if (command.parameters.entryTitle) {
-            const entry = savedEntries.find(e => 
-              e.title.toLowerCase().includes(command.parameters.entryTitle.toLowerCase())
-            );
+          // Handle delete request with confirmation
+          if (command.parameters.entryId && command.parameters.entryTitle) {
+            console.log('🗑️ Delete entry command received');
+            const entry = savedEntries?.find(e => e.id === command.parameters.entryId);
             if (entry) {
               pendingDeleteEntry.current = entry;
-              const confirmMessage = `Are you sure you want to delete "${entry.title}"? Say "yes" or "no".`;
+              const confirmMessage = command.conversationalResponse || `Are you sure you want to delete "${entry.title}"? Say yes to confirm or no to cancel.`;
               
               voiceProcessor.setLastTTSPrompt(confirmMessage);
               speak(confirmMessage);
@@ -705,43 +741,17 @@ export const useUnifiedVoiceProcessor = ({
           }
       }
       
-      // Handle simple yes/no confirmation for pending delete
-      const trimmedLower = transcript.toLowerCase().trim();
-      if (pendingDeleteEntry.current) {
-        if (trimmedLower === 'yes' || trimmedLower === 'confirm' || trimmedLower === 'delete') {
-          const entry = pendingDeleteEntry.current;
-          onDeleteEntry(entry.id);
-          const successMessage = `Deleted "${entry.title}"`;
-          
-          pendingDeleteEntry.current = null;
-          voiceProcessor.clearConfirmationState();
-          
-          voiceProcessor.setLastTTSPrompt(successMessage);
-          speak(successMessage);
-          toast.success(`🗑️ Deleted: ${entry.title}`);
-          return;
-        } else if (trimmedLower === 'no' || trimmedLower === 'cancel' || trimmedLower === 'nevermind') {
-          const entry = pendingDeleteEntry.current;
-          const cancelMessage = `Cancelled deletion of "${entry.title}"`;
-          
-          pendingDeleteEntry.current = null;
-          voiceProcessor.clearConfirmationState();
-          
-          voiceProcessor.setLastTTSPrompt(cancelMessage);
-          speak(cancelMessage);
-          toast.info(`❌ Cancelled: Deletion of "${entry.title}"`);
-          return;
-        }
-      }
-      
     } catch (error) {
       console.error('Voice processing error:', error);
       speak("Sorry, I had trouble understanding that. Please try again.");
       toast.error("❌ Voice processing error");
     }
-  }, [savedEntries, startCreateEntryConversation, processConversationStep, onEditEntry, onDeleteEntry, onCancelEdit]);
+  }, [savedEntries, startCreateEntryConversation, processConversationStep, onEditEntry, onDeleteEntry, onCancelEdit, cleanVoiceInput]);
 
   const cancelConversation = useCallback(() => {
+    // Clear all states
+    pendingDeleteEntry.current = null;
+    voiceProcessor.clearConfirmationState();
     setConversationState({
       isInConversation: false,
       currentStep: null,

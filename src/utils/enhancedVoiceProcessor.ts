@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 
 export interface EnhancedVoiceCommand {
-  intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'close' | 'cancel' | 'clarification' | 'unknown';
+  intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'close' | 'cancel' | 'clarification' | 'unknown' | 'delegate_confirmation';
   action: string;
   parameters: Record<string, any>;
   confidence: number;
@@ -173,9 +173,17 @@ class EnhancedVoiceProcessor {
       };
     }
 
-    // Handle pending confirmation
+    // Handle pending confirmation - delegate to Unified Processor
     if (this.pendingConfirmation) {
-      return this.handleConfirmation(transcript, context);
+      console.log('🔄 Enhanced Processor: Delegating confirmation to Unified Processor');
+      this.clearConfirmationState();
+      return {
+        intent: 'delegate_confirmation',
+        action: 'handle_confirmation',
+        parameters: { transcript },
+        confidence: 1.0,
+        conversationalResponse: ''
+      };
     }
 
     // Handle follow-up expected (waiting for content after "create entry")
@@ -389,30 +397,27 @@ class EnhancedVoiceProcessor {
       };
     }
     
-    // Delete commands
+    // Delete commands - delegate to Unified Processor for confirmation handling
     if (cleanText.includes('delete') || cleanText.includes('remove')) {
       console.log('🗑️ Enhanced Processor: Processing explicit delete command');
       const entryMatch = this.extractEntryReference(cleanText, context);
       
       if (entryMatch) {
-        console.log('🗑️ Enhanced Processor: Found entry match for deletion:', entryMatch);
-        // Store the confirmation command but also return it
-        this.pendingConfirmation = {
+        console.log('🗑️ Enhanced Processor: Found entry match for deletion, delegating to Unified Processor:', entryMatch);
+        return {
           intent: 'delete',
           action: 'delete_entry',
-          parameters: { entryId: entryMatch.id, title: entryMatch.title },
+          parameters: { entryId: entryMatch.id, entryTitle: entryMatch.title },
           confidence: 0.8,
           needsConfirmation: true,
           conversationalResponse: `Are you sure you want to delete "${entryMatch.title}"? Say yes to confirm or no to cancel.`
         };
-        this.startConfirmationTimeout();
-        return this.pendingConfirmation;
       } else {
         // Try to extract the search term
         const searchTerm = cleanText.replace(/delete|remove/g, '').trim();
         console.log('🗑️ Enhanced Processor: No exact match, using search term:', searchTerm);
         
-        this.pendingConfirmation = {
+        return {
           intent: 'delete',
           action: 'delete_entry',
           parameters: { searchTerm },
@@ -420,8 +425,6 @@ class EnhancedVoiceProcessor {
           needsConfirmation: true,
           conversationalResponse: `Looking for entries matching "${searchTerm}" to delete. Say yes to confirm or no to cancel.`
         };
-        this.startConfirmationTimeout();
-        return this.pendingConfirmation;
       }
     }
 

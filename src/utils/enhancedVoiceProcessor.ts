@@ -425,35 +425,7 @@ class EnhancedVoiceProcessor {
       }
     }
 
-    // Check if user is mentioning an entry name directly (could be delete intent)
-    const entryMatch = this.extractEntryReference(cleanText, context);
-    if (entryMatch && cleanText.trim().length < 20) { // Short utterances likely refer to entries
-      console.log('🎯 Enhanced Processor: Entry reference detected, offering delete option:', entryMatch);
-      this.pendingConfirmation = {
-        intent: 'delete',
-        action: 'delete_entry',
-        parameters: { entryId: entryMatch.id, title: entryMatch.title },
-        confidence: 0.7,
-        needsConfirmation: true,
-        conversationalResponse: `Do you want to delete "${entryMatch.title}"? Say yes to confirm or no to cancel.`
-      };
-      this.startConfirmationTimeout();
-      return this.pendingConfirmation;
-    }
-    
-    
-    // Close commands
-    if (cleanText.includes('close') && (cleanText.includes('entry') || cleanText.includes('dialog') || cleanText.includes('modal'))) {
-      return {
-        intent: 'navigate',
-        action: 'close_entry',
-        parameters: {},
-        confidence: 0.9,
-        conversationalResponse: 'Closing the current entry view'
-      };
-    }
-    
-    // Edit/Open commands
+    // Edit/Open commands - CHECK THESE FIRST before generic entry matching
     if (cleanText.includes('edit') || cleanText.includes('open') || cleanText.includes('modify')) {
       const entryMatch = this.extractEntryReference(cleanText, context);
       if (entryMatch) {
@@ -477,6 +449,25 @@ class EnhancedVoiceProcessor {
           };
         }
       }
+    }
+
+    // Check if user is mentioning an entry name directly (could be delete intent)
+    // Only do this for very short utterances that don't contain explicit commands
+    const entryMatch = this.extractEntryReference(cleanText, context);
+    if (entryMatch && cleanText.trim().length < 15 && 
+        !cleanText.includes('open') && !cleanText.includes('edit') && 
+        !cleanText.includes('create') && !cleanText.includes('search')) {
+      console.log('🎯 Enhanced Processor: Entry reference detected, offering delete option:', entryMatch);
+      this.pendingConfirmation = {
+        intent: 'delete',
+        action: 'delete_entry',
+        parameters: { entryId: entryMatch.id, title: entryMatch.title },
+        confidence: 0.7,
+        needsConfirmation: true,
+        conversationalResponse: `Do you want to delete "${entryMatch.title}"? Say yes to confirm or no to cancel.`
+      };
+      this.startConfirmationTimeout();
+      return this.pendingConfirmation;
     }
     
     // Search commands

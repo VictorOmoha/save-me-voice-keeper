@@ -22,7 +22,7 @@ export const useDashboard = () => {
   const [lastVoiceCommand, setLastVoiceCommand] = useState<EnhancedVoiceCommand | null>(null);
   const [conversationState, setConversationState] = useState<'listening' | 'confirming' | 'idle'>('idle');
   const [hasPendingConfirmation, setHasPendingConfirmation] = useState(false);
-  const [conversationData, setConversationData] = useState({ isActive: false });
+  const [conversationData, setConversationData] = useState<{ isActive: boolean; currentStep?: { question: string } }>({ isActive: false });
   
   // Clear any stuck state on mount
   useEffect(() => {
@@ -320,6 +320,14 @@ export const useDashboard = () => {
       hasPendingConfirmation,
       conversationState,
       voiceProcessorHasPending: voiceProcessor.hasPendingConfirmation()
+    });
+    
+    // Set confirmation state for voice flow
+    setHasPendingConfirmation(true);
+    setConversationState('confirming');
+    setConversationData({ 
+      isActive: true, 
+      currentStep: { question: 'Waiting for confirmation...' } 
     });
     
     const { entryId, entryTitle, title, searchTerm, confirmed } = params;

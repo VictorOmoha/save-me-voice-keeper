@@ -352,7 +352,7 @@ class EnhancedVoiceProcessor {
     
     // Delete commands
     if (cleanText.includes('delete') || cleanText.includes('remove')) {
-      console.log('🗑️ Enhanced Processor: Processing delete command');
+      console.log('🗑️ Enhanced Processor: Processing explicit delete command');
       const entryMatch = this.extractEntryReference(cleanText, context);
       
       if (entryMatch) {
@@ -381,8 +381,25 @@ class EnhancedVoiceProcessor {
           needsConfirmation: true,
           conversationalResponse: `Looking for entries matching "${searchTerm}" to delete. Say yes to confirm or no to cancel.`
         };
+        this.startConfirmationTimeout();
         return this.pendingConfirmation;
       }
+    }
+
+    // Check if user is mentioning an entry name directly (could be delete intent)
+    const entryMatch = this.extractEntryReference(cleanText, context);
+    if (entryMatch && cleanText.trim().length < 20) { // Short utterances likely refer to entries
+      console.log('🎯 Enhanced Processor: Entry reference detected, offering delete option:', entryMatch);
+      this.pendingConfirmation = {
+        intent: 'delete',
+        action: 'delete_entry',
+        parameters: { entryId: entryMatch.id, title: entryMatch.title },
+        confidence: 0.7,
+        needsConfirmation: true,
+        conversationalResponse: `Do you want to delete "${entryMatch.title}"? Say yes to confirm or no to cancel.`
+      };
+      this.startConfirmationTimeout();
+      return this.pendingConfirmation;
     }
     
     
@@ -457,21 +474,34 @@ class EnhancedVoiceProcessor {
   }
 
   private extractEntryReference(text: string, context: VoiceContext): { id: string; title: string } | null {
-    const words = text.split(' ');
+    const cleanText = text.toLowerCase().trim().replace(/[.,!?]/g, '');
+    const words = cleanText.split(' ');
     
     for (const entry of context.availableEntries) {
-      const titleWords = entry.title.toLowerCase().split(' ');
+      const entryTitle = entry.title.toLowerCase();
+      const titleWords = entryTitle.split(' ');
+      
+      // Exact match first
+      if (entryTitle === cleanText) {
+        console.log('🎯 Exact entry match found:', entry.title);
+        return { id: entry.id, title: entry.title };
+      }
       
       // Check if any significant words from the entry title appear in the command
       const hasMatch = titleWords.some(titleWord => 
-        titleWord.length > 2 && words.some(word => word.includes(titleWord))
+        titleWord.length > 2 && words.some(word => word.includes(titleWord) || titleWord.includes(word))
       );
       
-      if (hasMatch) {
+      // Also check if the entire clean text is contained in the entry title
+      const isContained = entryTitle.includes(cleanText) && cleanText.length > 2;
+      
+      if (hasMatch || isContained) {
+        console.log('🎯 Entry match found:', entry.title, { hasMatch, isContained });
         return { id: entry.id, title: entry.title };
       }
     }
     
+    console.log('🔍 No entry match found for:', cleanText);
     return null;
   }
 

@@ -39,9 +39,12 @@ export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
     }
   }, []);
 
-  // Create a custom voice handler that bridges to dashboard
+  // Direct voice handler that bypasses the conversation interface routing
   const handleVoiceInput = async (transcript: string) => {
-    console.log('🌉 FloatingVoiceInput: Bridging voice input to dashboard:', transcript);
+    console.log('🎯 FloatingVoiceInput: Direct voice input to dashboard:', transcript);
+    
+    // For delete commands, if user says just an entry name after being prompted, 
+    // let the dashboard handle it directly
     await onEnhancedVoiceInput(transcript);
   };
 

@@ -644,14 +644,36 @@ export const useUnifiedVoiceProcessor = ({
           break;
           
         case 'delete_entry':
-          if (command.parameters.entryTitle) {
+          // Handle confirmed deletion
+          if (command.parameters.confirmed && command.parameters.entryId) {
+            const entry = savedEntries.find(e => e.id === command.parameters.entryId);
+            if (entry) {
+              onDeleteEntry(entry.id);
+              const successMessage = `Deleted "${entry.title}"`;
+              
+              // Set TTS prompt BEFORE speaking to prevent feedback loop
+              setTimeout(() => {
+                voiceProcessor.setLastTTSPrompt(successMessage);
+                speak(successMessage);
+                toast.success(`🗑️ Deleted: ${entry.title}`);
+              }, 300);
+            }
+          }
+          // Handle initial delete request  
+          else if (command.parameters.entryTitle) {
             const entry = savedEntries.find(e => 
               e.title.toLowerCase().includes(command.parameters.entryTitle.toLowerCase())
             );
             if (entry) {
               pendingDeleteEntry.current = entry;
-              speak(`Are you sure you want to delete "${entry.title}"? Say "confirm delete" to proceed.`);
-              toast.info(`🗑️ Confirm deletion: "${entry.title}" - Say "confirm delete"`);
+              const confirmMessage = `Are you sure you want to delete "${entry.title}"? Say "yes" or "no".`;
+              
+              // Set TTS prompt BEFORE speaking to prevent feedback loop
+              setTimeout(() => {
+                voiceProcessor.setLastTTSPrompt(confirmMessage);
+                speak(confirmMessage);
+                toast.info(`🗑️ Confirm deletion: "${entry.title}" - Say "yes" or "no"`);
+              }, 300);
             }
           }
           break;
@@ -679,12 +701,18 @@ export const useUnifiedVoiceProcessor = ({
           }
       }
       
-      // Handle delete confirmation
+      // Handle legacy delete confirmation (fallback)
       if (transcript.toLowerCase().includes('confirm delete') && pendingDeleteEntry.current) {
         const entry = pendingDeleteEntry.current;
         onDeleteEntry(entry.id);
-        speak(`Deleted "${entry.title}"`);
-        toast.success(`🗑️ Deleted: ${entry.title}`);
+        const successMessage = `Deleted "${entry.title}"`;
+        
+        // Set TTS prompt BEFORE speaking to prevent feedback loop
+        setTimeout(() => {
+          voiceProcessor.setLastTTSPrompt(successMessage);
+          speak(successMessage);
+          toast.success(`🗑️ Deleted: ${entry.title}`);
+        }, 300);
         pendingDeleteEntry.current = null;
       }
       

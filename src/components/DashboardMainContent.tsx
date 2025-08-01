@@ -8,7 +8,8 @@ import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
-import { FloatingVoiceInput } from "@/components/FloatingVoiceInput";
+import { SimpleVoiceCommandInterface } from "@/components/SimpleVoiceCommand";
+import { useDashboardVoice } from "@/hooks/useDashboardVoice";
 import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardMainContentProps {
@@ -76,6 +77,22 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onCancelVoice,
   conversationData,
 }) => {
+  
+  // Set up dashboard voice hook
+  const { handleVoiceCommand } = useDashboardVoice({
+    savedEntries,
+    showAddEntry,
+    setShowAddEntry: () => onAddEntry(),
+    setEditingEntry: onEditEntry,
+    setFillingEntry: () => {}, // Not used in simple commands
+    deleteEntry: onDeleteEntry,
+    editEntry: onEditEntry,
+    fillEntry: () => {}, // Not used in simple commands
+    handleCancelEdit: onCancelEdit,
+    saveEntry: onSaveEntry,
+    editingEntry,
+    fillingEntry,
+  });
   if (showDocumentCreator) {
     return (
       <DocumentCreator
@@ -213,22 +230,16 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         </Card>
       </div>
 
-      {/* Floating Voice Input - Always Available */}
-      <FloatingVoiceInput
-        savedEntries={savedEntries}
-        onCreateEntry={onAddEntry}
-        onEditEntry={onEditEntry}
-        onDeleteEntry={onDeleteEntry}
-        onSaveEntry={onSaveEntry}
-        onCancelEdit={onCancelEdit}
-        onEnhancedVoiceInput={onEnhancedVoiceInput}
-        isVoiceProcessing={isVoiceProcessing}
-        lastVoiceCommand={lastVoiceCommand}
-        conversationState={conversationState}
-        hasPendingConfirmation={hasPendingConfirmation}
-        onCancelVoice={onCancelVoice}
-        conversationData={conversationData}
-      />
+      {/* Simple Voice Commands - Always Available */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <SimpleVoiceCommandInterface
+          onCommand={(command) => {
+            console.log('🎯 DashboardMainContent: Voice command received:', command);
+            handleVoiceCommand(command);
+          }}
+          isActive={true}
+        />
+      </div>
     </div>
   );
 };

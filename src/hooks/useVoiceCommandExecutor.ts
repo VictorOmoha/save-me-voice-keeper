@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { SimpleVoiceCommand } from '@/utils/simpleVoiceProcessor';
 import { SavedEntry } from '@/types/dashboard';
 import { toast } from 'sonner';
@@ -25,8 +25,26 @@ export const useVoiceCommandExecutor = ({
   editingEntry,
 }: VoiceCommandExecutorProps) => {
   
+  const [pendingDelete, setPendingDelete] = useState<SavedEntry | null>(null);
+  
   const executeCommand = useCallback((command: SimpleVoiceCommand) => {
     console.log('🚀 Executing voice command:', command);
+    
+    // Handle confirmation responses first
+    if (pendingDelete && (command.type === 'confirm' || command.type === 'deny')) {
+      if (command.type === 'confirm') {
+        console.log('✅ Confirmed deletion:', pendingDelete.title);
+        onDeleteEntry(pendingDelete.id);
+        toast.success(`Deleted: "${pendingDelete.title}"`);
+        speak(`Successfully deleted ${pendingDelete.title}`);
+      } else {
+        console.log('❌ Cancelled deletion:', pendingDelete.title);
+        toast.info('Deletion cancelled');
+        speak('Deletion cancelled');
+      }
+      setPendingDelete(null);
+      return;
+    }
     
     // Enhanced confidence thresholds for different command types
     const confidenceThresholds = {
@@ -35,7 +53,9 @@ export const useVoiceCommandExecutor = ({
       'show_all': 0.8,
       'open_entry': 0.75,
       'delete_entry': 0.8,
-      'save_entry': 0.8
+      'save_entry': 0.8,
+      'confirm': 0.7,
+      'deny': 0.7
     };
     
     const requiredConfidence = confidenceThresholds[command.type] || 0.7;
@@ -89,8 +109,17 @@ export const useVoiceCommandExecutor = ({
           );
           
           if (matchingEntry) {
-            toast.info(`Would you like to delete "${matchingEntry.title}"? Say "confirm delete" to proceed.`);
-            // Don't speak deletion confirmations to avoid accidental triggers
+            // Create delete confirmation dialog event
+            const deleteEvent = new CustomEvent('show-delete-confirmation', {
+              detail: {
+                entry: matchingEntry,
+                onConfirm: () => onDeleteEntry(matchingEntry.id)
+              }
+            });
+            window.dispatchEvent(deleteEvent);
+            
+            toast.info(`Found "${matchingEntry.title}". Please confirm deletion.`);
+            speak(`Are you sure you want to delete ${matchingEntry.title}? Please confirm.`);
           } else {
             console.log(`No entry found for deletion: "${command.target}"`);
             toast.info(`No entry found matching "${command.target}"`);
@@ -128,7 +157,7 @@ export const useVoiceCommandExecutor = ({
       default:
         console.log('Voice command not recognized or filtered out:', command);
     }
-  }, [savedEntries, onAddEntry, onEditEntry, onDeleteEntry, onCancelEdit, showAddEntry, editingEntry]);
+  }, [savedEntries, onAddEntry, onEditEntry, onDeleteEntry, onCancelEdit, showAddEntry, editingEntry, pendingDelete]);
   
   return { executeCommand };
 };

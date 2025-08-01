@@ -9,8 +9,10 @@ import { VoiceGuidedEntryWizard } from '@/components/VoiceGuidedEntryWizard';
 import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
 import { VoiceStatusDebug } from '@/components/VoiceStatusDebug';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
+import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
+import { SavedEntry } from '@/types/dashboard';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -25,6 +27,15 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    entry: SavedEntry | null;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    entry: null,
+    onConfirm: () => {}
+  });
 
   // Use the comprehensive dashboard hook that includes voice handling
   const {
@@ -110,10 +121,20 @@ export default function Dashboard() {
       }
     };
 
+    const handleDeleteConfirmation = (event: CustomEvent) => {
+      setDeleteDialog({
+        isOpen: true,
+        entry: event.detail.entry,
+        onConfirm: event.detail.onConfirm
+      });
+    };
+
     window.addEventListener('close-entry-form', handleCloseFormCommand);
+    window.addEventListener('show-delete-confirmation', handleDeleteConfirmation as EventListener);
     
     return () => {
       window.removeEventListener('close-entry-form', handleCloseFormCommand);
+      window.removeEventListener('show-delete-confirmation', handleDeleteConfirmation as EventListener);
     };
   }, [showAddEntry, editingEntry, fillingEntry, handleCancelEdit]);
 
@@ -207,6 +228,16 @@ export default function Dashboard() {
         hasPendingConfirmation={hasPendingConfirmation}
         lastCommand={lastVoiceCommand?.action}
         debugMode={true}
+      />
+      
+      <DeleteConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={() => {
+          deleteDialog.onConfirm();
+          setDeleteDialog(prev => ({ ...prev, isOpen: false }));
+        }}
+        title={deleteDialog.entry?.title || ''}
       />
     </DashboardLayout>
   );

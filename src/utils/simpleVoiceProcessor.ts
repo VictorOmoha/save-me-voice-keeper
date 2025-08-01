@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 
 export interface SimpleVoiceCommand {
-  type: 'create_entry' | 'open_entry' | 'delete_entry' | 'cancel' | 'save_entry' | 'show_all' | 'unknown';
+  type: 'create_entry' | 'open_entry' | 'delete_entry' | 'cancel' | 'save_entry' | 'show_all' | 'confirm' | 'deny' | 'unknown';
   target?: string;
   confidence: number;
 }
@@ -25,7 +25,16 @@ export class SimpleVoiceProcessor {
       return { type: 'unknown', confidence: 0.0 };
     }
     
-    // Cancel/Close commands - highest priority
+    // Confirmation responses - highest priority
+    if (this.isConfirmCommand(lowerTranscript)) {
+      return { type: 'confirm', confidence: 0.95 };
+    }
+    
+    if (this.isDenyCommand(lowerTranscript)) {
+      return { type: 'deny', confidence: 0.95 };
+    }
+    
+    // Cancel/Close commands - high priority
     if (this.isCancelCommand(lowerTranscript)) {
       return { type: 'cancel', confidence: 0.95 };
     }
@@ -83,6 +92,16 @@ export class SimpleVoiceProcessor {
     ];
     
     return ttsPatterns.some(pattern => text.includes(pattern));
+  }
+  
+  private isConfirmCommand(text: string): boolean {
+    const confirmWords = ['yes', 'confirm', 'proceed', 'ok', 'okay', 'sure', 'correct', 'right'];
+    return confirmWords.some(word => text === word || text.startsWith(word + ' ') || text.endsWith(' ' + word));
+  }
+  
+  private isDenyCommand(text: string): boolean {
+    const denyWords = ['no', 'cancel', 'stop', 'abort', 'never mind', 'nevermind'];
+    return denyWords.some(word => text === word || text.startsWith(word + ' ') || text.endsWith(' ' + word));
   }
   
   private isCancelCommand(text: string): boolean {

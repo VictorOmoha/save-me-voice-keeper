@@ -130,11 +130,15 @@ class SimplifiedVoiceProcessor {
 
   private parseCommand(transcript: string, savedEntries: SavedEntry[]): VoiceCommand {
     const lower = transcript.toLowerCase().trim();
+    console.log('🎯 Voice Processor: Parsing command:', lower);
 
     // Create entry commands
     if (lower.match(/\b(create|add|new)\s+(entry|item|record)\b/) || 
         lower.match(/\b(create|add|make)\s+a\s+new\b/) ||
-        lower === 'create entry') {
+        lower === 'create entry' ||
+        lower.includes('create') ||
+        lower.includes('new entry')) {
+      console.log('✅ Voice Processor: Matched create entry command');
       return {
         action: 'create_entry',
         parameters: {},
@@ -235,7 +239,7 @@ class SimplifiedVoiceProcessor {
 
     switch (command.action) {
       case 'create_entry':
-        console.log('📝 Voice Processor: Creating new entry');
+        console.log('📝 Voice Processor: Creating new entry - calling context.onCreateEntry()');
         context.onCreateEntry();
         {
           const msg = 'Opening new entry form';

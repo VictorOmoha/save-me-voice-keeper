@@ -47,8 +47,10 @@ export default function Dashboard() {
 
   // Simplified handlers
   const handleAddEntry = () => {
-    console.log('📝 Dashboard: Opening add entry form');
+    console.log('📝 Dashboard: Opening add entry form - setting showAddEntry to true');
+    console.log('📝 Dashboard: Current showAddEntry state:', showAddEntry);
     setShowAddEntry(true);
+    console.log('📝 Dashboard: Called setShowAddEntry(true)');
   };
 
   const editEntry = (entry: any) => {

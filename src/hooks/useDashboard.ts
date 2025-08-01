@@ -313,32 +313,23 @@ export const useDashboard = () => {
     }
   }, [savedEntries]);
 
-  // Handle deleting entry with comprehensive state management
+  // Handle deleting entry with improved state management
   const handleDeleteEntry = useCallback(async (params: any) => {
     console.log('🗑️ Dashboard: handleDeleteEntry called with params:', params);
-    console.log('🗑️ Dashboard: Current confirmation state:', {
+    console.log('🗑️ Dashboard: Current state:', {
       hasPendingConfirmation,
       conversationState,
-      voiceProcessorHasPending: voiceProcessor.hasPendingConfirmation()
-    });
-    
-    // Set confirmation state for voice flow
-    setHasPendingConfirmation(true);
-    setConversationState('confirming');
-    setConversationData({ 
-      isActive: true, 
-      currentStep: { question: 'Waiting for confirmation...' } 
+      voiceProcessorPending: voiceProcessor.hasPendingConfirmation()
     });
     
     const { entryId, entryTitle, title, searchTerm, confirmed } = params;
     
     // Handle confirmed deletion
     if (confirmed === true) {
-      console.log('✅ Dashboard: Deletion confirmed, proceeding with DELETE');
+      console.log('✅ Dashboard: Deletion confirmed, executing delete');
       
       try {
         if (entryId) {
-          console.log('✅ Dashboard: Deleting entry by ID:', entryId);
           await deleteEntry(entryId);
           const entryName = title || entryTitle || 'entry';
           toast.success(`Deleted: "${entryName}"`);
@@ -350,12 +341,10 @@ export const useDashboard = () => {
           );
           
           if (matchingEntries.length === 1) {
-            console.log('✅ Dashboard: Deleting entry by search:', matchingEntries[0].id);
             await deleteEntry(matchingEntries[0].id);
             toast.success(`Deleted: "${matchingEntries[0].title}"`);
             speak(`Successfully deleted ${matchingEntries[0].title}.`);
           } else {
-            console.log('❌ Dashboard: No unique match found for deletion');
             toast.error('Could not find a unique entry to delete');
             speak('Could not find a unique entry to delete.');
           }
@@ -366,30 +355,27 @@ export const useDashboard = () => {
         speak('Sorry, the deletion failed. Please try again.');
       }
       
-      // Clear all confirmation states
+      // Clear all states
       setHasPendingConfirmation(false);
       setConversationState('idle');
-      voiceProcessor.clearPendingConfirmation();
       setConversationData({ isActive: false });
       return;
     }
     
     // Handle cancelled deletion
     if (confirmed === false) {
-      console.log('❌ Dashboard: Deletion cancelled by user');
+      console.log('❌ Dashboard: Deletion cancelled');
       setHasPendingConfirmation(false);
       setConversationState('idle');
-      voiceProcessor.clearPendingConfirmation();
       setConversationData({ isActive: false });
       toast.info('Deletion cancelled.');
       speak('Deletion cancelled.');
       return;
     }
     
-    // This is the initial delete request - find entry and show confirmation
+    // Process initial delete request - find and confirm target
     console.log('🔍 Dashboard: Processing initial delete request');
     
-    // Use entryId if available, otherwise search by text
     let targetEntryId = entryId;
     let targetEntryTitle = title || entryTitle;
     
@@ -401,17 +387,13 @@ export const useDashboard = () => {
         return;
       }
       
-      console.log('🔍 Dashboard: Searching for entries matching:', searchText);
       const matchingEntries = savedEntries.filter(entry =>
         entry.title.toLowerCase().includes(searchText.toLowerCase())
       );
       
-      console.log('🔍 Dashboard: Found matching entries:', matchingEntries.length);
-      
       if (matchingEntries.length === 1) {
         targetEntryId = matchingEntries[0].id;
         targetEntryTitle = matchingEntries[0].title;
-        console.log('✅ Dashboard: Found single match:', targetEntryTitle);
       } else if (matchingEntries.length > 1) {
         const matches = matchingEntries.slice(0, 3).map(entry => entry.title).join(', ');
         toast.info(`Found ${matchingEntries.length} matches: ${matches}. Please be more specific.`);
@@ -427,12 +409,15 @@ export const useDashboard = () => {
     if (targetEntryId && targetEntryTitle) {
       console.log('🤔 Dashboard: Setting up deletion confirmation for:', targetEntryTitle);
       
-      // Set up confirmation state - CRITICAL: Set conversation as active
+      // CRITICAL: Set conversation as active for TTS restart mechanism
       setHasPendingConfirmation(true);
       setConversationState('confirming');
-      setConversationData({ isActive: true }); // This is critical for TTS restart
+      setConversationData({ 
+        isActive: true,
+        currentStep: { question: `Are you sure you want to delete "${targetEntryTitle}"?` }
+      });
       
-      // Create the confirmation command and store it
+      // Store command for confirmation processing
       const confirmationCommand = {
         intent: 'delete' as const,
         action: 'delete_entry',
@@ -444,12 +429,10 @@ export const useDashboard = () => {
       
       setLastVoiceCommand(confirmationCommand);
       
-      // Track TTS and speak confirmation - this will trigger TTS events
+      // Speak confirmation and track TTS for filtering
       console.log('🔊 Dashboard: Speaking confirmation prompt');
       voiceProcessor.setLastTTSPrompt(confirmationCommand.conversationalResponse);
       speak(confirmationCommand.conversationalResponse);
-      
-      console.log('🤔 Dashboard: Confirmation state set up complete');
     }
   }, [savedEntries, hasPendingConfirmation, conversationState]);
 

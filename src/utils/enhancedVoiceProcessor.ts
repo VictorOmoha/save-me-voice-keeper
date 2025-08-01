@@ -44,6 +44,16 @@ class EnhancedVoiceProcessor {
     if (this.debugMode) console.log('🧹 Enhanced Processor: Clearing confirmation state');
     this.pendingConfirmation = null;
     this.expectingFollowUp = false;
+    this.lastTTSPrompt = '';
+    if (this.confirmationTimeout) {
+      clearTimeout(this.confirmationTimeout);
+      this.confirmationTimeout = null;
+    }
+  }
+
+  public clearPendingConfirmation(): void {
+    if (this.debugMode) console.log('🧹 Enhanced Processor: Clearing pending confirmation only');
+    this.pendingConfirmation = null;
     if (this.confirmationTimeout) {
       clearTimeout(this.confirmationTimeout);
       this.confirmationTimeout = null;
@@ -198,35 +208,63 @@ class EnhancedVoiceProcessor {
     const cleanText = transcript.toLowerCase().trim().replace(/[.,!?]+$/g, '');
     console.log('🔍 Enhanced Processor: Checking confirmation text:', cleanText);
     
-    // More robust positive confirmation patterns
-    const positivePatterns = ['yes', 'yeah', 'yep', 'confirm', 'ok', 'okay', 'sure', 'do it', 'go ahead', 'proceed'];
-    const isPositive = positivePatterns.some(pattern => cleanText.includes(pattern));
+    // Comprehensive positive confirmation patterns with word boundary matching
+    const positivePatterns = [
+      'yes', 'yeah', 'yep', 'yup', 'sure', 'ok', 'okay', 'confirm', 'do it', 
+      'go ahead', 'affirmative', 'correct', 'right', 'absolutely', 'definitely',
+      'proceed', 'continue', 'that\'s right', 'sounds good', 'looks good'
+    ];
+    
+    const negativePatterns = [
+      'no', 'nope', 'nah', 'cancel', 'stop', 'abort', 'negative', 'don\'t',
+      'skip', 'never mind', 'nevermind', 'not now', 'hold on', 'wait',
+      'incorrect', 'wrong', 'that\'s not right'
+    ];
+    
+    // More sophisticated pattern matching using word boundaries
+    const isPositive = positivePatterns.some(pattern => {
+      // Exact match
+      if (cleanText === pattern) return true;
+      
+      // Word boundary matching to avoid false positives
+      const wordBoundaryRegex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+      return wordBoundaryRegex.test(cleanText);
+    });
+    
+    const isNegative = negativePatterns.some(pattern => {
+      // Exact match
+      if (cleanText === pattern) return true;
+      
+      // Word boundary matching to avoid false positives
+      const wordBoundaryRegex = new RegExp(`\\b${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+      return wordBoundaryRegex.test(cleanText);
+    });
+    
+    console.log('🔍 Enhanced Processor: Pattern matching results:', { isPositive, isNegative, transcript: cleanText });
     
     if (isPositive) {
       console.log('✅ Enhanced Processor: Positive confirmation received');
       const confirmedCommand = { 
         ...this.pendingConfirmation, 
         parameters: { ...this.pendingConfirmation.parameters, confirmed: true },
+        needsConfirmation: false,
         conversationalResponse: `Confirmed! ${this.pendingConfirmation.action === 'delete_entry' ? 'Deleting entry now.' : 'Processing your request now.'}`
       };
       this.clearConfirmationState();
       return confirmedCommand;
     }
     
-    // More robust negative confirmation patterns
-    const negativePatterns = ['no', 'nope', 'cancel', 'stop', 'never mind', 'nevermind', 'abort', 'don\'t'];
-    const isNegative = negativePatterns.some(pattern => cleanText.includes(pattern));
-    
     if (isNegative) {
       console.log('❌ Enhanced Processor: Negative confirmation received');
-      this.clearConfirmationState();
-      return {
-        intent: 'cancel',
+      const cancelCommand = {
+        intent: 'cancel' as const,
         action: 'cancel',
-        parameters: {},
+        parameters: { confirmed: false },
         confidence: 0.9,
         conversationalResponse: "Okay, I've cancelled that action."
       };
+      this.clearConfirmationState();
+      return cancelCommand;
     }
     
     // Check if this is a completely different command instead of unclear confirmation
@@ -241,10 +279,11 @@ class EnhancedVoiceProcessor {
     console.log('❓ Enhanced Processor: Unclear confirmation response, asking again');
     return {
       intent: 'clarification',
-      action: 'none',
+      action: 'request_clarification',
       parameters: {},
-      confidence: 0.5,
-      conversationalResponse: "I didn't catch that clearly. Please say 'yes' to confirm or 'no' to cancel."
+      confidence: 0.3,
+      conversationalResponse: "I didn't understand that. Please say 'yes' to confirm or 'no' to cancel.",
+      needsConfirmation: true
     };
   }
 
@@ -544,11 +583,6 @@ class EnhancedVoiceProcessor {
     return this.expectingFollowUp;
   }
 
-  // Clear pending confirmation (legacy method for backwards compatibility)
-  public clearPendingConfirmation(): void {
-    if (this.debugMode) console.log('🧹 Enhanced Processor: clearPendingConfirmation called (legacy)');
-    this.clearConfirmationState();
-  }
 }
 
 export const voiceProcessor = new EnhancedVoiceProcessor();

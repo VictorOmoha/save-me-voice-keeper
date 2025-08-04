@@ -1,10 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableHeader } from '@tiptap/extension-table-header';
-import { TableCell } from '@tiptap/extension-table-cell';
 import { Button } from "@/components/ui/button";
 import { 
   Bold, 
@@ -15,7 +11,6 @@ import {
   AlignRight,
   List,
   ListOrdered,
-  Table2,
   Undo,
   Redo
 } from "lucide-react";
@@ -38,12 +33,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -66,9 +55,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return null;
   }
 
-  const addTable = () => {
-    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
-  };
 
   return (
     <div className="border border-border rounded-lg bg-background">
@@ -158,14 +144,6 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <ListOrdered className="w-4 h-4" />
         </Button>
         
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={addTable}
-        >
-          <Table2 className="w-4 h-4" />
-        </Button>
         
         <div className="w-px h-6 bg-border mx-1" />
         

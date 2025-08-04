@@ -2,6 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
 import { getCategoryIcon, getCategoryColor, getCategoryName } from "./categoryUtils";
+import { FileText, Eye } from "lucide-react";
 
 interface EntryItemProps {
   entry: SavedEntry;

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { DocumentFormatSelector, DocumentFormat } from "@/components/documents/DocumentFormatSelector";
 import { RichTextEditor } from "@/components/documents/RichTextEditor";
 import { generateDocument } from "@/utils/documentGenerator";
+import { uploadDocumentToStorage } from "@/utils/documentStorage";
 
 interface DocumentCreatorProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -119,7 +120,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
     toast.success("Document downloaded!");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('DIAGNOSTIC: DocumentCreator handleSubmit called with data:', {
@@ -156,7 +157,8 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
         fileSize: uploadedFile?.size || 0,
         fileType: uploadedFile?.type || '',
         hasUploadedFile: !!uploadedFile,
-        documentContent: documentContent.trim()
+        documentContent: documentContent.trim(),
+        storagePath: '' // Add storage path field
       },
       fieldDefinitions: [
         { id: '1', name: 'category', type: 'text' as const },
@@ -170,7 +172,8 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
         { id: '9', name: 'fileSize', type: 'number' as const },
         { id: '10', name: 'fileType', type: 'text' as const },
         { id: '11', name: 'hasUploadedFile', type: 'text' as const },
-        { id: '12', name: 'documentContent', type: 'textarea' as const }
+        { id: '12', name: 'documentContent', type: 'textarea' as const },
+        { id: '13', name: 'storagePath', type: 'text' as const }
       ]
     };
 
@@ -181,22 +184,23 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       allFieldKeys: Object.keys(documentEntry.fields)
     });
 
-    // Store file data in localStorage if file exists
+    // Upload file to Supabase Storage and save entry
     if (uploadedFile) {
-      console.log('DIAGNOSTIC: Processing file upload...');
-      const reader = new FileReader();
-      reader.onload = () => {
-        const fileData = {
-          name: uploadedFile.name,
-          type: uploadedFile.type,
-          size: uploadedFile.size,
-          data: reader.result
-        };
-        localStorage.setItem(`document_${Date.now()}`, JSON.stringify(fileData));
-        console.log('DIAGNOSTIC: File data stored, calling onSave...');
-        onSave(documentEntry);
-      };
-      reader.readAsDataURL(uploadedFile);
+      console.log('DIAGNOSTIC: Processing file upload to Supabase Storage...');
+      
+      // Use a timestamp-based ID for the upload
+      const entryId = `temp-${Date.now()}`;
+      
+      // Upload to Supabase Storage
+      const uploadPath = await uploadDocumentToStorage(uploadedFile, entryId);
+      if (uploadPath) {
+        console.log('DIAGNOSTIC: File uploaded to storage at:', uploadPath);
+        // Update the entry with the storage path
+        documentEntry.fields.storagePath = uploadPath;
+      }
+      
+      // Save the entry with storage path
+      onSave(documentEntry);
     } else {
       console.log('DIAGNOSTIC: No file to upload, calling onSave directly...');
       onSave(documentEntry);

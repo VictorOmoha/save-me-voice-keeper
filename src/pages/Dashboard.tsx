@@ -11,6 +11,7 @@ import { VoiceStatusDebug } from '@/components/VoiceStatusDebug';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { DocumentCreator } from '@/components/DocumentCreator';
+import { DocumentViewer } from '@/components/documents/DocumentViewer';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
 import { SavedEntry } from '@/types/dashboard';
@@ -29,6 +30,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
+  const [documentViewerState, setDocumentViewerState] = useState<{
+    isOpen: boolean;
+    entry: SavedEntry | null;
+  }>({ isOpen: false, entry: null });
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     entry: SavedEntry | null;
@@ -164,6 +169,15 @@ export default function Dashboard() {
     setShowDocumentCreator(false);
   };
 
+  const handleViewDocument = (entry: SavedEntry) => {
+    console.log('📄 Dashboard: View document triggered for:', entry.title);
+    setDocumentViewerState({ isOpen: true, entry });
+  };
+
+  const handleCloseDocumentViewer = () => {
+    setDocumentViewerState({ isOpen: false, entry: null });
+  };
+
   if (loading || entriesLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -236,6 +250,7 @@ export default function Dashboard() {
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}
+          onViewDocument={handleViewDocument}
           isVoiceProcessing={isVoiceProcessing}
           lastVoiceCommand={lastVoiceCommand}
           conversationState={conversationState}
@@ -244,6 +259,13 @@ export default function Dashboard() {
           conversationData={conversationData}
         />
       )}
+      
+      {/* Document Viewer */}
+      <DocumentViewer
+        isOpen={documentViewerState.isOpen}
+        onClose={handleCloseDocumentViewer}
+        entry={documentViewerState.entry}
+      />
       
       
       {/* Debug panel for voice system monitoring */}

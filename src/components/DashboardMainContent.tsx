@@ -38,6 +38,7 @@ interface DashboardMainContentProps {
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
   conversationData?: { isActive: boolean; currentStep?: { question: string } };
+  onViewDocument?: (entry: SavedEntry) => void;
 }
 
 const categories = [
@@ -75,6 +76,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   hasPendingConfirmation,
   onCancelVoice,
   conversationData,
+  onViewDocument,
 }) => {
   if (showDocumentCreator) {
     return (
@@ -172,6 +174,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         entries={savedEntries.slice(0, 6)}
         onEdit={onEditEntry}
         onFill={onFillEntry}
+        onView={onViewDocument}
       />
 
       {/* Features Preview */}

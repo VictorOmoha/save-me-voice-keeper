@@ -11,19 +11,30 @@ interface RecentEntriesProps {
   entries: SavedEntry[];
   onEdit?: (entry: SavedEntry) => void;
   onFill?: (entry: SavedEntry) => void;
+  onView?: (entry: SavedEntry) => void;
 }
 
 export const RecentEntries: React.FC<RecentEntriesProps> = ({ 
   entries, 
   onEdit,
-  onFill 
+  onFill,
+  onView
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
 
   const recentEntries = entries.slice(0, 5);
 
   const handleEntryClick = (entry: SavedEntry) => {
-    setViewingEntry(entry);
+    // Check if this is a document entry with a file
+    const isDocumentWithFile = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
+    
+    if (isDocumentWithFile && onView) {
+      // For documents with files, use the document viewer
+      onView(entry);
+    } else {
+      // For regular entries, use the existing dialog
+      setViewingEntry(entry);
+    }
   };
 
   const handleCloseDialog = () => {

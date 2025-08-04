@@ -6,8 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SavedEntry } from "@/types/dashboard";
-import { FileText, Upload, X, Download, Plus } from "lucide-react";
+import { FileText, Upload, X, Download, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
+import { DocumentFormatSelector, DocumentFormat } from "@/components/documents/DocumentFormatSelector";
+import { RichTextEditor } from "@/components/documents/RichTextEditor";
+import { generateDocument } from "@/utils/documentGenerator";
 
 interface DocumentCreatorProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -23,8 +26,10 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   const [dateCreated, setDateCreated] = useState("");
   const [notes, setNotes] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [documentContent, setDocumentContent] = useState("");
-  const [createMode, setCreateMode] = useState<'upload' | 'create' | 'info'>('info');
+  const [documentContent, setDocumentContent] = useState("<p>Start writing your document here...</p>");
+  const [createMode, setCreateMode] = useState<'upload' | 'create' | 'info'>('create');
+  const [selectedFormat, setSelectedFormat] = useState<DocumentFormat | ''>('docx');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const documentTypes = [
     "ID Document",
@@ -59,46 +64,45 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
     }
   };
 
-  const createWordDocument = () => {
-    console.log('DIAGNOSTIC: Create Word Document button clicked');
-    console.log('DIAGNOSTIC: Current documentContent:', documentContent);
-    console.log('DIAGNOSTIC: Current documentName:', documentName);
-    
-    if (!documentContent.trim()) {
-      toast.error("Please add some content to create the document");
-      console.log('DIAGNOSTIC: No content provided for Word document');
+  const createDocument = async () => {
+    if (!selectedFormat) {
+      toast.error("Please select a document format");
       return;
     }
 
-    // Create a simple Word document structure
-    const wordContent = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-        <head>
-          <meta charset="utf-8">
-          <title>${documentName || 'Document'}</title>
-        </head>
-        <body>
-          <div style="font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.5;">
-            ${documentContent.replace(/\n/g, '<br>')}
-          </div>
-        </body>
-      </html>
-    `;
+    if (!documentContent.trim() || documentContent === "<p>Start writing your document here...</p>") {
+      toast.error("Please add some content to create the document");
+      return;
+    }
 
-    const blob = new Blob([wordContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    const fileName = `${documentName || 'document'}.doc`;
-    
-    // Create a pseudo-file for storage
-    const pseudoFile = new File([blob], fileName, { type: blob.type });
-    setUploadedFile(pseudoFile);
-    
-    console.log('DIAGNOSTIC: Word document created successfully:', {
-      fileName,
-      fileSize: pseudoFile.size,
-      hasFile: !!pseudoFile
-    });
-    
-    toast.success("Word document created successfully! Now click 'Save Document' to save it.");
+    const title = documentName.trim() || 'Untitled Document';
+
+    try {
+      setIsGenerating(true);
+      
+      const blob = await generateDocument({
+        title,
+        content: documentContent,
+        metadata: {
+          author: 'Document Creator',
+          subject: description,
+          keywords: tags,
+        }
+      }, selectedFormat);
+
+      const fileName = `${title}.${selectedFormat}`;
+      const file = new File([blob], fileName, { type: blob.type });
+      
+      setUploadedFile(file);
+      setDocumentName(title);
+      
+      toast.success(`${selectedFormat.toUpperCase()} document created successfully! You can now save it to your Documents.`);
+    } catch (error) {
+      console.error('Error creating document:', error);
+      toast.error("Failed to create document. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const downloadDocument = () => {
@@ -238,7 +242,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
           className="flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Word Doc</span>
+          <span>Create Document</span>
         </Button>
       </div>
 
@@ -274,42 +278,69 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
           </div>
         )}
 
-        {/* Word Document Creation Section */}
+        {/* Document Creation Section */}
         {createMode === 'create' && (
-          <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
-            <Label htmlFor="documentContent" className="text-foreground">Document Content</Label>
-            <Textarea
-              id="documentContent"
-              placeholder="Enter the content for your Word document..."
-              value={documentContent}
-              onChange={(e) => setDocumentContent(e.target.value)}
-              className="bg-background border-border text-foreground placeholder:text-muted-foreground min-h-[200px]"
-            />
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
-                After creating the document, scroll down and click "Save Document" to save it to your Documents.
+          <div className="space-y-6 p-4 border border-border rounded-lg bg-card">
+            <div className="space-y-4">
+              <DocumentFormatSelector
+                selectedFormat={selectedFormat}
+                onFormatChange={setSelectedFormat}
+              />
+              
+              <div className="space-y-2">
+                <Label className="text-foreground">Document Content</Label>
+                <RichTextEditor
+                  content={documentContent}
+                  onContentChange={setDocumentContent}
+                  placeholder="Start writing your document here..."
+                />
               </div>
-              <Button
-                type="button"
-                onClick={createWordDocument}
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <FileText className="w-4 h-4" />
-                <span>Create Word Document</span>
-              </Button>
-            </div>
-            {uploadedFile && (
-              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                <div className="flex items-center space-x-2 text-green-700 dark:text-green-300">
-                  <FileText className="w-4 h-4" />
-                  <span className="text-sm font-medium">Document created: {uploadedFile.name}</span>
+              
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  After creating the document, fill in the details below and click "Save Document".
                 </div>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                  Now fill in the document details below and click "Save Document" to save it.
-                </p>
+                <Button
+                  type="button"
+                  onClick={createDocument}
+                  disabled={isGenerating || !selectedFormat}
+                  className="flex items-center space-x-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Create {selectedFormat ? selectedFormat.toUpperCase() : 'Document'}</span>
+                    </>
+                  )}
+                </Button>
               </div>
-            )}
+              
+              {uploadedFile && (
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-center space-x-2 text-green-700 dark:text-green-300">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-sm font-medium">Document created: {uploadedFile.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={downloadDocument}
+                      className="ml-auto"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    Document ready! Fill in the details below and click "Save Document" to save it.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

@@ -10,6 +10,7 @@ import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
 import { VoiceStatusDebug } from '@/components/VoiceStatusDebug';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+import { DocumentCreator } from '@/components/DocumentCreator';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
 import { SavedEntry } from '@/types/dashboard';
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [showDocumentCreator, setShowDocumentCreator] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     entry: SavedEntry | null;
@@ -146,6 +148,22 @@ export default function Dashboard() {
     setSelectedCategory('All');
   };
 
+  const handleCreateDocument = () => {
+    console.log('📄 Dashboard: Create document triggered');
+    setShowDocumentCreator(true);
+  };
+
+  const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    console.log('📄 Dashboard: Document save triggered');
+    saveEntry(entry);
+    setShowDocumentCreator(false);
+  };
+
+  const handleDocumentCancel = () => {
+    console.log('📄 Dashboard: Document creation cancelled');
+    setShowDocumentCreator(false);
+  };
+
   if (loading || entriesLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -164,47 +182,56 @@ export default function Dashboard() {
       onSaveEntry={saveEntry}
       onCancelEdit={handleCancelEdit}
     >
-      {(showAddEntry || editingEntry || fillingEntry) ? (
+      {(showAddEntry || editingEntry || fillingEntry || showDocumentCreator) ? (
         <>
-          
-          {/* Use VoiceGuidedEntryWizard for new entries with voice conversation */}
-          {showAddEntry && voiceConversationState?.isInConversation ? (
-            <VoiceGuidedEntryWizard
-              onSave={saveEntry}
-              onCancel={handleCancelEdit}
-              conversationState={voiceConversationState}
-              isVoiceActive={voiceConversationState.isInConversation}
-              onHybridSelection={processHybridSelection}
-            />
+          {showDocumentCreator ? (
+            // Show DocumentCreator when creating documents
+            <div className="p-6">
+              <DocumentCreator
+                onSave={handleDocumentSave}
+                onCancel={handleDocumentCancel}
+              />
+            </div>
           ) : (
-            <DataEntryForm
-              mode={getFormMode()}
-              editEntry={editingEntry}
-              templateEntry={fillingEntry}
-              onSave={saveEntry}
-              onCancel={handleCancelEdit}
-              isVoiceActive={voiceConversationState?.isInConversation || false}
-              voiceConversationState={voiceConversationState}
-            />
+            // Use VoiceGuidedEntryWizard for new entries with voice conversation
+            showAddEntry && voiceConversationState?.isInConversation ? (
+              <VoiceGuidedEntryWizard
+                onSave={saveEntry}
+                onCancel={handleCancelEdit}
+                conversationState={voiceConversationState}
+                isVoiceActive={voiceConversationState.isInConversation}
+                onHybridSelection={processHybridSelection}
+              />
+            ) : (
+              <DataEntryForm
+                mode={getFormMode()}
+                editEntry={editingEntry}
+                templateEntry={fillingEntry}
+                onSave={saveEntry}
+                onCancel={handleCancelEdit}
+                isVoiceActive={voiceConversationState?.isInConversation || false}
+                voiceConversationState={voiceConversationState}
+              />
+            )
           )}
         </>
       ) : (
         <DashboardMainContent
           userName={user?.user_metadata?.full_name || user?.email || 'User'}
           savedEntries={savedEntries}
-          showDocumentCreator={false}
+          showDocumentCreator={showDocumentCreator}
           showAddEntry={showAddEntry}
           editingEntry={editingEntry}
           fillingEntry={fillingEntry}
           getFormTitle={getFormTitle}
           getFormMode={getFormMode}
-          onDocumentSave={() => {}}
-          onDocumentCancel={() => {}}
+          onDocumentSave={handleDocumentSave}
+          onDocumentCancel={handleDocumentCancel}
           onSaveEntry={saveEntry}
           onCancelEdit={handleCancelEdit}
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
-          onCreateDocument={() => {}}
+          onCreateDocument={handleCreateDocument}
           onEnhancedVoiceInput={enhancedVoiceInputHandler}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}

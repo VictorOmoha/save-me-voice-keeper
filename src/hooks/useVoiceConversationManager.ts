@@ -1,0 +1,273 @@
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
+import { speak } from '@/utils/textToSpeech';
+import { SavedEntry } from '@/types/dashboard';
+
+interface ConversationStep {
+  type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'preview' | 'confirm';
+  question: string;
+  expectedResponse?: string[];
+}
+
+interface EntryDraft {
+  title?: string;
+  category?: string;
+  fields: { name: string; type: 'text' | 'number' | 'date' | 'textarea' }[];
+}
+
+interface VoiceConversationState {
+  isInConversation: boolean;
+  currentStep: ConversationStep | null;
+  entryDraft: EntryDraft;
+  currentFieldName?: string;
+}
+
+interface UseVoiceConversationManagerProps {
+  onCreateEntry: () => void;
+  onSaveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  formTitleSetter?: (title: string) => void;
+  formCategorySetter?: (category: string) => void;
+  formAddFieldFunction?: (fieldName?: string, fieldType?: string) => void;
+}
+
+const CONVERSATION_STEPS = {
+  TITLE: {
+    type: 'title' as const,
+    question: "What would you like to call this entry?",
+  },
+  CATEGORY: {
+    type: 'category' as const,
+    question: "What category should this entry be in? You can say Documents, Health, Contacts, Finance, or Personal.",
+    expectedResponse: ['Documents', 'Health', 'Contacts', 'Finance', 'Personal']
+  },
+  MORE_FIELDS: {
+    type: 'more_fields' as const,
+    question: "Would you like to add any custom fields? Say yes to add fields, or no to create the entry now.",
+    expectedResponse: ['yes', 'no']
+  },
+  FIELD_NAME: {
+    type: 'field_name' as const,
+    question: "What would you like to name this field?",
+  },
+  FIELD_TYPE: {
+    type: 'field_type' as const,
+    question: "What type of field should this be? You can say text, number, date, or textarea.",
+    expectedResponse: ['text', 'number', 'date', 'textarea']
+  },
+  PREVIEW: {
+    type: 'preview' as const,
+    question: "Here's your entry preview. Would you like to save this entry or edit something?",
+  },
+};
+
+export const useVoiceConversationManager = ({
+  onCreateEntry,
+  onSaveEntry,
+  formTitleSetter,
+  formCategorySetter,
+  formAddFieldFunction,
+}: UseVoiceConversationManagerProps) => {
+  const [conversationState, setConversationState] = useState<VoiceConversationState>({
+    isInConversation: false,
+    currentStep: null,
+    entryDraft: { fields: [] },
+  });
+
+  const conversationStateRef = useRef<VoiceConversationState>(conversationState);
+  conversationStateRef.current = conversationState;
+
+  const startCreateEntryConversation = useCallback(() => {
+    onCreateEntry();
+    
+    setConversationState({
+      isInConversation: true,
+      currentStep: CONVERSATION_STEPS.TITLE,
+      entryDraft: { fields: [] },
+    });
+    
+    setTimeout(() => {
+      speak(CONVERSATION_STEPS.TITLE.question);
+      toast.info("🎤 " + CONVERSATION_STEPS.TITLE.question);
+    }, 500);
+  }, [onCreateEntry]);
+
+  const endConversation = useCallback(() => {
+    setConversationState({
+      isInConversation: false,
+      currentStep: null,
+      entryDraft: { fields: [] },
+    });
+  }, []);
+
+  const matchCategory = useCallback((input: string): string | null => {
+    const categoryMappings = {
+      'Documents': ['documents', 'document', 'docs', 'doc', 'files', 'file'],
+      'Health': ['health', 'medical', 'healthcare', 'medicine', 'doctor'],
+      'Contacts': ['contacts', 'contact', 'people', 'person', 'friends'],
+      'Finance': ['finance', 'financial', 'money', 'bank', 'budget'],
+      'Personal': ['personal', 'private', 'myself', 'self', 'misc', 'other']
+    };
+    
+    const lowerInput = input.toLowerCase().trim();
+    
+    for (const [category, variations] of Object.entries(categoryMappings)) {
+      if (variations.some(variation => lowerInput.includes(variation))) {
+        return category;
+      }
+    }
+    
+    return null;
+  }, []);
+
+  const processConversationStep = useCallback((transcript: string) => {
+    const currentState = conversationStateRef.current;
+    
+    if (!currentState.isInConversation || !currentState.currentStep) {
+      return false;
+    }
+
+    const { currentStep, entryDraft } = currentState;
+    const cleanedText = transcript.trim();
+    const lowerTranscript = cleanedText.toLowerCase();
+    
+    if (!cleanedText || cleanedText.length < 1) {
+      return false;
+    }
+
+    switch (currentStep.type) {
+      case 'title':
+        if (cleanedText.length < 2) return false;
+        
+        const newEntryDraft = { ...entryDraft, title: cleanedText };
+        
+        setConversationState(prev => ({
+          ...prev,
+          currentStep: CONVERSATION_STEPS.CATEGORY,
+          entryDraft: newEntryDraft,
+        }));
+        
+        formTitleSetter?.(cleanedText);
+        
+        setTimeout(() => {
+          speak(CONVERSATION_STEPS.CATEGORY.question);
+          toast.success(`✅ Title set: "${cleanedText}"`);
+        }, 300);
+        break;
+
+      case 'category':
+        const matchedCategory = matchCategory(cleanedText);
+        
+        if (!matchedCategory) {
+          setTimeout(() => {
+            speak(`Please say one of: Documents, Health, Contacts, Finance, or Personal.`);
+            toast.info(`Please choose a valid category`);
+          }, 300);
+          return false;
+        }
+        
+        const updatedDraft = { ...entryDraft, category: matchedCategory };
+        
+        setConversationState(prev => ({
+          ...prev,
+          currentStep: CONVERSATION_STEPS.MORE_FIELDS,
+          entryDraft: updatedDraft,
+        }));
+        
+        formCategorySetter?.(matchedCategory);
+        
+        setTimeout(() => {
+          speak(CONVERSATION_STEPS.MORE_FIELDS.question);
+          toast.success(`✅ Category set: ${matchedCategory}`);
+        }, 300);
+        break;
+
+      case 'more_fields':
+        if (lowerTranscript.includes('yes') || lowerTranscript.includes('add')) {
+          setConversationState(prev => ({
+            ...prev,
+            currentStep: CONVERSATION_STEPS.FIELD_NAME,
+          }));
+          setTimeout(() => {
+            speak(CONVERSATION_STEPS.FIELD_NAME.question);
+            toast.info("📝 Adding custom field");
+          }, 300);
+        } else {
+          // Save entry
+          const finalEntry = {
+            title: entryDraft.title || 'Untitled',
+            category: entryDraft.category || 'Personal',
+            fields: entryDraft.fields.reduce((acc, field) => {
+              acc[field.name] = '';
+              return acc;
+            }, {} as Record<string, any>),
+            fieldDefinitions: entryDraft.fields.map((field, index) => ({
+              id: `field_${Date.now()}_${index}`,
+              name: field.name,
+              type: field.type
+            }))
+          };
+          
+          onSaveEntry(finalEntry);
+          endConversation();
+          
+          setTimeout(() => {
+            speak("Entry created successfully!");
+            toast.success("✅ Entry created!");
+          }, 300);
+        }
+        break;
+
+      case 'field_name':
+        setConversationState(prev => ({
+          ...prev,
+          currentStep: CONVERSATION_STEPS.FIELD_TYPE,
+          currentFieldName: cleanedText,
+        }));
+        setTimeout(() => {
+          speak(CONVERSATION_STEPS.FIELD_TYPE.question);
+          toast.success(`📝 Field name: "${cleanedText}"`);
+        }, 300);
+        break;
+
+      case 'field_type':
+        const fieldTypes = ['text', 'number', 'date', 'textarea'];
+        const matchedType = fieldTypes.find(type => 
+          lowerTranscript.includes(type)
+        ) as 'text' | 'number' | 'date' | 'textarea' || 'text';
+        
+        const newField = {
+          name: conversationState.currentFieldName || 'Custom Field',
+          type: matchedType
+        };
+        
+        const draftWithField = {
+          ...entryDraft,
+          fields: [...entryDraft.fields, newField]
+        };
+        
+        setConversationState(prev => ({
+          ...prev,
+          currentStep: CONVERSATION_STEPS.MORE_FIELDS,
+          entryDraft: draftWithField,
+          currentFieldName: undefined,
+        }));
+        
+        formAddFieldFunction?.(newField.name, matchedType);
+        
+        setTimeout(() => {
+          speak(`Added ${matchedType} field "${newField.name}". ${CONVERSATION_STEPS.MORE_FIELDS.question}`);
+          toast.success(`✅ Added field: ${newField.name}`);
+        }, 300);
+        break;
+    }
+
+    return true;
+  }, [matchCategory, formTitleSetter, formCategorySetter, formAddFieldFunction, onSaveEntry, endConversation]);
+
+  return {
+    conversationState,
+    startCreateEntryConversation,
+    endConversation,
+    processConversationStep,
+  };
+};

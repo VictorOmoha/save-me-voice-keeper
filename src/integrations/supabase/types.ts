@@ -143,6 +143,78 @@ export type Database = {
         }
         Relationships: []
       }
+      search_analytics: {
+        Row: {
+          clicked_result_id: string | null
+          created_at: string
+          id: string
+          query: string
+          response_time_ms: number | null
+          results_count: number
+          search_type: string
+          user_id: string
+        }
+        Insert: {
+          clicked_result_id?: string | null
+          created_at?: string
+          id?: string
+          query: string
+          response_time_ms?: number | null
+          results_count?: number
+          search_type?: string
+          user_id: string
+        }
+        Update: {
+          clicked_result_id?: string | null
+          created_at?: string
+          id?: string
+          query?: string
+          response_time_ms?: number | null
+          results_count?: number
+          search_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      search_preferences: {
+        Row: {
+          auto_complete_enabled: boolean | null
+          created_at: string
+          id: string
+          preferred_categories: string[] | null
+          recent_searches_limit: number | null
+          search_suggestions_enabled: boolean | null
+          semantic_search_enabled: boolean | null
+          updated_at: string
+          user_id: string
+          voice_search_enabled: boolean | null
+        }
+        Insert: {
+          auto_complete_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          preferred_categories?: string[] | null
+          recent_searches_limit?: number | null
+          search_suggestions_enabled?: boolean | null
+          semantic_search_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+          voice_search_enabled?: boolean | null
+        }
+        Update: {
+          auto_complete_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          preferred_categories?: string[] | null
+          recent_searches_limit?: number | null
+          search_suggestions_enabled?: boolean | null
+          semantic_search_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+          voice_search_enabled?: boolean | null
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           category: string

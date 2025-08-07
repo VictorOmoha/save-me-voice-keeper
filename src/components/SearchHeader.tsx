@@ -1,8 +1,8 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
+import { SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 
 interface SearchHeaderProps {
@@ -35,17 +35,15 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
           )}
         </div>
 
-        {/* Search Bar */}
+        {/* Smart Search Bar */}
         <div className="flex-1 max-w-md mx-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search your entries..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <SmartSearch 
+            entries={savedEntries}
+            searchQuery={searchQuery} 
+            onSearchChange={onSearchChange}
+            placeholder="🔍 Search with AI intelligence..."
+            className="w-full"
+          />
         </div>
 
         {/* Actions */}

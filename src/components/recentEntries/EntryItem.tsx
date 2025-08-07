@@ -2,7 +2,10 @@
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
 import { getCategoryIcon, getCategoryColor, getCategoryName } from "./categoryUtils";
-import { FileText, Eye } from "lucide-react";
+import { FileText, Eye, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { printSingleEntry } from "@/utils/printUtils";
+import { toast } from "sonner";
 
 interface EntryItemProps {
   entry: SavedEntry;
@@ -13,6 +16,12 @@ export const EntryItem: React.FC<EntryItemProps> = ({ entry, onClick }) => {
   const Icon = getCategoryIcon(entry);
   const categoryColor = getCategoryColor(entry);
   const categoryName = getCategoryName(entry);
+  
+  const handlePrint = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    printSingleEntry(entry, { includeMetadata: true });
+    toast.success("Print dialog opened");
+  };
   
   return (
     <div 
@@ -27,12 +36,22 @@ export const EntryItem: React.FC<EntryItemProps> = ({ entry, onClick }) => {
           <h4 className="font-medium text-card-foreground truncate transition-all duration-200 ease-in-out group-hover:text-primary group-hover:scale-105">
             {entry.title}
           </h4>
-          <Badge 
-            variant="secondary" 
-            className="text-xs ml-2 flex-shrink-0 transition-all duration-200 ease-in-out group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground"
-          >
-            {categoryName}
-          </Badge>
+          <div className="flex items-center space-x-2">
+            <Button
+              onClick={handlePrint}
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-purple-600 hover:text-purple-700"
+            >
+              <Printer className="h-3 w-3" />
+            </Button>
+            <Badge 
+              variant="secondary" 
+              className="text-xs flex-shrink-0 transition-all duration-200 ease-in-out group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground"
+            >
+              {categoryName}
+            </Badge>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground mt-1 line-clamp-2 transition-colors duration-200 ease-in-out group-hover:text-foreground/80">
           {Object.values(entry.fields).slice(0, 2).join(', ')}

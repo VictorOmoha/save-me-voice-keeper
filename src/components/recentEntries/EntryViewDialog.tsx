@@ -9,11 +9,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SavedEntry } from "@/types/dashboard";
-import { Edit, FileText, Download, Eye } from "lucide-react";
+import { Edit, FileText, Download, Eye, Printer } from "lucide-react";
 import { getCategoryIcon, getCategoryColor, getCategoryName, getEntryType } from "./categoryUtils";
 import { toast } from "sonner";
 import { ImageGallery } from "@/components/forms/ImageGallery";
 import { extractImagesFromEntry } from "@/utils/imageUtils";
+import { printSingleEntry } from "@/utils/printUtils";
 
 interface EntryViewDialogProps {
   entry: SavedEntry | null;
@@ -109,6 +110,11 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const handlePrint = () => {
+    printSingleEntry(entry, { includeMetadata: true });
+    toast.success("Print dialog opened");
   };
 
   return (
@@ -219,6 +225,14 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                 {isDownloading ? 'Downloading...' : 'Download File'}
               </Button>
             )}
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="text-purple-600 hover:text-purple-700"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Print Entry
+            </Button>
             {onFill && (
               <Button
                 onClick={() => {

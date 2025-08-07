@@ -11,11 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SavedEntry } from "@/types/dashboard";
-import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { ExportButton } from "@/components/export/ExportButton";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { printSingleEntry } from "@/utils/printUtils";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -104,6 +105,11 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
     } finally {
       setDownloadingFiles(prev => prev.filter(id => id !== entry.id));
     }
+  };
+
+  const handlePrint = (entry: SavedEntry) => {
+    printSingleEntry(entry, { includeMetadata: true });
+    toast.success("Print dialog opened");
   };
 
   const handleSort = (field: SortField) => {
@@ -320,6 +326,14 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                           <Download className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        onClick={() => handlePrint(entry)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-purple-600 hover:text-purple-700"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </Button>
                       <Button
                         onClick={() => onFill(entry)}
                         variant="ghost"

@@ -79,6 +79,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
         onClose={handleCloseDialog}
         onEdit={onEdit}
         onFill={onFill}
+        onViewDocument={onView}
       />
     </>
   );

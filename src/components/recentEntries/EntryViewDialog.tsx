@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SavedEntry } from "@/types/dashboard";
-import { Edit, FileText, Download } from "lucide-react";
+import { Edit, FileText, Download, Eye } from "lucide-react";
 import { getCategoryIcon, getCategoryColor, getCategoryName, getEntryType } from "./categoryUtils";
 import { toast } from "sonner";
 import { ImageGallery } from "@/components/forms/ImageGallery";
@@ -21,6 +21,7 @@ interface EntryViewDialogProps {
   onClose: () => void;
   onEdit?: (entry: SavedEntry) => void;
   onFill?: (entry: SavedEntry) => void;
+  onViewDocument?: (entry: SavedEntry) => void;
 }
 
 export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
@@ -29,6 +30,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   onClose,
   onEdit,
   onFill,
+  onViewDocument,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -57,6 +59,9 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   
   // Extract images from the entry
   const entryImages = extractImagesFromEntry(entry);
+  
+  // Check if this is a document entry with an uploaded file
+  const isDocumentWithFile = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
 
   const handleDownload = async () => {
     if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
@@ -190,6 +195,19 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-2 pt-4 border-t">
+            {isDocumentWithFile && onViewDocument && (
+              <Button
+                onClick={() => {
+                  onViewDocument(entry);
+                  onClose();
+                }}
+                variant="outline"
+                className="text-primary hover:text-primary/80"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                View Document
+              </Button>
+            )}
             {entry.fields.hasUploadedFile && entry.fields.fileName && (
               <Button
                 onClick={handleDownload}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';

@@ -2,6 +2,30 @@ import { useState, useEffect } from "react";
 import { SavedEntry, FieldDefinition } from "@/types/dashboard";
 import { CustomField, CATEGORIES } from './types';
 
+// Helper function to normalize field names for display
+const normalizeFieldName = (name: string): string => {
+  if (!name) return '';
+  
+  // Handle common cases and capitalize properly
+  return name
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // Add space before capital letters
+    .replace(/_/g, ' ') // Replace underscores with spaces
+    .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize first letter of each word
+    .trim();
+};
+
+// Helper function to detect field type from value
+const detectFieldType = (value: any): CustomField['type'] => {
+  if (typeof value === 'number') return 'number';
+  if (Array.isArray(value)) return 'gallery';
+  if (typeof value === 'string') {
+    if (value.length > 100) return 'textarea';
+    // Check if it's a date
+    if (value.match(/^\d{4}-\d{2}-\d{2}/)) return 'date';
+  }
+  return 'text';
+};
+
 interface UseFormLogicProps {
   editEntry?: SavedEntry | null;
   templateEntry?: SavedEntry | null;
@@ -66,26 +90,25 @@ export const useFormLogic = ({
           .filter(fieldDef => fieldDef.name !== 'category')
           .map(fieldDef => ({
             ...fieldDef,
+            name: normalizeFieldName(fieldDef.name), // Normalize display name
             value: editEntry.fields[fieldDef.name] || ''
           }));
         newFields = editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
         
-        console.log('Created fields from definitions:', newFields);
+        console.log('Created fields from definitions with normalized names:', newFields);
       } else {
-        // Fallback: create fields from the fields object
+        // Fallback: create fields from the fields object with normalized names
         const editFields: CustomField[] = Object.entries(editEntry.fields)
           .filter(([name]) => name !== 'category')
           .map(([name, value], index) => ({
             id: (index + 1).toString(),
-            name,
-            type: (typeof value === 'number' ? 'number' : 
-                   Array.isArray(value) ? 'gallery' :
-                   typeof value === 'string' && value.length > 100 ? 'textarea' : 'text') as CustomField['type'],
+            name: normalizeFieldName(name), // Normalize display name
+            type: detectFieldType(value),
             value
           }));
         newFields = editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
         
-        console.log('Created fields from fields object:', newFields);
+        console.log('Created fields from fields object with normalized names:', newFields);
       }
     } else if (templateEntry && mode === 'fill') {
       console.log('Processing templateEntry for fill mode:', {
@@ -103,26 +126,25 @@ export const useFormLogic = ({
           .filter(fieldDef => fieldDef.name !== 'category')
           .map(fieldDef => ({
             ...fieldDef,
+            name: normalizeFieldName(fieldDef.name), // Normalize display name
             value: templateEntry.fields[fieldDef.name] || '' // Keep existing values for fill mode
           }));
         newFields = templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
         
-        console.log('Created template fields for fill mode:', newFields);
+        console.log('Created template fields for fill mode with normalized names:', newFields);
       } else {
         // Fallback: create fields from the fields object but keep values
         const templateFields: CustomField[] = Object.entries(templateEntry.fields)
           .filter(([name]) => name !== 'category')
           .map(([name, value], index) => ({
             id: (index + 1).toString(),
-            name,
-            type: (typeof value === 'number' ? 'number' : 
-                   Array.isArray(value) ? 'gallery' :
-                   typeof value === 'string' && value.length > 100 ? 'textarea' : 'text') as CustomField['type'],
+            name: normalizeFieldName(name), // Normalize display name
+            type: detectFieldType(value),
             value: value || '' // Keep existing values for fill mode
           }));
         newFields = templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
         
-        console.log('Created template fields from fields object:', newFields);
+        console.log('Created template fields from fields object with normalized names:', newFields);
       }
     }
 
@@ -188,12 +210,13 @@ export const useFormLogic = ({
     
     fields.forEach(field => {
       if (field.name && field.value !== undefined && field.value !== '') {
-        fieldData[field.name] = field.value;
-      }
-      if (field.name) {
+        // Convert display name back to a database-friendly format
+        const dbFieldName = field.name.toLowerCase().replace(/\s+/g, '_');
+        fieldData[dbFieldName] = field.value;
+        
         fieldDefinitions.push({
           id: field.id,
-          name: field.name,
+          name: dbFieldName, // Store the database-friendly name
           type: field.type
         });
       }

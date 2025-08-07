@@ -15,6 +15,14 @@ import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   console.log("Index component rendering...");
   
+  // Add a simple loading state to ensure proper render
+  const [isComponentReady, setIsComponentReady] = useState(false);
+  
+  useEffect(() => {
+    console.log("Index: Component mounted, setting ready state");
+    setIsComponentReady(true);
+  }, []);
+  
   const { theme, setTheme } = useTheme();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -114,6 +122,18 @@ const Index = () => {
   ];
 
   console.log("Rendering Index component");
+
+  // Show a loading state briefly while component initializes
+  if (!isComponentReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">

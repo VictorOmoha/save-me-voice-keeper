@@ -42,6 +42,8 @@ export const useUserPreferences = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('useUserPreferences: useEffect triggered, user:', !!user);
+    
     if (user) {
       loadPreferences();
     } else {

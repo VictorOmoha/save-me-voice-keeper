@@ -27,26 +27,46 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+  console.log('ThemeProvider: Initializing with defaultTheme:', defaultTheme);
+  
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey) as Theme;
+      console.log('ThemeProvider: Stored theme:', stored);
+      return stored || defaultTheme;
+    } catch (error) {
+      console.error('ThemeProvider: Error accessing localStorage:', error);
+      return defaultTheme;
+    }
+  })
 
   useEffect(() => {
-    const root = window.document.documentElement
+    console.log('ThemeProvider: useEffect triggered, theme:', theme);
+    
+    try {
+      const root = window.document.documentElement;
+      console.log('ThemeProvider: Current classes before:', root.classList.toString());
 
-    root.classList.remove("light", "dark")
+      root.classList.remove("light", "dark");
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
+      if (theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light";
+        
+        console.log('ThemeProvider: System theme detected:', systemTheme);
+        root.classList.add(systemTheme);
+        return;
+      }
 
-      root.classList.add(systemTheme)
-      return
+      console.log('ThemeProvider: Adding theme class:', theme);
+      root.classList.add(theme);
+      
+      console.log('ThemeProvider: Current classes after:', root.classList.toString());
+    } catch (error) {
+      console.error('ThemeProvider: Error in useEffect:', error);
     }
-
-    root.classList.add(theme)
   }, [theme])
 
   const value = {

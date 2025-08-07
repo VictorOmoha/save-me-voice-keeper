@@ -8,6 +8,9 @@ export interface SearchSuggestion {
   entry?: SavedEntry;
   confidence: number;
   completionText?: string;
+  entryId?: string;
+  category?: string;
+  relevantData?: any;
 }
 
 export interface IntelligentSearchOptions {
@@ -248,7 +251,9 @@ class SearchIntelligence {
           type: 'entry',
           matchText,
           entry,
-          confidence
+          confidence,
+          entryId: entry.id,
+          category: entry.fields.category || 'Personal'
         });
       }
     });

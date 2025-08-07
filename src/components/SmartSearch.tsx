@@ -4,12 +4,14 @@ import { SavedEntry } from "@/types/dashboard";
 import { Search, Clock, TrendingUp, FileText, Hash, Grid, Zap, Sparkles } from "lucide-react";
 import { useIntelligentSearch } from "@/hooks/useIntelligentSearch";
 import { SearchSuggestion } from "@/utils/searchIntelligence";
+import { searchAnalyticsService } from "@/services/searchAnalytics";
 
 interface SmartSearchProps {
   entries: SavedEntry[];
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onSuggestionSelect?: (suggestion: SearchSuggestion) => void;
+  onEntrySelect?: (entry: SavedEntry) => void;
   placeholder?: string;
   className?: string;
 }
@@ -19,6 +21,7 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
   searchQuery,
   onSearchChange,
   onSuggestionSelect,
+  onEntrySelect,
   placeholder = "🔍 Search with AI intelligence...",
   className = ""
 }) => {
@@ -59,6 +62,19 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
   };
 
   const onSuggestionClick = (suggestion: SearchSuggestion) => {
+    // If it's an entry suggestion and we have an entry select handler, open the entry
+    if (suggestion.type === 'entry' && onEntrySelect && suggestion.entryId) {
+      const entry = entries.find(e => e.id === suggestion.entryId);
+      if (entry) {
+        // Track the entry opening
+        searchAnalyticsService.trackEntryOpened(entry.id, searchQuery);
+        onEntrySelect(entry);
+        setIsOpen(false);
+        return;
+      }
+    }
+    
+    // Otherwise, handle as normal suggestion
     handleSuggestionSelect(suggestion);
     setIsOpen(false);
   };
@@ -70,8 +86,17 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
       }
       return;
     }
+    
+    // Handle Enter key for entry selection
+    if (e.key === 'Enter' && selectedIndex >= 0 && selectedIndex < suggestions.length) {
+      const selectedSuggestion = suggestions[selectedIndex];
+      onSuggestionClick(selectedSuggestion);
+      e.preventDefault();
+      return;
+    }
+    
     handleKeyDown(e);
-    if (e.key === 'Escape' || e.key === 'Enter') {
+    if (e.key === 'Escape') {
       setIsOpen(false);
     }
   };
@@ -159,6 +184,9 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  {suggestion.type === 'entry' && (
+                    <div className="text-xs text-primary font-medium">Entry</div>
+                  )}
                   {suggestion.confidence > 0.8 && (
                     <div className="w-2 h-2 bg-primary rounded-full" />
                   )}

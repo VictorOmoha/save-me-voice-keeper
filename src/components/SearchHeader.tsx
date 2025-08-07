@@ -1,9 +1,10 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
+import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 
 interface SearchHeaderProps {
   searchQuery: string;
@@ -13,6 +14,8 @@ interface SearchHeaderProps {
   onAddEntry: () => void;
   onCategorySelect: (categoryName: string) => void;
   onAllEntriesSelect: () => void;
+  onEditEntry?: (entry: SavedEntry) => void;
+  onFillEntry?: (entry: SavedEntry) => void;
 }
 
 export const SearchHeader: React.FC<SearchHeaderProps> = ({
@@ -23,7 +26,14 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
   onAddEntry,
   onCategorySelect,
   onAllEntriesSelect,
+  onEditEntry,
+  onFillEntry,
 }) => {
+  const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
+
+  const handleEntrySelect = (entry: SavedEntry) => {
+    setViewingEntry(entry);
+  };
   return (
     <div className="bg-background border-b border-border px-6 py-4">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -41,6 +51,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             entries={savedEntries}
             searchQuery={searchQuery} 
             onSearchChange={onSearchChange}
+            onEntrySelect={handleEntrySelect}
             placeholder="🔍 Search with AI intelligence..."
             className="w-full"
           />
@@ -65,6 +76,14 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
           </Button>
         </div>
       </div>
+      
+      <EntryViewDialog
+        entry={viewingEntry}
+        isOpen={!!viewingEntry}
+        onClose={() => setViewingEntry(null)}
+        onEdit={onEditEntry}
+        onFill={onFillEntry}
+      />
     </div>
   );
 };

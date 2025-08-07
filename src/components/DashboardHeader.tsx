@@ -17,6 +17,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { VoiceInputFixed } from "@/components/VoiceInputFixed";
 import { SmartSearch } from "@/components/SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
+import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 
 interface DashboardHeaderProps {
   searchQuery: string;
@@ -30,6 +31,8 @@ interface DashboardHeaderProps {
   onCancelVoice?: () => void;
   conversationData?: { isActive: boolean; currentStep?: { question: string } };
   savedEntries?: SavedEntry[];
+  onEditEntry?: (entry: SavedEntry) => void;
+  onFillEntry?: (entry: SavedEntry) => void;
 }
 
 export const DashboardHeader = ({
@@ -44,10 +47,13 @@ export const DashboardHeader = ({
   onCancelVoice,
   conversationData,
   savedEntries = [],
+  onEditEntry,
+  onFillEntry,
 }: DashboardHeaderProps) => {
   const { theme, setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showVoiceInput, setShowVoiceInput] = useState(false);
+  const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
 
   const handleSignOut = async () => {
     try {
@@ -78,6 +84,10 @@ export const DashboardHeader = ({
     // You can add additional logic here if needed
   };
 
+  const handleEntrySelect = (entry: SavedEntry) => {
+    setViewingEntry(entry);
+  };
+
   return (
     <>
       <header className="bg-background border-b border-border px-6 py-4">
@@ -89,6 +99,7 @@ export const DashboardHeader = ({
               searchQuery={searchQuery}
               onSearchChange={onSearchChange}
               onSuggestionSelect={handleSuggestionSelect}
+              onEntrySelect={handleEntrySelect}
               placeholder="Search your entries..."
               className="w-full"
             />
@@ -185,6 +196,15 @@ export const DashboardHeader = ({
           </div>
         </div>
       )}
+
+      {/* Entry View Dialog */}
+      <EntryViewDialog
+        entry={viewingEntry}
+        isOpen={!!viewingEntry}
+        onClose={() => setViewingEntry(null)}
+        onEdit={onEditEntry}
+        onFill={onFillEntry}
+      />
     </>
   );
 };

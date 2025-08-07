@@ -124,6 +124,23 @@ class SearchAnalyticsService {
       console.error('Search preferences update error:', error);
     }
   }
+
+  async trackEntryOpened(entryId: string, query: string): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase.from('search_analytics').insert({
+        user_id: user.id,
+        query,
+        result_type: 'entry',
+        result_id: entryId,
+        action_type: 'entry_opened'
+      });
+    } catch (error) {
+      console.error('Error tracking entry opened:', error);
+    }
+  }
 }
 
 export const searchAnalyticsService = new SearchAnalyticsService();

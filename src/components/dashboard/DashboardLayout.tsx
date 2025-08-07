@@ -16,6 +16,7 @@ interface DashboardLayoutProps {
   onDeleteEntry: (id: string) => void;
   onSaveEntry: (entry: any) => void;
   onCancelEdit: () => void;
+  onFillEntry?: (entry: any) => void;
   children: React.ReactNode;
 }
 
@@ -31,6 +32,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onDeleteEntry,
   onSaveEntry,
   onCancelEdit,
+  onFillEntry,
   children,
 }) => {
   return (
@@ -55,6 +57,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           onAddEntry={onAddEntry}
           onCategorySelect={onCategorySelect}
           onAllEntriesSelect={onAllEntriesSelect}
+          onEditEntry={onEditEntry}
+          onFillEntry={onFillEntry}
         />
 
         {/* Content with Voice Interface */}

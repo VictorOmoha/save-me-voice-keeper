@@ -195,6 +195,7 @@ export default function Dashboard() {
       onDeleteEntry={deleteEntry}
       onSaveEntry={saveEntry}
       onCancelEdit={handleCancelEdit}
+      onFillEntry={fillEntry}
     >
       {(showAddEntry || editingEntry || fillingEntry || showDocumentCreator) ? (
         <>

@@ -11,10 +11,12 @@ import { VoiceStatusDebug } from '@/components/VoiceStatusDebug';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { DocumentCreator } from '@/components/DocumentCreator';
-import { DocumentViewer } from '@/components/documents/DocumentViewer';
+import { EnhancedDocumentViewer } from '@/components/documents/EnhancedDocumentViewer';
+import { DocumentEditor } from '@/components/documents/DocumentEditor';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
 import { SavedEntry } from '@/types/dashboard';
+import { toast } from 'sonner';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -31,6 +33,10 @@ export default function Dashboard() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
   const [documentViewerState, setDocumentViewerState] = useState<{
+    isOpen: boolean;
+    entry: SavedEntry | null;
+  }>({ isOpen: false, entry: null });
+  const [documentEditorState, setDocumentEditorState] = useState<{
     isOpen: boolean;
     entry: SavedEntry | null;
   }>({ isOpen: false, entry: null });
@@ -178,6 +184,22 @@ export default function Dashboard() {
     setDocumentViewerState({ isOpen: false, entry: null });
   };
 
+  const handleEditDocument = (entry: SavedEntry) => {
+    console.log('📝 Dashboard: Edit document triggered for:', entry.title);
+    setDocumentViewerState({ isOpen: false, entry: null }); // Close viewer
+    setDocumentEditorState({ isOpen: true, entry });
+  };
+
+  const handleCloseDocumentEditor = () => {
+    setDocumentEditorState({ isOpen: false, entry: null });
+  };
+
+  const handleDocumentSaved = (updatedEntry: SavedEntry) => {
+    // The entry will be automatically updated through the useDashboard hook
+    // when the database changes are detected via Supabase real-time subscriptions
+    toast.success('Document updated successfully!');
+  };
+
   if (loading || entriesLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -261,11 +283,20 @@ export default function Dashboard() {
         />
       )}
       
-      {/* Document Viewer */}
-      <DocumentViewer
+      {/* Enhanced Document Viewer */}
+      <EnhancedDocumentViewer
         isOpen={documentViewerState.isOpen}
         onClose={handleCloseDocumentViewer}
         entry={documentViewerState.entry}
+        onEdit={handleEditDocument}
+      />
+
+      {/* Document Editor */}
+      <DocumentEditor
+        isOpen={documentEditorState.isOpen}
+        onClose={handleCloseDocumentEditor}
+        entry={documentEditorState.entry}
+        onSave={handleDocumentSaved}
       />
       
       

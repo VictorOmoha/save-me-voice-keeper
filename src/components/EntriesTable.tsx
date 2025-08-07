@@ -392,6 +392,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
           setIsViewDialogOpen(false);
           setViewingEntry(null);
         }}
+        onViewDocument={() => {}}
       />
 
       {/* Delete Confirmation Dialogs */}

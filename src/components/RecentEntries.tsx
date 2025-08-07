@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SavedEntry } from "@/types/dashboard";
-import { FileText, ExternalLink } from "lucide-react";
+import { FileText, ExternalLink, Table, Grid3X3 } from "lucide-react";
 import { EntryItem } from "./recentEntries/EntryItem";
 import { EntryViewDialog } from "./recentEntries/EntryViewDialog";
 
@@ -12,13 +12,15 @@ interface RecentEntriesProps {
   onEdit?: (entry: SavedEntry) => void;
   onFill?: (entry: SavedEntry) => void;
   onView?: (entry: SavedEntry) => void;
+  onViewAll?: () => void;
 }
 
 export const RecentEntries: React.FC<RecentEntriesProps> = ({ 
   entries, 
   onEdit,
   onFill,
-  onView
+  onView,
+  onViewAll
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
 
@@ -49,9 +51,29 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
             <CardTitle className="text-xl">Recent Entries</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">Your latest saved information</p>
           </div>
-          <Button variant="ghost" size="sm" className="text-primary">
-            View all <ExternalLink className="w-4 h-4 ml-1" />
-          </Button>
+          <div className="flex items-center space-x-2">
+            {onViewAll && entries.length > 5 && (
+              <Button 
+                onClick={onViewAll}
+                variant="outline" 
+                size="sm" 
+                className="text-primary hover:text-primary/80"
+              >
+                <Table className="w-4 h-4 mr-1" />
+                Table View
+              </Button>
+            )}
+            {onViewAll && (
+              <Button 
+                onClick={onViewAll}
+                variant="ghost" 
+                size="sm" 
+                className="text-primary"
+              >
+                View all <ExternalLink className="w-4 h-4 ml-1" />
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

@@ -246,6 +246,7 @@ export const AllEntriesView: React.FC<AllEntriesViewProps> = ({
         onClose={() => setViewingEntry(null)}
         onEdit={onEdit}
         onFill={onFill}
+        onViewDocument={() => {}}
       />
     </div>
   );

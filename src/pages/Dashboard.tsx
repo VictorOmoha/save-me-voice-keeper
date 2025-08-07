@@ -159,6 +159,10 @@ export default function Dashboard() {
     setSelectedCategory('All');
   };
 
+  const handleViewAllEntries = () => {
+    handleAllEntriesSelect();
+  };
+
   const handleCreateDocument = () => {
     console.log('📄 Dashboard: Create document triggered');
     setShowDocumentCreator(true);
@@ -274,6 +278,7 @@ export default function Dashboard() {
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}
           onViewDocument={handleViewDocument}
+          onViewAllEntries={handleViewAllEntries}
           isVoiceProcessing={isVoiceProcessing}
           lastVoiceCommand={lastVoiceCommand}
           conversationState={conversationState}

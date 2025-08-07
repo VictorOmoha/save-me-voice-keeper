@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, Users, Shield, Zap, Star } from "lucide-react";
+import { Plus, FileText, Users, Shield, Zap, Star, Table, Grid3X3 } from "lucide-react";
 import { RecentEntries } from "@/components/RecentEntries";
 import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
@@ -32,6 +32,7 @@ interface DashboardMainContentProps {
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
   onDeleteEntry: (id: string) => void;
+  onViewAllEntries: () => void;
   isVoiceProcessing?: boolean;
   lastVoiceCommand?: any;
   conversationState?: 'listening' | 'confirming' | 'idle';
@@ -70,6 +71,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onEditEntry,
   onFillEntry,
   onDeleteEntry,
+  onViewAllEntries,
   isVoiceProcessing,
   lastVoiceCommand,
   conversationState,
@@ -137,6 +139,53 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         userTier={userTier}
       />
 
+      {/* View All Entries - Prominent Access */}
+      {savedEntries.length > 0 && (
+        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Table className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">View All Entries</CardTitle>
+                  <p className="text-sm text-muted-foreground">Browse, search, and manage all your saved data in a comprehensive table</p>
+                </div>
+              </div>
+              <Badge variant="secondary" className="text-lg px-3 py-1">
+                {savedEntries.length} entries
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                <div className="flex items-center space-x-1">
+                  <Grid3X3 className="h-4 w-4" />
+                  <span>Sortable columns</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <FileText className="h-4 w-4" />
+                  <span>Bulk actions</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Users className="h-4 w-4" />
+                  <span>Export options</span>
+                </div>
+              </div>
+              <Button 
+                onClick={onViewAllEntries}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Table className="h-4 w-4 mr-2" />
+                Open Table View
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Categories Grid */}
       <div>
         <h2 className="text-2xl font-semibold text-foreground mb-6">Browse by Category</h2>
@@ -175,6 +224,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         onEdit={onEditEntry}
         onFill={onFillEntry}
         onView={onViewDocument}
+        onViewAll={onViewAllEntries}
       />
 
       {/* Features Preview */}

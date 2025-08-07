@@ -160,7 +160,7 @@ export default function Dashboard() {
   };
 
   const handleViewAllEntries = () => {
-    handleAllEntriesSelect();
+    navigate('/all-entries');
   };
 
   const handleCreateDocument = () => {

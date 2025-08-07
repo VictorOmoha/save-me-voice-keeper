@@ -7,8 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Document, Page, pdfjs } from 'react-pdf';
 import mammoth from 'mammoth';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -343,19 +341,41 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
               <>
                 {/* PDF Viewer */}
                 {isPdf && documentState.blob && (
-                  <div className="flex justify-center p-4">
-                    <Document
-                      file={documentState.blob}
-                      onLoadSuccess={onDocumentLoadSuccess}
-                      className="max-w-full"
-                    >
-                      <Page
-                        pageNumber={documentState.currentPage}
-                        scale={documentState.scale}
-                        rotate={documentState.rotation}
+                  <div className="flex justify-center p-4 bg-gray-50 dark:bg-gray-900">
+                    <div className="w-full max-w-4xl">
+                      <Document
+                        file={documentState.blob}
+                        onLoadSuccess={onDocumentLoadSuccess}
                         className="max-w-full"
-                      />
-                    </Document>
+                        error={
+                          <div className="text-center p-8">
+                            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <p className="text-muted-foreground">
+                              Unable to display PDF. Please download to view.
+                            </p>
+                            <Button onClick={handleDownload} className="mt-4">
+                              <Download className="w-4 h-4 mr-2" />
+                              Download PDF
+                            </Button>
+                          </div>
+                        }
+                        loading={
+                          <div className="flex items-center justify-center h-64">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                            <span className="ml-2">Loading PDF...</span>
+                          </div>
+                        }
+                      >
+                        <Page
+                          pageNumber={documentState.currentPage}
+                          scale={documentState.scale}
+                          rotate={documentState.rotation}
+                          className="max-w-full shadow-lg"
+                          renderTextLayer={false}
+                          renderAnnotationLayer={false}
+                        />
+                      </Document>
+                    </div>
                   </div>
                 )}
 

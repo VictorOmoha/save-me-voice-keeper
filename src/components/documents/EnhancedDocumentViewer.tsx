@@ -34,6 +34,9 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   entry,
   onEdit
 }) => {
+  // Early return before any hooks
+  if (!entry) return null;
+
   const [isLoading, setIsLoading] = useState(false);
   const [documentState, setDocumentState] = useState<DocumentState>({
     content: null,
@@ -44,8 +47,6 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     rotation: 0,
     isFullscreen: false
   });
-
-  if (!entry) return null;
 
   const isDocumentEntry = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
   const fileName = entry.fields.fileName || '';

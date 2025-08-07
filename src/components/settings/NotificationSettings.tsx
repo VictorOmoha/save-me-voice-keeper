@@ -1,42 +1,25 @@
-
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { Bell } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react";
 
 export const NotificationSettings = () => {
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    reminders: true,
-    automation: false
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const { preferences, updatePreferences, isLoading: prefsLoading } = useUserPreferences();
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  useEffect(() => {
-    // Load saved notification preferences
-    const saved = localStorage.getItem('notificationSettings');
-    if (saved) {
-      setNotifications(JSON.parse(saved));
+  const handleNotificationChange = async (key: string, value: boolean) => {
+    setIsUpdating(true);
+    const success = await updatePreferences({ [key]: value });
+    if (success) {
+      toast({
+        title: "Settings updated",
+        description: "Notification preference has been saved.",
+      });
     }
-  }, []);
-
-  const handleNotificationChange = (key: string, value: boolean) => {
-    setNotifications(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveSettings = () => {
-    setIsLoading(true);
-    try {
-      localStorage.setItem('notificationSettings', JSON.stringify(notifications));
-      toast.success("Notification settings saved");
-    } catch (error) {
-      toast.error("Failed to save settings");
-    } finally {
-      setIsLoading(false);
-    }
+    setIsUpdating(false);
   };
 
   return (
@@ -55,8 +38,9 @@ export const NotificationSettings = () => {
             <p className="text-xs text-muted-foreground">Receive updates via email</p>
           </div>
           <Switch
-            checked={notifications.email}
-            onCheckedChange={(checked) => handleNotificationChange('email', checked)}
+            checked={preferences.email_notifications}
+            onCheckedChange={(checked) => handleNotificationChange('email_notifications', checked)}
+            disabled={prefsLoading || isUpdating}
           />
         </div>
         
@@ -66,8 +50,9 @@ export const NotificationSettings = () => {
             <p className="text-xs text-muted-foreground">Get browser notifications</p>
           </div>
           <Switch
-            checked={notifications.push}
-            onCheckedChange={(checked) => handleNotificationChange('push', checked)}
+            checked={preferences.push_notifications}
+            onCheckedChange={(checked) => handleNotificationChange('push_notifications', checked)}
+            disabled={prefsLoading || isUpdating}
           />
         </div>
         
@@ -77,8 +62,9 @@ export const NotificationSettings = () => {
             <p className="text-xs text-muted-foreground">Get reminded about important entries</p>
           </div>
           <Switch
-            checked={notifications.reminders}
-            onCheckedChange={(checked) => handleNotificationChange('reminders', checked)}
+            checked={preferences.reminder_notifications}
+            onCheckedChange={(checked) => handleNotificationChange('reminder_notifications', checked)}
+            disabled={prefsLoading || isUpdating}
           />
         </div>
         
@@ -88,18 +74,11 @@ export const NotificationSettings = () => {
             <p className="text-xs text-muted-foreground">Notifications from automated workflows</p>
           </div>
           <Switch
-            checked={notifications.automation}
-            onCheckedChange={(checked) => handleNotificationChange('automation', checked)}
+            checked={preferences.automation_notifications}
+            onCheckedChange={(checked) => handleNotificationChange('automation_notifications', checked)}
+            disabled={prefsLoading || isUpdating}
           />
         </div>
-        
-        <Button 
-          onClick={handleSaveSettings} 
-          disabled={isLoading}
-          className="w-full mt-4"
-        >
-          {isLoading ? 'Saving...' : 'Save Settings'}
-        </Button>
       </CardContent>
     </Card>
   );

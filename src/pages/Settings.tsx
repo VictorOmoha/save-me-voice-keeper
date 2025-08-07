@@ -10,10 +10,13 @@ import { AutomationSettings } from "@/components/settings/AutomationSettings";
 import { DataManagementSettings } from "@/components/settings/DataManagementSettings";
 import { HelpSupportSettings } from "@/components/settings/HelpSupportSettings";
 import { VoiceSettings } from "@/components/settings/VoiceSettings";
+import { EnhancedVoiceSettings } from "@/components/settings/EnhancedVoiceSettings";
+import { EnhancedHelpSupportSettings } from "@/components/settings/EnhancedHelpSupportSettings";
+import { EnhancedDataManagementSettings } from "@/components/settings/EnhancedDataManagementSettings";
 import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic } from "lucide-react";
+import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic, Database } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 
@@ -77,6 +80,10 @@ const Settings = () => {
               <CreditCard className="w-4 h-4 mr-2" />
               Subscription
             </TabsTrigger>
+            <TabsTrigger value="data-management" className="w-full justify-start">
+              <Database className="w-4 h-4 mr-2" />
+              Data Management
+            </TabsTrigger>
             <TabsTrigger value="admin-videos" className="w-full justify-start">
               <Video className="w-4 h-4 mr-2" />
               Demo Videos
@@ -101,7 +108,7 @@ const Settings = () => {
               <AppearanceSettings />
             </TabsContent>
             <TabsContent value="voice">
-              <VoiceSettings />
+              <EnhancedVoiceSettings />
             </TabsContent>
             <TabsContent value="automation">
               <AutomationSettings />
@@ -109,16 +116,19 @@ const Settings = () => {
             <TabsContent value="subscription">
               <SubscriptionSettings />
             </TabsContent>
+            <TabsContent value="data-management">
+              <EnhancedDataManagementSettings />
+            </TabsContent>
             <TabsContent value="admin-videos">
               <VideoUpload />
             </TabsContent>
             <TabsContent value="help">
-              <HelpSupportSettings />
+              <EnhancedHelpSupportSettings />
             </TabsContent>
           </div>
         </Tabs>
 
-        <DataManagementSettings savedEntries={savedEntries} />
+        
       </div>
     </div>
   );

@@ -143,6 +143,105 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          message: string
+          priority: string | null
+          status: string | null
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          priority?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          priority?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          automation_notifications: boolean | null
+          created_at: string
+          elevenlabs_voice_id: string | null
+          email_notifications: boolean | null
+          id: string
+          language: string | null
+          minimax_voice_id: string | null
+          push_notifications: boolean | null
+          reminder_notifications: boolean | null
+          theme: string | null
+          tts_service: string | null
+          updated_at: string
+          user_id: string
+          voice_auto_speak: boolean | null
+          voice_continuous_listening: boolean | null
+          voice_language: string | null
+          voice_speech_rate: number | null
+          voice_volume: number | null
+        }
+        Insert: {
+          automation_notifications?: boolean | null
+          created_at?: string
+          elevenlabs_voice_id?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          minimax_voice_id?: string | null
+          push_notifications?: boolean | null
+          reminder_notifications?: boolean | null
+          theme?: string | null
+          tts_service?: string | null
+          updated_at?: string
+          user_id: string
+          voice_auto_speak?: boolean | null
+          voice_continuous_listening?: boolean | null
+          voice_language?: string | null
+          voice_speech_rate?: number | null
+          voice_volume?: number | null
+        }
+        Update: {
+          automation_notifications?: boolean | null
+          created_at?: string
+          elevenlabs_voice_id?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          language?: string | null
+          minimax_voice_id?: string | null
+          push_notifications?: boolean | null
+          reminder_notifications?: boolean | null
+          theme?: string | null
+          tts_service?: string | null
+          updated_at?: string
+          user_id?: string
+          voice_auto_speak?: boolean | null
+          voice_continuous_listening?: boolean | null
+          voice_language?: string | null
+          voice_speech_rate?: number | null
+          voice_volume?: number | null
+        }
+        Relationships: []
+      }
       waiting_list: {
         Row: {
           created_at: string

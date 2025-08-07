@@ -3,10 +3,54 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/components/ThemeProvider";
-import { Palette, Sun, Moon, Globe } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Palette, Sun, Moon, Globe, Monitor } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export const AppearanceSettings = () => {
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const saveThemePreference = async (newTheme: string) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: user.id,
+          theme: newTheme,
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+      
+      toast({
+        title: "Theme updated",
+        description: "Your theme preference has been saved.",
+      });
+    } catch (error) {
+      console.error('Error saving theme preference:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save theme preference.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
+    setTheme(newTheme);
+    saveThemePreference(newTheme);
+  };
 
   return (
     <Card>
@@ -27,16 +71,26 @@ export const AppearanceSettings = () => {
             <Button
               variant={theme === "light" ? "default" : "outline"}
               size="sm"
-              onClick={() => setTheme("light")}
+              onClick={() => handleThemeChange("light")}
+              disabled={isLoading}
             >
               <Sun className="w-4 h-4" />
             </Button>
             <Button
               variant={theme === "dark" ? "default" : "outline"} 
               size="sm"
-              onClick={() => setTheme("dark")}
+              onClick={() => handleThemeChange("dark")}
+              disabled={isLoading}
             >
               <Moon className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={theme === "system" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => handleThemeChange("system")}
+              disabled={isLoading}
+            >
+              <Monitor className="w-4 h-4" />
             </Button>
           </div>
         </div>

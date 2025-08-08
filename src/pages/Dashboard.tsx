@@ -153,12 +153,12 @@ export default function Dashboard() {
 
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);
+    navigate(`/category/${encodeURIComponent(categoryName)}`);
   };
 
   const handleAllEntriesSelect = () => {
-    setSelectedCategory('All');
+    navigate('/all-entries');
   };
-
   const handleViewAllEntries = () => {
     navigate('/all-entries');
   };

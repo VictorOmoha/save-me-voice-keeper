@@ -306,12 +306,12 @@ export const useVoiceConversation = ({
       title: draft.title || `New Entry - ${new Date().toLocaleDateString()}`,
       fields: {
         category: draft.category || 'Personal',
-        description: '', // Default field
+        
         ...Object.fromEntries(draft.fields.map(field => [field.name, '']))
       },
       fieldDefinitions: [
         { id: 'category', name: 'category', type: 'text' as const },
-        { id: 'description', name: 'description', type: 'textarea' as const },
+        
         ...draft.fields.map((field, index) => ({
           id: `field_${Date.now()}_${index}`,
           name: field.name,

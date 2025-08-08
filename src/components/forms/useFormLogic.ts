@@ -42,9 +42,7 @@ export const useFormLogic = ({
 }: UseFormLogicProps) => {
   const [title, setTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(preselectedCategory || "");
-  const [fields, setFields] = useState<CustomField[]>([
-    { id: '1', name: 'Description', type: 'textarea', value: '' }
-  ]);
+  const [fields, setFields] = useState<CustomField[]>([]);
 
   // Track initial state to detect changes
   const [initialState, setInitialState] = useState<{
@@ -54,7 +52,7 @@ export const useFormLogic = ({
   }>({
     title: "",
     selectedCategory: preselectedCategory || "",
-    fields: [{ id: '1', name: 'Description', type: 'textarea', value: '' }]
+    fields: []
   });
   
   // Calculate if form is dirty (has changes)
@@ -73,7 +71,7 @@ export const useFormLogic = ({
 
     let newTitle = "";
     let newCategory = preselectedCategory || "";
-    let newFields: CustomField[] = [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
+    let newFields: CustomField[] = [];
 
     if (editEntry) {
       console.log('Processing editEntry:', {
@@ -94,7 +92,7 @@ export const useFormLogic = ({
             name: normalizeFieldName(fieldDef.name), // Normalize display name
             value: editEntry.fields[fieldDef.name] || ''
           }));
-        newFields = editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
+        newFields = editFields.length > 0 ? editFields : [];
         
         console.log('Created fields from definitions with normalized names:', newFields);
       } else {
@@ -107,7 +105,7 @@ export const useFormLogic = ({
             type: detectFieldType(value),
             value
           }));
-        newFields = editFields.length > 0 ? editFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
+        newFields = editFields.length > 0 ? editFields : [];
         
         console.log('Created fields from fields object with normalized names:', newFields);
       }
@@ -130,7 +128,7 @@ export const useFormLogic = ({
             name: normalizeFieldName(fieldDef.name), // Normalize display name
             value: templateEntry.fields[fieldDef.name] || '' // Keep existing values for fill mode
           }));
-        newFields = templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
+        newFields = templateFields.length > 0 ? templateFields : [];
         
         console.log('Created template fields for fill mode with normalized names:', newFields);
       } else {
@@ -143,7 +141,7 @@ export const useFormLogic = ({
             type: detectFieldType(value),
             value: value || '' // Keep existing values for fill mode
           }));
-        newFields = templateFields.length > 0 ? templateFields : [{ id: '1', name: 'Description', type: 'textarea', value: '' }];
+        newFields = templateFields.length > 0 ? templateFields : [];
         
         console.log('Created template fields from fields object with normalized names:', newFields);
       }
@@ -213,7 +211,12 @@ export const useFormLogic = ({
       if (field.name && field.name.trim() !== '') {
         // Convert display name back to a database-friendly format
         const dbFieldName = normalizeToDbFieldName(field.name);
-        fieldData[dbFieldName] = field.value ?? '';
+        const value = field.value ?? '';
+        // Skip default empty description field
+        if (dbFieldName === 'description' && (value === '' || (typeof value === 'string' && value.trim() === ''))) {
+          return;
+        }
+        fieldData[dbFieldName] = value;
         
         fieldDefinitions.push({
           id: field.id,

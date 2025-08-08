@@ -158,12 +158,12 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
       title: entryData.title || `New Entry - ${new Date().toLocaleDateString()}`,
       fields: {
         category: entryData.category,
-        description: '',
+        
         ...Object.fromEntries(entryData.customFields.map(field => [field.name, field.value]))
       },
       fieldDefinitions: [
         { id: 'category', name: 'category', type: 'text' as const },
-        { id: 'description', name: 'description', type: 'textarea' as const },
+        
         ...entryData.customFields.map((field, index) => ({
           id: `field_${Date.now()}_${index}`,
           name: field.name,

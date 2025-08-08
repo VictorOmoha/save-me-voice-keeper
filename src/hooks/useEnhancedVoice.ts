@@ -113,12 +113,12 @@ export const useEnhancedVoice = ({
         title: parameters.title || `New Entry - ${new Date().toLocaleDateString()}`,
         fields: {
           category: parameters.category || 'Personal',
-          description: parameters.description || '',
+          ...(parameters.description && parameters.description.trim() ? { description: parameters.description } : {}),
           ...parameters.additionalFields || {}
         },
         fieldDefinitions: [
           { id: 'category', name: 'category', type: 'text' as const },
-          { id: Date.now().toString(), name: 'description', type: 'textarea' as const }
+          ...(parameters.description && parameters.description.trim() ? [{ id: Date.now().toString(), name: 'description', type: 'textarea' as const }] : [])
         ]
       };
 

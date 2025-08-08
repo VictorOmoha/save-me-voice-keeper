@@ -480,12 +480,12 @@ export const useUnifiedVoiceProcessor = ({
       title: draft.title || `New Entry - ${new Date().toLocaleDateString()}`,
       fields: {
         category: draft.category || 'Personal',
-        description: '',
+        
         ...normalizedFields,
       },
       fieldDefinitions: [
         { id: 'category', name: 'category', type: 'text' as const },
-        { id: 'description', name: 'description', type: 'textarea' as const },
+        
         ...draft.fields.map((field, index) => ({
           id: `field_${Date.now()}_${index}`,
           name: normalizeToDbFieldName(field.name),

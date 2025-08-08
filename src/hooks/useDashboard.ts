@@ -259,12 +259,12 @@ export const useDashboard = () => {
         title: params.title || `New Entry - ${new Date().toLocaleDateString()}`,
         fields: {
           category: params.category || 'Personal',
-          description: params.description || '',
+          ...(params.description && params.description.trim() ? { description: params.description } : {}),
           ...params.additionalFields,
         },
         fieldDefinitions: [
           { id: 'category', name: 'category', type: 'text' as const },
-          { id: 'description', name: 'Description', type: 'textarea' as const },
+          ...(params.description && params.description.trim() ? [{ id: 'description', name: 'Description', type: 'textarea' as const }] : []),
         ],
         category: params.category || 'Personal',
       };

@@ -184,12 +184,12 @@ export const useVoiceConversationManager = ({
             title: entryDraft.title || 'Untitled',
             fields: {
               category: entryDraft.category || 'Personal',
-              description: '',
+              
               ...normalizedFields,
             },
             fieldDefinitions: [
               { id: 'category', name: 'category', type: 'text' as const },
-              { id: 'description', name: 'description', type: 'textarea' as const },
+              
               ...entryDraft.fields.map((field, index) => ({
                 id: `field_${Date.now()}_${index}`,
                 name: normalizeToDbFieldName(field.name),

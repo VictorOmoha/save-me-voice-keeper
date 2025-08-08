@@ -12,9 +12,9 @@ const LS_ENABLED = 'voice_audio_cue_enabled';
 const LS_VOLUME = 'voice_audio_cue_volume';
 const DEFAULTS: Required<Omit<AudioCueSettings, 'frequency' | 'durationMs'>> & { frequency: number; durationMs: number } = {
   enabled: true,
-  volume: 0.6,
-  frequency: 880,
-  durationMs: 120,
+  volume: 0.4,
+  frequency: 660,
+  durationMs: 180,
 };
 
 export const getAudioCueSettings = (): AudioCueSettings => {
@@ -52,23 +52,32 @@ export const playEndOfSpeechCue = async (): Promise<void> => {
   const ctx = new AudioCtx();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
 
+  // Soft sine beep with gentle filter
   osc.type = 'sine';
-  osc.frequency.value = frequency;
+  osc.frequency.setValueAtTime(frequency * 0.98, ctx.currentTime); // slight glide into pitch
+
+  filter.type = 'lowpass';
+  filter.frequency.value = 1400; // keep it soft and not too bright
+  filter.Q.value = 0.0001;
+
   gain.gain.value = 0;
 
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(filter);
+  filter.connect(ctx.destination);
 
   const now = ctx.currentTime;
-  const dur = Math.max(0.06, durationMs / 1000); // avoid too short clicks
-  // Simple attack-decay envelope to avoid clicks
+  const dur = Math.max(0.12, durationMs / 1000); // ensure not too short
+  // Smooth attack/decay envelope to make it soft
   gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(volume, now + 0.01);
-  gain.gain.linearRampToValueAtTime(0.0001, now + dur);
+  gain.gain.linearRampToValueAtTime(volume * 0.8, now + 0.02);
+  gain.gain.setTargetAtTime(0.0001, now + 0.06, Math.max(0.04, dur / 2));
 
   osc.start(now);
-  osc.stop(now + dur + 0.01);
+  osc.frequency.linearRampToValueAtTime(frequency, now + Math.min(0.08, dur * 0.4));
+  osc.stop(now + dur + 0.04);
 
   await new Promise<void>((resolve) => {
     osc.onended = () => {

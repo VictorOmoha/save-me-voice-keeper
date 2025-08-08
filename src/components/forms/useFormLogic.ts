@@ -210,10 +210,10 @@ export const useFormLogic = ({
     ];
     
     fields.forEach(field => {
-      if (field.name && field.value !== undefined && field.value !== '') {
+      if (field.name && field.name.trim() !== '') {
         // Convert display name back to a database-friendly format
         const dbFieldName = normalizeToDbFieldName(field.name);
-        fieldData[dbFieldName] = field.value;
+        fieldData[dbFieldName] = field.value ?? '';
         
         fieldDefinitions.push({
           id: field.id,

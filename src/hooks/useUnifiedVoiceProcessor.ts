@@ -395,8 +395,9 @@ export const useUnifiedVoiceProcessor = ({
           lowerTranscript.includes(type)
         ) as 'text' | 'number' | 'date' | 'textarea' || 'text';
         
+        const currentName = (currentState.currentFieldName ?? '').trim();
         const newField = {
-          name: conversationState.currentFieldName || 'Custom Field',
+          name: currentName.length ? currentName : 'Custom Field',
           type: matchedType
         };
         

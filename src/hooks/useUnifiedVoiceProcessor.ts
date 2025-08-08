@@ -709,6 +709,14 @@ export const useUnifiedVoiceProcessor = ({
           }
           break;
           
+        case 'navigate_dashboard':
+          window.dispatchEvent(new CustomEvent('voice-navigate', { detail: { destination: 'dashboard' } }));
+          setTimeout(() => {
+            voiceProcessor.setLastTTSPrompt('Opening dashboard');
+            speak('Opening dashboard');
+            toast.success('📊 Opening dashboard');
+          }, 300);
+          break;
         default:
           if (command.conversationalResponse) {
             speak(command.conversationalResponse);

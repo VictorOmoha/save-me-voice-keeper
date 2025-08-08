@@ -20,6 +20,7 @@ import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
 import VoiceTest from "./pages/VoiceTest";
 import NotFound from "./pages/NotFound";
+import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <AuthProvider>
               <VoiceFormProvider>
                 <BrowserRouter>
+                  <VoiceNavigationListener />
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/login" element={<Login />} />

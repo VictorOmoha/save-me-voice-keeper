@@ -428,6 +428,20 @@ class EnhancedVoiceProcessor {
       }
     }
 
+    // Navigation commands - dashboard
+    if (
+      /\b(go to|open|show|take me to|navigate to)\b.*\bdashboard\b/.test(cleanText) ||
+      cleanText === 'dashboard'
+    ) {
+      return {
+        intent: 'navigate',
+        action: 'navigate_dashboard',
+        parameters: { destination: 'dashboard', view: 'dashboard' },
+        confidence: 0.95,
+        conversationalResponse: 'Opening dashboard'
+      };
+    }
+
     // Edit/Open commands - CHECK THESE FIRST before generic entry matching
     if (cleanText.includes('edit') || cleanText.includes('open') || cleanText.includes('modify')) {
       console.log('🔍 Enhanced Processor: Edit/Open command detected:', {
@@ -489,7 +503,6 @@ class EnhancedVoiceProcessor {
       return this.pendingConfirmation;
     }
     
-    // Search commands
     if (cleanText.includes('search') || cleanText.includes('find') || cleanText.includes('show me')) {
       const searchTerm = this.extractSearchTerm(cleanText);
       return {

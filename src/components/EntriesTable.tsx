@@ -24,6 +24,7 @@ interface EntriesTableProps {
   onEdit: (entry: SavedEntry) => void;
   onFill: (entry: SavedEntry) => void;
   onBulkDelete: (ids: string[]) => void;
+  onViewDocument?: (entry: SavedEntry) => void;
 }
 
 type SortField = 'title' | 'createdAt' | 'updatedAt' | 'type';
@@ -35,6 +36,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   onEdit,
   onFill,
   onBulkDelete,
+  onViewDocument,
 }) => {
   const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
   const [expandedRows, setExpandedRows] = useState<string[]>([]);
@@ -406,7 +408,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
           setIsViewDialogOpen(false);
           setViewingEntry(null);
         }}
-        onViewDocument={() => {}}
+        onViewDocument={onViewDocument}
       />
 
       {/* Delete Confirmation Dialogs */}

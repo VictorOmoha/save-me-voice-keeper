@@ -181,7 +181,20 @@ export default function Dashboard() {
 
   const handleViewDocument = (entry: SavedEntry) => {
     console.log('📄 Dashboard: View document triggered for:', entry.title);
-    setDocumentViewerState({ isOpen: true, entry });
+    const fileName = String(entry.fields.fileName || '').toLowerCase();
+    const fileType = String(entry.fields.fileType || '').toLowerCase();
+    const isTextBased =
+      fileName.endsWith('.txt') ||
+      fileName.endsWith('.html') ||
+      fileName.endsWith('.htm') ||
+      fileType.includes('text/plain') ||
+      fileType.includes('text/html');
+
+    if (isTextBased) {
+      setDocumentEditorState({ isOpen: true, entry });
+    } else {
+      setDocumentViewerState({ isOpen: true, entry });
+    }
   };
 
   const handleCloseDocumentViewer = () => {

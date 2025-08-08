@@ -9,7 +9,8 @@ import { SavedEntry } from "@/types/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useSavedEntries } from "@/hooks/useSavedEntries";
-
+import { EnhancedDocumentViewer } from "@/components/documents/EnhancedDocumentViewer";
+import { DocumentEditor } from "@/components/documents/DocumentEditor";
 export default function AllEntries() {
   const { 
     savedEntries: entries, 
@@ -22,7 +23,8 @@ export default function AllEntries() {
   
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
-
+  const [documentViewerState, setDocumentViewerState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
+  const [documentEditorState, setDocumentEditorState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       if (editingEntry) {
@@ -78,6 +80,34 @@ export default function AllEntries() {
   const handleCancelEdit = () => {
     setShowAddEntry(false);
     setEditingEntry(null);
+  };
+
+  // View/Edit document handlers
+  const handleViewDocument = (entry: SavedEntry) => {
+    const fileName = String(entry.fields.fileName || '').toLowerCase();
+    const fileType = String(entry.fields.fileType || '').toLowerCase();
+    const isTextBased =
+      fileName.endsWith('.txt') ||
+      fileName.endsWith('.html') ||
+      fileName.endsWith('.htm') ||
+      fileType.includes('text/plain') ||
+      fileType.includes('text/html');
+
+    if (isTextBased) {
+      setDocumentEditorState({ isOpen: true, entry });
+    } else {
+      setDocumentViewerState({ isOpen: true, entry });
+    }
+  };
+
+  const handleCloseDocumentViewer = () => setDocumentViewerState({ isOpen: false, entry: null });
+  const handleCloseDocumentEditor = () => setDocumentEditorState({ isOpen: false, entry: null });
+  const handleEditFromViewer = (entry: SavedEntry) => {
+    setDocumentViewerState({ isOpen: false, entry: null });
+    setDocumentEditorState({ isOpen: true, entry });
+  };
+  const handleDocumentSaved = () => {
+    toast.success('Document updated successfully!');
   };
 
   if (isLoading) {
@@ -159,6 +189,23 @@ export default function AllEntries() {
           onEdit={handleEditEntry}
           onFill={handleFillEntry}
           onBulkDelete={handleBulkDelete}
+          onViewDocument={handleViewDocument}
+        />
+
+        {/* Document Viewer */}
+        <EnhancedDocumentViewer
+          isOpen={documentViewerState.isOpen}
+          onClose={handleCloseDocumentViewer}
+          entry={documentViewerState.entry}
+          onEdit={handleEditFromViewer}
+        />
+
+        {/* Document Editor */}
+        <DocumentEditor
+          isOpen={documentEditorState.isOpen}
+          onClose={handleCloseDocumentEditor}
+          entry={documentEditorState.entry}
+          onSave={handleDocumentSaved}
         />
       </div>
     </div>

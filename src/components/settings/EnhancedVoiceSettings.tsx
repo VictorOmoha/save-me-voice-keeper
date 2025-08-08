@@ -8,13 +8,16 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { Mic, Play, TestTube } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { playEndOfSpeechCue, getAudioCueSettings, setAudioCueSettings } from "@/utils/audioCues";
 
 export const EnhancedVoiceSettings = () => {
   const { toast } = useToast();
   const { preferences, updatePreferences, isLoading } = useUserPreferences();
   const [testText, setTestText] = useState("Hello, this is a voice test.");
   const [isTesting, setIsTesting] = useState(false);
+  const [audioCueEnabled, setAudioCueEnabled] = useState(true);
+  const [audioCueVolume, setAudioCueVolume] = useState(0.6);
 
   const handleVoiceTest = async () => {
     setIsTesting(true);

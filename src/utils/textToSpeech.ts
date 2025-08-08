@@ -1,5 +1,6 @@
 
 import { toast } from 'sonner';
+import { playEndOfSpeechCueIfEnabled } from '@/utils/audioCues';
 
 // ElevenLabs API configuration
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
@@ -289,15 +290,16 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   } catch (error) {
     console.error('🚨 TTS: Error during speech:', error);
     toast.error('TTS failed. Please check your API key and try again.');
-  } finally {
-    // Clear TTS flag and dispatch completion event after a brief delay
-    setTimeout(() => {
-      (window as any).__tts_is_speaking = false;
-      (window as any).__last_tts_end_time = Date.now();
-      window.dispatchEvent(new CustomEvent('tts-completed'));
-      console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
-    }, 1000);
-  }
+    } finally {
+      try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
+      // Clear TTS flag and dispatch completion event after a brief delay
+      setTimeout(() => {
+        (window as any).__tts_is_speaking = false;
+        (window as any).__last_tts_end_time = Date.now();
+        window.dispatchEvent(new CustomEvent('tts-completed'));
+        console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
+      }, 1000);
+    }
 };
 
 const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> => {

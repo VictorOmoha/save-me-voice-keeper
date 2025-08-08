@@ -29,6 +29,7 @@ import {
   type TTSService
 } from "@/utils/textToSpeech";
 import { toast } from "sonner";
+import { playEndOfSpeechCue, getAudioCueSettings, setAudioCueSettings } from "@/utils/audioCues";
 
 // Language options for speech recognition
 const LANGUAGE_OPTIONS = {
@@ -57,6 +58,8 @@ export const VoiceSettings: React.FC = () => {
   const [continuousListening, setContinuousListening] = useState(false);
   const [isTestingVoice, setIsTestingVoice] = useState(false);
   const [isValidatingKey, setIsValidatingKey] = useState(false);
+  const [audioCueEnabled, setAudioCueEnabled] = useState(true);
+  const [audioCueVolume, setAudioCueVolume] = useState(0.6);
 
   // Initialize state from localStorage on component mount
   useEffect(() => {
@@ -72,6 +75,11 @@ export const VoiceSettings: React.FC = () => {
     setSpeechVolume(parseFloat(localStorage.getItem('speech_volume') || '0.8'));
     setAutoSpeak(localStorage.getItem('auto_speak') === 'true');
     setContinuousListening(localStorage.getItem('continuous_listening') === 'true');
+
+    // Audio cue settings
+    const cue = getAudioCueSettings();
+    setAudioCueEnabled(cue.enabled);
+    setAudioCueVolume(cue.volume);
     
     console.log('✅ VoiceSettings state initialized');
   }, []);
@@ -116,6 +124,9 @@ export const VoiceSettings: React.FC = () => {
     localStorage.setItem('speech_volume', speechVolume.toString());
     localStorage.setItem('auto_speak', autoSpeak.toString());
     localStorage.setItem('continuous_listening', continuousListening.toString());
+
+    // Persist audio cue settings
+    setAudioCueSettings({ enabled: audioCueEnabled, volume: audioCueVolume });
     
     console.log('✅ Voice settings saved successfully');
     toast.success('Voice settings saved successfully!');
@@ -308,6 +319,36 @@ export const VoiceSettings: React.FC = () => {
                   checked={autoSpeak}
                   onCheckedChange={setAutoSpeak}
                 />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label>End-of-speech Tone</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Play a short tone when TTS finishes so you know to speak
+                  </p>
+                </div>
+                <Switch
+                  checked={audioCueEnabled}
+                  onCheckedChange={setAudioCueEnabled}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>End-of-speech Tone Volume: {Math.round(audioCueVolume * 100)}%</Label>
+                <Slider
+                  value={[audioCueVolume]}
+                  onValueChange={(value) => setAudioCueVolume(value[0])}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  className="w-full"
+                />
+                <div className="flex justify-end">
+                  <Button type="button" variant="outline" size="sm" onClick={() => playEndOfSpeechCue()}>
+                    Play Tone
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

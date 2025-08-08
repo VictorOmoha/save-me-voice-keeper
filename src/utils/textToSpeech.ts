@@ -223,6 +223,22 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     const selectedService = getSelectedTTSService();
     const elevenLabsKey = getElevenLabsApiKey();
     const miniMaxKey = getMiniMaxApiKey();
+    const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
+    
+    console.log('🔧 TTS config:', {
+      selectedService,
+      hasElevenLabsKey: !!elevenLabsKey,
+      hasMiniMaxKey: !!miniMaxKey,
+      speechLanguage
+    });
+
+    // Determine effective service (fallback to ElevenLabs if MiniMax not configured)
+    let effectiveService: TTSService = selectedService as TTSService;
+    if (effectiveService === 'minimax' && !miniMaxKey && elevenLabsKey) {
+      console.warn('⚠️ MiniMax selected but no API key. Falling back to ElevenLabs for this session.');
+      setSelectedTTSService('elevenlabs');
+      effectiveService = 'elevenlabs';
+    }
     
     // Determine voice and options
     let voice: string | undefined;
@@ -237,29 +253,29 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     // Try primary service first, then fallback to secondary or browser
     let primaryFailed = false;
     
-    if (selectedService === 'elevenlabs' && elevenLabsKey) {
+    if (effectiveService === 'elevenlabs' && elevenLabsKey) {
       try {
-        console.log('🎙️ TTS: Using ElevenLabs TTS');
+        console.log('🎙️ TTS: Using ElevenLabs TTS (effective)');
         await speakWithElevenLabs(text, voice);
         return; // Success, exit early
-      } catch (error) {
-        console.warn('⚠️ TTS: ElevenLabs failed, trying fallback:', error.message);
+      } catch (error: any) {
+        console.warn('⚠️ TTS: ElevenLabs failed, trying fallback:', error?.message || error);
         primaryFailed = true;
       }
-    } else if (selectedService === 'minimax' && miniMaxKey) {
+    } else if (effectiveService === 'minimax' && miniMaxKey) {
       try {
-        console.log('🎙️ TTS: Using MiniMax TTS');
+        console.log('🎙️ TTS: Using MiniMax TTS (effective)');
         await speakWithMiniMax(text);
         return; // Success, exit early
-      } catch (error) {
-        console.warn('⚠️ TTS: MiniMax failed, trying fallback:', error.message);
+      } catch (error: any) {
+        console.warn('⚠️ TTS: MiniMax failed, trying fallback:', error?.message || error);
         primaryFailed = true;
       }
     }
     
     // Try secondary service if primary failed or no key available
-    if (primaryFailed || !(selectedService === 'elevenlabs' ? elevenLabsKey : miniMaxKey)) {
-      const fallbackService = selectedService === 'elevenlabs' ? 'minimax' : 'elevenlabs';
+    if (primaryFailed || !(effectiveService === 'elevenlabs' ? elevenLabsKey : miniMaxKey)) {
+      const fallbackService: TTSService = effectiveService === 'elevenlabs' ? 'minimax' : 'elevenlabs';
       const fallbackKey = fallbackService === 'elevenlabs' ? elevenLabsKey : miniMaxKey;
       
       if (fallbackKey) {
@@ -271,8 +287,8 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
             await speakWithMiniMax(text);
           }
           return; // Success with fallback
-        } catch (fallbackError) {
-          console.warn('⚠️ TTS: Fallback service also failed:', fallbackError.message);
+        } catch (fallbackError: any) {
+          console.warn('⚠️ TTS: Fallback service also failed:', fallbackError?.message || fallbackError);
         }
       }
     }
@@ -321,6 +337,11 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
   console.log('🎙️ TTS: Using ElevenLabs voice:', selectedVoice, 'ID:', voiceId);
   console.log('🔑 TTS: API key length:', apiKey.length, 'starts with:', apiKey.substring(0, 10) + '...');
 
+  // Choose model based on language: English -> eleven_turbo_v2, otherwise multilingual
+  const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
+  const modelId = speechLanguage.startsWith('en') ? 'eleven_turbo_v2' : 'eleven_multilingual_v2';
+  console.log('🎛️ TTS: ElevenLabs model selected:', modelId, 'lang:', speechLanguage);
+
   const response = await fetch(`${ELEVENLABS_API_URL}/${voiceId}`, {
     method: 'POST',
     headers: {
@@ -330,7 +351,7 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
     },
     body: JSON.stringify({
       text: text,
-      model_id: 'eleven_multilingual_v2', // Use better model
+      model_id: modelId,
       voice_settings: VOICE_SETTINGS,
     }),
   });
@@ -674,17 +695,23 @@ const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<
     utterance.pitch = options?.pitch || 1.0;
     utterance.volume = options?.volume || 0.8;
 
-    // Try to use a good voice
+    // Enforce language (default to English US)
+    const preferredLang = localStorage.getItem('speech_language') || 'en-US';
+    utterance.lang = preferredLang;
+
+    // Try to use an English/browser voice matching the language
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(voice => 
-      voice.name.includes('Google') || 
-      voice.name.includes('Microsoft') ||
-      voice.lang.startsWith('en')
-    );
+    const baseLang = preferredLang.split('-')[0];
+    const preferredVoice = voices.find(v => v.lang === preferredLang)
+      || voices.find(v => v.lang.startsWith(baseLang))
+      || voices.find(v => (v.name.includes('Google') || v.name.includes('Microsoft')) && v.lang.startsWith('en'))
+      || voices.find(v => v.lang.startsWith('en'));
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
-      console.log('🎙️ TTS: Using browser voice:', preferredVoice.name);
+      console.log('🎙️ TTS: Using browser voice:', preferredVoice.name, 'lang:', preferredVoice.lang);
+    } else {
+      console.log('🎙️ TTS: No preferred voice found, using default with lang:', preferredLang);
     }
 
     utterance.onend = () => {

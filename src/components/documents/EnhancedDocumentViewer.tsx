@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2 } from 'lucide-react';
+import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2, Save } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Document, Page, pdfjs } from 'react-pdf';
 import mammoth from 'mammoth';
+import { RichTextEditor } from '@/components/documents/RichTextEditor';
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -48,6 +49,11 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     isFullscreen: false
   });
 
+  // Notes editor state
+  const [notesHtml, setNotesHtml] = useState<string>('');
+  const [initialNotesHtml, setInitialNotesHtml] = useState<string>('');
+  const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
+
   const isDocumentEntry = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
   const fileName = entry.fields.fileName || '';
   const fileType = entry.fields.fileType || '';
@@ -64,6 +70,23 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       loadDocument();
     }
   }, [isOpen, entry, isDocumentEntry]);
+
+  const textToHtml = (text: string) => {
+    const esc = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const withBreaks = esc.split('\n').join('<br>');
+    return `<p>${withBreaks}</p>`;
+  };
+
+  useEffect(() => {
+    if (!isOpen || !entry) return;
+    const existingHtml = (entry.fields?.documentNotesHtml as string) ||
+      (typeof entry.fields?.notes === 'string' ? textToHtml(entry.fields.notes as string) : '');
+    setNotesHtml(existingHtml);
+    setInitialNotesHtml(existingHtml);
+  }, [isOpen, entry]);
 
   const loadDocument = async () => {
     try {
@@ -196,6 +219,29 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       ...prev,
       isFullscreen: !prev.isFullscreen
     }));
+  };
+
+  // Save notes to Supabase (entries.fields.documentNotesHtml)
+  const handleSaveNotes = async () => {
+    if (!entry) return;
+    try {
+      setIsSavingNotes(true);
+      const updatedFields = { ...(entry.fields || {}), documentNotesHtml: notesHtml };
+      const { error } = await supabase
+        .from('entries')
+        .update({ fields: updatedFields as any })
+        .eq('id', entry.id);
+
+      if (error) throw error;
+
+      setInitialNotesHtml(notesHtml);
+      toast.success('Notes saved');
+    } catch (err) {
+      console.error('Error saving notes:', err);
+      toast.error('Failed to save notes');
+    } finally {
+      setIsSavingNotes(false);
+    }
   };
 
   const formatFileSize = (bytes: number) => {

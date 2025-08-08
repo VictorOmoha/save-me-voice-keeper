@@ -85,22 +85,12 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         const voiceAddField = (fieldName?: string, fieldType?: string) => {
           setLastVoiceUpdate(`Adding field: ${fieldName || 'Custom Field'}`);
           setHighlightedField('field_name');
-          
-          addField();
-          // If we have field details from voice, we'll set them after the field is added
-          if (fieldName) {
-            // The field will be added with empty name, so we'll update it after
-            setTimeout(() => {
-              const newFields = fields;
-              const lastFieldId = newFields[newFields.length - 1]?.id;
-              if (lastFieldId) {
-                updateField(lastFieldId, 'name', fieldName);
-                if (fieldType && fieldType !== 'text') {
-                  updateField(lastFieldId, 'type', fieldType as any);
-                }
-              }
-            }, 100);
-          }
+
+          const initial: any = {};
+          if (fieldName) initial.name = fieldName;
+          if (fieldType) initial.type = fieldType as any;
+          const newId = addField(initial);
+          console.debug('🎤 DataEntryForm.voiceAddField -> added field', { newId, fieldName, fieldType });
         };
         
         registerFormSetters(setTitle, setSelectedCategory, voiceAddField);

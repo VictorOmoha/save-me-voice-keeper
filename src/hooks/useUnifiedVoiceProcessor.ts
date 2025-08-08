@@ -4,6 +4,7 @@ import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';
 import { voiceProcessor, EnhancedVoiceCommand } from '@/utils/enhancedVoiceProcessor';
 import { matchCategory } from '@/utils/categoryMatcher';
+import { normalizeToDbFieldName } from '@/utils/fieldNameNormalizer';
 
 interface ConversationStep {
   type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'preview' | 'confirm';
@@ -470,22 +471,26 @@ export const useUnifiedVoiceProcessor = ({
     return true;
   }, [formTitleSetter, formCategorySetter, formAddFieldFunction, cleanVoiceInput]);
   const createEntryFromDraft = useCallback((draft: EntryDraft) => {
+    const normalizedFields = Object.fromEntries(
+      draft.fields.map(field => [normalizeToDbFieldName(field.name), ''])
+    );
+
     const entry = {
       title: draft.title || `New Entry - ${new Date().toLocaleDateString()}`,
       fields: {
         category: draft.category || 'Personal',
         description: '',
-        ...Object.fromEntries(draft.fields.map(field => [field.name, '']))
+        ...normalizedFields,
       },
       fieldDefinitions: [
         { id: 'category', name: 'category', type: 'text' as const },
         { id: 'description', name: 'description', type: 'textarea' as const },
         ...draft.fields.map((field, index) => ({
           id: `field_${Date.now()}_${index}`,
-          name: field.name,
-          type: field.type
-        }))
-      ]
+          name: normalizeToDbFieldName(field.name),
+          type: field.type,
+        })),
+      ],
     };
 
     onSaveEntry(entry);

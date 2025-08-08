@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SavedEntry, FieldDefinition } from "@/types/dashboard";
 import { CustomField, CATEGORIES } from './types';
+import { normalizeToDbFieldName } from "@/utils/fieldNameNormalizer";
 
 // Helper function to normalize field names for display
 const normalizeFieldName = (name: string): string => {
@@ -167,16 +168,16 @@ export const useFormLogic = ({
     });
   }, [editEntry, templateEntry, mode, preselectedCategory]);
 
-  const addField = () => {
+  const addField = (initial?: Partial<CustomField>): string => {
     const newField: CustomField = {
       id: Date.now().toString(),
-      name: '',
-      type: 'text',
-      value: ''
+      name: initial?.name ?? '',
+      type: (initial?.type as CustomField['type']) ?? 'text',
+      value: initial?.value ?? ''
     };
-    setFields([...fields, newField]);
+    setFields(prev => [...prev, newField]);
+    return newField.id;
   };
-
   const updateField = (id: string, key: keyof CustomField, value: any) => {
     console.log('Updating field:', { id, key, value });
     setFields(fields.map(field => 
@@ -211,7 +212,7 @@ export const useFormLogic = ({
     fields.forEach(field => {
       if (field.name && field.value !== undefined && field.value !== '') {
         // Convert display name back to a database-friendly format
-        const dbFieldName = field.name.toLowerCase().replace(/\s+/g, '_');
+        const dbFieldName = normalizeToDbFieldName(field.name);
         fieldData[dbFieldName] = field.value;
         
         fieldDefinitions.push({

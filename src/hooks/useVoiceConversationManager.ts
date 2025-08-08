@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';
 import { matchCategory } from '@/utils/categoryMatcher';
+import { normalizeToDbFieldName } from '@/utils/fieldNameNormalizer';
 
 interface ConversationStep {
   type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'preview' | 'confirm';
@@ -174,20 +175,30 @@ export const useVoiceConversationManager = ({
             toast.info("📝 Adding custom field");
           }, 300);
         } else {
-          // Save entry
+          // Save entry with normalized field names and consistent shape
+          const normalizedFields = Object.fromEntries(
+            entryDraft.fields.map(field => [normalizeToDbFieldName(field.name), ''])
+          );
+
           const finalEntry = {
             title: entryDraft.title || 'Untitled',
-            category: entryDraft.category || 'Personal',
-            fields: entryDraft.fields.reduce((acc, field) => {
-              acc[field.name] = '';
-              return acc;
-            }, {} as Record<string, any>),
-            fieldDefinitions: entryDraft.fields.map((field, index) => ({
-              id: `field_${Date.now()}_${index}`,
-              name: field.name,
-              type: field.type
-            }))
+            fields: {
+              category: entryDraft.category || 'Personal',
+              description: '',
+              ...normalizedFields,
+            },
+            fieldDefinitions: [
+              { id: 'category', name: 'category', type: 'text' as const },
+              { id: 'description', name: 'description', type: 'textarea' as const },
+              ...entryDraft.fields.map((field, index) => ({
+                id: `field_${Date.now()}_${index}`,
+                name: normalizeToDbFieldName(field.name),
+                type: field.type,
+              })),
+            ],
           };
+
+          console.debug('🧪 useVoiceConversationManager finalEntry', finalEntry);
           
           onSaveEntry(finalEntry);
           endConversation();

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';
+import { matchCategory } from '@/utils/categoryMatcher';
 
 interface ConversationStep {
   type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'preview' | 'confirm';
@@ -99,26 +100,7 @@ export const useVoiceConversationManager = ({
     });
   }, []);
 
-  const matchCategory = useCallback((input: string): string | null => {
-    const categoryMappings = {
-      'Documents': ['documents', 'document', 'docs', 'doc', 'files', 'file'],
-      'Health': ['health', 'medical', 'healthcare', 'medicine', 'doctor'],
-      'Contacts': ['contacts', 'contact', 'people', 'person', 'friends'],
-      'Finance': ['finance', 'financial', 'money', 'bank', 'budget'],
-      'Personal': ['personal', 'private', 'myself', 'self', 'misc', 'other']
-    };
-    
-    const lowerInput = input.toLowerCase().trim();
-    
-    for (const [category, variations] of Object.entries(categoryMappings)) {
-      if (variations.some(variation => lowerInput.includes(variation))) {
-        return category;
-      }
-    }
-    
-    return null;
-  }, []);
-
+// Category matching handled by shared utility in utils/categoryMatcher
   const processConversationStep = useCallback((transcript: string) => {
     const currentState = conversationStateRef.current;
     
@@ -262,8 +244,7 @@ export const useVoiceConversationManager = ({
     }
 
     return true;
-  }, [matchCategory, formTitleSetter, formCategorySetter, formAddFieldFunction, onSaveEntry, endConversation]);
-
+  }, [formTitleSetter, formCategorySetter, formAddFieldFunction, onSaveEntry, endConversation]);
   return {
     conversationState,
     startCreateEntryConversation,

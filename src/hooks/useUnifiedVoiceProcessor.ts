@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';
 import { voiceProcessor, EnhancedVoiceCommand } from '@/utils/enhancedVoiceProcessor';
+import { matchCategory } from '@/utils/categoryMatcher';
 
 interface ConversationStep {
   type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'preview' | 'confirm';
@@ -189,38 +190,7 @@ export const useUnifiedVoiceProcessor = ({
     return cleaned;
   }, []);
 
-  // Enhanced fuzzy matching for categories
-  const matchCategory = useCallback((input: string): string | null => {
-    const categoryMappings = {
-      'Documents': ['documents', 'document', 'docs', 'doc', 'files', 'file', 'paperwork', 'papers'],
-      'Health': ['health', 'medical', 'healthcare', 'medicine', 'doctor', 'wellness', 'fitness'],
-      'Contacts': ['contacts', 'contact', 'people', 'person', 'friends', 'friend', 'family', 'relationships'],
-      'Finance': ['finance', 'financial', 'money', 'bank', 'budget', 'expense', 'income', 'banking'],
-      'Personal': ['personal', 'private', 'myself', 'self', 'misc', 'other', 'general']
-    };
-    
-    const lowerInput = input.toLowerCase().trim();
-    
-    // First, try exact matches
-    for (const [category, variations] of Object.entries(categoryMappings)) {
-      if (variations.some(variation => lowerInput === variation)) {
-        console.log(`🎯 Exact category match: "${input}" → "${category}"`);
-        return category;
-      }
-    }
-    
-    // Then try substring matches with higher confidence
-    for (const [category, variations] of Object.entries(categoryMappings)) {
-      if (variations.some(variation => lowerInput.includes(variation) && variation.length >= 4)) {
-        console.log(`🎯 Fuzzy category match: "${input}" → "${category}"`);
-        return category;
-      }
-    }
-    
-    console.log(`❌ No category match found for: "${input}"`);
-    return null;
-  }, []);
-
+  // Category matching handled by shared utility in utils/categoryMatcher
   // Check if input seems confident (not too short or contains uncertainty markers)
   const isInputConfident = useCallback((input: string, stepType: string): boolean => {
     if (!input || input.length < 2) return false;
@@ -498,8 +468,7 @@ export const useUnifiedVoiceProcessor = ({
     }
 
     return true;
-  }, [formTitleSetter, formCategorySetter, formAddFieldFunction, cleanVoiceInput, matchCategory]);
-
+  }, [formTitleSetter, formCategorySetter, formAddFieldFunction, cleanVoiceInput]);
   const createEntryFromDraft = useCallback((draft: EntryDraft) => {
     const entry = {
       title: draft.title || `New Entry - ${new Date().toLocaleDateString()}`,

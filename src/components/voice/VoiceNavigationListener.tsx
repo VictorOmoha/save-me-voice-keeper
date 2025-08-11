@@ -18,16 +18,20 @@ export const VoiceNavigationListener: React.FC = () => {
         }
       } else if (dest === 'brain-dump') {
         // Persist intent for the Brain Dump page to read on mount
-        try {
-          sessionStorage.setItem('brain_dump_auto_start', JSON.stringify(params));
-        } catch {}
+        // Avoid double triggers: only use sessionStorage when navigating; otherwise dispatch event
         if (location.pathname !== '/brain-dump') {
+          try {
+            sessionStorage.setItem('brain_dump_auto_start', JSON.stringify(params));
+          } catch {}
           navigate('/brain-dump');
-        }
-        // Also fire a capture event shortly after navigation to support already-mounted listeners
-        setTimeout(() => {
+          // Also fire a capture event shortly after navigation to support already-mounted listeners
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('brain-dump:start-capture', { detail: params }));
+          }, 250);
+        } else {
+          // Already on page, trigger capture immediately without touching sessionStorage
           window.dispatchEvent(new CustomEvent('brain-dump:start-capture', { detail: params }));
-        }, 250);
+        }
       }
     };
 

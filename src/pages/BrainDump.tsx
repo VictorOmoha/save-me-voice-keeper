@@ -26,6 +26,10 @@ const BrainDumpPage: React.FC = () => {
 
   const hasStructured = useMemo(() => !!title || actionItems.length || keyPoints.length || notes.length, [title, actionItems, keyPoints, notes]);
 
+  // Dedupe guards to avoid double start/speak when navigated via voice
+  const introSpokenRef = useRef(false);
+  const captureStartedRef = useRef(false);
+
   useEffect(() => {
     document.title = "Brain Dump | Fast voice capture";
     // Meta description and canonical
@@ -58,18 +62,27 @@ const BrainDumpPage: React.FC = () => {
       if (raw) {
         const payload = JSON.parse(raw || '{}');
         sessionStorage.removeItem('brain_dump_auto_start');
-        if (isSupported && !isListening) start();
-        if (payload?.autoSpeak) {
+        if (payload?.autoStart && isSupported && !isListening && !captureStartedRef.current) {
+          start();
+          captureStartedRef.current = true;
+        }
+        if (payload?.autoSpeak && !introSpokenRef.current) {
           speak('Start your brain dump now. Say "process" when you are finished.');
+          introSpokenRef.current = true;
         }
       }
     } catch {}
 
     const handler = (e: Event) => {
       const event = e as CustomEvent<any>;
-      if (isSupported && !isListening) start();
-      if (event.detail?.autoSpeak) {
+      const autoStart = event.detail?.autoStart ?? true;
+      if (autoStart && isSupported && !isListening && !captureStartedRef.current) {
+        start();
+        captureStartedRef.current = true;
+      }
+      if (event.detail?.autoSpeak && !introSpokenRef.current) {
         speak('Start your brain dump now. Say "process" when you are finished.');
+        introSpokenRef.current = true;
       }
     };
 

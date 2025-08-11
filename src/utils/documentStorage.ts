@@ -4,7 +4,8 @@ import { toast } from 'sonner';
 
 const precheckFileQuota = async (size: number): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.rpc('can_add_usage', { _delta_db: 0, _delta_file: size });
+    // can_add_usage may not be in generated types; cast supabase to any
+    const { data, error } = await (supabase as any).rpc('can_add_usage', { _delta_db: 0, _delta_file: size });
     if (error) {
       console.warn('can_add_usage RPC error:', error);
       return true; // Allow attempt; server triggers will enforce
@@ -18,9 +19,9 @@ const precheckFileQuota = async (size: number): Promise<boolean> => {
 
 const registerFile = async (userId: string, entryId: string | null, path: string, size: number) => {
   // Ensure we don't double-count if the same path already exists
-  await supabase.from('user_files').delete().eq('path', path);
+  await (supabase as any).from('user_files').delete().eq('path', path);
 
-  const { error } = await supabase.from('user_files').insert({
+  const { error } = await (supabase as any).from('user_files').insert({
     user_id: userId,
     entry_id: entryId || null,
     path,
@@ -43,7 +44,7 @@ const registerFile = async (userId: string, entryId: string | null, path: string
 };
 
 const unregisterFile = async (path: string) => {
-  const { error } = await supabase.from('user_files').delete().eq('path', path);
+  const { error } = await (supabase as any).from('user_files').delete().eq('path', path);
   if (error) {
     console.error('Failed to unregister file from user_files:', error);
   }

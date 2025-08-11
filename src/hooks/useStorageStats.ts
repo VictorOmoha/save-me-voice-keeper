@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { SavedEntry } from "@/types/dashboard";
 import { 
@@ -38,10 +39,15 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
 
     const fetchUsage = async () => {
       try {
-        // get_current_storage_usage always returns one row for authenticated users
-        const { data, error } = await supabase.rpc('get_current_storage_usage');
+        // get_current_storage_usage may not exist in generated types; cast supabase to any
+        const { data, error } = await (supabase as any).rpc('get_current_storage_usage');
         if (error) {
           console.warn('get_current_storage_usage error:', error);
+          if (isMounted) setServerUsage(null);
+          return;
+        }
+
+        if (!data) {
           if (isMounted) setServerUsage(null);
           return;
         }

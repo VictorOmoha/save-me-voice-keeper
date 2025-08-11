@@ -238,6 +238,7 @@ export default function Dashboard() {
       onSaveEntry={saveEntry}
       onCancelEdit={handleCancelEdit}
       onFillEntry={fillEntry}
+      onEnhancedVoiceInput={enhancedVoiceInputHandler}
     >
       {(showAddEntry || editingEntry || fillingEntry || showDocumentCreator) ? (
         <>

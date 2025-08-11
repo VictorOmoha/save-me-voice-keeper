@@ -4,7 +4,7 @@ import { ConversationalVoiceInterface } from "./ConversationalVoiceInterface";
 import { SavedEntry } from "@/types/dashboard";
 
 interface FloatingVoiceInputProps {
-  onEnhancedVoiceInput: (text: string) => void;
+  onEnhancedVoiceInput?: (text: string) => void;
   isVoiceProcessing?: boolean;
   lastVoiceCommand?: any;
   conversationState?: 'listening' | 'confirming' | 'idle';
@@ -42,12 +42,12 @@ export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
   // Direct voice handler that bypasses the conversation interface routing
   const handleVoiceInput = async (transcript: string) => {
     console.log('🎯 FloatingVoiceInput: Direct voice input to dashboard:', transcript);
-    
-    // For delete commands, if user says just an entry name after being prompted, 
-    // let the dashboard handle it directly
+    if (!onEnhancedVoiceInput) {
+      console.warn('⚠️ FloatingVoiceInput: No onEnhancedVoiceInput handler provided. Ignoring transcript.');
+      return;
+    }
     await onEnhancedVoiceInput(transcript);
   };
-
   return (
     <div className="fixed bottom-4 right-20 z-40">
       <ConversationalVoiceInterface 

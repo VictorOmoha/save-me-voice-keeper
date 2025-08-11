@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, Navigate } from "react-router-dom";
+import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { CategoryView } from "@/components/CategoryView";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SavedEntry } from "@/types/dashboard";

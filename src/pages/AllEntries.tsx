@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { EntriesTable } from "@/components/EntriesTable";
 import { DataEntryForm } from "@/components/DataEntryForm";
-import { DashboardHeader } from "@/components/DashboardHeader";
+// (header replaced by DashboardLayout)
 import { SavedEntry } from "@/types/dashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ export default function AllEntries() {
     deleteEntry,
     refreshEntries,
   } = useSavedEntries();
+  const navigate = useNavigate();
   
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
@@ -115,7 +116,6 @@ export default function AllEntries() {
   };
 
   if (isLoading) {
-    const navigate = useNavigate();
     const handleCategorySelectNav = (name: string) => navigate(`/category/${encodeURIComponent(name)}`);
     const handleAllEntriesSelectNav = () => navigate(`/all-entries`);
 

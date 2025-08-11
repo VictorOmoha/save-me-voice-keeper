@@ -13,7 +13,7 @@ const processor = new BrainDumpProcessor();
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
-  const { isListening, transcript, start, stop, reset } = useBrainDumpCapture();
+  const { isSupported, isListening, transcript, start, stop, reset } = useBrainDumpCapture();
 
   const [rawText, setRawText] = useState("");
   const [title, setTitle] = useState("");
@@ -58,7 +58,7 @@ const BrainDumpPage: React.FC = () => {
       if (raw) {
         const payload = JSON.parse(raw || '{}');
         sessionStorage.removeItem('brain_dump_auto_start');
-        if (!isListening) start();
+        if (isSupported && !isListening) start();
         if (payload?.autoSpeak) {
           speak('Start your brain dump now. Say "process" when you are finished.');
         }
@@ -67,7 +67,7 @@ const BrainDumpPage: React.FC = () => {
 
     const handler = (e: Event) => {
       const event = e as CustomEvent<any>;
-      if (!isListening) start();
+      if (isSupported && !isListening) start();
       if (event.detail?.autoSpeak) {
         speak('Start your brain dump now. Say "process" when you are finished.');
       }
@@ -75,7 +75,7 @@ const BrainDumpPage: React.FC = () => {
 
     window.addEventListener('brain-dump:start-capture', handler as EventListener);
     return () => window.removeEventListener('brain-dump:start-capture', handler as EventListener);
-  }, [isListening, start]);
+  }, [isSupported, isListening, start]);
 
   const handleProcess = () => {
     const content = (rawText || transcript).trim();

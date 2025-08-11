@@ -31,6 +31,7 @@ export const useBrainDumpCapture = () => {
   };
 
   return {
+    isSupported,
     isListening: isListening || started,
     transcript,
     start,

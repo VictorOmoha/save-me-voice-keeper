@@ -371,8 +371,11 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                 </>
               )}
             </div>
-          </DialogTitle>
-        </DialogHeader>
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          View and manage the selected document. Use the Editor to print Word or text documents; only PDFs can be printed here.
+        </DialogDescription>
+      </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col space-y-4">
           {/* Document Information */}
@@ -412,18 +415,18 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                 <span>Download</span>
               </Button>
 
-{(isPdf || isWordDoc) && (
+{isPdf && (
   <Button
     onClick={handlePrint}
     variant="outline"
-    disabled={isLoading || (isPdf ? !documentState.blob : (!documentState.content && !documentState.blob))}
+    disabled={isLoading || !documentState.blob}
     className="flex items-center space-x-2"
   >
     <Printer className="w-4 h-4" />
     <span>Print</span>
   </Button>
 )}
-{isTextBased && !isPdf && !isWordDoc && (
+{!isPdf && (isWordDoc || isTextBased) && (
   <span className="text-sm text-muted-foreground">
     To print, open in Editor and use its Print button.
   </span>

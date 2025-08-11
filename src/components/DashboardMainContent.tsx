@@ -15,6 +15,8 @@ interface DashboardMainContentProps {
   userName?: string;
   userTier?: string;
   savedEntries: SavedEntry[];
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
   showDocumentCreator: boolean;
   showAddEntry: boolean;
   editingEntry: SavedEntry | null;
@@ -54,6 +56,8 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   userName,
   userTier,
   savedEntries,
+  searchQuery,
+  onSearchChange,
   showDocumentCreator,
   showAddEntry,
   editingEntry,
@@ -119,18 +123,22 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       </div>
 
       {/* Quick Actions */}
-      <NewQuickActions
-        onAddEntry={onAddEntry}
-        onVoiceInput={() => {}}
-        onEnhancedVoiceInput={onEnhancedVoiceInput}
-        onCreateDocument={onCreateDocument}
-        isVoiceProcessing={isVoiceProcessing}
-        lastVoiceCommand={lastVoiceCommand}
-        conversationState={conversationState}
-        hasPendingConfirmation={hasPendingConfirmation}
-        onCancelVoice={onCancelVoice}
-        conversationData={conversationData}
-      />
+<NewQuickActions
+  onAddEntry={onAddEntry}
+  onVoiceInput={() => {}}
+  onEnhancedVoiceInput={onEnhancedVoiceInput}
+  onCreateDocument={onCreateDocument}
+  isVoiceProcessing={isVoiceProcessing}
+  lastVoiceCommand={lastVoiceCommand}
+  conversationState={conversationState}
+  hasPendingConfirmation={hasPendingConfirmation}
+  onCancelVoice={onCancelVoice}
+  conversationData={conversationData}
+  entries={savedEntries}
+  searchQuery={searchQuery}
+  onSearchChange={onSearchChange}
+  onEntrySelect={onViewDocument}
+/>
 
       {/* Stats Cards */}
       <StatsCards 

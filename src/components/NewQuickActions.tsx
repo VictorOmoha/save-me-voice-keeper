@@ -4,6 +4,8 @@ import { Search, Mic, Plus, FileText } from "lucide-react";
 import { VoiceInputFixed } from "@/components/VoiceInputFixed";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { useState } from "react";
+import { SmartSearch } from "@/components/SmartSearch";
+import { SavedEntry } from "@/types/dashboard";
 
 interface NewQuickActionsProps {
   onAddEntry: () => void;
@@ -16,6 +18,10 @@ interface NewQuickActionsProps {
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
   conversationData?: { isActive: boolean; currentStep?: { question: string } };
+  entries: SavedEntry[];
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  onEntrySelect?: (entry: SavedEntry) => void;
 }
 
 export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
@@ -29,6 +35,10 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
   hasPendingConfirmation,
   onCancelVoice,
   conversationData,
+  entries,
+  searchQuery,
+  onSearchChange,
+  onEntrySelect,
 }) => {
   const [showVoiceInput, setShowVoiceInput] = useState(false);
   return (
@@ -62,10 +72,15 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
           <span>Create Document</span>
         </Button>
         
-        <Button variant="outline" className="flex items-center space-x-2">
-          <Search className="w-4 h-4" />
-          <span>Search</span>
-        </Button>
+<div className="min-w-[280px] flex-1">
+  <SmartSearch
+    entries={entries}
+    searchQuery={searchQuery}
+    onSearchChange={onSearchChange}
+    onEntrySelect={onEntrySelect}
+    placeholder="Search entries and fields..."
+  />
+</div>
         
         <Button 
           onClick={() => {

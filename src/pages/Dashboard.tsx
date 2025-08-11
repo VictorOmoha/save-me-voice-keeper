@@ -276,6 +276,8 @@ export default function Dashboard() {
         <DashboardMainContent
           userName={user?.user_metadata?.full_name || user?.email || 'User'}
           savedEntries={savedEntries}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
           showDocumentCreator={showDocumentCreator}
           showAddEntry={showAddEntry}
           editingEntry={editingEntry}

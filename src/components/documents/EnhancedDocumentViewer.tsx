@@ -412,15 +412,22 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                 <span>Download</span>
               </Button>
 
-              <Button
-                onClick={handlePrint}
-                variant="outline"
-                disabled={isLoading || (isPdf ? !documentState.blob : !documentState.content)}
-                className="flex items-center space-x-2"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print</span>
-              </Button>
+{(isPdf || isWordDoc) && (
+  <Button
+    onClick={handlePrint}
+    variant="outline"
+    disabled={isLoading || (isPdf ? !documentState.blob : (!documentState.content && !documentState.blob))}
+    className="flex items-center space-x-2"
+  >
+    <Printer className="w-4 h-4" />
+    <span>Print</span>
+  </Button>
+)}
+{isTextBased && !isPdf && !isWordDoc && (
+  <span className="text-sm text-muted-foreground">
+    To print, open in Editor and use its Print button.
+  </span>
+)}
               
               {canEdit && onEdit && (
                 <Button 

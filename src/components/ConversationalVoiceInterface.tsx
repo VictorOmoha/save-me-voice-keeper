@@ -90,6 +90,24 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         return;
       }
       
+      // Allow navigation intents even during conversations
+      const brainDumpRegex = /(open|start|go to|launch)?\s*(the\s*)?(brain\s?-?dump|braindump)/;
+      if (brainDumpRegex.test(lowerTranscript)) {
+        speak('Opening Brain Dump');
+        // Persist auto-start intent for the destination page
+        try {
+          sessionStorage.setItem('brain_dump_auto_start', JSON.stringify({ autoStart: true, autoSpeak: true }));
+        } catch {}
+        window.dispatchEvent(new CustomEvent('voice-navigate', {
+          detail: { destination: 'brain-dump', params: { autoStart: true, autoSpeak: true } }
+        }));
+        // Stop current conversation/listening
+        setIsActive(false);
+        speechRecognition.stop();
+        endConversation();
+        return;
+      }
+
       // Check the actual conversation state from the optimized processor
       const actuallyInConversation = conversationState.isInConversation;
       

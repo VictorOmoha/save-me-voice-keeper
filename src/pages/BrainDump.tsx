@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useSavedEntries } from "@/hooks/useSavedEntries";
 import { BrainDumpProcessor } from "@/utils/brainDumpProcessor";
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
-
+import { speak } from "@/utils/textToSpeech";
 const processor = new BrainDumpProcessor();
 
 const BrainDumpPage: React.FC = () => {
@@ -49,6 +49,33 @@ const BrainDumpPage: React.FC = () => {
     }
     link.href = window.location.origin + "/brain-dump";
   }, []);
+
+  // Auto-start capture when navigated via voice with autoStart flag
+  useEffect(() => {
+    // Read persisted intent set by the navigation listener
+    try {
+      const raw = sessionStorage.getItem('brain_dump_auto_start');
+      if (raw) {
+        const payload = JSON.parse(raw || '{}');
+        sessionStorage.removeItem('brain_dump_auto_start');
+        if (!isListening) start();
+        if (payload?.autoSpeak) {
+          speak('Start your brain dump now. Say "process" when you are finished.');
+        }
+      }
+    } catch {}
+
+    const handler = (e: Event) => {
+      const event = e as CustomEvent<any>;
+      if (!isListening) start();
+      if (event.detail?.autoSpeak) {
+        speak('Start your brain dump now. Say "process" when you are finished.');
+      }
+    };
+
+    window.addEventListener('brain-dump:start-capture', handler as EventListener);
+    return () => window.removeEventListener('brain-dump:start-capture', handler as EventListener);
+  }, [isListening, start]);
 
   const handleProcess = () => {
     const content = (rawText || transcript).trim();

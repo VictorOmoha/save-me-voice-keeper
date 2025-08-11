@@ -9,6 +9,7 @@ export const VoiceNavigationListener: React.FC = () => {
     const handler = (e: Event) => {
       const event = e as CustomEvent<{ destination: string; params?: any }>;
       const dest = event.detail?.destination;
+      const params = event.detail?.params || {};
       if (!dest) return;
 
       if (dest === 'dashboard') {
@@ -16,9 +17,17 @@ export const VoiceNavigationListener: React.FC = () => {
           navigate('/dashboard');
         }
       } else if (dest === 'brain-dump') {
+        // Persist intent for the Brain Dump page to read on mount
+        try {
+          sessionStorage.setItem('brain_dump_auto_start', JSON.stringify(params));
+        } catch {}
         if (location.pathname !== '/brain-dump') {
           navigate('/brain-dump');
         }
+        // Also fire a capture event shortly after navigation to support already-mounted listeners
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('brain-dump:start-capture', { detail: params }));
+        }, 250);
       }
     };
 

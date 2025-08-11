@@ -179,10 +179,30 @@ const BrainDumpPage: React.FC = () => {
     return { save: true };
   };
 
+  // Voice navigation: Recognize intents to go to the dashboard from Brain Dump
+  const isDashboardNavCommand = (text: string) => {
+    return /\b(go to|open|back to|navigate to|show)\s+(the\s+)?dashboard\b/.test(text)
+      || /\b(exit|close|leave)\s+(the\s+)?brain\s*dump\b/.test(text)
+      || /\b(go\s*back|back\s*(?:to\s*)?dashboard)\b/.test(text);
+  };
+
+  const navigateToDashboard = () => {
+    try { stop(); } catch {}
+    speak('Opening dashboard');
+    window.dispatchEvent(new CustomEvent('voice-navigate', { detail: { destination: 'dashboard' } }));
+  };
+
   useEffect(() => {
     const t = (transcript || '').trim();
     if (!t || t === lastHandledRef.current) return;
     const lower = t.toLowerCase();
+
+    // Handle navigation intents first
+    if (isDashboardNavCommand(lower)) {
+      navigateToDashboard();
+      lastHandledRef.current = t;
+      return;
+    }
 
     if (isProcessCommand(lower)) {
       handleProcess();

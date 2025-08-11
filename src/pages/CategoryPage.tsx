@@ -3,7 +3,7 @@ import { useParams, Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus } from "lucide-react";
 import { CategoryView } from "@/components/CategoryView";
-import { DashboardHeader } from "@/components/DashboardHeader";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SavedEntry } from "@/types/dashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ const VALID_CATEGORIES = ['Documents', 'Health', 'Contacts', 'Finance', 'Persona
 
 export default function CategoryPage() {
   const { categoryName } = useParams<{ categoryName: string }>();
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<SavedEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddEntry, setShowAddEntry] = useState(false);
@@ -174,56 +175,49 @@ export default function CategoryPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        savedEntries={entries}
-      />
-
-      <div className="container mx-auto px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">{categoryName}</h1>
-              <p className="text-muted-foreground">
-                Manage your {categoryName.toLowerCase()} entries
-              </p>
-            </div>
-          </div>
-          
-          <Button onClick={() => handleCreateEntry(categoryName)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add {categoryName} Entry
-          </Button>
+    <DashboardLayout
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      savedEntries={entries}
+      onAddEntry={() => handleCreateEntry(categoryName)}
+      onCategorySelect={(name) => navigate(`/category/${encodeURIComponent(name)}`)}
+      onAllEntriesSelect={() => navigate(`/all-entries`)}
+      onEditEntry={handleEditEntry as any}
+      onDeleteEntry={handleDeleteEntry}
+      onSaveEntry={handleSaveEntry as any}
+      onCancelEdit={handleCancelEdit}
+      onFillEntry={handleFillEntry as any}
+    >
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">{categoryName}</h1>
+          <p className="text-muted-foreground">Manage your {categoryName.toLowerCase()} entries</p>
         </div>
-
-        <CategoryView
-          categoryName={categoryName}
-          entries={filteredEntries}
-          onBack={() => {}}
-          onEdit={handleEditEntry}
-          onDelete={handleDeleteEntry}
-          onFill={handleFillEntry}
-          onCreateEntry={handleCreateEntry}
-          showDocumentCreator={showDocumentCreator}
-          showAddEntry={showAddEntry}
-          editingEntry={editingEntry}
-          fillingEntry={fillingEntry}
-          onDocumentSave={handleSaveEntry}
-          onDocumentCancel={handleCancelEdit}
-          onSaveEntry={handleSaveEntry}
-          onCancelEdit={handleCancelEdit}
-          getFormTitle={getFormTitle}
-          getFormMode={getFormMode}
-        />
+        <Button onClick={() => handleCreateEntry(categoryName)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add {categoryName} Entry
+        </Button>
       </div>
-    </div>
+
+      <CategoryView
+        categoryName={categoryName}
+        entries={filteredEntries}
+        onBack={() => {}}
+        onEdit={handleEditEntry}
+        onDelete={handleDeleteEntry}
+        onFill={handleFillEntry}
+        onCreateEntry={handleCreateEntry}
+        showDocumentCreator={showDocumentCreator}
+        showAddEntry={showAddEntry}
+        editingEntry={editingEntry}
+        fillingEntry={fillingEntry}
+        onDocumentSave={handleSaveEntry}
+        onDocumentCancel={handleCancelEdit}
+        onSaveEntry={handleSaveEntry}
+        onCancelEdit={handleCancelEdit}
+        getFormTitle={getFormTitle}
+        getFormMode={getFormMode}
+      />
+    </DashboardLayout>
   );
 }

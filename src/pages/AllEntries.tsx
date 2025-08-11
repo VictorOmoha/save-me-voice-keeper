@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus } from "lucide-react";
 import { EntriesTable } from "@/components/EntriesTable";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useSavedEntries } from "@/hooks/useSavedEntries";
 import { EnhancedDocumentViewer } from "@/components/documents/EnhancedDocumentViewer";
 import { DocumentEditor } from "@/components/documents/DocumentEditor";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 export default function AllEntries() {
   const { 
     savedEntries: entries, 
@@ -114,103 +115,106 @@ export default function AllEntries() {
   };
 
   if (isLoading) {
+    const navigate = useNavigate();
+    const handleCategorySelectNav = (name: string) => navigate(`/category/${encodeURIComponent(name)}`);
+    const handleAllEntriesSelectNav = () => navigate(`/all-entries`);
+
     return (
-      <div className="min-h-screen bg-background">
-        <DashboardHeader
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          savedEntries={entries}
-        />
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading entries...</p>
-            </div>
+      <DashboardLayout
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        savedEntries={entries}
+        onAddEntry={() => setShowAddEntry(true)}
+        onCategorySelect={handleCategorySelectNav}
+        onAllEntriesSelect={handleAllEntriesSelectNav}
+        onEditEntry={handleEditEntry as any}
+        onDeleteEntry={handleDeleteEntry}
+        onSaveEntry={() => {}}
+        onCancelEdit={handleCancelEdit}
+        onFillEntry={handleFillEntry as any}
+      >
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading entries...</p>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   const filteredEntries = entries;
 
   return (
-    <div className="min-h-screen bg-background">
-      <DashboardHeader
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        savedEntries={entries}
+    <DashboardLayout
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      savedEntries={entries}
+      onAddEntry={() => setShowAddEntry(true)}
+      onCategorySelect={(name) => navigate(`/category/${encodeURIComponent(name)}`)}
+      onAllEntriesSelect={() => navigate(`/all-entries`)}
+      onEditEntry={handleEditEntry as any}
+      onDeleteEntry={handleDeleteEntry}
+      onSaveEntry={() => {}}
+      onCancelEdit={handleCancelEdit}
+      onFillEntry={handleFillEntry as any}
+    >
+      <div className="mb-6 space-y-1">
+        <h1 className="text-2xl font-bold">All Entries</h1>
+        <p className="text-muted-foreground">
+          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'} total
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between mb-6">
+        <div />
+        <Button onClick={() => setShowAddEntry(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Entry
+        </Button>
+      </div>
+
+      {showAddEntry && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>
+              {editingEntry ? 'Edit Entry' : 'Add New Entry'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataEntryForm 
+              onSave={handleSaveEntry}
+              onCancel={handleCancelEdit}
+              editEntry={editingEntry}
+              mode={editingEntry ? 'edit' : 'create'}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      <EntriesTable
+        entries={filteredEntries}
+        onDelete={handleDeleteEntry}
+        onEdit={handleEditEntry}
+        onFill={handleFillEntry}
+        onBulkDelete={handleBulkDelete}
+        onViewDocument={handleViewDocument}
       />
 
-      <div className="container mx-auto px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <Link to="/dashboard">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold">All Entries</h1>
-              <p className="text-muted-foreground">
-                {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'} total
-              </p>
-            </div>
-          </div>
-          
-          <Button onClick={() => setShowAddEntry(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Entry
-          </Button>
-        </div>
+      <EnhancedDocumentViewer
+        isOpen={documentViewerState.isOpen}
+        onClose={handleCloseDocumentViewer}
+        entry={documentViewerState.entry}
+        onEdit={handleEditFromViewer}
+      />
 
-        {/* Add/Edit Entry Form */}
-        {showAddEntry && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>
-                {editingEntry ? 'Edit Entry' : 'Add New Entry'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DataEntryForm 
-                onSave={handleSaveEntry}
-                onCancel={handleCancelEdit}
-                editEntry={editingEntry}
-                mode={editingEntry ? 'edit' : 'create'}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Entries Table */}
-        <EntriesTable
-          entries={filteredEntries}
-          onDelete={handleDeleteEntry}
-          onEdit={handleEditEntry}
-          onFill={handleFillEntry}
-          onBulkDelete={handleBulkDelete}
-          onViewDocument={handleViewDocument}
-        />
-
-        {/* Document Viewer */}
-        <EnhancedDocumentViewer
-          isOpen={documentViewerState.isOpen}
-          onClose={handleCloseDocumentViewer}
-          entry={documentViewerState.entry}
-          onEdit={handleEditFromViewer}
-        />
-
-        {/* Document Editor */}
-        <DocumentEditor
-          isOpen={documentEditorState.isOpen}
-          onClose={handleCloseDocumentEditor}
-          entry={documentEditorState.entry}
-          onSave={handleDocumentSaved}
-        />
-      </div>
-    </div>
+      <DocumentEditor
+        isOpen={documentEditorState.isOpen}
+        onClose={handleCloseDocumentEditor}
+        entry={documentEditorState.entry}
+        onSave={handleDocumentSaved}
+      />
+    </DashboardLayout>
   );
 }
+

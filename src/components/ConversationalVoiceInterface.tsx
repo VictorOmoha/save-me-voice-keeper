@@ -133,17 +133,9 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         setIsListening(true);
       },
       
-      onEnd: () => {
+onEnd: () => {
         setIsListening(false);
-        
-        // Auto-restart for continuous listening if still active
-        if (isActive && !speechRecognition.isCurrentlyListening()) {
-          setTimeout(() => {
-            if (isActive) {
-              speechRecognition.start();
-            }
-          }, 1000);
-        }
+        // Let the singleton manage restarts; avoid duplicate restarts here
       },
       
       onError: (error: string) => {

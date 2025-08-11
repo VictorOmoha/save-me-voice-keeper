@@ -112,7 +112,7 @@ export class SpeechRecognitionSingleton {
       }
     };
 
-    this.recognition.onerror = (event) => {
+this.recognition.onerror = (event) => {
       console.error('🚨 Recognition Singleton: Error:', event.error);
       this.callbacks.onError?.(event.error);
       
@@ -130,7 +130,10 @@ export class SpeechRecognitionSingleton {
       }
       
       // Auto-restart for recoverable errors with exponential backoff
-      if (['no-speech', 'aborted'].includes(event.error) && !((window as any).__manual_stop)) {
+      if (event.error === 'no-speech' && !((window as any).__manual_stop)) {
+        this.scheduleRestart();
+      }
+      if (event.error === 'aborted' && !((window as any).__manual_stop) && !((window as any).__tts_is_speaking)) {
         this.scheduleRestart();
       }
     };
@@ -140,8 +143,8 @@ export class SpeechRecognitionSingleton {
       this.isListening = false;
       this.callbacks.onEnd?.();
       
-      // Auto-restart if not manually stopped and within attempt limits
-      if (!((window as any).__manual_stop) && this.restartAttempts < this.maxRestartAttempts) {
+// Auto-restart if not manually stopped, not during TTS, and within attempt limits
+      if (!((window as any).__manual_stop) && !((window as any).__tts_is_speaking) && this.restartAttempts < this.maxRestartAttempts) {
         this.scheduleRestart();
       } else if (this.restartAttempts >= this.maxRestartAttempts) {
         console.log('🛑 Recognition Singleton: Max restart attempts reached');

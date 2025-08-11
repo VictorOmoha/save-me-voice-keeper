@@ -74,6 +74,7 @@ export default function Dashboard() {
     hasPendingConfirmation,
     conversationData,
     cancelCurrentOperation,
+    refreshEntries,
   } = useDashboard();
 
   
@@ -214,9 +215,9 @@ export default function Dashboard() {
   };
 
   const handleDocumentSaved = (updatedEntry: SavedEntry) => {
-    // The entry will be automatically updated through the useDashboard hook
-    // when the database changes are detected via Supabase real-time subscriptions
     toast.success('Document updated successfully!');
+    refreshEntries?.();
+    setDocumentEditorState({ isOpen: false, entry: null });
   };
 
   if (loading || entriesLoading) {

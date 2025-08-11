@@ -18,7 +18,8 @@ export default function AllEntries() {
     searchQuery, 
     setSearchQuery, 
     saveEntry, 
-    deleteEntry 
+    deleteEntry,
+    refreshEntries,
   } = useSavedEntries();
   
   const [showAddEntry, setShowAddEntry] = useState(false);
@@ -108,6 +109,8 @@ export default function AllEntries() {
   };
   const handleDocumentSaved = () => {
     toast.success('Document updated successfully!');
+    refreshEntries();
+    setDocumentEditorState({ isOpen: false, entry: null });
   };
 
   if (isLoading) {

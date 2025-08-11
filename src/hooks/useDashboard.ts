@@ -13,6 +13,7 @@ export const useDashboard = () => {
     deleteEntry: baseDeleteEntry,
     searchQuery,
     setSearchQuery,
+    refreshEntries,
   } = useSavedEntries();
 
   const [showAddEntry, setShowAddEntry] = useState(false);
@@ -545,5 +546,6 @@ export const useDashboard = () => {
     handleAddEntry,
     handleEnhancedVoiceInput,
     cancelCurrentOperation,
+    refreshEntries,
   };
 };

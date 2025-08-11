@@ -48,47 +48,68 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const loadDocumentForEditing = async () => {
     try {
       setIsLoading(true);
-      
-      // First try stored content
-      if (entry.fields.documentContent) {
-        const content = entry.fields.documentContent;
+
+      // Prefer Supabase Storage first to avoid stale inline content
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        console.warn('No authenticated user while loading document');
+      }
+
+      const explicitPath = (entry.fields as any)?.storagePath as string | undefined;
+      const defaultFileName = fileName || 'document.txt';
+      const computedPath = user ? `${user.id}/${entry.id}/${defaultFileName}` : `${entry.id}/${defaultFileName}`;
+      const filePath = explicitPath || computedPath;
+
+      if (filePath) {
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .download(filePath);
+
+        if (error) {
+          console.warn('Storage download error (will try fallbacks):', error.message || error.name || error);
+        } else if (data) {
+          const text = await data.text();
+          setDocumentContent(text);
+          setOriginalContent(text);
+          return;
+        }
+      }
+
+      // Fallback 2: inline stored content
+      if ((entry.fields as any)?.documentContent) {
+        const content = (entry.fields as any).documentContent as string;
         setDocumentContent(content);
         setOriginalContent(content);
         return;
       }
 
-      // Try to get from Supabase Storage (prefer explicit storagePath)
-      const storagePath = (entry.fields as any)?.storagePath as string | undefined;
-      const filePath = storagePath || `${entry.id}/${fileName}`;
-      const { data } = await supabase.storage
-        .from('documents')
-        .download(filePath);
+      // Fallback 3: legacy localStorage cache
+      const localKey = Object.keys(localStorage).find(key =>
+        key.startsWith('document_') &&
+        (() => { try { return JSON.parse(localStorage.getItem(key) || '{}').name === defaultFileName; } catch { return false; } })()
+      );
 
-      if (data) {
-        const text = await data.text();
-        setDocumentContent(text);
-        setOriginalContent(text);
-      } else {
-        // Fallback to localStorage
-        const localKey = Object.keys(localStorage).find(key => 
-          key.startsWith('document_') && 
-          JSON.parse(localStorage.getItem(key) || '{}').name === fileName
-        );
-
-        if (localKey) {
+      if (localKey) {
+        try {
           const fileData = JSON.parse(localStorage.getItem(localKey) || '{}');
-          const byteCharacters = atob(fileData.data.split(',')[1]);
+          const byteCharacters = atob(String(fileData.data || '').split(',')[1] || '');
           const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
+          for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
           const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: fileData.type });
+          const blob = new Blob([byteArray], { type: fileData.type || 'text/plain' });
           const text = await blob.text();
           setDocumentContent(text);
           setOriginalContent(text);
+          return;
+        } catch (e) {
+          console.warn('Failed to parse localStorage document cache:', e);
         }
       }
+
+      // Nothing found; start with empty
+      setDocumentContent('');
+      setOriginalContent('');
     } catch (error) {
       console.error('Error loading document for editing:', error);
       toast.error('Failed to load document for editing');
@@ -106,21 +127,33 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     try {
       setIsSaving(true);
 
+      // Determine MIME type
+      const mime = isHtml ? 'text/html' : (fileType || 'text/plain');
+
       // Create updated file blob
-      const updatedBlob = new Blob([documentContent], { type: fileType || 'text/plain' });
-      
-      // Upload to Supabase Storage (prefer existing storagePath)
+      const updatedBlob = new Blob([documentContent], { type: mime });
+
+      // Resolve storage path (prefer existing storagePath)
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const existingStoragePath = (entry.fields as any)?.storagePath as string | undefined;
-      const filePath = existingStoragePath || `${entry.id}/${fileName}`;
+      const safeFileName = fileName || (isHtml ? 'document.html' : 'document.txt');
+      const filePath = existingStoragePath || `${user.id}/${entry.id}/${safeFileName}`;
+
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, updatedBlob, {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
         });
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
+        toast.error(`Storage upload failed: ${uploadError.message || uploadError.name}`);
         throw uploadError;
       }
 
@@ -129,19 +162,20 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         ...entry.fields,
         documentContent: documentContent, // Store content for quick access
         storagePath: filePath, // Persist the storage path for faster future loads
-        updatedAt: new Date().toISOString()
-      };
+        updatedAt: new Date().toISOString(),
+      } as Record<string, any>;
 
       const { error: updateError } = await supabase
         .from('entries')
         .update({
           fields: updatedFields,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', entry.id);
 
       if (updateError) {
         console.error('Database update error:', updateError);
+        toast.error(`Database update failed: ${updateError.message || updateError.code}`);
         throw updateError;
       }
 
@@ -154,15 +188,15 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         const updatedEntry: SavedEntry = {
           ...entry,
           fields: updatedFields,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         };
         onSave(updatedEntry);
       }
 
       toast.success('Document saved successfully!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving document:', error);
-      toast.error('Failed to save document');
+      toast.error(`Failed to save document: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }

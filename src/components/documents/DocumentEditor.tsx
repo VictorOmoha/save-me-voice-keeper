@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, X, FileText, Edit3 } from 'lucide-react';
+import { Save, X, FileText, Edit3, Printer } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RichTextEditor } from './RichTextEditor';
+import { printDocumentHtml } from '@/utils/printUtils';
 
 interface DocumentEditorProps {
   isOpen: boolean;
@@ -202,14 +203,33 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   };
 
+  const textToHtml = (text: string) => {
+    const esc = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const withBreaks = esc.split('\n').join('<br>');
+    return `<pre>${withBreaks}</pre>`;
+  };
+
+  const handlePrint = () => {
+    try {
+      const title = entry?.title || fileName || 'Document';
+      const body = isHtml ? documentContent : textToHtml(documentContent);
+      printDocumentHtml(title, body);
+      toast.success('Opening print dialog...');
+    } catch (e) {
+      console.error('Error printing document:', e);
+      toast.error('Failed to open print dialog');
+    }
+  };
   const handleClose = () => {
     if (hasChanges) {
-      const confirmClose = window.confirm('You have unsaved changes. Are you sure you want to close?');
+      const confirmClose = window.confirm("You have unsaved changes. Are you sure you want to close?");
       if (!confirmClose) return;
     }
     onClose();
   };
-
   if (!isTextBased) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>

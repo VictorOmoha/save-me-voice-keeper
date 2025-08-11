@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2, Save } from 'lucide-react';
+import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2, Save, Printer } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Document, Page, pdfjs } from 'react-pdf';
 import mammoth from 'mammoth';
 import { RichTextEditor } from '@/components/documents/RichTextEditor';
+import { printBlobDocument, printDocumentHtml } from '@/utils/printUtils';
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -190,6 +191,32 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     }
   };
 
+  const handlePrint = () => {
+    try {
+      const title = entry?.title || fileName || 'Document';
+      if (isPdf && documentState.blob) {
+        printBlobDocument(documentState.blob, fileName);
+        toast.success('Opening print dialog...');
+        return;
+      }
+      if (isWordDoc && documentState.content) {
+        printDocumentHtml(title, documentState.content);
+        toast.success('Opening print dialog...');
+        return;
+      }
+      if (isTextBased && documentState.content) {
+        const body = fileName.endsWith('.html') ? documentState.content : textToHtml(documentState.content);
+        printDocumentHtml(title, body);
+        toast.success('Opening print dialog...');
+        return;
+      }
+      toast.error('Nothing to print');
+    } catch (e) {
+      console.error('Error printing document:', e);
+      toast.error('Failed to open print dialog');
+    }
+  };
+
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setDocumentState(prev => ({ ...prev, numPages }));
   };
@@ -364,6 +391,16 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                 <Download className="w-4 h-4" />
                 <span>Download</span>
               </Button>
+
+              <Button
+                onClick={handlePrint}
+                variant="outline"
+                disabled={isLoading || (!documentState.blob && !documentState.content)}
+                className="flex items-center space-x-2"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print</span>
+              </Button>
               
               {canEdit && onEdit && (
                 <Button 
@@ -377,6 +414,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
               )}
             </div>
           )}
+
 
           {/* Document Viewer */}
           <div className="flex-1 overflow-auto border border-border rounded-lg">

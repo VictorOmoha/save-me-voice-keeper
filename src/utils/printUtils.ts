@@ -235,3 +235,61 @@ export const openPrintPreview = (entries: SavedEntry[], options: PrintOptions = 
     };
   }
 };
+
+// Print an HTML document body with a header
+export const printDocumentHtml = (title: string, htmlBody: string) => {
+  const styles = `
+    <style>
+      @media print {
+        body { margin: 24px; font-family: Arial, sans-serif; color: #111; }
+        .print-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+        .print-title { font-size: 22px; font-weight: 700; margin: 0 0 4px 0; }
+        .print-date { font-size: 12px; color: #666; margin: 0; }
+        .content { margin-top: 16px; }
+        pre { white-space: pre-wrap; word-wrap: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+      }
+    </style>
+  `;
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title}</title>
+        ${styles}
+      </head>
+      <body>
+        <div class="print-header">
+          <div class="print-title">${title}</div>
+          <div class="print-date">Printed on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</div>
+        </div>
+        <div class="content">${htmlBody}</div>
+      </body>
+    </html>
+  `;
+  openPrintWindow(html);
+};
+
+// Print a Blob (e.g., PDF) by embedding it in an iframe and invoking print
+export const printBlobDocument = (blob: Blob, fileName?: string) => {
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open('', '_blank', 'width=1000,height=800');
+  if (!printWindow) return;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${fileName || 'Document'}</title>
+        <style>
+          html, body, iframe { height: 100%; width: 100%; margin: 0; }
+          .no-print { display: none; }
+        </style>
+      </head>
+      <body>
+        <iframe src="${url}" style="border:0;" onload="setTimeout(function(){ window.focus(); window.print(); }, 300);"></iframe>
+      </body>
+    </html>
+  `;
+  printWindow.document.write(html);
+  printWindow.document.close();
+};

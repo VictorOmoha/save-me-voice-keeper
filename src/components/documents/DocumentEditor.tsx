@@ -270,6 +270,15 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             </div>
             <div className="flex items-center space-x-2">
               <Button
+                onClick={handlePrint}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print</span>
+              </Button>
+              <Button
                 onClick={handleSave}
                 disabled={!hasChanges || isSaving}
                 size="sm"

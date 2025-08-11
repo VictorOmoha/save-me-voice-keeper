@@ -175,29 +175,63 @@ const openPrintWindow = (content: string) => {
   const printWindow = window.open('', '_blank', 'width=800,height=600');
   
   if (printWindow) {
+    // Write the content and ensure the print happens after rendering
+    printWindow.document.open();
     printWindow.document.write(content);
     printWindow.document.close();
-    
-    // Wait for content to load, then print
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.close();
+
+    const attemptPrint = () => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } catch (e) {
+        // ignore and let the fallback try again
+      }
     };
+
+    // If the document is already loaded, print shortly after
+    if (printWindow.document.readyState === 'complete') {
+      setTimeout(attemptPrint, 400);
+    } else {
+      // Otherwise wait for load
+      printWindow.addEventListener('load', () => setTimeout(attemptPrint, 400));
+    }
+
+    // Final safety retry in case the above events didn't fire
+    setTimeout(attemptPrint, 1500);
   } else {
     // Fallback if popup is blocked
     const printFrame = document.createElement('iframe');
-    printFrame.style.display = 'none';
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = '0';
     document.body.appendChild(printFrame);
-    
-    if (printFrame.contentWindow) {
-      printFrame.contentWindow.document.write(content);
-      printFrame.contentWindow.document.close();
-      printFrame.contentWindow.print();
+
+    const iframeDoc = printFrame.contentWindow?.document;
+    if (iframeDoc) {
+      iframeDoc.open();
+      iframeDoc.write(content);
+      iframeDoc.close();
+      const tryIframePrint = () => {
+        try {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+        } catch {}
+      };
+      if (printFrame.contentWindow?.document.readyState === 'complete') {
+        setTimeout(tryIframePrint, 400);
+      } else {
+        printFrame.addEventListener('load', () => setTimeout(tryIframePrint, 400));
+      }
+      setTimeout(tryIframePrint, 1500);
     }
-    
+
     setTimeout(() => {
-      document.body.removeChild(printFrame);
-    }, 100);
+      try { document.body.removeChild(printFrame); } catch {}
+    }, 4000);
   }
 };
 
@@ -282,11 +316,16 @@ export const printBlobDocument = (blob: Blob, fileName?: string) => {
         <title>${fileName || 'Document'}</title>
         <style>
           html, body, iframe { height: 100%; width: 100%; margin: 0; }
-          .no-print { display: none; }
+          .toolbar { position: fixed; top: 10px; right: 10px; z-index: 1000; }
+          .toolbar button { padding: 8px 12px; background: #2563eb; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+          @media print { .toolbar { display: none; } }
         </style>
       </head>
       <body>
-        <iframe src="${url}" style="border:0;" onload="setTimeout(function(){ window.focus(); window.print(); }, 300);"></iframe>
+        <div class="toolbar">
+          <button onclick="window.focus(); window.print();">Print</button>
+        </div>
+        <iframe src="${url}" style="border:0;" onload="setTimeout(function(){ window.focus(); window.print(); }, 800);"></iframe>
       </body>
     </html>
   `;

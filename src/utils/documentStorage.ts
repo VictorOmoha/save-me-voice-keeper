@@ -2,10 +2,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+const sb: any = supabase as any;
+
 const precheckFileQuota = async (size: number): Promise<boolean> => {
   try {
-    // can_add_usage may not be in generated types; cast supabase to any
-    const { data, error } = await (supabase as any).rpc('can_add_usage', { _delta_db: 0, _delta_file: size });
+    // can_add_usage may not be in generated types; use untyped supabase handle
+    const { data, error } = await sb.rpc('can_add_usage', { _delta_db: 0, _delta_file: size });
     if (error) {
       console.warn('can_add_usage RPC error:', error);
       return true; // Allow attempt; server triggers will enforce
@@ -19,9 +21,9 @@ const precheckFileQuota = async (size: number): Promise<boolean> => {
 
 const registerFile = async (userId: string, entryId: string | null, path: string, size: number) => {
   // Ensure we don't double-count if the same path already exists
-  await (supabase as any).from('user_files').delete().eq('path', path);
+  await sb.from('user_files').delete().eq('path', path);
 
-  const { error } = await (supabase as any).from('user_files').insert({
+  const { error } = await sb.from('user_files').insert({
     user_id: userId,
     entry_id: entryId || null,
     path,
@@ -30,7 +32,7 @@ const registerFile = async (userId: string, entryId: string | null, path: string
 
   if (error) {
     // If this fails due to storage limit, surface a clear message
-    const exceeded = error.message?.includes('storage_limit_exceeded') || error.details?.includes('storage_limit_exceeded');
+    const exceeded = error.message?.includes('storage_limit_exceeded') || error.details?.includes?.('storage_limit_exceeded');
     if (exceeded) {
       toast.error('Storage limit reached for your plan. Please delete some files or upgrade your plan.');
     } else {
@@ -44,7 +46,7 @@ const registerFile = async (userId: string, entryId: string | null, path: string
 };
 
 const unregisterFile = async (path: string) => {
-  const { error } = await (supabase as any).from('user_files').delete().eq('path', path);
+  const { error } = await sb.from('user_files').delete().eq('path', path);
   if (error) {
     console.error('Failed to unregister file from user_files:', error);
   }

@@ -1,4 +1,3 @@
-
 import React, { useMemo, useEffect, useState } from 'react';
 import { SavedEntry } from "@/types/dashboard";
 import { 
@@ -31,6 +30,11 @@ type ServerUsage = {
   updated_at: string;
 } | null;
 
+type Tier = 'free' | 'basic' | 'premium' | 'enterprise';
+
+const isValidTier = (tier: string): tier is Tier =>
+  ['free', 'basic', 'premium', 'enterprise'].includes(tier as Tier);
+
 export const useStorageStats = (entries: SavedEntry[], userTier?: string): StorageStats => {
   const [serverUsage, setServerUsage] = useState<ServerUsage>(null);
 
@@ -47,12 +51,12 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
           return;
         }
 
-        if (!data) {
+        if (data == null) {
           if (isMounted) setServerUsage(null);
           return;
         }
 
-        const row = Array.isArray(data) ? data[0] : data;
+        const row = Array.isArray(data) ? (data[0] ?? null) : data;
         if (isMounted && row) {
           setServerUsage({
             user_id: row.user_id,
@@ -82,7 +86,11 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
 
     // Fallback estimates if server usage isn't available yet
     const estimatedDbUsed = calculateDatabaseStorageSize(entries);
-    const fallbackLimit = getStorageLimit(userTier);
+
+    const normalizedTier = isValidTier((userTier || 'free').toLowerCase())
+      ? ((userTier || 'free').toLowerCase() as Tier)
+      : 'free';
+    const fallbackLimit = getStorageLimit(normalizedTier);
 
     const dbUsed = serverUsage?.db_bytes_used ?? estimatedDbUsed;
     const fileUsed = serverUsage?.file_bytes_used ?? 0;

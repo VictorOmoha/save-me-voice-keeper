@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { SavedEntry } from "@/types/dashboard";
 import { 
   calculateLocalStorageSize, 
@@ -7,6 +7,7 @@ import {
   calculateStoragePercentage,
   formatBytes 
 } from '@/utils/storageUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface StorageStats {
   totalUsed: number;
@@ -19,24 +20,83 @@ interface StorageStats {
   availableFormatted: string;
 }
 
+type ServerUsage = {
+  user_id: string;
+  tier: 'free' | 'basic' | 'premium' | 'enterprise';
+  limit_bytes: number;
+  db_bytes_used: number;
+  file_bytes_used: number;
+  total_bytes: number;
+  updated_at: string;
+} | null;
+
 export const useStorageStats = (entries: SavedEntry[], userTier?: string): StorageStats => {
+  const [serverUsage, setServerUsage] = useState<ServerUsage>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUsage = async () => {
+      try {
+        // get_current_storage_usage always returns one row for authenticated users
+        const { data, error } = await supabase.rpc('get_current_storage_usage');
+        if (error) {
+          console.warn('get_current_storage_usage error:', error);
+          if (isMounted) setServerUsage(null);
+          return;
+        }
+
+        const row = Array.isArray(data) ? data[0] : data;
+        if (isMounted && row) {
+          setServerUsage({
+            user_id: row.user_id,
+            tier: row.tier,
+            limit_bytes: row.limit_bytes,
+            db_bytes_used: row.db_bytes_used,
+            file_bytes_used: row.file_bytes_used,
+            total_bytes: row.total_bytes,
+            updated_at: row.updated_at,
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to fetch storage usage:', e);
+        if (isMounted) setServerUsage(null);
+      }
+    };
+
+    fetchUsage();
+
+    // Optionally refresh when entries change to keep UI in sync
+    // We intentionally don't run too often to avoid excessive RPC calls
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries.length, userTier]);
+
   return useMemo(() => {
     const localStorageUsed = calculateLocalStorageSize();
-    const databaseUsed = calculateDatabaseStorageSize(entries);
-    const totalUsed = localStorageUsed + databaseUsed;
-    const limit = getStorageLimit(userTier);
+
+    // Fallback estimates if server usage isn't available yet
+    const estimatedDbUsed = calculateDatabaseStorageSize(entries);
+    const fallbackLimit = getStorageLimit(userTier);
+
+    const dbUsed = serverUsage?.db_bytes_used ?? estimatedDbUsed;
+    const fileUsed = serverUsage?.file_bytes_used ?? 0;
+    const serverTotal = serverUsage?.total_bytes ?? (dbUsed + fileUsed);
+    const limit = serverUsage?.limit_bytes ?? fallbackLimit;
+
+    // For accurate quota usage, use only server-side bytes (DB + files).
+    const totalUsed = serverTotal;
     const percentage = calculateStoragePercentage(totalUsed, limit);
-    const available = limit - totalUsed;
+    const available = Math.max(0, limit - totalUsed);
 
     return {
       totalUsed,
       totalUsedFormatted: formatBytes(totalUsed),
       localStorageUsed,
-      databaseUsed,
+      databaseUsed: dbUsed + fileUsed,
       limit,
       limitFormatted: formatBytes(limit),
       percentage,
       availableFormatted: formatBytes(available),
     };
-  }, [entries, userTier]);
+  }, [entries, userTier, serverUsage]);
 };

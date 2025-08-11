@@ -1,3 +1,4 @@
+
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,10 @@ const getWebhookUrl = () => {
 const getUserEmail = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   return user?.email || 'omohavictor@gmail.com';
+};
+
+const showStorageExceededToast = () => {
+  toast.error("Storage limit reached for your plan. Please delete some entries/files or upgrade your plan.");
 };
 
 export const useDashboardActions = ({
@@ -66,6 +71,11 @@ export const useDashboardActions = ({
           .single();
 
         if (error) {
+          const exceeded = error.message?.includes('storage_limit_exceeded') || (error as any)?.details?.includes?.('storage_limit_exceeded');
+          if (exceeded) {
+            showStorageExceededToast();
+            return;
+          }
           console.error('Error updating entry:', error);
           toast.error("Failed to update entry: " + error.message);
           return;
@@ -109,6 +119,11 @@ export const useDashboardActions = ({
           .single();
 
         if (error) {
+          const exceeded = error.message?.includes('storage_limit_exceeded') || (error as any)?.details?.includes?.('storage_limit_exceeded');
+          if (exceeded) {
+            showStorageExceededToast();
+            return;
+          }
           console.error('Error updating filled entry:', error);
           toast.error("Failed to update entry: " + error.message);
           return;
@@ -151,6 +166,11 @@ export const useDashboardActions = ({
           .single();
 
         if (error) {
+          const exceeded = error.message?.includes('storage_limit_exceeded') || (error as any)?.details?.includes?.('storage_limit_exceeded');
+          if (exceeded) {
+            showStorageExceededToast();
+            return;
+          }
           console.error('Error creating entry:', error);
           toast.error("Failed to save entry: " + error.message);
           return;
@@ -183,6 +203,12 @@ export const useDashboardActions = ({
       setShowAddEntry(false);
       await loadEntries(); // Reload entries from database
     } catch (error) {
+      const err = error as any;
+      const exceeded = err?.message?.includes?.('storage_limit_exceeded') || err?.details?.includes?.('storage_limit_exceeded');
+      if (exceeded) {
+        showStorageExceededToast();
+        return;
+      }
       console.error('Error saving entry:', error);
       toast.error("Failed to save entry: " + (error as Error).message);
     }

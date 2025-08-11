@@ -111,6 +111,22 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
       // Check the actual conversation state from the optimized processor
       const actuallyInConversation = conversationState.isInConversation;
       
+      // Brain Dump process/save commands (global) - allow regardless of conversation state
+      const processBrainDump = /(process|structure|analy[sz]e|summari[sz]e)\s+(the\s+)?(brain\s?-?dump)/;
+      const saveBrainDump = /(save|store|commit)\s+(the\s+)?(brain\s?-?dump)(?:\s+(?:as|to|in|under)\s+([a-zA-Z\s-]+))?/;
+      if (processBrainDump.test(lowerTranscript)) {
+        speak('Processing your brain dump.');
+        window.dispatchEvent(new CustomEvent('brain-dump:process'));
+        return;
+      }
+      const saveMatch = lowerTranscript.match(saveBrainDump);
+      if (saveMatch) {
+        const desiredCategoryRaw = saveMatch[4];
+        speak('Saving your brain dump.');
+        window.dispatchEvent(new CustomEvent('brain-dump:save', { detail: { category: desiredCategoryRaw } }));
+        return;
+      }
+
       // Always use internal processor to maintain conversation state
       // If we're in conversation mode, the dashboard handler should not interfere
       if (actuallyInConversation) {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -137,6 +137,88 @@ const BrainDumpPage: React.FC = () => {
       // toast already shown in hook
     }
   };
+
+  // Voice command helpers and listeners
+  const lastHandledRef = useRef<string>("");
+  const normalizeCategory = (raw: string): string | null => {
+    const s = raw.trim().toLowerCase();
+    if (!s) return null;
+    const map: Record<string, string> = {
+      'document': 'Documents', 'doc': 'Documents', 'proposal': 'Documents', 'contract': 'Documents', 'agreement': 'Documents', 'report': 'Documents', 'memo': 'Documents', 'letter': 'Documents', 'sow': 'Documents', 'policy': 'Documents', 'sop': 'Documents'
+    };
+    if (map[s]) return map[s];
+    if (/meeting|standup|retro|minutes|client/.test(s)) return 'Work';
+    if (/invoice|budget|tax|payment|quote|estimate|receipt/.test(s)) return 'Finance';
+    if (/doctor|medical|health|prescription|hospital/.test(s)) return 'Health';
+    if (/personal|home|family|travel|vacation/.test(s)) return 'Personal';
+    // Title-case fallback
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
+  const isProcessCommand = (text: string) => /\b(process|structure|organis|organiz|analy[sz]e|summari[sz]e|make\s+notes|turn\s+this\s+into\s+notes)\b/.test(text);
+  const parseSaveCommand = (text: string): { save: true; category?: string } | null => {
+    if (!/\b(save|store|commit)\b/.test(text)) return null;
+    const m = text.match(/save(?:\s+it)?\s+(?:as|to|in|under)\s+([a-zA-Z\s-]+)/);
+    if (m?.[1]) {
+      const cat = normalizeCategory(m[1]);
+      return { save: true, category: cat || undefined };
+    }
+    return { save: true };
+  };
+
+  useEffect(() => {
+    const t = (transcript || '').trim();
+    if (!t || t === lastHandledRef.current) return;
+    const lower = t.toLowerCase();
+
+    if (isProcessCommand(lower)) {
+      handleProcess();
+      speak('Processed your brain dump.');
+      lastHandledRef.current = t;
+      return;
+    }
+
+    const saveInfo = parseSaveCommand(lower);
+    if (saveInfo) {
+      if (saveInfo.category) setCategory(saveInfo.category);
+      const doSave = () => { handleSave(); speak('Saved your structured notes.'); };
+      if (!hasStructured) {
+        handleProcess();
+        setTimeout(doSave, 150);
+      } else {
+        doSave();
+      }
+      lastHandledRef.current = t;
+    }
+  }, [transcript, hasStructured]);
+
+  useEffect(() => {
+    const onProcess = () => {
+      handleProcess();
+      speak('Processed your brain dump.');
+    };
+    const onSave = (e: Event) => {
+      const ce = e as CustomEvent<any>;
+      const desired = ce.detail?.category as string | undefined;
+      if (desired) {
+        const norm = normalizeCategory(desired);
+        if (norm) setCategory(norm);
+      }
+      const doSave = () => { handleSave(); speak('Saved your structured notes.'); };
+      if (!hasStructured) {
+        handleProcess();
+        setTimeout(doSave, 150);
+      } else {
+        doSave();
+      }
+    };
+    window.addEventListener('brain-dump:process', onProcess as EventListener);
+    window.addEventListener('brain-dump:save', onSave as EventListener);
+    return () => {
+      window.removeEventListener('brain-dump:process', onProcess as EventListener);
+      window.removeEventListener('brain-dump:save', onSave as EventListener);
+    };
+  }, [hasStructured]);
 
   return (
     <main className="container mx-auto px-4 py-8">

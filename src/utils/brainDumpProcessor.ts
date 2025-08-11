@@ -117,23 +117,36 @@ export class BrainDumpProcessor {
   private inferCategory(content: string): string {
     const categoryKeywords = {
       'Health': ['doctor', 'medical', 'prescription', 'health', 'hospital', 'clinic', 'medication', 'treatment'],
-      'Finance': ['bank', 'money', 'payment', 'invoice', 'tax', 'budget', 'financial', 'investment', 'insurance'],
-      'Work': ['project', 'meeting', 'deadline', 'client', 'colleague', 'office', 'work', 'job', 'career'],
-      'Personal': ['family', 'friend', 'hobby', 'personal', 'home', 'vacation', 'travel'],
-      'Documents': ['document', 'file', 'record', 'certificate', 'license', 'contract', 'agreement'],
+      'Finance': ['bank', 'money', 'payment', 'invoice', 'tax', 'budget', 'financial', 'investment', 'insurance', 'receipt', 'bill', 'refund', 'pricing', 'quote', 'estimate'],
+      'Work': ['project', 'meeting', 'deadline', 'client', 'colleague', 'office', 'work', 'job', 'career', 'standup', 'retro', 'sprint', 'OKR', 'roadmap', 'minutes'],
+      'Personal': ['family', 'friend', 'hobby', 'personal', 'home', 'vacation', 'travel', 'chores', 'groceries'],
+      'Documents': [
+        'document', 'doc', 'file', 'record', 'certificate', 'license', 'contract', 'agreement', 'nda', 'proposal', 'sow', 'statement of work',
+        'invoice', 'report', 'policy', 'sop', 'standard operating procedure', 'brief', 'memo', 'letter', 'resume', 'cv', 'whitepaper', 'executive summary'
+      ],
     };
 
     const lowerContent = content.toLowerCase();
     let maxMatches = 0;
-    let bestCategory = 'Personal';
+    let bestCategory: keyof typeof categoryKeywords = 'Personal';
 
-    Object.entries(categoryKeywords).forEach(([category, keywords]) => {
-      const matches = keywords.filter(keyword => lowerContent.includes(keyword)).length;
+    Object.entries(categoryKeywords).forEach(([cat, keywords]) => {
+      const matches = (keywords as string[]).filter(keyword => lowerContent.includes(keyword.toLowerCase())).length;
       if (matches > maxMatches) {
         maxMatches = matches;
-        bestCategory = category;
+        bestCategory = cat as keyof typeof categoryKeywords;
       }
     });
+
+    // Tie-breakers and additional heuristics
+    if (bestCategory === 'Personal') {
+      if (/meeting\s+notes|action\s+items|agenda/.test(lowerContent)) {
+        bestCategory = 'Work';
+      }
+      if (/dear\s+\w+|executive\s+summary|deliverables|scope|terms|sign\b/.test(lowerContent)) {
+        bestCategory = 'Documents';
+      }
+    }
 
     return bestCategory;
   }

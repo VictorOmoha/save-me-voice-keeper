@@ -6,7 +6,7 @@ import { ArrowLeft, Plus } from "lucide-react";
 interface CategoryHeaderProps {
   categoryName: string;
   entriesCount: number;
-  onBack: () => void;
+  onBack?: () => void;
   onCreateEntry: () => void;
 }
 
@@ -19,15 +19,17 @@ export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
   return (
     <div className="flex items-center justify-between mb-6 animate-fade-in">
       <div className="flex items-center space-x-4">
-        <Button 
-          onClick={onBack} 
-          variant="ghost" 
-          size="sm"
-          className="transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-x-1"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-200 ease-in-out hover:-translate-x-1" />
-          Back
-        </Button>
+        {onBack && (
+          <Button 
+            onClick={onBack} 
+            variant="ghost" 
+            size="sm"
+            className="transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-x-1"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-200 ease-in-out hover:-translate-x-1" />
+            Back
+          </Button>
+        )}
         <h1 className="text-2xl font-bold transition-all duration-200 ease-in-out hover:text-primary hover:scale-105">
           {categoryName}
         </h1>

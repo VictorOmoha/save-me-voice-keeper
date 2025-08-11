@@ -12,7 +12,7 @@ import { useState } from "react";
 
 interface AllEntriesViewProps {
   entries: SavedEntry[];
-  onBack: () => void;
+  onBack?: () => void;
   onEdit: (entry: SavedEntry) => void;
   onDelete: (id: string) => void;
   onFill: (entry: SavedEntry) => void;
@@ -94,10 +94,12 @@ export const AllEntriesView: React.FC<AllEntriesViewProps> = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button onClick={onBack} variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
+          {onBack && (
+            <Button onClick={onBack} variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+          )}
           <h1 className="text-2xl font-bold">All Entries</h1>
           <Badge variant="secondary">{entries.length} entries</Badge>
         </div>

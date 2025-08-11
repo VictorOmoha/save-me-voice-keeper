@@ -202,7 +202,6 @@ export default function CategoryPage() {
       <CategoryView
         categoryName={categoryName}
         entries={filteredEntries}
-        onBack={() => {}}
         onEdit={handleEditEntry}
         onDelete={handleDeleteEntry}
         onFill={handleFillEntry}

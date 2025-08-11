@@ -13,7 +13,7 @@ import { ExportButton } from "@/components/export/ExportButton";
 interface CategoryViewProps {
   categoryName: string;
   entries: SavedEntry[];
-  onBack: () => void;
+  onBack?: () => void;
   onEdit: (entry: SavedEntry) => void;
   onDelete: (id: string) => void;
   onFill: (entry: SavedEntry) => void;

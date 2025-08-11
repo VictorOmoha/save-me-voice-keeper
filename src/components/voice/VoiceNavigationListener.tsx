@@ -15,6 +15,10 @@ export const VoiceNavigationListener: React.FC = () => {
         if (location.pathname !== '/dashboard') {
           navigate('/dashboard');
         }
+      } else if (dest === 'brain-dump') {
+        if (location.pathname !== '/brain-dump') {
+          navigate('/brain-dump');
+        }
       }
     };
 

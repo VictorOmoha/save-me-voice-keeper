@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, Brain } from "lucide-react";
 import { SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
@@ -89,6 +89,12 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
               <Settings className="w-4 h-4" />
             </Link>
           </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/brain-dump" className="flex items-center gap-2" aria-label="Open Brain Dump">
+              <Brain className="w-4 h-4" />
+              Brain Dump
+            </Link>
+          </Button>
           <Button
             onClick={onAllEntriesSelect}
             variant="outline"
@@ -100,7 +106,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             onClick={onAddEntry}
             size="sm"
             className="flex items-center space-x-2"
-         >
+          >
             <Plus className="w-4 h-4" />
             <span>Add Entry</span>
           </Button>

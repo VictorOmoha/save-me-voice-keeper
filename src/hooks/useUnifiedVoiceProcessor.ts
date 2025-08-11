@@ -717,7 +717,14 @@ export const useUnifiedVoiceProcessor = ({
             toast.success('📊 Opening dashboard');
           }, 300);
           break;
-        default:
+        case 'navigate_brain_dump':
+          window.dispatchEvent(new CustomEvent('voice-navigate', { detail: { destination: 'brain-dump' } }));
+          setTimeout(() => {
+            voiceProcessor.setLastTTSPrompt('Opening brain dump');
+            speak('Opening brain dump');
+            toast.success('🧠 Opening brain dump');
+          }, 300);
+          break;
           if (command.conversationalResponse) {
             speak(command.conversationalResponse);
             toast.info(command.conversationalResponse);

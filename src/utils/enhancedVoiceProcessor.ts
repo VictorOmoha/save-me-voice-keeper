@@ -442,7 +442,19 @@ class EnhancedVoiceProcessor {
       };
     }
 
-    // Edit/Open commands - CHECK THESE FIRST before generic entry matching
+    // Navigation commands - brain dump
+    if (
+      /\b(brain dump|start brain dump|capture thoughts|take a quick note|voice note)\b/.test(cleanText)
+      || /\b(go to|open|show|navigate to)\b.*\b(brain dump)\b/.test(cleanText)
+    ) {
+      return {
+        intent: 'navigate',
+        action: 'navigate_brain_dump',
+        parameters: { destination: 'brain-dump', view: 'brain_dump' },
+        confidence: 0.95,
+        conversationalResponse: 'Opening brain dump'
+      };
+    }
     if (cleanText.includes('edit') || cleanText.includes('open') || cleanText.includes('modify')) {
       console.log('🔍 Enhanced Processor: Edit/Open command detected:', {
         cleanText,

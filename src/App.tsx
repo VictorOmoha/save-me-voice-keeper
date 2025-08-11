@@ -21,9 +21,10 @@ import Settings from "./pages/Settings";
 import VoiceTest from "./pages/VoiceTest";
 import NotFound from "./pages/NotFound";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
-
+import BrainDump from "./pages/BrainDump";
+ 
 const queryClient = new QueryClient();
-
+ 
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -47,6 +48,7 @@ const App = () => (
                     <Route path="/subscription" element={<Subscription />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/voice-test" element={<VoiceTest />} />
+                    <Route path="/brain-dump" element={<BrainDump />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </BrowserRouter>
@@ -58,5 +60,5 @@ const App = () => (
     </QueryClientProvider>
   </ErrorBoundary>
 );
-
+ 
 export default App;

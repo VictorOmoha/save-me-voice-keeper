@@ -11,7 +11,8 @@ import {
   DollarSign, 
   User, 
   Plus,
-  Settings
+  Settings,
+  Brain
 } from "lucide-react";
 import { SavedEntry } from "@/types/dashboard";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
@@ -85,6 +86,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Badge variant="secondary" className="ml-auto">
                 {savedEntriesCount}
               </Badge>
+            </Button>
+          </Link>
+
+          <Link to="/brain-dump">
+            <Button 
+              variant={location.pathname === "/brain-dump" ? "default" : "ghost"} 
+              className="w-full justify-start transition-colors duration-200 hover:bg-muted"
+            >
+              <Brain className="w-4 h-4 mr-3" />
+              Brain Dump
             </Button>
           </Link>
           

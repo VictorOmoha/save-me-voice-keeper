@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, X, FileText, Edit3 } from 'lucide-react';
@@ -27,11 +27,12 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   const [originalContent, setOriginalContent] = useState<string>('');
   const [hasChanges, setHasChanges] = useState(false);
 
-  if (!entry) return null;
+  
 
-  const fileName = entry.fields.fileName || '';
-  const fileType = entry.fields.fileType || '';
-  const isTextBased = fileType.includes('text') || fileType.includes('html') || fileName.endsWith('.txt') || fileName.endsWith('.html');
+  const fileName = entry?.fields?.fileName || '';
+  const fileType = entry?.fields?.fileType || '';
+  const hasInline = Boolean((entry?.fields as any)?.documentContent);
+  const isTextBased = hasInline || fileType.includes('text') || fileType.includes('html') || fileName.endsWith('.txt') || fileName.endsWith('.html');
   const isHtml = fileName.endsWith('.html') || fileType.includes('html');
 
   useEffect(() => {
@@ -184,6 +185,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <FileText className="w-5 h-5" />
               <span>Cannot Edit Document</span>
             </DialogTitle>
+            <DialogDescription>Only text-based files (TXT, HTML) can be edited in-browser.</DialogDescription>
           </DialogHeader>
           <div className="text-center py-6">
             <Edit3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -209,7 +211,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Edit3 className="w-5 h-5" />
-              <span>Editing: {entry.title}</span>
+              <span>Editing: {entry?.title || 'Document'}</span>
               {hasChanges && <span className="text-sm text-orange-500">(unsaved changes)</span>}
             </div>
             <div className="flex items-center space-x-2">
@@ -224,6 +226,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               </Button>
             </div>
           </DialogTitle>
+          <DialogDescription>Edit your text document</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col space-y-4">
@@ -232,7 +235,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
             <div className="flex items-center justify-between text-sm">
               <span><strong>File:</strong> {fileName}</span>
               <span><strong>Type:</strong> {fileType || 'text/plain'}</span>
-              <span><strong>Last modified:</strong> {entry.updatedAt.toLocaleDateString()}</span>
+              <span><strong>Last modified:</strong> {entry?.updatedAt ? entry.updatedAt.toLocaleDateString() : ''}</span>
             </div>
           </div>
 

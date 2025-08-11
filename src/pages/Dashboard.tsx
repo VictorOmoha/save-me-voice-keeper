@@ -183,7 +183,9 @@ export default function Dashboard() {
     console.log('📄 Dashboard: View document triggered for:', entry.title);
     const fileName = String(entry.fields.fileName || '').toLowerCase();
     const fileType = String(entry.fields.fileType || '').toLowerCase();
+    const hasInline = Boolean((entry.fields as any)?.documentContent);
     const isTextBased =
+      hasInline ||
       fileName.endsWith('.txt') ||
       fileName.endsWith('.html') ||
       fileName.endsWith('.htm') ||

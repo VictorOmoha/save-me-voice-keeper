@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2, Save } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
@@ -35,9 +35,8 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   entry,
   onEdit
 }) => {
-  // Early return before any hooks
-  if (!entry) return null;
-
+  // Removed early return to maintain consistent hooks usage
+  
   const [isLoading, setIsLoading] = useState(false);
   const [documentState, setDocumentState] = useState<DocumentState>({
     content: null,
@@ -54,13 +53,14 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   const [initialNotesHtml, setInitialNotesHtml] = useState<string>('');
   const [isSavingNotes, setIsSavingNotes] = useState<boolean>(false);
 
-  const isDocumentEntry = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
-  const fileName = entry.fields.fileName || '';
-  const fileType = entry.fields.fileType || '';
-  const fileSize = entry.fields.fileSize || 0;
-  const storedContent = entry.fields.documentContent || '';
+  const isDocumentEntry = entry?.fields?.category === 'Documents' && Boolean(entry?.fields?.hasUploadedFile);
+  const fileName = (entry?.fields?.fileName as string) || '';
+  const fileType = (entry?.fields?.fileType as string) || '';
+  const fileSize = Number(entry?.fields?.fileSize || 0);
+  const storedContent = (entry?.fields?.documentContent as string) || '';
 
-  const isTextBased = fileType.includes('text') || fileType.includes('html') || fileName.endsWith('.txt') || fileName.endsWith('.html');
+  const hasInline = Boolean(storedContent);
+  const isTextBased = hasInline || fileType.includes('text') || fileType.includes('html') || fileName.endsWith('.txt') || fileName.endsWith('.html');
   const isPdf = fileType.includes('pdf') || fileName.endsWith('.pdf');
   const isWordDoc = fileType.includes('word') || fileName.endsWith('.docx') || fileName.endsWith('.doc');
   const isRtf = fileType.includes('rtf') || fileName.endsWith('.rtf');
@@ -263,7 +263,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FileText className="w-5 h-5" />
-              <span>{entry.title}</span>
+              <span>{entry?.title || 'Document'}</span>
             </div>
             <div className="flex items-center space-x-2">
               {canView && (
@@ -339,7 +339,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                 </div>
                 <div>
                   <span className="font-medium">File Type:</span>
-                  <p className="text-muted-foreground">{entry.fields.documentType || 'Unknown'}</p>
+                  <p className="text-muted-foreground">{entry?.fields?.documentType || 'Unknown'}</p>
                 </div>
                 <div>
                   <span className="font-medium">File Size:</span>
@@ -347,7 +347,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                 </div>
                 <div>
                   <span className="font-medium">Created:</span>
-                  <p className="text-muted-foreground">{entry.createdAt.toLocaleDateString()}</p>
+                  <p className="text-muted-foreground">{entry?.createdAt ? entry.createdAt.toLocaleDateString() : ''}</p>
                 </div>
               </div>
             </div>

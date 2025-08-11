@@ -92,9 +92,10 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     try {
       setIsLoading(true);
       
-      // First try to get from Supabase Storage
-      const filePath = `${entry.id}/${fileName}`;
-      const { data, error } = await supabase.storage
+      // First try to get from Supabase Storage (prefer explicit storagePath)
+      const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+      const filePath = storagePath || `${entry.id}/${fileName}`;
+      const { data } = await supabase.storage
         .from('documents')
         .download(filePath);
 

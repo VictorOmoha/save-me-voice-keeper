@@ -230,6 +230,24 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
     ) {
       return;
     }
+
+    // If it's a document entry that can be edited as text, open the document editor directly
+    const category = (entry.fields as any)?.category as string || '';
+    const fileName = (entry.fields as any)?.fileName as string || '';
+    const fileType = (entry.fields as any)?.fileType as string || '';
+    const hasInline = Boolean((entry.fields as any)?.documentContent);
+    const isTextBased =
+      hasInline ||
+      fileType.includes('text') ||
+      fileType.includes('html') ||
+      fileName.endsWith('.txt') ||
+      fileName.endsWith('.html');
+
+    if (category === 'Documents' && isTextBased && onViewDocument) {
+      onViewDocument(entry);
+      return;
+    }
+
     setViewingEntry(entry);
     setIsViewDialogOpen(true);
   };

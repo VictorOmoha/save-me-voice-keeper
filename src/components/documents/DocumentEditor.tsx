@@ -56,9 +56,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         return;
       }
 
-      // Try to get from Supabase Storage
-      const filePath = `${entry.id}/${fileName}`;
-      const { data, error } = await supabase.storage
+      // Try to get from Supabase Storage (prefer explicit storagePath)
+      const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+      const filePath = storagePath || `${entry.id}/${fileName}`;
+      const { data } = await supabase.storage
         .from('documents')
         .download(filePath);
 
@@ -107,8 +108,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       // Create updated file blob
       const updatedBlob = new Blob([documentContent], { type: fileType || 'text/plain' });
       
-      // Upload to Supabase Storage
-      const filePath = `${entry.id}/${fileName}`;
+      // Upload to Supabase Storage (prefer existing storagePath)
+      const existingStoragePath = (entry.fields as any)?.storagePath as string | undefined;
+      const filePath = existingStoragePath || `${entry.id}/${fileName}`;
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(filePath, updatedBlob, {
@@ -125,6 +127,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       const updatedFields = {
         ...entry.fields,
         documentContent: documentContent, // Store content for quick access
+        storagePath: filePath, // Persist the storage path for faster future loads
         updatedAt: new Date().toISOString()
       };
 

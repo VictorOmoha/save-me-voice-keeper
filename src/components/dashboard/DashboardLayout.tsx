@@ -3,6 +3,7 @@ import React from "react";
 import { SearchHeader } from "../SearchHeader";
 import { ConversationalVoiceInterface } from "../ConversationalVoiceInterface";
 import { Sidebar } from "../Sidebar";
+import { FloatingVoiceInput } from "../FloatingVoiceInput";
 
 interface DashboardLayoutProps {
   searchQuery: string;
@@ -17,6 +18,7 @@ interface DashboardLayoutProps {
   onSaveEntry: (entry: any) => void;
   onCancelEdit: () => void;
   onFillEntry?: (entry: any) => void;
+  onEnhancedVoiceInput?: (transcript: string) => Promise<void> | void;
   children: React.ReactNode;
 }
 
@@ -33,6 +35,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSaveEntry,
   onCancelEdit,
   onFillEntry,
+  onEnhancedVoiceInput,
   children,
 }) => {
   return (
@@ -74,6 +77,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   onDeleteEntry={onDeleteEntry}
                   onSaveEntry={onSaveEntry}
                   onCancelEdit={onCancelEdit}
+                  onEnhancedVoiceInput={onEnhancedVoiceInput as any}
                 />
               </div>
             </div>
@@ -82,6 +86,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="lg:col-span-3">
               {children}
             </div>
+          </div>
+          {/* Floating mic for small screens */}
+          <div className="lg:hidden">
+            <FloatingVoiceInput
+              savedEntries={savedEntries}
+              onCreateEntry={onAddEntry}
+              onEditEntry={onEditEntry}
+              onDeleteEntry={onDeleteEntry}
+              onSaveEntry={onSaveEntry}
+              onCancelEdit={onCancelEdit}
+              onEnhancedVoiceInput={(text) => onEnhancedVoiceInput?.(text)}
+            />
           </div>
         </div>
       </div>

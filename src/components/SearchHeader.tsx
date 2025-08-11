@@ -117,7 +117,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         <Breadcrumb>
           <BreadcrumbList>
             {breadcrumbs.map((item, idx) => (
-              <React.Fragment key={`${item.label}-${idx}`}>
+              <span key={`${item.label}-${idx}`} className="contents">
                 <BreadcrumbItem>
                   {item.to && idx !== breadcrumbs.length - 1 ? (
                     <BreadcrumbLink asChild>
@@ -130,7 +130,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
                 {idx < breadcrumbs.length - 1 && (
                   <BreadcrumbSeparator />
                 )}
-              </React.Fragment>
+              </span>
             ))}
           </BreadcrumbList>
         </Breadcrumb>

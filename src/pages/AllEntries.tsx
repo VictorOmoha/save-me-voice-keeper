@@ -12,6 +12,7 @@ import { useSavedEntries } from "@/hooks/useSavedEntries";
 import { EnhancedDocumentViewer } from "@/components/documents/EnhancedDocumentViewer";
 import { DocumentEditor } from "@/components/documents/DocumentEditor";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
 export default function AllEntries() {
   const { 
     savedEntries: entries, 
@@ -115,6 +116,16 @@ export default function AllEntries() {
     setDocumentEditorState({ isOpen: false, entry: null });
   };
 
+  // Voice: wire unified processor for global commands
+  const { processVoiceInput } = useUnifiedVoiceProcessor({
+    savedEntries: entries,
+    onCreateEntry: () => setShowAddEntry(true),
+    onEditEntry: handleEditEntry as any,
+    onDeleteEntry: handleDeleteEntry,
+    onSaveEntry: handleSaveEntry,
+    onCancelEdit: handleCancelEdit,
+  });
+
   if (isLoading) {
     const handleCategorySelectNav = (name: string) => navigate(`/category/${encodeURIComponent(name)}`);
     const handleAllEntriesSelectNav = () => navigate(`/all-entries`);
@@ -132,6 +143,7 @@ export default function AllEntries() {
         onSaveEntry={() => {}}
         onCancelEdit={handleCancelEdit}
         onFillEntry={handleFillEntry as any}
+        onEnhancedVoiceInput={processVoiceInput}
       >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -158,6 +170,7 @@ export default function AllEntries() {
       onSaveEntry={() => {}}
       onCancelEdit={handleCancelEdit}
       onFillEntry={handleFillEntry as any}
+      onEnhancedVoiceInput={processVoiceInput}
     >
       <div className="mb-6 space-y-1">
         <h1 className="text-2xl font-bold">All Entries</h1>

@@ -63,7 +63,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   const hasInline = Boolean(storedContent);
   const isTextBased = hasInline || fileType.includes('text') || fileType.includes('html') || fileName.endsWith('.txt') || fileName.endsWith('.html');
   const isPdf = fileType.includes('pdf') || fileName.endsWith('.pdf');
-  const isWordDoc = fileType.includes('word') || fileName.endsWith('.docx') || fileName.endsWith('.doc');
+  const isWordDoc = fileName.endsWith('.docx') || fileType.includes('wordprocessingml.document') || fileType.toLowerCase().includes('docx');
   const isRtf = fileType.includes('rtf') || fileName.endsWith('.rtf');
 
   useEffect(() => {
@@ -191,7 +191,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
       const title = entry?.title || fileName || 'Document';
       if (isPdf && documentState.blob) {
@@ -199,16 +199,36 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
         toast.success('Opening print dialog...');
         return;
       }
-      if (isWordDoc && documentState.content) {
-        printDocumentHtml(title, documentState.content);
-        toast.success('Opening print dialog...');
-        return;
+      if (isWordDoc) {
+        // Ensure we have HTML content; if not, convert on the fly
+        let html = documentState.content;
+        if (!html && documentState.blob) {
+          toast.message('Preparing document for print...');
+          try {
+            const arrayBuffer = await documentState.blob.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            html = result.value;
+            setDocumentState(prev => ({ ...prev, content: html! }));
+          } catch (err) {
+            console.error('Conversion failed during print:', err);
+            toast.error('Failed to prepare Word document for printing');
+            return;
+          }
+        }
+        if (html) {
+          printDocumentHtml(title, html);
+          toast.success('Opening print dialog...');
+          return;
+        }
       }
-      if (isTextBased && documentState.content) {
-        const body = fileName.endsWith('.html') ? documentState.content : textToHtml(documentState.content);
-        printDocumentHtml(title, body);
-        toast.success('Opening print dialog...');
-        return;
+      if (isTextBased) {
+        const content = documentState.content;
+        if (content) {
+          const body = fileName.endsWith('.html') ? content : textToHtml(content);
+          printDocumentHtml(title, body);
+          toast.success('Opening print dialog...');
+          return;
+        }
       }
       toast.error('Nothing to print');
     } catch (e) {
@@ -395,7 +415,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
               <Button
                 onClick={handlePrint}
                 variant="outline"
-                disabled={isLoading || (!documentState.blob && !documentState.content)}
+                disabled={isLoading || (isPdf ? !documentState.blob : !documentState.content)}
                 className="flex items-center space-x-2"
               >
                 <Printer className="w-4 h-4" />

@@ -6,6 +6,7 @@ import { FileText, FolderOpen, HardDrive, Activity } from "lucide-react";
 import { SavedEntry } from "@/types/dashboard";
 import { useStorageStats } from "@/hooks/useStorageStats";
 import { getRecentActivityCount } from "@/utils/storageUtils";
+import { toast } from "@/components/ui/use-toast";
 
 interface StatsCardsProps {
   totalEntries: number;
@@ -16,6 +17,28 @@ interface StatsCardsProps {
 export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, userTier = 'free' }) => {
   const storageStats = useStorageStats(entries, userTier);
   const recentActivityCount = getRecentActivityCount(entries);
+
+  React.useEffect(() => {
+    try {
+      const pct = storageStats.percentage;
+      if (pct >= 90) {
+        const key = 'quotaWarnedAt';
+        const lastShown = Number(localStorage.getItem(key) || '0');
+        const bucket = Math.floor(pct / 5) * 5;
+        if (bucket > lastShown) {
+          toast({
+            title: "Storage nearly full",
+            description: `You're using ${storageStats.totalUsedFormatted} of ${storageStats.limitFormatted} (${pct}%). Consider cleaning up or upgrading.`,
+          });
+          localStorage.setItem(key, String(bucket));
+        }
+      }
+    } catch (e) {
+      // no-op
+    }
+    // Only react to percentage changes
+  }, [storageStats.percentage, storageStats.totalUsedFormatted, storageStats.limitFormatted]);
+
   const stats = [
     {
       title: "Total Entries",

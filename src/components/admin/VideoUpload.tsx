@@ -428,11 +428,22 @@ export const VideoUpload = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = video.video_url;
-                        link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                        link.click();
+                      onClick={async () => {
+                        try {
+                          const { data: signed, error } = await supabase.functions.invoke('get-signed-demo-video', {
+                            body: { url: video.video_url, expiresIn: 600 }
+                          });
+                          const signedUrl = (signed as any)?.signedUrl || video.video_url;
+                          const link = document.createElement('a');
+                          link.href = signedUrl;
+                          link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                          link.click();
+                        } catch (e) {
+                          const link = document.createElement('a');
+                          link.href = video.video_url;
+                          link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+                          link.click();
+                        }
                       }}
                       title="Download video"
                     >

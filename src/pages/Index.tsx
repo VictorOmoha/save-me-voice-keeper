@@ -42,9 +42,20 @@ const Index = () => {
 
         if (data && data.length > 0 && !error) {
           console.log("Demo video found:", data[0]);
-          setActiveDemoVideo({ url: data[0].video_url, title: data[0].title });
-        } else {
-          console.log("No demo video found or error:", error);
+          try {
+            const { data: signed, error: signErr } = await supabase.functions.invoke('get-signed-demo-video', {
+              body: { url: data[0].video_url, expiresIn: 600 }
+            });
+            if (signErr) {
+              console.warn('Failed to get signed URL, falling back to stored URL', signErr);
+              setActiveDemoVideo({ url: data[0].video_url, title: data[0].title });
+            } else {
+              setActiveDemoVideo({ url: (signed as any)?.signedUrl || data[0].video_url, title: data[0].title });
+            }
+          } catch (e) {
+            console.warn('Signed URL generation error, using stored URL', e);
+            setActiveDemoVideo({ url: data[0].video_url, title: data[0].title });
+          }
         }
       } catch (error) {
         console.error('Error fetching demo video:', error);

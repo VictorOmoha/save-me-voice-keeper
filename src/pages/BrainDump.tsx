@@ -9,11 +9,31 @@ import { useSavedEntries } from "@/hooks/useSavedEntries";
 import { BrainDumpProcessor } from "@/utils/brainDumpProcessor";
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, LayoutDashboard } from "lucide-react";
 const processor = new BrainDumpProcessor();
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
   const { isSupported, isListening, transcript, start, stop, reset } = useBrainDumpCapture();
+  const navigate = useNavigate();
+  
+
+  const safeStop = () => {
+    try { stop(); } catch {}
+  };
+  const handleBackClick = () => {
+    safeStop();
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard');
+    }
+  };
+  const handleDashboardClick = () => {
+    safeStop();
+    navigate('/dashboard');
+  };
 
   const [rawText, setRawText] = useState("");
   const [title, setTitle] = useState("");
@@ -253,7 +273,21 @@ const BrainDumpPage: React.FC = () => {
     };
   }, [hasStructured]);
 
-  return (
+return (
+  <>
+    <header className="sticky top-0 z-40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <nav className="container mx-auto px-4 py-2 flex items-center justify-between" aria-label="Brain Dump navigation">
+        <Button variant="ghost" size="sm" onClick={handleBackClick} aria-label="Go back">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleDashboardClick} aria-label="Go to dashboard">
+          <LayoutDashboard className="h-4 w-4 mr-2" />
+          Dashboard
+        </Button>
+      </nav>
+    </header>
+
     <main className="container mx-auto px-4 py-8">
       <article className="space-y-6">
         <header>
@@ -337,7 +371,8 @@ const BrainDumpPage: React.FC = () => {
         </section>
       </article>
     </main>
-  );
+  </>
+);
 };
 
 export default BrainDumpPage;

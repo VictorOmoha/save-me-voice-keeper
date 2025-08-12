@@ -24,11 +24,25 @@ const BrainDumpPage: React.FC = () => {
   };
   const handleBackClick = () => {
     safeStop();
-    if (window.history.length > 1) {
+    const idx = (window.history?.state && (window.history.state as any).idx) as number | undefined;
+    const sameOriginRef = !!document.referrer && document.referrer.startsWith(window.location.origin);
+    console.debug('[BrainDump] Back click', {
+      historyLength: window.history.length,
+      idx,
+      referrer: document.referrer,
+      path: window.location.pathname,
+    });
+
+    if (typeof idx === 'number' && idx > 0) {
       navigate(-1);
-    } else {
-      navigate('/dashboard');
+      return;
     }
+    if (sameOriginRef && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    console.debug('[BrainDump] No history to go back to, redirecting to dashboard');
+    navigate('/dashboard');
   };
   const handleDashboardClick = () => {
     safeStop();

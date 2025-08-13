@@ -14,6 +14,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface SearchHeaderProps {
   searchQuery: string;
@@ -89,6 +90,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
               <Settings className="w-4 h-4" />
             </Link>
           </Button>
+          <ThemeToggle />
           <Button asChild variant="outline" size="sm">
             <Link to="/brain-dump" className="flex items-center gap-2" aria-label="Open Brain Dump">
               <Brain className="w-4 h-4" />

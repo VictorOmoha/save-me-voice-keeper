@@ -41,33 +41,42 @@ export function ThemeProvider({
   })
 
   useEffect(() => {
-    console.log('ThemeProvider: useEffect triggered, theme:', theme);
-    
     try {
-      const root = window.document.documentElement;
-      console.log('ThemeProvider: Current classes before:', root.classList.toString());
+      const root = document.documentElement;
+      const media = window.matchMedia("(prefers-color-scheme: dark)");
 
-      root.classList.remove("light", "dark");
+      const applyTheme = (t: Theme) => {
+        const isDark = t === "dark" || (t === "system" && media.matches);
+        if (isDark) {
+          root.classList.add("dark");
+        } else {
+          root.classList.remove("dark");
+        }
+      };
+
+      applyTheme(theme);
 
       if (theme === "system") {
-        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "dark"
-          : "light";
-        
-        console.log('ThemeProvider: System theme detected:', systemTheme);
-        root.classList.add(systemTheme);
-        return;
+        const listener = (_e: MediaQueryListEvent) => {
+          applyTheme("system");
+        };
+        media.addEventListener("change", listener);
+        return () => media.removeEventListener("change", listener);
       }
-
-      console.log('ThemeProvider: Adding theme class:', theme);
-      root.classList.add(theme);
-      
-      console.log('ThemeProvider: Current classes after:', root.classList.toString());
     } catch (error) {
-      console.error('ThemeProvider: Error in useEffect:', error);
+      console.error("ThemeProvider: Error applying theme:", error);
     }
   }, [theme])
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === storageKey && e.newValue) {
+        setTheme(e.newValue as Theme);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [storageKey]);
 
   const value = {
     theme,

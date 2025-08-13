@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { VoiceFormProvider } from "./contexts/VoiceFormContext";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { ThemeBootstrapper } from "./components/ThemeBootstrapper";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -34,6 +35,7 @@ const App = () => (
           <Sonner />
           <ErrorBoundary>
             <AuthProvider>
+              <ThemeBootstrapper />
               <VoiceFormProvider>
                 <BrowserRouter>
                   <VoiceNavigationListener />

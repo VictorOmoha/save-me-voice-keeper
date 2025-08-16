@@ -42,7 +42,8 @@ export const EnhancedHelpSupportSettings = () => {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      // First, save to database
+      const { error: dbError } = await supabase
         .from('support_tickets')
         .insert({
           user_id: user.id,
@@ -51,7 +52,28 @@ export const EnhancedHelpSupportSettings = () => {
           category: supportForm.category,
         });
 
-      if (error) throw error;
+      if (dbError) throw dbError;
+
+      // Then, send email notification
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-support-email', {
+          body: {
+            subject: supportForm.subject.trim(),
+            message: supportForm.message.trim(),
+            category: supportForm.category,
+            userEmail: user.email,
+            userName: user.email?.split('@')[0] || 'User'
+          }
+        });
+
+        if (emailError) {
+          console.error('Email sending failed:', emailError);
+          // Don't fail the whole operation if email fails
+        }
+      } catch (emailError) {
+        console.error('Email function error:', emailError);
+        // Don't fail the whole operation if email fails
+      }
 
       toast({
         title: "Support ticket submitted",

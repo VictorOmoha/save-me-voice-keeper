@@ -238,6 +238,27 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Featured Video Section */}
+      <section className="py-16 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground transition-all duration-300 hover:scale-105">
+            See Save Me in Action
+          </h2>
+          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Watch how Save Me transforms the way you capture, organize, and retrieve your important information
+          </p>
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] bg-white dark:bg-gray-800 p-2">
+            <iframe 
+              src="https://app.canvid.com/share/fi_01K349ZYVZECRFZJBW1EMC0SFG"
+              className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-xl"
+              frameBorder="0"
+              allowFullScreen
+              title="Save Me Demo Video"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Who Is This For Section */}
       <section className="py-20 px-4 bg-white dark:bg-gray-900/30">
         <div className="max-w-6xl mx-auto">

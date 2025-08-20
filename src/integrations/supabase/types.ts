@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -527,13 +527,13 @@ export type Database = {
       get_current_storage_usage: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
-          tier: string
-          limit_bytes: number
           db_bytes_used: number
           file_bytes_used: number
+          limit_bytes: number
+          tier: string
           total_bytes: number
           updated_at: string
+          user_id: string
         }[]
       }
       get_tier_limit_bytes: {
@@ -542,8 +542,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }

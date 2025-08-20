@@ -11,6 +11,7 @@ import { WaitingListModal } from "@/components/WaitingListModal";
 import { VideoModal } from "@/components/VideoModal";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
+import { CanvidVideoPlayer } from "@/components/CanvidVideoPlayer";
 
 const Index = () => {
   console.log("Index component rendering...");
@@ -247,35 +248,7 @@ const Index = () => {
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Watch how Save Me transforms the way you capture, organize, and retrieve your important information
           </p>
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] bg-white dark:bg-gray-800 p-2">
-            <iframe 
-              src="https://app.canvid.com/share/fi_01K349ZYVZECRFZJBW1EMC0SFG"
-              className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-xl border-0"
-              frameBorder="0"
-              allowFullScreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              loading="lazy"
-              title="Save Me Demo Video"
-              onError={() => console.log('Video iframe failed to load')}
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-xl opacity-0 peer-error:opacity-100 transition-opacity">
-              <div className="text-center p-8">
-                <p className="text-muted-foreground mb-4">Unable to load video player</p>
-                <a 
-                  href="https://app.canvid.com/share/fi_01K349ZYVZECRFZJBW1EMC0SFG"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                >
-                  Watch Video
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-1M14 6h5m0 0v5m0-5L9 16" />
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </div>
+          <CanvidVideoPlayer videoId="fi_01K349ZYVZECRFZJBW1EMC0SFG" />
         </div>
       </section>
 

@@ -248,7 +248,23 @@ const Index = () => {
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Watch how Save Me transforms the way you capture, organize, and retrieve your important information
           </p>
-          <CanvidVideoPlayer videoId="fi_01K349ZYVZECRFZJBW1EMC0SFG" />
+          {activeDemoVideo ? (
+            <div className="rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-[1.02] bg-white/10 p-2">
+              <video
+                className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-xl"
+                controls
+                preload="metadata"
+                poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png"
+              >
+                <source src={activeDemoVideo.url} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          ) : (
+            <div className="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] rounded-2xl bg-muted/30 flex items-center justify-center">
+              <p className="text-muted-foreground">Loading demo video...</p>
+            </div>
+          )}
         </div>
       </section>
 

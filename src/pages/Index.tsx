@@ -248,7 +248,7 @@ const Index = () => {
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Watch how Save Me transforms the way you capture, organize, and retrieve your important information
           </p>
-          <CanvidVideoPlayer videoId="fi_01K349ZYVZECRFZJBW1EMC0SFG" />
+          <CanvidVideoPlayer videoId="fi_01K349JNRHTCFFWZD5XGCREG6D" />
         </div>
       </section>
 

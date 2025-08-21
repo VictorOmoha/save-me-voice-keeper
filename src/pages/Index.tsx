@@ -249,9 +249,9 @@ const Index = () => {
             Watch how Save Me transforms the way you capture, organize, and retrieve your important information
           </p>
           <CanvidVideoPlayer 
-            videoUrl={activeDemoVideo?.url} 
-            title={activeDemoVideo?.title}
-            loading={!activeDemoVideo}
+            canvidUrl="https://app.canvid.com/"
+            title="Interactive Demo"
+            loading={false}
           />
         </div>
       </section>

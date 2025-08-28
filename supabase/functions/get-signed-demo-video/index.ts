@@ -61,12 +61,14 @@ Deno.serve(async (req) => {
     }
 
     // Verify the path corresponds to an active demo video entry
+    console.log('Looking for video with path:', objectPath);
+    
     const { data: videoRows, error: videoErr } = await admin
       .from('demo_videos')
-      .select('id, video_url, is_active')
-      .eq('is_active', true)
-      .ilike('video_url', `%${objectPath}%`)
-      .limit(1);
+      .select('id, video_url, is_active, video_type')
+      .eq('is_active', true);
+
+    console.log('All active videos found:', videoRows);
 
     if (videoErr) {
       console.error('Error verifying demo video:', videoErr);
@@ -76,12 +78,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!videoRows || videoRows.length === 0) {
+    // Find the video that matches this path (handle URL encoding)
+    const matchingVideo = videoRows?.find(video => {
+      const videoPath = extractPathFromUrl(video.video_url);
+      console.log('Comparing paths:', { objectPath, videoPath, originalUrl: video.video_url });
+      return videoPath === objectPath || decodeURIComponent(videoPath || '') === objectPath || videoPath === decodeURIComponent(objectPath);
+    });
+
+    if (!matchingVideo) {
+      console.log('No matching video found for path:', objectPath);
       return new Response(
         JSON.stringify({ error: 'Video not found or not active' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Found matching video:', matchingVideo);
 
     // Create a signed URL for the object in the private bucket
     const { data: signed, error: signErr } = await admin

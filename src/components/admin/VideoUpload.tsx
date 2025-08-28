@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Video, Trash2, AlertCircle, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface DemoVideo {
   id: string;
@@ -17,17 +18,97 @@ interface DemoVideo {
   video_url: string;
   thumbnail_url: string | null;
   is_active: boolean;
+  video_type: string;
   created_at: string;
 }
 
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB limit
 const MAX_THUMBNAIL_SIZE = 5 * 1024 * 1024; // 5MB limit
 
+interface VideoCardProps {
+  video: DemoVideo;
+  onToggle: (videoId: string, currentStatus: boolean, videoType: string) => void;
+  onReplace: (videoId: string, videoType: string) => void;
+  onDelete: (videoId: string, videoUrl: string) => void;
+}
+
+const VideoCard = ({ video, onToggle, onReplace, onDelete }: VideoCardProps) => (
+  <div className="flex items-center justify-between p-4 border rounded-lg">
+    <div className="flex-1">
+      <h3 className="font-medium">{video.title}</h3>
+      {video.description && (
+        <p className="text-sm text-muted-foreground mt-1">{video.description}</p>
+      )}
+      <div className="flex items-center gap-4 mt-2">
+        <span className={`text-xs px-2 py-1 rounded ${
+          video.is_active 
+            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+            : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
+        }`}>
+          {video.is_active ? 'Active' : 'Inactive'}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {new Date(video.created_at).toLocaleDateString()}
+        </span>
+      </div>
+    </div>
+    <div className="flex items-center gap-2">
+      {!video.is_active && (
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => onReplace(video.id, video.video_type)}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          Make Active
+        </Button>
+      )}
+      <Switch
+        checked={video.is_active}
+        onCheckedChange={() => onToggle(video.id, video.is_active, video.video_type)}
+        disabled={video.is_active}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={async () => {
+          try {
+            const { data: signed, error } = await supabase.functions.invoke('get-signed-demo-video', {
+              body: { url: video.video_url, expiresIn: 600 }
+            });
+            const signedUrl = (signed as any)?.signedUrl || video.video_url;
+            const link = document.createElement('a');
+            link.href = signedUrl;
+            link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+            link.click();
+          } catch (e) {
+            const link = document.createElement('a');
+            link.href = video.video_url;
+            link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+            link.click();
+          }
+        }}
+        title="Download video"
+      >
+        <Download className="w-4 h-4" />
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onDelete(video.id, video.video_url)}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  </div>
+);
+
 export const VideoUpload = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [videoType, setVideoType] = useState<string>("demo");
   const [isActive, setIsActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [videos, setVideos] = useState<DemoVideo[]>([]);
@@ -172,6 +253,7 @@ export const VideoUpload = () => {
           description: description || null,
           video_url: videoUrl,
           thumbnail_url: thumbnailUrl,
+          video_type: videoType,
           is_active: isActive,
           uploaded_by: user.id
         });
@@ -190,6 +272,7 @@ export const VideoUpload = () => {
       setDescription("");
       setVideoFile(null);
       setThumbnailFile(null);
+      setVideoType("demo");
       setIsActive(false);
       setUploadProgress(0);
       
@@ -210,13 +293,14 @@ export const VideoUpload = () => {
     }
   };
 
-  const toggleVideoStatus = async (videoId: string, currentStatus: boolean) => {
+  const toggleVideoStatus = async (videoId: string, currentStatus: boolean, videoType: string) => {
     try {
-      // If activating this video, first deactivate all others
+      // If activating this video, first deactivate all others of the same type
       if (!currentStatus) {
         const { error: deactivateError } = await supabase
           .from('demo_videos')
           .update({ is_active: false })
+          .eq('video_type', videoType)
           .neq('id', videoId);
 
         if (deactivateError) throw deactivateError;
@@ -245,12 +329,13 @@ export const VideoUpload = () => {
     }
   };
 
-  const replaceActiveVideo = async (videoId: string) => {
+  const replaceActiveVideo = async (videoId: string, videoType: string) => {
     try {
-      // Deactivate all videos first
+      // Deactivate all videos of the same type first
       const { error: deactivateError } = await supabase
         .from('demo_videos')
-        .update({ is_active: false });
+        .update({ is_active: false })
+        .eq('video_type', videoType);
 
       if (deactivateError) throw deactivateError;
 
@@ -367,6 +452,22 @@ export const VideoUpload = () => {
             </div>
 
             <div>
+              <Label htmlFor="videoType">Video Type</Label>
+              <Select value={videoType} onValueChange={setVideoType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select video type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="demo">Demo Section Video</SelectItem>
+                  <SelectItem value="canvid_replacement">Canvid Component Video (Looping)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {videoType === "demo" ? "Displays in the demo video section with controls" : "Replaces Canvid component and loops automatically"}
+              </p>
+            </div>
+
+            <div>
               <Label htmlFor="video">Video File (MP4, Max 50MB)</Label>
               <Input
                 id="video"
@@ -404,7 +505,9 @@ export const VideoUpload = () => {
                 onCheckedChange={setIsActive}
               />
               <Label htmlFor="active">Make this video active immediately</Label>
-              <span className="text-xs text-muted-foreground">(will replace current active video)</span>
+              <span className="text-xs text-muted-foreground">
+                (will replace current active video of the same type)
+              </span>
             </div>
 
             {isUploading && uploadProgress > 0 && (
@@ -443,77 +546,32 @@ export const VideoUpload = () => {
           {videos.length === 0 ? (
             <p className="text-muted-foreground text-center py-4">No videos uploaded yet</p>
           ) : (
-            <div className="space-y-4">
-              {videos.map((video) => (
-                <div key={video.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-medium">{video.title}</h3>
-                    {video.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{video.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        video.is_active 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                      }`}>
-                        {video.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(video.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!video.is_active && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => replaceActiveVideo(video.id)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Make Active
-                      </Button>
-                    )}
-                    <Switch
-                      checked={video.is_active}
-                      onCheckedChange={() => toggleVideoStatus(video.id, video.is_active)}
-                      disabled={video.is_active}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        try {
-                          const { data: signed, error } = await supabase.functions.invoke('get-signed-demo-video', {
-                            body: { url: video.video_url, expiresIn: 600 }
-                          });
-                          const signedUrl = (signed as any)?.signedUrl || video.video_url;
-                          const link = document.createElement('a');
-                          link.href = signedUrl;
-                          link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                          link.click();
-                        } catch (e) {
-                          const link = document.createElement('a');
-                          link.href = video.video_url;
-                          link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-                          link.click();
-                        }
-                      }}
-                      title="Download video"
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteVideo(video.id, video.video_url)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+            <div className="space-y-6">
+              {/* Demo Videos Section */}
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-3">Demo Section Videos</h4>
+                <div className="space-y-4">
+                  {videos.filter(video => video.video_type === 'demo').map((video) => (
+                    <VideoCard key={video.id} video={video} onToggle={toggleVideoStatus} onReplace={replaceActiveVideo} onDelete={deleteVideo} />
+                  ))}
+                  {videos.filter(video => video.video_type === 'demo').length === 0 && (
+                    <p className="text-xs text-muted-foreground">No demo videos uploaded yet</p>
+                  )}
                 </div>
-              ))}
+              </div>
+
+              {/* Canvid Replacement Videos Section */}
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-3">Canvid Component Videos (Looping)</h4>
+                <div className="space-y-4">
+                  {videos.filter(video => video.video_type === 'canvid_replacement').map((video) => (
+                    <VideoCard key={video.id} video={video} onToggle={toggleVideoStatus} onReplace={replaceActiveVideo} onDelete={deleteVideo} />
+                  ))}
+                  {videos.filter(video => video.video_type === 'canvid_replacement').length === 0 && (
+                    <p className="text-xs text-muted-foreground">No Canvid replacement videos uploaded yet</p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

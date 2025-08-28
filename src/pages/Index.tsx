@@ -30,40 +30,50 @@ const Index = () => {
   const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [activeDemoVideo, setActiveDemoVideo] = useState<{ url: string; title: string } | null>(null);
+  const [activeCanvidVideo, setActiveCanvidVideo] = useState<{ url: string; title: string } | null>(null);
 
-  // Fetch active demo video
+  // Fetch active demo videos
   useEffect(() => {
-    const fetchActiveDemoVideo = async () => {
+    const fetchActiveVideos = async () => {
       try {
-        console.log("Fetching demo video...");
+        console.log("Fetching active videos...");
         const { data, error } = await supabase
           .from('demo_videos')
-          .select('video_url, title')
+          .select('video_url, title, video_type')
           .eq('is_active', true);
 
         if (data && data.length > 0 && !error) {
-          console.log("Demo video found:", data[0]);
-          try {
-            const { data: signed, error: signErr } = await supabase.functions.invoke('get-signed-demo-video', {
-              body: { url: data[0].video_url, expiresIn: 600 }
-            });
-            if (signErr) {
-              console.warn('Failed to get signed URL, falling back to stored URL', signErr);
-              setActiveDemoVideo({ url: data[0].video_url, title: data[0].title });
-            } else {
-              setActiveDemoVideo({ url: (signed as any)?.signedUrl || data[0].video_url, title: data[0].title });
+          console.log("Active videos found:", data);
+          
+          for (const video of data) {
+            try {
+              const { data: signed, error: signErr } = await supabase.functions.invoke('get-signed-demo-video', {
+                body: { url: video.video_url, expiresIn: 600 }
+              });
+              
+              const videoUrl = signErr ? video.video_url : (signed as any)?.signedUrl || video.video_url;
+              
+              if (video.video_type === 'demo') {
+                setActiveDemoVideo({ url: videoUrl, title: video.title });
+              } else if (video.video_type === 'canvid_replacement') {
+                setActiveCanvidVideo({ url: videoUrl, title: video.title });
+              }
+            } catch (e) {
+              console.warn('Signed URL generation error, using stored URL', e);
+              if (video.video_type === 'demo') {
+                setActiveDemoVideo({ url: video.video_url, title: video.title });
+              } else if (video.video_type === 'canvid_replacement') {
+                setActiveCanvidVideo({ url: video.video_url, title: video.title });
+              }
             }
-          } catch (e) {
-            console.warn('Signed URL generation error, using stored URL', e);
-            setActiveDemoVideo({ url: data[0].video_url, title: data[0].title });
           }
         }
       } catch (error) {
-        console.error('Error fetching demo video:', error);
+        console.error('Error fetching active videos:', error);
       }
     };
 
-    fetchActiveDemoVideo();
+    fetchActiveVideos();
   }, []);
 
   const toggleTheme = () => {
@@ -248,15 +258,14 @@ const Index = () => {
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             Watch how Save Me transforms the way you capture, organize, and retrieve your important information
           </p>
-          {activeDemoVideo ? (
+          {activeCanvidVideo ? (
             <div className="relative rounded-lg overflow-hidden shadow-2xl mx-auto max-w-3xl">
               <video
-                src={activeDemoVideo.url}
+                src={activeCanvidVideo.url}
                 autoPlay
                 loop
                 muted
                 playsInline
-                controls
                 className="w-full h-auto"
                 poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png"
               >
@@ -264,9 +273,11 @@ const Index = () => {
               </video>
             </div>
           ) : (
-            <div className="bg-card border border-border rounded-lg p-8 text-center">
-              <p className="text-muted-foreground">No demo video available. Upload one in the settings to display here.</p>
-            </div>
+            <CanvidVideoPlayer 
+              canvidUrl="https://app.canvid.com/"
+              title="Interactive Demo"
+              loading={false}
+            />
           )}
         </div>
       </section>
@@ -435,11 +446,35 @@ const Index = () => {
       </section>
 
       {/* Demo Section */}
+      {activeDemoVideo && (
+        <section className="py-20 px-4 bg-gray-50 dark:bg-gray-800/30">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground transition-all duration-300 hover:scale-105">
+              Detailed Demo
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              Watch a detailed walkthrough of Save Me's features and capabilities
+            </p>
+            <div className="relative rounded-lg overflow-hidden shadow-2xl mx-auto max-w-3xl">
+              <video
+                src={activeDemoVideo.url}
+                controls
+                className="w-full h-auto"
+                poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png"
+              >
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Dashboard Demo Section */}
       <section className="py-20 px-4 bg-gray-50 dark:bg-gray-800/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground transition-all duration-300 hover:scale-105">
-              See Save Me in Action
+              Dashboard Preview
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Experience our intuitive dashboard that adapts to your preferences with seamless dark and light modes

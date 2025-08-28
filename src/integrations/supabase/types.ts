@@ -63,6 +63,7 @@ export type Database = {
           title: string
           updated_at: string
           uploaded_by: string
+          video_type: string
           video_url: string
         }
         Insert: {
@@ -74,6 +75,7 @@ export type Database = {
           title: string
           updated_at?: string
           uploaded_by: string
+          video_type?: string
           video_url: string
         }
         Update: {
@@ -85,6 +87,7 @@ export type Database = {
           title?: string
           updated_at?: string
           uploaded_by?: string
+          video_type?: string
           video_url?: string
         }
         Relationships: []

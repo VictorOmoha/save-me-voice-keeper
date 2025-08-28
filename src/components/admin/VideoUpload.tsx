@@ -212,6 +212,16 @@ export const VideoUpload = () => {
 
   const toggleVideoStatus = async (videoId: string, currentStatus: boolean) => {
     try {
+      // If activating this video, first deactivate all others
+      if (!currentStatus) {
+        const { error: deactivateError } = await supabase
+          .from('demo_videos')
+          .update({ is_active: false })
+          .neq('id', videoId);
+
+        if (deactivateError) throw deactivateError;
+      }
+
       const { error } = await supabase
         .from('demo_videos')
         .update({ is_active: !currentStatus })
@@ -221,7 +231,7 @@ export const VideoUpload = () => {
 
       toast({
         title: "Success",
-        description: "Video status updated successfully!",
+        description: !currentStatus ? "Video is now active on the landing page!" : "Video deactivated",
       });
 
       fetchVideos();
@@ -230,6 +240,39 @@ export const VideoUpload = () => {
       toast({
         title: "Error",
         description: "Failed to update video status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const replaceActiveVideo = async (videoId: string) => {
+    try {
+      // Deactivate all videos first
+      const { error: deactivateError } = await supabase
+        .from('demo_videos')
+        .update({ is_active: false });
+
+      if (deactivateError) throw deactivateError;
+
+      // Activate the selected video
+      const { error } = await supabase
+        .from('demo_videos')
+        .update({ is_active: true })
+        .eq('id', videoId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Video is now active on the landing page!",
+      });
+
+      fetchVideos();
+    } catch (error) {
+      console.error('Error replacing active video:', error);
+      toast({
+        title: "Error",
+        description: "Failed to replace active video",
         variant: "destructive",
       });
     }
@@ -360,7 +403,8 @@ export const VideoUpload = () => {
                 checked={isActive}
                 onCheckedChange={setIsActive}
               />
-              <Label htmlFor="active">Make this video active</Label>
+              <Label htmlFor="active">Make this video active immediately</Label>
+              <span className="text-xs text-muted-foreground">(will replace current active video)</span>
             </div>
 
             {isUploading && uploadProgress > 0 && (
@@ -421,9 +465,20 @@ export const VideoUpload = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {!video.is_active && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => replaceActiveVideo(video.id)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Make Active
+                      </Button>
+                    )}
                     <Switch
                       checked={video.is_active}
                       onCheckedChange={() => toggleVideoStatus(video.id, video.is_active)}
+                      disabled={video.is_active}
                     />
                     <Button
                       variant="outline"

@@ -49,15 +49,21 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   });
 
   const renderFieldInput = () => {
+    console.log('renderFieldInput called for field:', field.name, 'type:', field.type, 'value:', field.value);
+    
     if (isFillMode) {
       // In fill mode, show the appropriate input based on field type
       switch (field.type) {
         case 'table':
           // Initialize table data if not present
+          console.log('Processing table field, value:', field.value);
           const tableData: TableData = field.value || { columns: [], rows: [] };
+          console.log('Table data after initialization:', tableData);
+          console.log('Columns:', tableData.columns, 'Type:', typeof tableData.columns);
+          
           return (
             <div className="space-y-4">
-              {tableData.columns.length === 0 ? (
+              {(tableData.columns && Array.isArray(tableData.columns) && tableData.columns.length === 0) ? (
                 <ShoppingListTemplate
                   onApplyTemplate={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
                 />
@@ -92,7 +98,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
                 multiple={true}
                 label=""
               />
-              {field.value && field.value.length > 0 && (
+              {field.value && Array.isArray(field.value) && field.value.length > 0 && (
                 <ImageGallery images={field.value} readOnly={false} />
               )}
             </div>
@@ -190,7 +196,9 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               <Label className="text-foreground text-sm text-muted-foreground">Current Value</Label>
               <div className="p-2 bg-muted rounded text-sm">
                 {field.type === 'table' ? (
-                  field.value.rows ? `Table with ${field.value.rows.length} rows` : 'Empty table'
+                  (field.value && field.value.rows && Array.isArray(field.value.rows)) 
+                    ? `Table with ${field.value.rows.length} rows` 
+                    : 'Empty table'
                 ) : (
                   Array.isArray(field.value) ? field.value.join(', ') : String(field.value)
                 )}

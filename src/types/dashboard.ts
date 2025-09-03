@@ -2,7 +2,7 @@
 export interface FieldDefinition {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'date' | 'textarea' | 'image' | 'gallery';
+  type: 'text' | 'number' | 'date' | 'textarea' | 'image' | 'gallery' | 'table';
 }
 
 export interface SavedEntry {

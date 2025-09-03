@@ -4,7 +4,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
-import { CustomField } from './types';
+import { CustomField, TableData } from './types';
+import { TableFieldEditor } from './table/TableFieldEditor';
+import { TableFieldViewer } from './table/TableFieldViewer';
+import { ShoppingListTemplate } from './table/ShoppingListTemplate';
 
 interface OptimizedCustomFieldItemProps {
   field: CustomField;
@@ -34,7 +37,8 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
     { value: 'text', label: 'Text' },
     { value: 'number', label: 'Number' },
     { value: 'date', label: 'Date' },
-    { value: 'textarea', label: 'Long Text' }
+    { value: 'textarea', label: 'Long Text' },
+    { value: 'table', label: 'Table/List' }
   ], []);
 
   const renderValueInput = useMemo(() => {
@@ -43,6 +47,22 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
     }`;
 
     switch (field.type) {
+      case 'table':
+        const tableData: TableData = field.value || { columns: [], rows: [] };
+        return (
+          <div className="space-y-4">
+            {tableData.columns.length === 0 ? (
+              <ShoppingListTemplate
+                onApplyTemplate={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+              />
+            ) : (
+              <TableFieldEditor
+                value={tableData}
+                onChange={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+              />
+            )}
+          </div>
+        );
       case 'textarea':
         return (
           <Textarea

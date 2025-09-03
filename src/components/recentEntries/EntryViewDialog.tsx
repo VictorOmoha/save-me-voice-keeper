@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { ImageGallery } from "@/components/forms/ImageGallery";
 import { extractImagesFromEntry } from "@/utils/imageUtils";
 import { printSingleEntry } from "@/utils/printUtils";
+import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
+import { TableData } from "@/components/forms/types";
 
 interface EntryViewDialogProps {
   entry: SavedEntry | null;
@@ -184,18 +186,37 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                   }
                   return true;
                 })
-                .map(([key, value]) => (
-                <div key={key} className="space-y-1">
-                  <label className="text-sm font-medium text-muted-foreground capitalize">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
-                  </label>
-                  <div className="p-3 bg-accent/50 rounded-md border">
-                    <p className="text-foreground whitespace-pre-wrap">
-                      {String(value) || 'No data'}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                .map(([key, value]) => {
+                  // Handle table fields separately
+                  if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) {
+                    return (
+                      <div key={key} className="space-y-3">
+                        <label className="text-sm font-medium text-muted-foreground capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </label>
+                        <TableFieldViewer
+                          value={value as TableData}
+                          title={key}
+                          showExport={true}
+                        />
+                      </div>
+                    );
+                  }
+                  
+                  // Handle regular fields
+                  return (
+                    <div key={key} className="space-y-1">
+                      <label className="text-sm font-medium text-muted-foreground capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </label>
+                      <div className="p-3 bg-accent/50 rounded-md border">
+                        <p className="text-foreground whitespace-pre-wrap">
+                          {String(value) || 'No data'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </div>
 

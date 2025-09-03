@@ -5,9 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, Trash2 } from "lucide-react";
-import { CustomField } from './types';
+import { CustomField, TableData } from './types';
 import { ImageUpload } from './ImageUpload';
 import { ImageGallery } from './ImageGallery';
+import { TableFieldEditor } from './table/TableFieldEditor';
+import { TableFieldViewer } from './table/TableFieldViewer';
+import { ShoppingListTemplate } from './table/ShoppingListTemplate';
 
 interface CustomFieldItemProps {
   field: CustomField;
@@ -49,6 +52,23 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
     if (isFillMode) {
       // In fill mode, show the appropriate input based on field type
       switch (field.type) {
+        case 'table':
+          // Initialize table data if not present
+          const tableData: TableData = field.value || { columns: [], rows: [] };
+          return (
+            <div className="space-y-4">
+              {tableData.columns.length === 0 ? (
+                <ShoppingListTemplate
+                  onApplyTemplate={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+                />
+              ) : (
+                <TableFieldEditor
+                  value={tableData}
+                  onChange={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+                />
+              )}
+            </div>
+          );
         case 'image':
           return (
             <div className="space-y-4">
@@ -142,6 +162,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
                 <SelectItem value="textarea">Long Text</SelectItem>
                 <SelectItem value="image">Single Image</SelectItem>
                 <SelectItem value="gallery">Image Gallery</SelectItem>
+                <SelectItem value="table">Table/List</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -150,7 +171,11 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             <div>
               <Label className="text-foreground text-sm text-muted-foreground">Current Value</Label>
               <div className="p-2 bg-muted rounded text-sm">
-                {Array.isArray(field.value) ? field.value.join(', ') : String(field.value)}
+                {field.type === 'table' ? (
+                  field.value.rows ? `Table with ${field.value.rows.length} rows` : 'Empty table'
+                ) : (
+                  Array.isArray(field.value) ? field.value.join(', ') : String(field.value)
+                )}
               </div>
             </div>
           )}

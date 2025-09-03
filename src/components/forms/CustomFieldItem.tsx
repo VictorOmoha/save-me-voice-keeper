@@ -151,7 +151,25 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           </div>
           <div>
             <Label className="text-foreground">Field Type</Label>
-            <Select value={field.type} onValueChange={(value) => onUpdateField(field.id, 'type', value)}>
+            <Select value={field.type} onValueChange={(value) => {
+              // Convert value when changing field type
+              let newValue = field.value;
+              if (value === 'table' && (typeof field.value === 'string' || !field.value || !field.value.columns)) {
+                // Convert to table structure
+                newValue = {
+                  columns: [
+                    { id: 'item', name: 'Item', type: 'text' },
+                    { id: 'quantity', name: 'Quantity', type: 'number' }
+                  ],
+                  rows: field.value && typeof field.value === 'string' ? [{ item: field.value, quantity: 1 }] : []
+                };
+              } else if (value !== 'table' && field.type === 'table') {
+                // Convert from table to other type
+                newValue = field.value?.rows?.[0]?.item || '';
+              }
+              onUpdateField(field.id, 'type', value);
+              onUpdateField(field.id, 'value', newValue);
+            }}>
               <SelectTrigger className="bg-background border-border text-foreground">
                 <SelectValue />
               </SelectTrigger>

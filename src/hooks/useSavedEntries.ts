@@ -59,7 +59,7 @@ export const useSavedEntries = () => {
   }, []);
 
   // Save entry to Supabase
-  const saveEntry = useCallback(async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const saveEntry = useCallback(async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, editingEntry?: SavedEntry | null) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -74,21 +74,40 @@ export const useSavedEntries = () => {
         user_id: user.id,
       };
 
-      const { data, error } = await supabase
-        .from('entries')
-        .insert(entryData)
-        .select()
-        .single();
+      let data, error;
+
+      if (editingEntry) {
+        // Update existing entry
+        const result = await supabase
+          .from('entries')
+          .update(entryData)
+          .eq('id', editingEntry.id)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      } else {
+        // Insert new entry
+        const result = await supabase
+          .from('entries')
+          .insert(entryData)
+          .select()
+          .single();
+        
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) {
         throw error;
       }
 
-      // Add the new entry to local state
+      // Transform the data
       const fields = data.fields as Record<string, any> || {};
       const fieldDefinitions = data.field_definitions as any[] || [];
       
-      const newEntry: SavedEntry = {
+      const savedEntry: SavedEntry = {
         id: data.id,
         title: data.title,
         fields,
@@ -98,8 +117,15 @@ export const useSavedEntries = () => {
         updatedAt: new Date(data.updated_at),
       };
 
-      setSavedEntries(prev => [newEntry, ...prev]);
-      toast.success('Entry saved successfully!');
+      if (editingEntry) {
+        // Update existing entry in local state
+        setSavedEntries(prev => prev.map(e => e.id === editingEntry.id ? savedEntry : e));
+        toast.success('Entry updated successfully!');
+      } else {
+        // Add new entry to local state
+        setSavedEntries(prev => [savedEntry, ...prev]);
+        toast.success('Entry saved successfully!');
+      }
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');

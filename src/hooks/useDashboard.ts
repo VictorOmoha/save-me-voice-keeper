@@ -459,16 +459,16 @@ export const useDashboard = () => {
 
   const saveEntry = useCallback(async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      await baseSaveEntry(entry);
+      await baseSaveEntry(entry, editingEntry);
       setShowAddEntry(false);
       setEditingEntry(null);
       setFillingEntry(null);
-      toast.success('Entry saved successfully!');
+      toast.success(editingEntry ? 'Entry updated successfully!' : 'Entry saved successfully!');
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');
     }
-  }, [baseSaveEntry]);
+  }, [baseSaveEntry, editingEntry]);
 
   const deleteEntry = useCallback(async (id: string) => {
     try {

@@ -31,14 +31,8 @@ export default function AllEntries() {
   const [documentEditorState, setDocumentEditorState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      if (editingEntry) {
-        // For editing, we need to use Supabase update instead
-        // This is a simplified version - you may want to implement proper update logic
-        toast.info("Edit functionality needs to be implemented with Supabase update");
-      } else {
-        // Use the hook's saveEntry function
-        await saveEntry(entryData);
-      }
+      // Use the hook's saveEntry function for both create and edit
+      await saveEntry(entryData, editingEntry);
       setShowAddEntry(false);
       setEditingEntry(null);
     } catch (error) {

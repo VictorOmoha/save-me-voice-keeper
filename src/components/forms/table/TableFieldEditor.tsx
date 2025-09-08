@@ -176,7 +176,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
               <SelectItem value="checkbox">Checkbox</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={addColumn} disabled={disabled}>
+          <Button type="button" onClick={addColumn} disabled={disabled}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -193,6 +193,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
                     className="w-24 h-6 text-xs"
                   />
                   <Button
+                    type="button"
                     size="sm"
                     variant="ghost"
                     onClick={() => setEditingColumn(null)}
@@ -206,6 +207,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
                   <span className="text-sm font-medium">{column.name}</span>
                   <span className="text-xs text-muted-foreground">({column.type})</span>
                   <Button
+                    type="button"
                     size="sm"
                     variant="ghost"
                     onClick={() => setEditingColumn(column.id)}
@@ -215,6 +217,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
                     <Edit className="h-3 w-3" />
                   </Button>
                   <Button
+                    type="button"
                     size="sm"
                     variant="ghost"
                     onClick={() => deleteColumn(column.id)}
@@ -235,7 +238,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Table Data</Label>
-            <Button onClick={addRow} disabled={disabled} size="sm">
+            <Button type="button" onClick={addRow} disabled={disabled} size="sm">
               <Plus className="h-4 w-4 mr-1" />
               Add Row
             </Button>
@@ -266,6 +269,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
                     ))}
                     <td className="border border-border p-2 text-center">
                       <Button
+                        type="button"
                         size="sm"
                         variant="ghost"
                         onClick={() => deleteRow(rowIndex)}

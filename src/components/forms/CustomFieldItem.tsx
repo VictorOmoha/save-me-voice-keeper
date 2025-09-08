@@ -46,10 +46,28 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   
   // For existing table fields with data, show data editor by default
   const hasTableData = field.type === 'table' && field.value && 
-    field.value.columns && Array.isArray(field.value.columns) && field.value.columns.length > 0;
+    (field.value.columns && Array.isArray(field.value.columns) && field.value.columns.length > 0);
+  
+  // Check if this is a table field that needs conversion from simple value
+  const needsTableConversion = field.type === 'table' && field.value && 
+    typeof field.value === 'string' && !hasTableData;
+    
+  // Show toggle buttons for any table field in edit mode that has some value
+  const shouldShowToggle = isEditMode && field.type === 'table' && 
+    (hasTableData || needsTableConversion);
   
   // Determine if we should show data input or structure config
-  const shouldShowDataInput = isFillMode || (isEditMode && hasTableData && !isEditingStructure);
+  const shouldShowDataInput = isFillMode || (isEditMode && (hasTableData || needsTableConversion) && !isEditingStructure);
+  
+  console.log('CustomFieldItem debug:', {
+    fieldName: field.name,
+    fieldType: field.type,
+    isEditMode,
+    hasTableData,
+    needsTableConversion,
+    shouldShowToggle,
+    fieldValue: field.value
+  });
 
   console.log('CustomFieldItem render:', {
     fieldName: field.name,
@@ -66,9 +84,25 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
       // Show data input for filling or editing existing data
       switch (field.type) {
         case 'table':
-          // Initialize table data if not present
+          // Initialize table data if not present or convert from simple value
           console.log('Processing table field, value:', field.value);
-          const tableData: TableData = field.value || { columns: [], rows: [] };
+          let tableData: TableData;
+          
+          if (needsTableConversion) {
+            // Convert simple string value to table structure
+            tableData = {
+              columns: [
+                { id: 'item', name: 'Item', type: 'text' },
+                { id: 'quantity', name: 'Quantity', type: 'number' }
+              ],
+              rows: [{ item: field.value, quantity: 1 }]
+            };
+            // Auto-save the converted structure
+            onUpdateField(field.id, 'value', tableData);
+          } else {
+            tableData = field.value || { columns: [], rows: [] };
+          }
+          
           console.log('Table data after initialization:', tableData);
           console.log('Columns:', tableData.columns, 'Type:', typeof tableData.columns);
           
@@ -233,7 +267,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
                 Field {index + 1}
               </Label>
               {/* Toggle buttons for table fields in edit mode */}
-              {isEditMode && field.type === 'table' && hasTableData && (
+              {shouldShowToggle && (
                 <div className="flex gap-1">
                   <Button
                     type="button"

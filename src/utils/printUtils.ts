@@ -1,4 +1,6 @@
 import { SavedEntry } from "@/types/dashboard";
+import { TableData } from "@/components/forms/types";
+import { toDisplayFieldName } from "./fieldNameNormalizer";
 
 export interface PrintOptions {
   includeMetadata?: boolean;
@@ -27,6 +29,148 @@ export const printSingleEntry = (entry: SavedEntry, options: PrintOptions = {}) 
   printEntries([entry], options);
 };
 
+// Helper function to render field values based on their type and content
+const renderFieldValue = (key: string, value: any, fieldDefinitions?: any[]): string => {
+  if (value === null || value === undefined || value === '') {
+    return '<span class="text-muted">No data</span>';
+  }
+
+  // Handle table data
+  if (value && typeof value === 'object' && 'columns' in value && 'rows' in value) {
+    const tableData = value as TableData;
+    if (!tableData.columns || tableData.columns.length === 0) {
+      return '<span class="text-muted">Empty table</span>';
+    }
+
+    return `
+      <div class="table-container">
+        <div class="table-info">Table with ${tableData.rows.length} rows, ${tableData.columns.length} columns</div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              ${tableData.columns.map(col => `
+                <th class="table-header">
+                  <div>${col.name}</div>
+                  <div class="column-type">(${col.type})</div>
+                </th>
+              `).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${tableData.rows.map(row => `
+              <tr>
+                ${tableData.columns.map(col => `
+                  <td class="table-cell">
+                    ${renderTableCellValue(row[col.id], col.type)}
+                  </td>
+                `).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Handle arrays (like image galleries)
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return '<span class="text-muted">No items</span>';
+    }
+    
+    // Check if it's an array of image URLs
+    const isImageArray = value.some(item => 
+      typeof item === 'string' && (
+        item.includes('blob:') || 
+        item.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+      )
+    );
+    
+    if (isImageArray) {
+      return `
+        <div class="image-gallery">
+          <div class="gallery-info">${value.length} image${value.length !== 1 ? 's' : ''}</div>
+          ${value.map((url, index) => `
+            <div class="image-item">
+              <span class="image-label">Image ${index + 1}</span>
+              <div class="image-preview">📷 ${extractFileName(url)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    // Regular array
+    return `
+      <div class="list-container">
+        ${value.map((item, index) => `
+          <div class="list-item">
+            <span class="list-index">${index + 1}.</span>
+            <span class="list-value">${String(item)}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Handle dates
+  if (value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)))) {
+    const date = new Date(value);
+    return `<span class="date-value">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</span>`;
+  }
+
+  // Handle numbers
+  if (typeof value === 'number') {
+    return `<span class="number-value">${value.toLocaleString()}</span>`;
+  }
+
+  // Handle booleans
+  if (typeof value === 'boolean') {
+    return `<span class="boolean-value">${value ? '✓ Yes' : '✗ No'}</span>`;
+  }
+
+  // Handle long text (textarea)
+  if (typeof value === 'string' && value.length > 100) {
+    return `<div class="long-text">${value.replace(/\n/g, '<br>')}</div>`;
+  }
+
+  // Handle URLs
+  if (typeof value === 'string' && (value.startsWith('http') || value.startsWith('blob:'))) {
+    if (value.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) || value.includes('blob:')) {
+      return `<div class="image-reference">📷 ${extractFileName(value)}</div>`;
+    }
+    return `<a href="${value}" class="url-link">${value}</a>`;
+  }
+
+  // Default string handling
+  return `<span class="text-value">${String(value)}</span>`;
+};
+
+const renderTableCellValue = (value: any, columnType: string): string => {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+
+  switch (columnType) {
+    case 'checkbox':
+      return value ? '✓' : '✗';
+    case 'number':
+      return typeof value === 'number' ? value.toLocaleString() : String(value);
+    case 'date':
+      return new Date(value).toLocaleDateString();
+    default:
+      return String(value);
+  }
+};
+
+const extractFileName = (url: string): string => {
+  if (url.includes('blob:')) {
+    return 'Uploaded image';
+  }
+  const match = url.match(/\/([^\/]+\.[^\/]+)$/);
+  return match ? match[1] : 'Image file';
+};
+
 const generatePrintHTML = (entries: SavedEntry[], options: PrintOptions) => {
   const { includeMetadata, pageBreakBetweenEntries, fontSize } = options;
   
@@ -39,75 +183,200 @@ const generatePrintHTML = (entries: SavedEntry[], options: PrintOptions) => {
   const printStyles = `
     <style>
       @media print {
-        body { margin: 0; font-family: Arial, sans-serif; }
+        body { 
+          margin: 0; 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          line-height: 1.4;
+          color: #222;
+        }
         .no-print { display: none !important; }
         .page-break { page-break-before: always; }
+        
         .entry-card { 
-          border: 1px solid #ddd; 
-          margin-bottom: 20px; 
-          padding: 15px;
+          border: 2px solid #e1e5e9; 
+          margin-bottom: 24px; 
+          padding: 20px;
           break-inside: avoid;
+          border-radius: 8px;
+          background: #fafbfc;
         }
+        
         .entry-title { 
-          font-size: 18px; 
-          font-weight: bold; 
-          margin-bottom: 10px; 
-          color: #333;
+          font-size: 20px; 
+          font-weight: 700; 
+          margin-bottom: 12px; 
+          color: #1a1a1a;
+          border-bottom: 2px solid #4f46e5;
+          padding-bottom: 8px;
         }
+        
         .entry-metadata { 
-          font-size: 12px; 
-          color: #666; 
-          margin-bottom: 15px;
-          border-bottom: 1px solid #eee;
-          padding-bottom: 10px;
+          font-size: 11px; 
+          color: #6b7280; 
+          margin-bottom: 16px;
+          background: #f3f4f6;
+          padding: 8px 12px;
+          border-radius: 4px;
+          border-left: 4px solid #4f46e5;
         }
+        
         .field-grid { 
           display: grid; 
-          gap: 10px; 
+          gap: 16px; 
         }
+        
         .field-item { 
-          display: flex; 
-          flex-direction: column; 
-          gap: 5px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          padding: 12px;
         }
+        
         .field-label { 
-          font-weight: bold; 
-          color: #333; 
-          font-size: 14px;
+          font-weight: 600; 
+          color: #374151; 
+          font-size: 13px;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
+        
         .field-value { 
-          color: #555; 
+          color: #1f2937; 
           font-size: 14px;
-          word-break: break-word;
+          line-height: 1.5;
         }
+        
+        .text-muted { color: #9ca3af; font-style: italic; }
+        .date-value { font-family: monospace; color: #059669; }
+        .number-value { font-family: monospace; color: #dc2626; text-align: right; }
+        .boolean-value { font-weight: 600; }
+        .long-text { white-space: pre-wrap; line-height: 1.6; }
+        .url-link { color: #2563eb; text-decoration: underline; }
+        
+        .table-container { 
+          margin: 8px 0;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          overflow: hidden;
+        }
+        
+        .table-info {
+          background: #f9fafb;
+          padding: 8px 12px;
+          font-size: 12px;
+          color: #6b7280;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .data-table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          font-size: 12px;
+        }
+        
+        .table-header { 
+          background: #f3f4f6; 
+          padding: 8px; 
+          border: 1px solid #d1d5db; 
+          font-weight: 600;
+          text-align: left;
+          color: #374151;
+        }
+        
+        .column-type {
+          font-size: 10px;
+          color: #9ca3af;
+          font-weight: normal;
+        }
+        
+        .table-cell { 
+          padding: 6px 8px; 
+          border: 1px solid #e5e7eb; 
+          vertical-align: top;
+        }
+        
+        .image-gallery, .list-container {
+          margin: 8px 0;
+        }
+        
+        .gallery-info, .image-item, .list-item {
+          padding: 4px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .gallery-info {
+          font-weight: 600;
+          color: #374151;
+          font-size: 12px;
+        }
+        
+        .image-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .image-label {
+          font-weight: 500;
+          color: #6b7280;
+          font-size: 11px;
+        }
+        
+        .image-preview, .image-reference {
+          color: #059669;
+          font-size: 12px;
+        }
+        
+        .list-item {
+          display: flex;
+          gap: 8px;
+        }
+        
+        .list-index {
+          font-weight: 600;
+          color: #6b7280;
+          min-width: 20px;
+        }
+        
         .print-header {
           text-align: center;
-          margin-bottom: 30px;
-          border-bottom: 2px solid #333;
-          padding-bottom: 10px;
+          margin-bottom: 32px;
+          border-bottom: 3px solid #1f2937;
+          padding-bottom: 16px;
         }
+        
         .print-title {
-          font-size: 24px;
-          font-weight: bold;
-          margin-bottom: 5px;
+          font-size: 28px;
+          font-weight: 800;
+          margin-bottom: 8px;
+          color: #1f2937;
         }
+        
         .print-date {
           font-size: 14px;
-          color: #666;
+          color: #6b7280;
         }
+        
         .entry-count {
           font-size: 16px;
-          color: #666;
-          margin-bottom: 20px;
+          color: #4b5563;
+          margin-bottom: 24px;
+          background: #f9fafb;
+          padding: 12px;
+          border-radius: 8px;
+          border-left: 4px solid #10b981;
         }
       }
+      
       @media screen {
         .print-preview {
           max-width: 8.5in;
           margin: 0 auto;
-          padding: 20px;
+          padding: 24px;
           background: white;
-          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          border-radius: 8px;
         }
       }
     </style>
@@ -138,8 +407,8 @@ const generatePrintHTML = (entries: SavedEntry[], options: PrintOptions) => {
         <div class="field-grid">
           ${Object.entries(entry.fields).map(([key, value]) => `
             <div class="field-item">
-              <div class="field-label">${formatFieldName(key)}</div>
-              <div class="field-value">${value || 'No data'}</div>
+              <div class="field-label">${toDisplayFieldName(key)}</div>
+              <div class="field-value">${renderFieldValue(key, value, entry.fieldDefinitions)}</div>
             </div>
           `).join('')}
         </div>
@@ -164,12 +433,6 @@ const generatePrintHTML = (entries: SavedEntry[], options: PrintOptions) => {
   `;
 };
 
-const formatFieldName = (fieldName: string) => {
-  return fieldName
-    .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-    .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
-    .trim();
-};
 
 const openPrintWindow = (content: string) => {
   const printWindow = window.open('', '_blank', 'width=800,height=600');

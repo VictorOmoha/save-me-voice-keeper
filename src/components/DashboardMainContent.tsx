@@ -36,6 +36,7 @@ interface DashboardMainContentProps {
   onDeleteEntry: (id: string) => void;
   onViewAllEntries: () => void;
   isVoiceProcessing?: boolean;
+  isSaving?: boolean;
   lastVoiceCommand?: any;
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
@@ -77,6 +78,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onDeleteEntry,
   onViewAllEntries,
   isVoiceProcessing,
+  isSaving,
   lastVoiceCommand,
   conversationState,
   hasPendingConfirmation,
@@ -101,6 +103,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         templateEntry={fillingEntry}
         onSave={onSaveEntry}
         onCancel={onCancelEdit}
+        isSaving={isSaving}
       />
     );
   }

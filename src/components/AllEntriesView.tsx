@@ -23,6 +23,7 @@ interface AllEntriesViewProps {
   onCancelEdit?: () => void;
   getFormTitle?: () => string;
   getFormMode?: () => 'create' | 'edit' | 'fill';
+  isSaving?: boolean;
 }
 
 export const AllEntriesView: React.FC<AllEntriesViewProps> = ({

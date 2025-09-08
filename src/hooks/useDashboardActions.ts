@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { zapierService } from "@/services/zapierService";
 import { webhookService } from "@/services/webhookService";
+import { useState } from "react";
 
 interface UseDashboardActionsProps {
   savedEntries: SavedEntry[];
@@ -39,7 +40,16 @@ export const useDashboardActions = ({
   setShowAddEntry,
   loadEntries,
 }: UseDashboardActionsProps) => {
+  const [isSaving, setIsSaving] = useState(false);
+
   const saveEntry = async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, fillingEntry?: SavedEntry | null) => {
+    // Prevent concurrent saves
+    if (isSaving) {
+      console.log('Save already in progress, skipping duplicate save attempt');
+      return;
+    }
+
+    setIsSaving(true);
     try {
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -211,6 +221,8 @@ export const useDashboardActions = ({
       }
       console.error('Error saving entry:', error);
       toast.error("Failed to save entry: " + (error as Error).message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -286,5 +298,6 @@ export const useDashboardActions = ({
     fillEntry,
     handleCancelEdit,
     handleAddEntry,
+    isSaving,
   };
 };

@@ -8,6 +8,7 @@ export const useSavedEntries = () => {
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch entries from Supabase
   const fetchEntries = useCallback(async () => {
@@ -58,8 +59,15 @@ export const useSavedEntries = () => {
     }
   }, []);
 
-  // Save entry to Supabase
+  // Save entry to Supabase with debouncing and duplicate prevention
   const saveEntry = useCallback(async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, editingEntry?: SavedEntry | null) => {
+    // Prevent concurrent saves
+    if (isSaving) {
+      console.log('Save already in progress, skipping duplicate save attempt');
+      return;
+    }
+
+    setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -130,8 +138,10 @@ export const useSavedEntries = () => {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');
       throw error;
+    } finally {
+      setIsSaving(false);
     }
-  }, []);
+  }, [isSaving]);
 
   // Delete entry from Supabase
   const deleteEntry = useCallback(async (id: string) => {
@@ -177,6 +187,7 @@ export const useSavedEntries = () => {
   return {
     savedEntries: filteredEntries,
     isLoading,
+    isSaving,
     searchQuery,
     setSearchQuery,
     saveEntry,

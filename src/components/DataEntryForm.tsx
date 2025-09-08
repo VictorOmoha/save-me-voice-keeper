@@ -20,6 +20,7 @@ interface DataEntryFormProps {
   mode?: 'create' | 'edit' | 'fill';
   preselectedCategory?: string;
   isVoiceActive?: boolean;
+  isSaving?: boolean;
   voiceConversationState?: {
     isInConversation: boolean;
     currentStep?: { type: string; question: string };
@@ -35,6 +36,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
   mode = 'create',
   preselectedCategory,
   isVoiceActive = false,
+  isSaving = false,
   voiceConversationState
 }) => {
   const [lastVoiceUpdate, setLastVoiceUpdate] = useState<string>('');
@@ -227,11 +229,11 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         </div>
 
         <div className="flex justify-end space-x-2">
-          <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border">
+          <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border" disabled={isSaving}>
             Cancel
           </Button>
-          <Button type="submit" variant="gradient">
-            {editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
+          <Button type="submit" variant="gradient" disabled={isSaving}>
+            {isSaving ? 'Saving...' : editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
           </Button>
         </div>
       </form>

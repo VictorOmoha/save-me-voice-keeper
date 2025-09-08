@@ -54,6 +54,7 @@ export default function Dashboard() {
   const {
     savedEntries,
     isLoading: entriesLoading,
+    isSaving,
     searchQuery,
     setSearchQuery,
     showAddEntry,
@@ -268,6 +269,7 @@ export default function Dashboard() {
                 onSave={saveEntry}
                 onCancel={handleCancelEdit}
                 isVoiceActive={voiceConversationState?.isInConversation || false}
+                isSaving={isSaving}
                 voiceConversationState={voiceConversationState}
               />
             )
@@ -299,6 +301,7 @@ export default function Dashboard() {
           onViewDocument={handleViewDocument}
           onViewAllEntries={handleViewAllEntries}
           isVoiceProcessing={isVoiceProcessing}
+          isSaving={isSaving}
           lastVoiceCommand={lastVoiceCommand}
           conversationState={conversationState}
           hasPendingConfirmation={hasPendingConfirmation}

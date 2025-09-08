@@ -17,6 +17,7 @@ export default function AllEntries() {
   const { 
     savedEntries: entries, 
     isLoading, 
+    isSaving,
     searchQuery, 
     setSearchQuery, 
     saveEntry, 
@@ -194,6 +195,7 @@ export default function AllEntries() {
               onCancel={handleCancelEdit}
               editEntry={editingEntry}
               mode={editingEntry ? 'edit' : 'create'}
+              isSaving={isSaving}
             />
           </CardContent>
         </Card>

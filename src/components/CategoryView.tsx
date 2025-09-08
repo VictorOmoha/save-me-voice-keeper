@@ -28,6 +28,7 @@ interface CategoryViewProps {
   onCancelEdit?: () => void;
   getFormTitle?: () => string;
   getFormMode?: () => 'create' | 'edit' | 'fill';
+  isSaving?: boolean;
 }
 
 export const CategoryView: React.FC<CategoryViewProps> = ({
@@ -47,7 +48,8 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   onSaveEntry = () => {},
   onCancelEdit = () => {},
   getFormTitle = () => 'Add New Entry',
-  getFormMode = () => 'create'
+  getFormMode = () => 'create',
+  isSaving = false,
 }) => {
   const { downloadingFiles, handleDownload } = useDownload();
   const { filterEntriesByCategory } = useCategoryFilter();
@@ -125,6 +127,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
               editEntry={editingEntry}
               templateEntry={fillingEntry}
               mode={getFormMode()}
+              isSaving={isSaving}
             />
           </CardContent>
         </Card>

@@ -9,6 +9,7 @@ export const useDashboard = () => {
   const {
     savedEntries,
     isLoading,
+    isSaving,
     saveEntry: baseSaveEntry,
     deleteEntry: baseDeleteEntry,
     searchQuery,
@@ -520,6 +521,7 @@ export const useDashboard = () => {
   return {
     savedEntries,
     isLoading,
+    isSaving,
     searchQuery,
     setSearchQuery,
     

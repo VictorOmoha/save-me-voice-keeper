@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, Settings, Edit3 } from "lucide-react";
+import { useState } from "react";
 import { CustomField, TableData } from './types';
 import { ImageUpload } from './ImageUpload';
 import { ImageGallery } from './ImageGallery';
@@ -40,6 +41,16 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   const canMoveUp = index > 0;
   const canMoveDown = index < fieldsLength - 1;
 
+  // State to track whether we're editing data or structure for table fields
+  const [isEditingStructure, setIsEditingStructure] = useState(false);
+  
+  // For existing table fields with data, show data editor by default
+  const hasTableData = field.type === 'table' && field.value && 
+    field.value.columns && Array.isArray(field.value.columns) && field.value.columns.length > 0;
+  
+  // Determine if we should show data input or structure config
+  const shouldShowDataInput = isFillMode || (isEditMode && hasTableData && !isEditingStructure);
+
   console.log('CustomFieldItem render:', {
     fieldName: field.name,
     fieldValue: field.value,
@@ -51,8 +62,8 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   const renderFieldInput = () => {
     console.log('renderFieldInput called for field:', field.name, 'type:', field.type, 'value:', field.value);
     
-    if (isFillMode) {
-      // In fill mode, show the appropriate input based on field type
+    if (shouldShowDataInput) {
+      // Show data input for filling or editing existing data
       switch (field.type) {
         case 'table':
           // Initialize table data if not present
@@ -217,9 +228,36 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
       <div className="flex items-start justify-between">
         <div className="flex-1">
           {!isFillMode && (
-            <Label className="text-foreground font-medium mb-2 block">
-              Field {index + 1}
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-foreground font-medium">
+                Field {index + 1}
+              </Label>
+              {/* Toggle buttons for table fields in edit mode */}
+              {isEditMode && field.type === 'table' && hasTableData && (
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant={!isEditingStructure ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsEditingStructure(false)}
+                    className="text-xs px-2 py-1"
+                  >
+                    <Edit3 className="h-3 w-3 mr-1" />
+                    Edit Data
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={isEditingStructure ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsEditingStructure(true)}
+                    className="text-xs px-2 py-1"
+                  >
+                    <Settings className="h-3 w-3 mr-1" />
+                    Edit Structure
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
           {isFillMode && field.name && (
             <Label className="text-foreground font-medium mb-2 block">

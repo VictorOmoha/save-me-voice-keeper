@@ -42,6 +42,16 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   const canMoveUp = index > 0;
   const canMoveDown = index < fieldsLength - 1;
 
+  // Normalize field type to handle legacy invalid types
+  const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
+  const normalizedFieldType = validTypes.includes(field.type) ? field.type : 'text';
+  
+  // If field type was normalized, update it automatically
+  if (normalizedFieldType !== field.type) {
+    console.warn(`Invalid field type "${field.type}" detected for field "${field.name}". Converting to "text".`);
+    onUpdateField(field.id, 'type', normalizedFieldType);
+  }
+
   // State to track whether we're editing data or structure for table fields
   const [isEditingStructure, setIsEditingStructure] = useState(false);
   const [fieldNameValidation, setFieldNameValidation] = useState<{ isValid: boolean; error?: string; suggestion?: string }>({ isValid: true });
@@ -55,15 +65,15 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   }, [field.name, isEditMode]);
   
   // For existing table fields with data, show data editor by default
-  const hasTableData = field.type === 'table' && field.value && 
+  const hasTableData = normalizedFieldType === 'table' && field.value && 
     (field.value.columns && Array.isArray(field.value.columns) && field.value.columns.length > 0);
   
   // Check if this is a table field that needs conversion from simple value
-  const needsTableConversion = field.type === 'table' && field.value && 
+  const needsTableConversion = normalizedFieldType === 'table' && field.value && 
     typeof field.value === 'string' && !hasTableData;
     
   // Show toggle buttons for any table field in edit mode that has some value
-  const shouldShowToggle = isEditMode && field.type === 'table' && 
+  const shouldShowToggle = isEditMode && normalizedFieldType === 'table' && 
     (hasTableData || needsTableConversion);
   
   // Determine if we should show data input or structure config
@@ -92,7 +102,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
     
     if (shouldShowDataInput) {
       // Show data input for filling or editing existing data
-      switch (field.type) {
+      switch (normalizedFieldType) {
         case 'table':
           // Initialize table data if not present or convert from simple value
           console.log('Processing table field, value:', field.value);
@@ -231,7 +241,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           <div>
             <Label className="text-foreground">Field Type</Label>
             <Select 
-              value={field.type} 
+              value={normalizedFieldType} 
               onValueChange={(value: CustomField['type']) => {
                 console.log('Field type changed to:', value);
                 // Validate that the value is a valid field type
@@ -252,7 +262,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
                     ],
                     rows: field.value && typeof field.value === 'string' ? [{ item: field.value, quantity: 1 }] : []
                   };
-                } else if (value !== 'table' && field.type === 'table') {
+                } else if (value !== 'table' && normalizedFieldType === 'table') {
                   // Convert from table to other type
                   newValue = field.value?.rows?.[0]?.item || '';
                 }
@@ -279,7 +289,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             <div>
               <Label className="text-foreground text-sm text-muted-foreground">Current Value</Label>
               <div className="p-2 bg-muted rounded text-sm">
-                {field.type === 'table' ? (
+                {normalizedFieldType === 'table' ? (
                   (field.value && field.value.rows && Array.isArray(field.value.rows)) 
                     ? `Table with ${field.value.rows.length} rows` 
                     : 'Empty table'

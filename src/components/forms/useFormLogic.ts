@@ -19,6 +19,7 @@ const normalizeFieldName = (name: string): string => {
 const detectFieldType = (value: any): CustomField['type'] => {
   if (typeof value === 'number') return 'number';
   if (Array.isArray(value)) return 'gallery';
+  if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) return 'table';
   if (typeof value === 'string') {
     if (value.length > 100) return 'textarea';
     // Check if it's a date
@@ -167,17 +168,36 @@ export const useFormLogic = ({
   }, [editEntry, templateEntry, mode, preselectedCategory]);
 
   const addField = (initial?: Partial<CustomField>): string => {
+    // Ensure we only use valid field types
+    const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
+    let fieldType: CustomField['type'] = 'text';
+    
+    if (initial?.type && validTypes.includes(initial.type as CustomField['type'])) {
+      fieldType = initial.type as CustomField['type'];
+    }
+    
     const newField: CustomField = {
       id: Date.now().toString(),
       name: initial?.name ?? '',
-      type: (initial?.type as CustomField['type']) ?? 'text',
+      type: fieldType,
       value: initial?.value ?? ''
     };
+    console.log('Adding new field:', newField);
     setFields(prev => [...prev, newField]);
     return newField.id;
   };
   const updateField = (id: string, key: keyof CustomField, value: any) => {
     console.log('Updating field:', { id, key, value });
+    
+    // Validate field type if we're updating the type
+    if (key === 'type') {
+      const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
+      if (!validTypes.includes(value)) {
+        console.error('Invalid field type provided:', value, 'Valid types:', validTypes);
+        return; // Don't update with invalid type
+      }
+    }
+    
     setFields(fields.map(field => 
       field.id === id ? { ...field, [key]: value } : field
     ));

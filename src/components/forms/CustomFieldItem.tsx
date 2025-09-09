@@ -230,29 +230,40 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           </div>
           <div>
             <Label className="text-foreground">Field Type</Label>
-            <Select value={field.type} onValueChange={(value) => {
-              // Convert value when changing field type
-              let newValue = field.value;
-              if (value === 'table' && (typeof field.value === 'string' || !field.value || !field.value.columns)) {
-                // Convert to table structure
-                newValue = {
-                  columns: [
-                    { id: 'item', name: 'Item', type: 'text' },
-                    { id: 'quantity', name: 'Quantity', type: 'number' }
-                  ],
-                  rows: field.value && typeof field.value === 'string' ? [{ item: field.value, quantity: 1 }] : []
-                };
-              } else if (value !== 'table' && field.type === 'table') {
-                // Convert from table to other type
-                newValue = field.value?.rows?.[0]?.item || '';
-              }
-              onUpdateField(field.id, 'type', value);
-              onUpdateField(field.id, 'value', newValue);
-            }}>
+            <Select 
+              value={field.type} 
+              onValueChange={(value: CustomField['type']) => {
+                console.log('Field type changed to:', value);
+                // Validate that the value is a valid field type
+                const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
+                if (!validTypes.includes(value)) {
+                  console.error('Invalid field type:', value);
+                  return;
+                }
+                
+                // Convert value when changing field type
+                let newValue = field.value;
+                if (value === 'table' && (typeof field.value === 'string' || !field.value || !field.value.columns)) {
+                  // Convert to table structure
+                  newValue = {
+                    columns: [
+                      { id: 'item', name: 'Item', type: 'text' },
+                      { id: 'quantity', name: 'Quantity', type: 'number' }
+                    ],
+                    rows: field.value && typeof field.value === 'string' ? [{ item: field.value, quantity: 1 }] : []
+                  };
+                } else if (value !== 'table' && field.type === 'table') {
+                  // Convert from table to other type
+                  newValue = field.value?.rows?.[0]?.item || '';
+                }
+                onUpdateField(field.id, 'type', value);
+                onUpdateField(field.id, 'value', newValue);
+              }}
+            >
               <SelectTrigger className="bg-background border-border text-foreground">
-                <SelectValue />
+                <SelectValue placeholder="Select field type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background border-border z-50">
                 <SelectItem value="text">Text</SelectItem>
                 <SelectItem value="number">Number</SelectItem>
                 <SelectItem value="date">Date</SelectItem>

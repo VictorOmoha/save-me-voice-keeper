@@ -4,14 +4,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, Trash2, Settings, Edit3 } from "lucide-react";
-import { useState } from "react";
+import { ChevronUp, ChevronDown, Trash2, Settings, Edit3, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 import { CustomField, TableData } from './types';
 import { ImageUpload } from './ImageUpload';
 import { ImageGallery } from './ImageGallery';
 import { TableFieldEditor } from './table/TableFieldEditor';
 import { TableFieldViewer } from './table/TableFieldViewer';
 import { ShoppingListTemplate } from './table/ShoppingListTemplate';
+import { validateFieldName } from "@/utils/fieldNameNormalizer";
 
 interface CustomFieldItemProps {
   field: CustomField;
@@ -43,6 +44,15 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
 
   // State to track whether we're editing data or structure for table fields
   const [isEditingStructure, setIsEditingStructure] = useState(false);
+  const [fieldNameValidation, setFieldNameValidation] = useState<{ isValid: boolean; error?: string; suggestion?: string }>({ isValid: true });
+
+  // Validate field name whenever it changes
+  useEffect(() => {
+    if (isEditMode && field.name) {
+      const validation = validateFieldName(field.name);
+      setFieldNameValidation(validation);
+    }
+  }, [field.name, isEditMode]);
   
   // For existing table fields with data, show data editor by default
   const hasTableData = field.type === 'table' && field.value && 
@@ -191,14 +201,32 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
       // In edit mode, show field configuration
       return (
         <div className="space-y-3">
-          <div>
+          <div className="space-y-1">
             <Label className="text-foreground">Field Name</Label>
             <Input
               placeholder="Enter field name..."
               value={field.name}
               onChange={(e) => onUpdateField(field.id, 'name', e.target.value)}
-              className="bg-background border-border text-foreground"
+              className={`bg-background border-border text-foreground ${
+                !fieldNameValidation.isValid ? 'border-red-500 ring-1 ring-red-500/30' : ''
+              }`}
             />
+            {!fieldNameValidation.isValid && (
+              <div className="flex items-start space-x-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-red-700 dark:text-red-300">{fieldNameValidation.error}</p>
+                  {fieldNameValidation.suggestion && (
+                    <button
+                      onClick={() => onUpdateField(field.id, 'name', fieldNameValidation.suggestion)}
+                      className="text-xs text-red-600 dark:text-red-400 underline mt-1 hover:no-underline"
+                    >
+                      Use "{fieldNameValidation.suggestion}" instead
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <Label className="text-foreground">Field Type</Label>

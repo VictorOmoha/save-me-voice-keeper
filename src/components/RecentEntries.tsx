@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SavedEntry } from "@/types/dashboard";
@@ -23,6 +24,7 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
   onViewAll
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
+  const navigate = useNavigate();
 
   const recentEntries = entries.slice(0, 5);
 
@@ -34,8 +36,8 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
       // For documents with files, use the document viewer
       onView(entry);
     } else {
-      // For regular entries, use the existing dialog
-      setViewingEntry(entry);
+      // For regular entries, navigate to the all-entries page with the entry ID
+      navigate(`/all-entries/${entry.id}`);
     }
   };
 
@@ -94,15 +96,6 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
           </div>
         </CardContent>
       </Card>
-
-      <EntryViewDialog
-        entry={viewingEntry}
-        isOpen={viewingEntry !== null}
-        onClose={handleCloseDialog}
-        onEdit={onEdit}
-        onFill={onFill}
-        onViewDocument={onView}
-      />
     </>
   );
 };

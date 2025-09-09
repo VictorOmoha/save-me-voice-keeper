@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EntriesTable } from "@/components/EntriesTable";
@@ -13,6 +13,7 @@ import { EnhancedDocumentViewer } from "@/components/documents/EnhancedDocumentV
 import { DocumentEditor } from "@/components/documents/DocumentEditor";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
+import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 export default function AllEntries() {
   const { 
     savedEntries: entries, 
@@ -25,11 +26,13 @@ export default function AllEntries() {
     refreshEntries,
   } = useSavedEntries();
   const navigate = useNavigate();
+  const { entryId } = useParams();
   
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
   const [documentViewerState, setDocumentViewerState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const [documentEditorState, setDocumentEditorState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
+  const [selectedEntryDialog, setSelectedEntryDialog] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       // Use the hook's saveEntry function for both create and edit
@@ -110,6 +113,16 @@ export default function AllEntries() {
     refreshEntries();
     setDocumentEditorState({ isOpen: false, entry: null });
   };
+
+  // Handle URL parameter for showing specific entry
+  useEffect(() => {
+    if (entryId && entries.length > 0 && !isLoading) {
+      const entry = entries.find(e => e.id === entryId);
+      if (entry) {
+        setSelectedEntryDialog({ isOpen: true, entry });
+      }
+    }
+  }, [entryId, entries, isLoading]);
 
   // Voice: wire unified processor for global commands
   const { processVoiceInput } = useUnifiedVoiceProcessor({
@@ -222,6 +235,28 @@ export default function AllEntries() {
         onClose={handleCloseDocumentEditor}
         entry={documentEditorState.entry}
         onSave={handleDocumentSaved}
+      />
+
+      {/* Entry View Dialog for URL-selected entries */}
+      <EntryViewDialog
+        entry={selectedEntryDialog.entry}
+        isOpen={selectedEntryDialog.isOpen}
+        onClose={() => {
+          setSelectedEntryDialog({ isOpen: false, entry: null });
+          // Navigate back to all-entries without the entry ID
+          navigate('/all-entries');
+        }}
+        onEdit={(entry) => {
+          handleEditEntry(entry);
+          setSelectedEntryDialog({ isOpen: false, entry: null });
+          navigate('/all-entries');
+        }}
+        onFill={(entry) => {
+          handleFillEntry(entry);
+          setSelectedEntryDialog({ isOpen: false, entry: null });
+          navigate('/all-entries');
+        }}
+        onViewDocument={handleViewDocument}
       />
     </DashboardLayout>
   );

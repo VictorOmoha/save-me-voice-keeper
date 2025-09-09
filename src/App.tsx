@@ -46,6 +46,7 @@ const App = () => (
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/all-entries" element={<AllEntries />} />
+                    <Route path="/all-entries/:entryId" element={<AllEntries />} />
                     <Route path="/category/:categoryName" element={<CategoryPage />} />
                     <Route path="/subscription" element={<Subscription />} />
                     <Route path="/settings" element={<Settings />} />

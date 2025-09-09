@@ -16,6 +16,7 @@ import { ImageGallery } from "@/components/forms/ImageGallery";
 import { extractImagesFromEntry } from "@/utils/imageUtils";
 import { printSingleEntry } from "@/utils/printUtils";
 import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
+import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCardViewer";
 import { TableData } from "@/components/forms/types";
 
 interface EntryViewDialogProps {
@@ -189,16 +190,33 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                 .map(([key, value]) => {
                   // Handle table fields separately
                   if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) {
+                    const tableData = value as TableData;
+                    
+                    // Check if this is a shopping list by looking for common shopping list columns
+                    const isShoppingList = tableData.columns.some(col => 
+                      ['item', 'quantity', 'price', 'cost', 'purchased', 'got it'].some(term => 
+                        col.name.toLowerCase().includes(term)
+                      )
+                    );
+                    
                     return (
                       <div key={key} className="space-y-3">
                         <label className="text-sm font-medium text-muted-foreground capitalize">
                           {key.replace(/([A-Z])/g, ' $1').trim()}
                         </label>
-                        <TableFieldViewer
-                          value={value as TableData}
-                          title={key}
-                          showExport={true}
-                        />
+                        {isShoppingList ? (
+                          <ShoppingListCardViewer
+                            value={tableData}
+                            title={key}
+                            showExport={true}
+                          />
+                        ) : (
+                          <TableFieldViewer
+                            value={tableData}
+                            title={key}
+                            showExport={true}
+                          />
+                        )}
                       </div>
                     );
                   }

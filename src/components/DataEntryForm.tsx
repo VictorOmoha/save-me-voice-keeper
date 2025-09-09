@@ -173,6 +173,11 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
             }`}
             required
           />
+          {mode === 'fill' && templateEntry && (
+            <p className="text-sm text-muted-foreground">
+              📋 Using template: "{templateEntry.title}" - Edit the title above for your new entry
+            </p>
+          )}
         </div>
 
         <div className={`transition-all duration-300 ${

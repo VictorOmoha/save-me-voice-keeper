@@ -37,7 +37,8 @@ export default function AllEntries() {
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       // Use the hook's saveEntry function for both create and edit
-      await saveEntry(entryData, editingEntry);
+      // Pass templateEntry when in fill mode, editingEntry when in edit mode
+      await saveEntry(entryData, editingEntry || templateEntry);
       setShowAddEntry(false);
       setEditingEntry(null);
       setTemplateEntry(null);

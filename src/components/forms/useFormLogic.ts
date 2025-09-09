@@ -117,7 +117,7 @@ export const useFormLogic = ({
         fieldDefinitions: templateEntry.fieldDefinitions
       });
 
-      newTitle = templateEntry.title;
+      newTitle = ""; // Clear title for fill mode - user should provide new title
       newCategory = templateEntry.fields.category || preselectedCategory || "";
       
       if (templateEntry.fieldDefinitions && templateEntry.fieldDefinitions.length > 0) {
@@ -127,24 +127,24 @@ export const useFormLogic = ({
           .map(fieldDef => ({
             ...fieldDef,
             name: normalizeFieldName(fieldDef.name), // Normalize display name
-            value: templateEntry.fields[fieldDef.name] || '' // Keep existing values for fill mode
+            value: '' // Clear values for fill mode - user will provide new data
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
         
-        console.log('Created template fields for fill mode with normalized names:', newFields);
+        console.log('Created template fields for fill mode with normalized names and cleared values:', newFields);
       } else {
-        // Fallback: create fields from the fields object but keep values
+        // Fallback: create fields from the fields object but clear values
         const templateFields: CustomField[] = Object.entries(templateEntry.fields)
           .filter(([name]) => name !== 'category')
           .map(([name, value], index) => ({
             id: (index + 1).toString(),
             name: normalizeFieldName(name), // Normalize display name
             type: detectFieldType(value),
-            value: value || '' // Keep existing values for fill mode
+            value: '' // Clear values for fill mode - user will provide new data
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
         
-        console.log('Created template fields from fields object with normalized names:', newFields);
+        console.log('Created template fields from fields object with normalized names and cleared values:', newFields);
       }
     }
 

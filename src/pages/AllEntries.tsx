@@ -30,6 +30,7 @@ export default function AllEntries() {
   
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
+  const [templateEntry, setTemplateEntry] = useState<SavedEntry | null>(null);
   const [documentViewerState, setDocumentViewerState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const [documentEditorState, setDocumentEditorState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const [selectedEntryDialog, setSelectedEntryDialog] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
@@ -39,6 +40,7 @@ export default function AllEntries() {
       await saveEntry(entryData, editingEntry);
       setShowAddEntry(false);
       setEditingEntry(null);
+      setTemplateEntry(null);
     } catch (error) {
       console.error('Error saving entry:', error);
       // Error handling is already done in the hook
@@ -73,15 +75,16 @@ export default function AllEntries() {
   };
 
   const handleFillEntry = (entry: SavedEntry) => {
-    // Create a new entry based on the template
+    // Create a new entry based on the template - set up fill mode properly
     setEditingEntry(null);
+    setTemplateEntry(entry);
     setShowAddEntry(true);
-    // You could pre-populate the form with the entry template here
   };
 
   const handleCancelEdit = () => {
     setShowAddEntry(false);
     setEditingEntry(null);
+    setTemplateEntry(null);
   };
 
   // View/Edit document handlers
@@ -199,7 +202,7 @@ export default function AllEntries() {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>
-              {editingEntry ? 'Edit Entry' : 'Add New Entry'}
+              {editingEntry ? 'Edit Entry' : templateEntry ? 'Fill Form Template' : 'Add New Entry'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -207,7 +210,8 @@ export default function AllEntries() {
               onSave={handleSaveEntry}
               onCancel={handleCancelEdit}
               editEntry={editingEntry}
-              mode={editingEntry ? 'edit' : 'create'}
+              templateEntry={templateEntry}
+              mode={editingEntry ? 'edit' : templateEntry ? 'fill' : 'create'}
               isSaving={isSaving}
             />
           </CardContent>

@@ -1,4 +1,5 @@
 
+import React from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +9,7 @@ import { useState } from "react";
 
 interface UseDashboardActionsProps {
   savedEntries: SavedEntry[];
-  setSavedEntries: (entries: SavedEntry[]) => void;
+  setSavedEntries: React.Dispatch<React.SetStateAction<SavedEntry[]>>;
   editingEntry: SavedEntry | null;
   setEditingEntry: (entry: SavedEntry | null) => void;
   setFillingEntry: (entry: SavedEntry | null) => void;
@@ -112,6 +113,11 @@ export const useDashboardActions = ({
           // Don't show error to user as the main operation succeeded
         }
 
+        // Update local state immediately to prevent duplication
+        setSavedEntries(prevEntries => 
+          prevEntries.map(e => e.id === editingEntry.id ? savedEntryData! : e)
+        );
+        
         toast.success("Entry updated successfully!");
         setEditingEntry(null);
       } else if (fillingEntry) {
@@ -158,6 +164,11 @@ export const useDashboardActions = ({
         } catch (webhookError) {
           console.error('Failed to trigger webhook for entry fill:', webhookError);
         }
+
+        // Update local state immediately to prevent duplication
+        setSavedEntries(prevEntries => 
+          prevEntries.map(e => e.id === fillingEntry.id ? savedEntryData! : e)
+        );
 
         console.log('Entry updated successfully (fill mode)');
         toast.success("Entry data updated successfully!");
@@ -206,12 +217,15 @@ export const useDashboardActions = ({
           console.error('Failed to trigger webhook for new entry:', webhookError);
         }
 
+        // Add new entry to local state immediately to prevent duplication
+        setSavedEntries(prevEntries => [savedEntryData!, ...prevEntries]);
+        
         console.log('Entry created successfully:', data);
         toast.success("Entry saved successfully!");
       }
       
       setShowAddEntry(false);
-      await loadEntries(); // Reload entries from database
+      // Only reload entries if it was an update (to ensure consistency), not for new entries or updates
     } catch (error) {
       const err = error as any;
       const exceeded = err?.message?.includes?.('storage_limit_exceeded') || err?.details?.includes?.('storage_limit_exceeded');

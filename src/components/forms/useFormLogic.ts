@@ -127,7 +127,7 @@ export const useFormLogic = ({
           .map(fieldDef => ({
             ...fieldDef,
             name: normalizeFieldName(fieldDef.name), // Normalize display name
-            value: '' // Clear values for fill mode - user will provide new data
+            value: templateEntry.fields[fieldDef.name] || '' // Keep template values for easier editing
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
         
@@ -140,7 +140,7 @@ export const useFormLogic = ({
             id: (index + 1).toString(),
             name: normalizeFieldName(name), // Normalize display name
             type: detectFieldType(value),
-            value: '' // Clear values for fill mode - user will provide new data
+            value: value || '' // Keep template values for easier editing
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
         

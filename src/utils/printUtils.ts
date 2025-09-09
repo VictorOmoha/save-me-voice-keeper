@@ -7,6 +7,16 @@ export interface PrintOptions {
   selectedFields?: string[];
   pageBreakBetweenEntries?: boolean;
   fontSize?: 'small' | 'medium' | 'large';
+  template?: 'auto' | 'table' | 'card' | 'compact';
+}
+
+export type ContentType = 'shopping-list' | 'contact-list' | 'financial-record' | 'task-list' | 'generic';
+
+export interface ContentTypeDefinition {
+  type: ContentType;
+  priority: number;
+  detector: (tableData: TableData) => boolean;
+  renderer: (tableData: TableData, title: string) => string;
 }
 
 export const printEntries = (entries: SavedEntry[], options: PrintOptions = {}) => {
@@ -29,47 +39,266 @@ export const printSingleEntry = (entry: SavedEntry, options: PrintOptions = {}) 
   printEntries([entry], options);
 };
 
-// Helper function to render field values based on their type and content
-const renderFieldValue = (key: string, value: any, fieldDefinitions?: any[]): string => {
+// Content type detection functions
+const detectShoppingList = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasItem = columnNames.some(name => name.includes('item') || name.includes('product') || name.includes('name'));
+  const hasQuantity = columnNames.some(name => name.includes('quantity') || name.includes('qty') || name.includes('amount'));
+  const hasPrice = columnNames.some(name => name.includes('price') || name.includes('cost') || name.includes('total'));
+  return hasItem && (hasQuantity || hasPrice);
+};
+
+const detectContactList = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasName = columnNames.some(name => name.includes('name') || name.includes('contact'));
+  const hasPhone = columnNames.some(name => name.includes('phone') || name.includes('mobile') || name.includes('tel'));
+  const hasEmail = columnNames.some(name => name.includes('email') || name.includes('mail'));
+  return hasName && (hasPhone || hasEmail);
+};
+
+const detectFinancialRecord = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasDate = columnNames.some(name => name.includes('date') || name.includes('when'));
+  const hasAmount = columnNames.some(name => name.includes('amount') || name.includes('cost') || name.includes('price') || name.includes('total'));
+  const hasDescription = columnNames.some(name => name.includes('description') || name.includes('item') || name.includes('expense'));
+  return hasDate && hasAmount && hasDescription;
+};
+
+const detectTaskList = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasTask = columnNames.some(name => name.includes('task') || name.includes('todo') || name.includes('item'));
+  const hasStatus = columnNames.some(name => name.includes('status') || name.includes('done') || name.includes('complete'));
+  const hasDeadline = columnNames.some(name => name.includes('deadline') || name.includes('due') || name.includes('date'));
+  return hasTask && (hasStatus || hasDeadline);
+};
+
+// Specialized renderers for different content types
+const renderShoppingListCard = (tableData: TableData, title: string): string => {
+  const itemCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('item') || 
+    col.name.toLowerCase().includes('product') || 
+    col.name.toLowerCase().includes('name')
+  );
+  const quantityCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('quantity') || 
+    col.name.toLowerCase().includes('qty')
+  );
+  const priceCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('price') || 
+    col.name.toLowerCase().includes('cost')
+  );
+  const purchasedCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('purchased') || 
+    col.name.toLowerCase().includes('bought') || 
+    col.name.toLowerCase().includes('done')
+  );
+  const categoryCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('category') || 
+    col.name.toLowerCase().includes('type')
+  );
+  const notesCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('notes') || 
+    col.name.toLowerCase().includes('comment')
+  );
+
+  const totalItems = tableData.rows.length;
+  const purchasedItems = tableData.rows.filter(row => 
+    purchasedCol ? row[purchasedCol.id] === true : false
+  ).length;
+
+  const totalCost = tableData.rows.reduce((sum, row) => {
+    if (priceCol && quantityCol) {
+      const price = parseFloat(row[priceCol.id]) || 0;
+      const quantity = parseFloat(row[quantityCol.id]) || 1;
+      return sum + (price * quantity);
+    }
+    return sum;
+  }, 0);
+
+  return `
+    <div class="shopping-list-container">
+      <div class="shopping-summary">
+        <div class="summary-stats">
+          <span class="stat-item">📦 ${totalItems} items</span>
+          <span class="stat-item">✅ ${purchasedItems} completed</span>
+          ${totalCost > 0 ? `<span class="stat-item">💰 $${totalCost.toFixed(2)} total</span>` : ''}
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${totalItems > 0 ? (purchasedItems / totalItems) * 100 : 0}%"></div>
+        </div>
+      </div>
+      
+      <div class="shopping-cards">
+        ${tableData.rows.map(row => {
+          const item = itemCol ? row[itemCol.id] : 'Unknown Item';
+          const quantity = quantityCol ? row[quantityCol.id] : '';
+          const price = priceCol ? row[priceCol.id] : '';
+          const purchased = purchasedCol ? row[purchasedCol.id] === true : false;
+          const category = categoryCol ? row[categoryCol.id] : '';
+          const notes = notesCol ? row[notesCol.id] : '';
+
+          return `
+            <div class="shopping-card ${purchased ? 'purchased' : ''}">
+              <div class="card-main">
+                <div class="item-header">
+                  <span class="purchase-status">${purchased ? '✅' : '⬜'}</span>
+                  <span class="item-name ${purchased ? 'completed' : ''}">${item}</span>
+                  ${category ? `<span class="category-badge">${category}</span>` : ''}
+                </div>
+                <div class="item-details">
+                  ${quantity ? `<span class="quantity">Qty: ${quantity}</span>` : ''}
+                  ${price ? `<span class="price">$${parseFloat(price).toFixed(2)}</span>` : ''}
+                  ${quantity && price ? `<span class="subtotal">= $${(parseFloat(quantity) * parseFloat(price)).toFixed(2)}</span>` : ''}
+                </div>
+                ${notes ? `<div class="item-notes">${notes}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+const renderContactListCard = (tableData: TableData, title: string): string => {
+  const nameCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('name') || col.name.toLowerCase().includes('contact')
+  );
+  const phoneCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('phone') || col.name.toLowerCase().includes('mobile')
+  );
+  const emailCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('email') || col.name.toLowerCase().includes('mail')
+  );
+  const companyCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('company') || col.name.toLowerCase().includes('organization')
+  );
+
+  return `
+    <div class="contact-list-container">
+      <div class="contact-cards">
+        ${tableData.rows.map(row => {
+          const name = nameCol ? row[nameCol.id] : 'Unknown Contact';
+          const phone = phoneCol ? row[phoneCol.id] : '';
+          const email = emailCol ? row[emailCol.id] : '';
+          const company = companyCol ? row[companyCol.id] : '';
+
+          return `
+            <div class="contact-card">
+              <div class="contact-name">${name}</div>
+              ${company ? `<div class="contact-company">${company}</div>` : ''}
+              <div class="contact-details">
+                ${phone ? `<div class="contact-phone">📞 ${phone}</div>` : ''}
+                ${email ? `<div class="contact-email">✉️ ${email}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+// Content type definitions with priority (higher priority = checked first)
+const contentTypeDefinitions: ContentTypeDefinition[] = [
+  {
+    type: 'shopping-list' as const,
+    priority: 100,
+    detector: detectShoppingList,
+    renderer: renderShoppingListCard
+  },
+  {
+    type: 'contact-list' as const,
+    priority: 90,
+    detector: detectContactList,
+    renderer: renderContactListCard
+  },
+  {
+    type: 'financial-record' as const,
+    priority: 80,
+    detector: detectFinancialRecord,
+    renderer: (tableData, title) => renderGenericTable(tableData, title)
+  },
+  {
+    type: 'task-list' as const,
+    priority: 70,
+    detector: detectTaskList,
+    renderer: (tableData, title) => renderGenericTable(tableData, title)
+  }
+].sort((a, b) => b.priority - a.priority);
+
+const detectContentType = (tableData: TableData): ContentType => {
+  for (const def of contentTypeDefinitions) {
+    if (def.detector(tableData)) {
+      return def.type;
+    }
+  }
+  return 'generic';
+};
+
+const renderGenericTable = (tableData: TableData, title: string): string => {
+  return `
+    <div class="table-container">
+      <div class="table-info">Table with ${tableData.rows.length} rows, ${tableData.columns.length} columns</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            ${tableData.columns.map(col => `
+              <th class="table-header">
+                <div>${col.name}</div>
+                <div class="column-type">(${col.type})</div>
+              </th>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${tableData.rows.map(row => `
+            <tr>
+              ${tableData.columns.map(col => `
+                <td class="table-cell">
+                  ${renderTableCellValue(row[col.id], col.type)}
+                </td>
+              `).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+};
+
+// Enhanced helper function to render field values based on their type and content
+const renderFieldValue = (key: string, value: any, fieldDefinitions?: any[], template: string = 'auto'): string => {
   if (value === null || value === undefined || value === '') {
     return '<span class="text-muted">No data</span>';
   }
 
-  // Handle table data
+  // Handle table data with intelligent rendering
   if (value && typeof value === 'object' && 'columns' in value && 'rows' in value) {
     const tableData = value as TableData;
     if (!tableData.columns || tableData.columns.length === 0) {
       return '<span class="text-muted">Empty table</span>';
     }
 
-    return `
-      <div class="table-container">
-        <div class="table-info">Table with ${tableData.rows.length} rows, ${tableData.columns.length} columns</div>
-        <table class="data-table">
-          <thead>
-            <tr>
-              ${tableData.columns.map(col => `
-                <th class="table-header">
-                  <div>${col.name}</div>
-                  <div class="column-type">(${col.type})</div>
-                </th>
-              `).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${tableData.rows.map(row => `
-              <tr>
-                ${tableData.columns.map(col => `
-                  <td class="table-cell">
-                    ${renderTableCellValue(row[col.id], col.type)}
-                  </td>
-                `).join('')}
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+    // Use intelligent rendering based on template preference
+    if (template === 'auto') {
+      const contentType = detectContentType(tableData);
+      const contentDef = contentTypeDefinitions.find(def => def.type === contentType);
+      
+      if (contentDef) {
+        return contentDef.renderer(tableData, key);
+      }
+    } else if (template === 'card') {
+      // Force card rendering for shopping lists if detected
+      if (detectShoppingList(tableData)) {
+        return renderShoppingListCard(tableData, key);
+      } else if (detectContactList(tableData)) {
+        return renderContactListCard(tableData, key);
+      }
+    }
+
+    // Fallback to generic table rendering
+    return renderGenericTable(tableData, key);
   }
 
   // Handle arrays (like image galleries)
@@ -172,7 +401,7 @@ const extractFileName = (url: string): string => {
 };
 
 const generatePrintHTML = (entries: SavedEntry[], options: PrintOptions) => {
-  const { includeMetadata, pageBreakBetweenEntries, fontSize } = options;
+  const { includeMetadata, pageBreakBetweenEntries, fontSize, template = 'auto' } = options;
   
   const fontSizeClass = {
     small: 'text-sm',
@@ -367,6 +596,168 @@ const generatePrintHTML = (entries: SavedEntry[], options: PrintOptions) => {
           border-radius: 8px;
           border-left: 4px solid #10b981;
         }
+        
+        /* Shopping List Styles */
+        .shopping-list-container {
+          margin: 16px 0;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        
+        .shopping-summary {
+          background: #f8fafc;
+          padding: 16px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .summary-stats {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+        
+        .stat-item {
+          background: white;
+          padding: 6px 12px;
+          border-radius: 16px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #374151;
+          border: 1px solid #d1d5db;
+        }
+        
+        .progress-bar {
+          height: 8px;
+          background: #e5e7eb;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+        
+        .progress-fill {
+          height: 100%;
+          background: #10b981;
+          transition: width 0.3s ease;
+        }
+        
+        .shopping-cards {
+          padding: 8px;
+        }
+        
+        .shopping-card {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          padding: 12px;
+          margin-bottom: 8px;
+          break-inside: avoid;
+        }
+        
+        .shopping-card.purchased {
+          background: #f0f9ff;
+          border-color: #0ea5e9;
+        }
+        
+        .item-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        
+        .purchase-status {
+          font-size: 16px;
+        }
+        
+        .item-name {
+          font-weight: 600;
+          color: #1f2937;
+          flex: 1;
+        }
+        
+        .item-name.completed {
+          text-decoration: line-through;
+          color: #6b7280;
+        }
+        
+        .category-badge {
+          background: #dbeafe;
+          color: #1e40af;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 10px;
+          font-weight: 500;
+        }
+        
+        .item-details {
+          display: flex;
+          gap: 12px;
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 4px;
+        }
+        
+        .quantity, .price, .subtotal {
+          font-weight: 500;
+        }
+        
+        .price, .subtotal {
+          color: #059669;
+        }
+        
+        .item-notes {
+          font-size: 11px;
+          color: #9ca3af;
+          font-style: italic;
+          margin-top: 4px;
+        }
+        
+        /* Contact List Styles */
+        .contact-list-container {
+          margin: 16px 0;
+        }
+        
+        .contact-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          gap: 12px;
+        }
+        
+        .contact-card {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 16px;
+          break-inside: avoid;
+        }
+        
+        .contact-name {
+          font-weight: 700;
+          font-size: 16px;
+          color: #1f2937;
+          margin-bottom: 4px;
+        }
+        
+        .contact-company {
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 12px;
+        }
+        
+        .contact-details {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        
+        .contact-phone, .contact-email {
+          font-size: 12px;
+          color: #374151;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
       }
       
       @media screen {
@@ -408,7 +799,7 @@ const generatePrintHTML = (entries: SavedEntry[], options: PrintOptions) => {
           ${Object.entries(entry.fields).map(([key, value]) => `
             <div class="field-item">
               <div class="field-label">${toDisplayFieldName(key)}</div>
-              <div class="field-value">${renderFieldValue(key, value, entry.fieldDefinitions)}</div>
+              <div class="field-value">${renderFieldValue(key, value, entry.fieldDefinitions, template)}</div>
             </div>
           `).join('')}
         </div>

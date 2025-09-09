@@ -117,7 +117,7 @@ export const useFormLogic = ({
         fieldDefinitions: templateEntry.fieldDefinitions
       });
 
-      newTitle = `${templateEntry.title} (Copy)`; // Use template title as starting point
+      newTitle = templateEntry.title; // Use template title as starting point
       newCategory = templateEntry.fields.category || preselectedCategory || "";
       
       if (templateEntry.fieldDefinitions && templateEntry.fieldDefinitions.length > 0) {

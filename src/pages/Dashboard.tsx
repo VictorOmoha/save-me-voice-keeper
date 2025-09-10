@@ -331,7 +331,7 @@ export default function Dashboard() {
       <VoiceDebugPanel />
       
       <VoiceStatusDebug
-        isListening={false}
+        isListening={isVoiceProcessing}
         conversationState={conversationState}
         hasPendingConfirmation={hasPendingConfirmation}
         lastCommand={lastVoiceCommand?.action}

@@ -127,7 +127,7 @@ export function WaitingListModal({ open, onOpenChange }: WaitingListModalProps) 
             <Button
               type="submit"
               disabled={isLoading}
-              className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground"
+              className="flex-1"
             >
               {isLoading ? (
                 <>

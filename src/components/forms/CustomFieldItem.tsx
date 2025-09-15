@@ -77,7 +77,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
     (hasTableData || needsTableConversion);
   
   // Determine if we should show data input or structure config
-  const shouldShowDataInput = isFillMode || (isEditMode && (hasTableData || needsTableConversion) && !isEditingStructure);
+  const shouldShowDataInput = isFillMode || (isEditMode && normalizedFieldType === 'table' && (hasTableData || needsTableConversion) && !isEditingStructure);
   
   console.log('CustomFieldItem debug:', {
     fieldName: field.name,

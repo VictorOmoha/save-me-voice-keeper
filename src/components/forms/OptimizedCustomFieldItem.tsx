@@ -8,6 +8,7 @@ import { CustomField, TableData } from './types';
 import { TableFieldEditor } from './table/TableFieldEditor';
 import { TableFieldViewer } from './table/TableFieldViewer';
 import { ShoppingListTemplate } from './table/ShoppingListTemplate';
+import { EnhancedTableFillMode } from './table/EnhancedTableFillMode';
 
 interface OptimizedCustomFieldItemProps {
   field: CustomField;
@@ -54,6 +55,13 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
             {tableData.columns.length === 0 ? (
               <ShoppingListTemplate
                 onApplyTemplate={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+              />
+            ) : isFillMode ? (
+              <EnhancedTableFillMode
+                value={tableData}
+                onChange={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+                isVoiceActive={isVoiceActive}
+                highlightedCell={isHighlighted ? { rowIndex: 0, columnId: tableData.columns[0]?.id || '' } : null}
               />
             ) : (
               <TableFieldEditor
@@ -102,7 +110,7 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
           />
         );
     }
-  }, [field.type, field.value, field.id, onUpdateField, isHighlighted]);
+  }, [field.type, field.value, field.id, onUpdateField, isHighlighted, isFillMode, isVoiceActive]);
 
   return (
     <div className={`space-y-2 p-3 border border-border rounded-lg transition-all duration-300 ${

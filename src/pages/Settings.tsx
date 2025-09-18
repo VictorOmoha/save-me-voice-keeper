@@ -108,7 +108,7 @@ const Settings = () => {
               <AppearanceSettings />
             </TabsContent>
             <TabsContent value="voice">
-              <EnhancedVoiceSettings />
+              <VoiceSettings />
             </TabsContent>
             <TabsContent value="automation">
               <AutomationSettings />

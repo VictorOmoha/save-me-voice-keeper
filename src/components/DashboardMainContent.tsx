@@ -236,6 +236,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         onFill={onFillEntry}
         onView={onViewDocument}
         onViewAll={onViewAllEntries}
+        onRestructure={onSaveEntry}
       />
 
       {/* Features Preview */}

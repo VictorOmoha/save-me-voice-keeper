@@ -7,7 +7,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { FileText, ExternalLink, Table, Grid3X3 } from "lucide-react";
 import { EntryItem } from "./recentEntries/EntryItem";
 import { EntryViewDialog } from "./recentEntries/EntryViewDialog";
-import { BooksRestructureButton } from "./restructure/BooksRestructureButton";
+
 
 interface RecentEntriesProps {
   entries: SavedEntry[];
@@ -15,7 +15,6 @@ interface RecentEntriesProps {
   onFill?: (entry: SavedEntry) => void;
   onView?: (entry: SavedEntry) => void;
   onViewAll?: () => void;
-  onRestructure?: (newEntry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 export const RecentEntries: React.FC<RecentEntriesProps> = ({ 
@@ -23,21 +22,12 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
   onEdit,
   onFill,
   onView,
-  onViewAll,
-  onRestructure
+  onViewAll
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
   const navigate = useNavigate();
 
   const recentEntries = entries.slice(0, 5);
-  
-  // Check for Books entries that could be restructured
-  const booksEntries = entries.filter(entry => 
-    entry.title.toLowerCase().includes('book') && 
-    !entry.title.includes('(Restructured)') &&
-    entry.fields.name && entry.fields.author &&
-    !entry.fields.books_table
-  );
 
   const handleEntryClick = (entry: SavedEntry) => {
     // Check if this is a document entry with a file
@@ -89,25 +79,6 @@ export const RecentEntries: React.FC<RecentEntriesProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Books Restructure Suggestion */}
-          {booksEntries.length > 0 && onRestructure && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    📚 Upgrade Your Books Collection
-                  </h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                    Transform your "{booksEntries[0].title}" into a comprehensive database with ratings, reading status, genres, and more!
-                  </p>
-                </div>
-                <BooksRestructureButton 
-                  booksEntry={booksEntries[0]}
-                  onRestructure={onRestructure}
-                />
-              </div>
-            </div>
-          )}
           <div className="space-y-4">
             {recentEntries.length === 0 ? (
               <div className="text-center py-8">

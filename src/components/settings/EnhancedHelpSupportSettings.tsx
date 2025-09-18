@@ -98,7 +98,7 @@ export const EnhancedHelpSupportSettings = () => {
       title: "User Guide",
       description: "Complete guide to using all features",
       icon: <HelpCircle className="w-5 h-5" />,
-      action: () => window.open("https://docs.lovable.dev/", "_blank")
+      action: () => window.open("/user-guide", "_blank")
     },
     {
       title: "Video Tutorials",

@@ -44,8 +44,8 @@ export const HelpSupportSettings = () => {
     setIsFeatureDialogOpen(false);
   };
 
-  const openDocumentation = () => {
-    window.open("https://docs.lovable.dev", "_blank");
+  const openUserGuide = () => {
+    window.open("/user-guide", "_blank");
   };
 
   return (
@@ -59,9 +59,9 @@ export const HelpSupportSettings = () => {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Button variant="outline" className="justify-start" onClick={openDocumentation}>
+          <Button variant="outline" className="justify-start" onClick={openUserGuide}>
             <FileText className="w-4 h-4 mr-2" />
-            Documentation
+            User Guide
           </Button>
           
           <Dialog open={isSupportDialogOpen} onOpenChange={setIsSupportDialogOpen}>

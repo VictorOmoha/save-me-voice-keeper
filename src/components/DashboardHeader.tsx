@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import { VoiceInputFixed } from "@/components/VoiceInputFixed";
-import { SmartSearch } from "@/components/SmartSearch";
+import { SmartSearchWithBoundary as SmartSearch } from "@/components/SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 

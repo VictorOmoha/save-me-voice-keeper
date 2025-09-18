@@ -206,12 +206,29 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
           toast.message('Preparing document for print...');
           try {
             const arrayBuffer = await documentState.blob.arrayBuffer();
+            
+            // Validate the document before conversion
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const header = uint8Array.slice(0, 4);
+            const isZipFile = header[0] === 0x50 && header[1] === 0x4B;
+            
+            if (!isZipFile) {
+              toast.error('Invalid Word document format for printing');
+              return;
+            }
+
             const result = await mammoth.convertToHtml({ arrayBuffer });
             html = result.value;
             setDocumentState(prev => ({ ...prev, content: html! }));
           } catch (err) {
             console.error('Conversion failed during print:', err);
-            toast.error('Failed to prepare Word document for printing');
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+            
+            if (errorMessage.includes('zip file') || errorMessage.includes('central directory')) {
+              toast.error('Invalid Word document format for printing');
+            } else {
+              toast.error('Failed to prepare Word document for printing');
+            }
             return;
           }
         }

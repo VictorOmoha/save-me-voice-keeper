@@ -43,10 +43,16 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
 
     const fetchUsage = async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          if (isMounted) setServerUsage(null);
+          return;
+        }
+
         // get_current_storage_usage may not exist in generated types; cast supabase to any
         const { data, error } = await (supabase as any).rpc('get_current_storage_usage');
         if (error) {
-          console.warn('get_current_storage_usage error:', error);
+          console.warn('get_current_storage_usage error:', error.message || error);
           if (isMounted) setServerUsage(null);
           return;
         }

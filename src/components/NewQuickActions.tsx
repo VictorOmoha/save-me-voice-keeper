@@ -4,7 +4,7 @@ import { Search, Mic, Plus, FileText } from "lucide-react";
 import { VoiceInputFixed } from "@/components/VoiceInputFixed";
 import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { useState } from "react";
-import { SmartSearch } from "@/components/SmartSearch";
+import { SmartSearchWithBoundary as SmartSearch } from "@/components/SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 
 interface NewQuickActionsProps {

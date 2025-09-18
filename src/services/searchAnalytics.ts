@@ -46,13 +46,30 @@ class SearchAnalyticsService {
     try {
       const { data, error } = await supabase
         .from('search_analytics')
-        .select('query, count(*)')
+        .select('query')
         .not('query', 'eq', '')
         .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // Last 30 days
-        .order('count', { ascending: false })
-        .limit(limit);
+        .order('created_at', { ascending: false })
+        .limit(limit * 3); // Get more to account for duplicates
 
-      return data || [];
+      if (error) {
+        console.error('Error fetching popular searches:', error);
+        return [];
+      }
+
+      // Count occurrences manually and sort by popularity
+      const queryCounts = new Map<string, number>();
+      data?.forEach(item => {
+        const query = item.query?.trim();
+        if (query) {
+          queryCounts.set(query, (queryCounts.get(query) || 0) + 1);
+        }
+      });
+
+      return Array.from(queryCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([query]) => ({ query }));
     } catch (error) {
       console.error('Error fetching popular searches:', error);
       return [];
@@ -61,11 +78,21 @@ class SearchAnalyticsService {
 
   async getUserSearchHistory(limit = 20) {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from('search_analytics')
         .select('query, created_at')
+        .eq('user_id', user.id)
+        .not('query', 'eq', '')
         .order('created_at', { ascending: false })
         .limit(limit);
+
+      if (error) {
+        console.error('Error fetching search history:', error);
+        return [];
+      }
 
       return data || [];
     } catch (error) {
@@ -76,24 +103,40 @@ class SearchAnalyticsService {
 
   async getSearchPreferences(): Promise<SearchPreferences | null> {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
       const { data, error } = await supabase
         .from('search_preferences')
         .select('*')
-        .single();
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching search preferences:', error);
         return null;
       }
 
-      return data ? {
+      if (!data) {
+        // Return default preferences if none exist
+        return {
+          preferredCategories: [],
+          searchSuggestionsEnabled: true,
+          voiceSearchEnabled: true,
+          semanticSearchEnabled: true,
+          autoCompleteEnabled: true,
+          recentSearchesLimit: 10
+        };
+      }
+
+      return {
         preferredCategories: data.preferred_categories || [],
         searchSuggestionsEnabled: data.search_suggestions_enabled ?? true,
         voiceSearchEnabled: data.voice_search_enabled ?? true,
         semanticSearchEnabled: data.semantic_search_enabled ?? true,
         autoCompleteEnabled: data.auto_complete_enabled ?? true,
         recentSearchesLimit: data.recent_searches_limit ?? 10
-      } : null;
+      };
     } catch (error) {
       console.error('Search preferences error:', error);
       return null;

@@ -5,6 +5,7 @@ import { Search, Clock, TrendingUp, FileText, Hash, Grid, Zap, Sparkles } from "
 import { useIntelligentSearch } from "@/hooks/useIntelligentSearch";
 import { SearchSuggestion } from "@/utils/searchIntelligence";
 import { searchAnalyticsService } from "@/services/searchAnalytics";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface SmartSearchProps {
   entries: SavedEntry[];
@@ -202,3 +203,28 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
     </div>
   );
 };
+
+export const SmartSearchWithBoundary: React.FC<SmartSearchProps> = (props) => (
+  <ErrorBoundary fallback={
+    <div className="relative">
+      <div className="relative group">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Input
+          type="text"
+          placeholder={props.placeholder || "🔍 Search..."}
+          value={props.searchQuery}
+          onChange={(e) => props.onSearchChange(e.target.value)}
+          className="pl-10 pr-4 py-2 w-full"
+          disabled
+        />
+      </div>
+      <div className="text-sm text-muted-foreground mt-1">Search temporarily unavailable</div>
+    </div>
+  }>
+    <SmartSearch {...props} />
+  </ErrorBoundary>
+);
+
+// Export both versions for flexibility
+export { SmartSearch as SmartSearchRaw };
+export default SmartSearchWithBoundary;

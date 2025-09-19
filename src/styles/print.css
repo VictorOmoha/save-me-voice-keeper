@@ -14,64 +14,77 @@
 
   /* Body and root styles */
   body {
-    font-family: Arial, sans-serif;
-    font-size: 12pt;
-    line-height: 1.4;
-    color: #000;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #1a1a1a;
     background: white;
   }
 
   /* Headers and titles */
   h1, h2, h3, h4, h5, h6 {
-    color: #000;
+    color: #2d3748;
     page-break-after: avoid;
+    margin-top: 0;
   }
 
   /* Entry containers */
   .entry-card {
-    border: 1px solid #ddd;
-    margin-bottom: 20px;
-    padding: 15px;
+    border: 2px solid #e2e8f0;
+    margin-bottom: 24px;
+    padding: 20px;
     page-break-inside: avoid;
-    background: white;
+    background: #f8fafc;
+    border-radius: 8px;
   }
 
   /* Entry titles */
   .entry-title {
-    font-size: 14pt;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #000;
+    font-size: 16pt;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #1a202c;
+    border-bottom: 3px solid #4299e1;
+    padding-bottom: 8px;
   }
 
   /* Metadata section */
   .entry-metadata {
-    font-size: 10pt;
-    color: #666;
-    margin-bottom: 15px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+    font-size: 9pt;
+    color: #718096;
+    margin-bottom: 16px;
+    background: #edf2f7;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border-left: 4px solid #4299e1;
   }
 
   /* Field containers */
   .field-grid {
-    display: block;
+    display: grid;
+    gap: 12px;
   }
 
   .field-item {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     page-break-inside: avoid;
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 12px;
+    border-radius: 6px;
   }
 
   .field-label {
-    font-weight: bold;
-    color: #000;
-    font-size: 11pt;
-    margin-bottom: 2px;
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 10pt;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .field-value {
-    color: #333;
+    color: #4a5568;
     font-size: 11pt;
     word-wrap: break-word;
     max-width: 100%;
@@ -81,27 +94,28 @@
   .print-header {
     text-align: center;
     margin-bottom: 30px;
-    border-bottom: 2px solid #000;
-    padding-bottom: 10px;
+    border-bottom: 3px solid #2d3748;
+    padding-bottom: 15px;
   }
 
   .print-title {
-    font-size: 18pt;
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: #000;
+    font-size: 20pt;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #1a202c;
   }
 
   .print-date {
     font-size: 10pt;
-    color: #666;
+    color: #718096;
   }
 
   .entry-count {
     font-size: 12pt;
-    color: #666;
+    color: #4a5568;
     margin-bottom: 20px;
     text-align: center;
+    font-weight: 500;
   }
 
   /* Page breaks */
@@ -113,41 +127,531 @@
     page-break-after: always;
   }
 
-  /* Table styles for tabular data */
+  /* Enhanced table styles */
   table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
+    border: 1px solid #cbd5e0;
   }
 
   th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 10px 12px;
     text-align: left;
     font-size: 10pt;
   }
 
   th {
-    background-color: #f5f5f5;
-    font-weight: bold;
+    background-color: #edf2f7;
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  /* Content Type Specific Styles */
+  
+  /* Book List Styles */
+  .book-list-container {
+    margin: 16px 0;
+  }
+
+  .library-summary {
+    background: #f0f4f8;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #cbd5e0;
+  }
+
+  .summary-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    font-size: 10pt;
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #48bb78;
+    transition: width 0.3s ease;
+  }
+
+  .book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+  }
+
+  .book-card {
+    display: flex;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    page-break-inside: avoid;
+  }
+
+  .book-card.read {
+    background: #f0fff4;
+    border-color: #9ae6b4;
+  }
+
+  .book-spine {
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+  }
+
+  .book-icon {
+    font-size: 24px;
+  }
+
+  .book-details {
+    flex: 1;
+  }
+
+  .book-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+  }
+
+  .book-title {
+    font-size: 12pt;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .book-title.read-title {
+    text-decoration: line-through;
+    color: #68d391;
+  }
+
+  .book-author {
+    font-size: 10pt;
+    color: #718096;
+    font-style: italic;
+    margin-bottom: 6px;
+  }
+
+  .book-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .genre-badge, .year-badge, .pages-info {
+    font-size: 8pt;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #edf2f7;
+    color: #4a5568;
+  }
+
+  .book-rating {
+    font-size: 9pt;
+    color: #ed8936;
+    font-weight: 600;
+  }
+
+  /* Movie List Styles */
+  .movie-list-container {
+    margin: 16px 0;
+  }
+
+  .movie-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .movie-card {
+    display: flex;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    page-break-inside: avoid;
+  }
+
+  .movie-card.watched {
+    background: #f0f4f8;
+    border-color: #4299e1;
+  }
+
+  .movie-poster {
+    font-size: 32px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+  }
+
+  .movie-title {
+    font-size: 12pt;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 4px 0;
+  }
+
+  .movie-director {
+    font-size: 10pt;
+    color: #718096;
+    margin-bottom: 6px;
+  }
+
+  .movie-rating {
+    font-size: 9pt;
+    color: #ed8936;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .watch-status {
+    font-size: 9pt;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .watch-status.watched {
+    background: #c6f6d5;
+    color: #22543d;
+  }
+
+  .watch-status.unwatched {
+    background: #fed7d7;
+    color: #742a2a;
+  }
+
+  /* Recipe List Styles */
+  .recipe-list-container {
+    margin: 16px 0;
+  }
+
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .recipe-card {
+    display: flex;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    page-break-inside: avoid;
+  }
+
+  .recipe-icon {
+    font-size: 28px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+  }
+
+  .recipe-name {
+    font-size: 12pt;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 4px 0;
+  }
+
+  .recipe-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .cuisine-badge, .difficulty-badge {
+    font-size: 8pt;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #ffd6cc;
+    color: #9c4221;
+  }
+
+  .recipe-details {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .time-info, .servings-info {
+    font-size: 9pt;
+    color: #4a5568;
+  }
+
+  /* Inventory List Styles */
+  .inventory-list-container {
+    margin: 16px 0;
+  }
+
+  .inventory-summary {
+    background: #f7fafc;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .stat-item.warning {
+    color: #c53030;
+    font-weight: 700;
+  }
+
+  .inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+  }
+
+  .inventory-card {
+    display: flex;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    page-break-inside: avoid;
+  }
+
+  .inventory-card.out-of-stock {
+    background: #fed7d7;
+    border-color: #fc8181;
+  }
+
+  .inventory-card.low-stock {
+    background: #fefcbf;
+    border-color: #f6e05e;
+  }
+
+  .inventory-card.in-stock {
+    background: #f0fff4;
+    border-color: #9ae6b4;
+  }
+
+  .inventory-icon {
+    font-size: 24px;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+  }
+
+  .item-name {
+    font-size: 12pt;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0 0 4px 0;
+  }
+
+  .item-sku {
+    font-size: 9pt;
+    color: #718096;
+    font-family: monospace;
+    margin-bottom: 6px;
+  }
+
+  .quantity-badge {
+    font-size: 10pt;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+
+  .quantity-badge.out-of-stock {
+    background: #fed7d7;
+    color: #c53030;
+  }
+
+  .quantity-badge.low-stock {
+    background: #fefcbf;
+    color: #975a16;
+  }
+
+  .quantity-badge.in-stock {
+    background: #c6f6d5;
+    color: #22543d;
+  }
+
+  .location-info {
+    font-size: 9pt;
+    color: #4a5568;
+  }
+
+  /* Enhanced Shopping List Styles */
+  .shopping-list-container {
+    margin: 16px 0;
+  }
+
+  .shopping-summary {
+    background: #f0f4f8;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #cbd5e0;
+  }
+
+  .shopping-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+  }
+
+  .shopping-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px;
+    page-break-inside: avoid;
+  }
+
+  .shopping-card.purchased {
+    background: #f0fff4;
+    border-color: #9ae6b4;
+  }
+
+  .item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .item-name {
+    font-weight: 600;
+    font-size: 11pt;
+    color: #2d3748;
+  }
+
+  .item-name.completed {
+    text-decoration: line-through;
+    color: #68d391;
+  }
+
+  .category-badge {
+    font-size: 8pt;
+    padding: 2px 5px;
+    background: #edf2f7;
+    color: #4a5568;
+    border-radius: 3px;
+  }
+
+  .item-details {
+    display: flex;
+    gap: 8px;
+    font-size: 9pt;
+    color: #718096;
+    margin-bottom: 4px;
+  }
+
+  .item-notes {
+    font-size: 9pt;
+    color: #4a5568;
+    font-style: italic;
+  }
+
+  /* Contact List Styles */
+  .contact-list-container {
+    margin: 16px 0;
+  }
+
+  .contact-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .contact-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    page-break-inside: avoid;
+  }
+
+  .contact-name {
+    font-size: 12pt;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 4px;
+  }
+
+  .contact-company {
+    font-size: 10pt;
+    color: #718096;
+    margin-bottom: 8px;
+  }
+
+  .contact-phone, .contact-email {
+    font-size: 9pt;
+    color: #4a5568;
+    margin-bottom: 2px;
   }
 
   /* Links */
   a {
-    color: #000;
+    color: #2b6cb0;
     text-decoration: none;
   }
 
   a:after {
     content: " (" attr(href) ")";
-    font-size: 9pt;
-    color: #666;
+    font-size: 8pt;
+    color: #718096;
   }
 
   /* Images */
   img {
     max-width: 100%;
     height: auto;
+    border-radius: 4px;
+  }
+
+  .image-gallery {
+    margin: 8px 0;
+  }
+
+  .gallery-info {
+    font-size: 9pt;
+    color: #718096;
+    margin-bottom: 6px;
+  }
+
+  .image-item {
+    margin-bottom: 4px;
+    padding: 4px;
+    background: #f7fafc;
+    border-radius: 4px;
+  }
+
+  .image-label {
+    font-size: 8pt;
+    color: #4a5568;
+    font-weight: 600;
+  }
+
+  .image-preview {
+    font-size: 9pt;
+    color: #718096;
   }
 
   /* Lists */
@@ -157,16 +661,35 @@
   }
 
   li {
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    font-size: 10pt;
+  }
+
+  .list-container {
+    margin: 8px 0;
+  }
+
+  .list-item {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 2px;
+    font-size: 10pt;
+  }
+
+  .list-index {
+    font-weight: 600;
+    color: #4a5568;
+    min-width: 20px;
   }
 
   /* Code blocks */
   pre, code {
-    background-color: #f5f5f5;
-    border: 1px solid #ddd;
-    padding: 5px;
-    font-family: "Courier New", monospace;
-    font-size: 10pt;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    padding: 6px 8px;
+    font-family: "Fira Code", "Courier New", monospace;
+    font-size: 9pt;
+    border-radius: 4px;
   }
 
   /* Utility classes */
@@ -179,7 +702,7 @@
   }
 
   .font-bold {
-    font-weight: bold;
+    font-weight: 600;
   }
 
   .italic {
@@ -190,19 +713,106 @@
     text-decoration: underline;
   }
 
+  .text-muted {
+    color: #a0aec0;
+    font-style: italic;
+  }
+
+  .date-value {
+    font-family: "Fira Code", monospace;
+    color: #38a169;
+    font-size: 10pt;
+  }
+
+  .number-value {
+    font-family: "Fira Code", monospace;
+    color: #e53e3e;
+    text-align: right;
+    font-weight: 600;
+  }
+
+  .boolean-value {
+    font-weight: 600;
+    font-size: 10pt;
+  }
+
+  .long-text {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    font-size: 10pt;
+  }
+
+  .url-link {
+    color: #3182ce;
+    text-decoration: underline;
+  }
+
+  /* Table container styles */
+  .table-container {
+    margin: 12px 0;
+    border: 1px solid #cbd5e0;
+    border-radius: 6px;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+
+  .table-info {
+    background: #edf2f7;
+    padding: 8px 12px;
+    font-size: 9pt;
+    color: #4a5568;
+    font-weight: 500;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+  }
+
+  .table-header {
+    background: #f7fafc;
+    padding: 8px 10px;
+    font-weight: 600;
+    color: #2d3748;
+    border-bottom: 2px solid #cbd5e0;
+  }
+
+  .column-type {
+    font-size: 8pt;
+    color: #718096;
+    font-weight: 400;
+  }
+
+  .table-cell {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 10pt;
+    color: #4a5568;
+  }
+
   /* Responsive adjustments for different page sizes */
   @media print and (max-width: 8.5in) {
+    .book-grid, .movie-grid, .recipe-grid, .inventory-grid, .shopping-cards, .contact-cards {
+      grid-template-columns: 1fr;
+    }
+
     .field-item {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .field-label {
-      font-size: 10pt;
+      font-size: 9pt;
     }
 
     .field-value {
       font-size: 10pt;
+    }
+
+    .summary-stats {
+      flex-direction: column;
+      gap: 4px;
     }
   }
 }

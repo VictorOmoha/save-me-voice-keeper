@@ -10,7 +10,7 @@ export interface PrintOptions {
   template?: 'auto' | 'table' | 'card' | 'compact';
 }
 
-export type ContentType = 'shopping-list' | 'contact-list' | 'financial-record' | 'task-list' | 'generic';
+export type ContentType = 'book-list' | 'movie-list' | 'recipe-list' | 'inventory-list' | 'shopping-list' | 'contact-list' | 'financial-record' | 'task-list' | 'generic';
 
 export interface ContentTypeDefinition {
   type: ContentType;
@@ -40,12 +40,64 @@ export const printSingleEntry = (entry: SavedEntry, options: PrintOptions = {}) 
 };
 
 // Content type detection functions
+const detectBookList = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasBook = columnNames.some(name => 
+    name.includes('book') || name.includes('title') || name.includes('novel')
+  );
+  const hasAuthor = columnNames.some(name => 
+    name.includes('author') || name.includes('writer') || name.includes('by')
+  );
+  const hasReadingRelated = columnNames.some(name => 
+    name.includes('read') || name.includes('genre') || name.includes('isbn') || 
+    name.includes('publisher') || name.includes('pages') || name.includes('rating')
+  );
+  return (hasBook && hasAuthor) || (hasBook && hasReadingRelated);
+};
+
+const detectMovieList = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasMovie = columnNames.some(name => 
+    name.includes('movie') || name.includes('film') || name.includes('title')
+  );
+  const hasMovieRelated = columnNames.some(name => 
+    name.includes('director') || name.includes('genre') || name.includes('year') || 
+    name.includes('rating') || name.includes('watched') || name.includes('runtime')
+  );
+  return hasMovie && hasMovieRelated;
+};
+
+const detectRecipeList = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasRecipe = columnNames.some(name => 
+    name.includes('recipe') || name.includes('dish') || name.includes('meal')
+  );
+  const hasRecipeRelated = columnNames.some(name => 
+    name.includes('ingredient') || name.includes('cooking') || name.includes('prep') || 
+    name.includes('time') || name.includes('servings') || name.includes('cuisine')
+  );
+  return hasRecipe || (hasRecipeRelated && columnNames.some(name => name.includes('name') || name.includes('title')));
+};
+
+const detectInventoryList = (tableData: TableData): boolean => {
+  const columnNames = tableData.columns.map(col => col.name.toLowerCase());
+  const hasInventory = columnNames.some(name => 
+    name.includes('inventory') || name.includes('stock') || name.includes('warehouse')
+  );
+  const hasInventoryRelated = columnNames.some(name => 
+    name.includes('quantity') || name.includes('location') || name.includes('sku') || 
+    name.includes('barcode') || name.includes('storage') || name.includes('shelf')
+  );
+  return hasInventory || hasInventoryRelated;
+};
+
 const detectShoppingList = (tableData: TableData): boolean => {
   const columnNames = tableData.columns.map(col => col.name.toLowerCase());
   const hasItem = columnNames.some(name => name.includes('item') || name.includes('product') || name.includes('name'));
   const hasQuantity = columnNames.some(name => name.includes('quantity') || name.includes('qty') || name.includes('amount'));
   const hasPrice = columnNames.some(name => name.includes('price') || name.includes('cost') || name.includes('total'));
-  return hasItem && (hasQuantity || hasPrice);
+  const hasShopping = columnNames.some(name => name.includes('shop') || name.includes('buy') || name.includes('purchase'));
+  return (hasItem && (hasQuantity || hasPrice)) || hasShopping;
 };
 
 const detectContactList = (tableData: TableData): boolean => {
@@ -73,6 +125,279 @@ const detectTaskList = (tableData: TableData): boolean => {
 };
 
 // Specialized renderers for different content types
+const renderBookListCard = (tableData: TableData, title: string): string => {
+  const titleCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('title') || 
+    col.name.toLowerCase().includes('book') || 
+    col.name.toLowerCase().includes('name')
+  );
+  const authorCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('author') || 
+    col.name.toLowerCase().includes('writer')
+  );
+  const genreCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('genre') || 
+    col.name.toLowerCase().includes('category')
+  );
+  const ratingCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('rating') || 
+    col.name.toLowerCase().includes('score')
+  );
+  const statusCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('read') || 
+    col.name.toLowerCase().includes('status') || 
+    col.name.toLowerCase().includes('finished')
+  );
+  const pagesCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('pages') || 
+    col.name.toLowerCase().includes('length')
+  );
+  const yearCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('year') || 
+    col.name.toLowerCase().includes('published')
+  );
+
+  const totalBooks = tableData.rows.length;
+  const readBooks = tableData.rows.filter(row => 
+    statusCol ? (row[statusCol.id] === true || String(row[statusCol.id]).toLowerCase().includes('read')) : false
+  ).length;
+
+  return `
+    <div class="book-list-container">
+      <div class="library-summary">
+        <div class="summary-stats">
+          <span class="stat-item">📚 ${totalBooks} books</span>
+          <span class="stat-item">✅ ${readBooks} read</span>
+          <span class="stat-item">📖 ${totalBooks - readBooks} to read</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${totalBooks > 0 ? (readBooks / totalBooks) * 100 : 0}%"></div>
+        </div>
+      </div>
+      
+      <div class="book-grid">
+        ${tableData.rows.map(row => {
+          const bookTitle = titleCol ? row[titleCol.id] : 'Unknown Title';
+          const author = authorCol ? row[authorCol.id] : '';
+          const genre = genreCol ? row[genreCol.id] : '';
+          const rating = ratingCol ? row[ratingCol.id] : '';
+          const status = statusCol ? row[statusCol.id] : '';
+          const pages = pagesCol ? row[pagesCol.id] : '';
+          const year = yearCol ? row[yearCol.id] : '';
+          
+          const isRead = status === true || String(status).toLowerCase().includes('read');
+
+          return `
+            <div class="book-card ${isRead ? 'read' : 'unread'}">
+              <div class="book-spine">
+                <div class="book-icon">📖</div>
+              </div>
+              <div class="book-details">
+                <div class="book-header">
+                  <h3 class="book-title ${isRead ? 'read-title' : ''}">${bookTitle}</h3>
+                  <span class="read-status">${isRead ? '✅' : '📖'}</span>
+                </div>
+                ${author ? `<div class="book-author">by ${author}</div>` : ''}
+                <div class="book-meta">
+                  ${genre ? `<span class="genre-badge">${genre}</span>` : ''}
+                  ${year ? `<span class="year-badge">${year}</span>` : ''}
+                  ${pages ? `<span class="pages-info">${pages} pages</span>` : ''}
+                </div>
+                ${rating ? `<div class="book-rating">⭐ ${rating}</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+const renderMovieListCard = (tableData: TableData, title: string): string => {
+  const titleCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('title') || 
+    col.name.toLowerCase().includes('movie') || 
+    col.name.toLowerCase().includes('film')
+  );
+  const directorCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('director')
+  );
+  const genreCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('genre') || 
+    col.name.toLowerCase().includes('category')
+  );
+  const ratingCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('rating') || 
+    col.name.toLowerCase().includes('score')
+  );
+  const watchedCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('watched') || 
+    col.name.toLowerCase().includes('seen')
+  );
+  const yearCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('year') || 
+    col.name.toLowerCase().includes('released')
+  );
+
+  return `
+    <div class="movie-list-container">
+      <div class="movie-grid">
+        ${tableData.rows.map(row => {
+          const movieTitle = titleCol ? row[titleCol.id] : 'Unknown Movie';
+          const director = directorCol ? row[directorCol.id] : '';
+          const genre = genreCol ? row[genreCol.id] : '';
+          const rating = ratingCol ? row[ratingCol.id] : '';
+          const watched = watchedCol ? row[watchedCol.id] : false;
+          const year = yearCol ? row[yearCol.id] : '';
+          
+          const isWatched = watched === true || String(watched).toLowerCase().includes('watched');
+
+          return `
+            <div class="movie-card ${isWatched ? 'watched' : 'unwatched'}">
+              <div class="movie-poster">🎬</div>
+              <div class="movie-info">
+                <h3 class="movie-title">${movieTitle}</h3>
+                ${director ? `<div class="movie-director">Directed by ${director}</div>` : ''}
+                <div class="movie-meta">
+                  ${genre ? `<span class="genre-badge">${genre}</span>` : ''}
+                  ${year ? `<span class="year-badge">${year}</span>` : ''}
+                </div>
+                ${rating ? `<div class="movie-rating">⭐ ${rating}</div>` : ''}
+                <div class="watch-status ${isWatched ? 'watched' : 'unwatched'}">
+                  ${isWatched ? '✅ Watched' : '📺 To Watch'}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+const renderRecipeListCard = (tableData: TableData, title: string): string => {
+  const nameCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('name') || 
+    col.name.toLowerCase().includes('recipe') || 
+    col.name.toLowerCase().includes('dish')
+  );
+  const cuisineCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('cuisine') || 
+    col.name.toLowerCase().includes('type')
+  );
+  const timeCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('time') || 
+    col.name.toLowerCase().includes('duration')
+  );
+  const servingsCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('serving') || 
+    col.name.toLowerCase().includes('portion')
+  );
+  const difficultyCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('difficulty') || 
+    col.name.toLowerCase().includes('level')
+  );
+
+  return `
+    <div class="recipe-list-container">
+      <div class="recipe-grid">
+        ${tableData.rows.map(row => {
+          const recipeName = nameCol ? row[nameCol.id] : 'Unknown Recipe';
+          const cuisine = cuisineCol ? row[cuisineCol.id] : '';
+          const time = timeCol ? row[timeCol.id] : '';
+          const servings = servingsCol ? row[servingsCol.id] : '';
+          const difficulty = difficultyCol ? row[difficultyCol.id] : '';
+
+          return `
+            <div class="recipe-card">
+              <div class="recipe-icon">👨‍🍳</div>
+              <div class="recipe-info">
+                <h3 class="recipe-name">${recipeName}</h3>
+                <div class="recipe-meta">
+                  ${cuisine ? `<span class="cuisine-badge">${cuisine}</span>` : ''}
+                  ${difficulty ? `<span class="difficulty-badge">${difficulty}</span>` : ''}
+                </div>
+                <div class="recipe-details">
+                  ${time ? `<span class="time-info">⏱️ ${time}</span>` : ''}
+                  ${servings ? `<span class="servings-info">🍽️ ${servings} servings</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+const renderInventoryListCard = (tableData: TableData, title: string): string => {
+  const itemCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('item') || 
+    col.name.toLowerCase().includes('product') || 
+    col.name.toLowerCase().includes('name')
+  );
+  const quantityCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('quantity') || 
+    col.name.toLowerCase().includes('stock') || 
+    col.name.toLowerCase().includes('count')
+  );
+  const locationCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('location') || 
+    col.name.toLowerCase().includes('shelf') || 
+    col.name.toLowerCase().includes('warehouse')
+  );
+  const skuCol = tableData.columns.find(col => 
+    col.name.toLowerCase().includes('sku') || 
+    col.name.toLowerCase().includes('code') || 
+    col.name.toLowerCase().includes('id')
+  );
+
+  const totalItems = tableData.rows.length;
+  const lowStock = tableData.rows.filter(row => {
+    const qty = quantityCol ? parseFloat(row[quantityCol.id]) || 0 : 0;
+    return qty < 10;
+  }).length;
+
+  return `
+    <div class="inventory-list-container">
+      <div class="inventory-summary">
+        <div class="summary-stats">
+          <span class="stat-item">📦 ${totalItems} items</span>
+          <span class="stat-item ${lowStock > 0 ? 'warning' : ''}">⚠️ ${lowStock} low stock</span>
+        </div>
+      </div>
+      
+      <div class="inventory-grid">
+        ${tableData.rows.map(row => {
+          const itemName = itemCol ? row[itemCol.id] : 'Unknown Item';
+          const quantity = quantityCol ? row[quantityCol.id] : '';
+          const location = locationCol ? row[locationCol.id] : '';
+          const sku = skuCol ? row[skuCol.id] : '';
+          
+          const qty = parseFloat(quantity) || 0;
+          const stockStatus = qty === 0 ? 'out-of-stock' : qty < 10 ? 'low-stock' : 'in-stock';
+
+          return `
+            <div class="inventory-card ${stockStatus}">
+              <div class="inventory-icon">📦</div>
+              <div class="inventory-info">
+                <h3 class="item-name">${itemName}</h3>
+                ${sku ? `<div class="item-sku">SKU: ${sku}</div>` : ''}
+                <div class="inventory-meta">
+                  <span class="quantity-badge ${stockStatus}">
+                    ${qty === 0 ? '❌' : qty < 10 ? '⚠️' : '✅'} ${quantity || '0'} units
+                  </span>
+                  ${location ? `<span class="location-info">📍 ${location}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
 const renderShoppingListCard = (tableData: TableData, title: string): string => {
   const itemCol = tableData.columns.find(col => 
     col.name.toLowerCase().includes('item') || 
@@ -201,6 +526,30 @@ const renderContactListCard = (tableData: TableData, title: string): string => {
 
 // Content type definitions with priority (higher priority = checked first)
 const contentTypeDefinitions: ContentTypeDefinition[] = [
+  {
+    type: 'book-list' as const,
+    priority: 110,
+    detector: detectBookList,
+    renderer: renderBookListCard
+  },
+  {
+    type: 'movie-list' as const,
+    priority: 105,
+    detector: detectMovieList,
+    renderer: renderMovieListCard
+  },
+  {
+    type: 'recipe-list' as const,
+    priority: 102,
+    detector: detectRecipeList,
+    renderer: renderRecipeListCard
+  },
+  {
+    type: 'inventory-list' as const,
+    priority: 101,
+    detector: detectInventoryList,
+    renderer: renderInventoryListCard
+  },
   {
     type: 'shopping-list' as const,
     priority: 100,

@@ -12,6 +12,7 @@ import { ImageGallery } from './ImageGallery';
 import { TableFieldEditor } from './table/TableFieldEditor';
 import { TableFieldViewer } from './table/TableFieldViewer';
 import { ShoppingListTemplate } from './table/ShoppingListTemplate';
+import { EnhancedTableFillMode } from './table/EnhancedTableFillMode';
 import { validateFieldName } from "@/utils/fieldNameNormalizer";
 
 interface CustomFieldItemProps {
@@ -131,6 +132,12 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               {(tableData.columns && Array.isArray(tableData.columns) && tableData.columns.length === 0) ? (
                 <ShoppingListTemplate
                   onApplyTemplate={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+                />
+              ) : isFillMode ? (
+                <EnhancedTableFillMode
+                  value={tableData}
+                  onChange={(newTableData) => onUpdateField(field.id, 'value', newTableData)}
+                  disabled={false}
                 />
               ) : (
                 <TableFieldEditor

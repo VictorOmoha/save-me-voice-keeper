@@ -65,20 +65,35 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
     }
   }, [field.name, isEditMode]);
   
+  // Detect table data structure regardless of field type
+  const hasTableDataStructure = field.value && 
+    typeof field.value === 'object' && 
+    field.value.columns && 
+    Array.isArray(field.value.columns) && 
+    field.value.rows && 
+    Array.isArray(field.value.rows);
+
   // For existing table fields with data, show data editor by default
-  const hasTableData = normalizedFieldType === 'table' && field.value && 
-    (field.value.columns && Array.isArray(field.value.columns) && field.value.columns.length > 0);
+  const hasTableData = (normalizedFieldType === 'table' && field.value && 
+    (field.value.columns && Array.isArray(field.value.columns) && field.value.columns.length > 0)) || hasTableDataStructure;
   
-  // Check if this is a table field that needs conversion from simple value
-  const needsTableConversion = normalizedFieldType === 'table' && field.value && 
-    typeof field.value === 'string' && !hasTableData;
+  // Check if this is a field with table data that needs type conversion
+  const needsTableConversion = hasTableDataStructure && normalizedFieldType !== 'table';
     
   // Show toggle buttons for any table field in edit mode that has some value
-  const shouldShowToggle = isEditMode && normalizedFieldType === 'table' && 
+  const shouldShowToggle = isEditMode && (normalizedFieldType === 'table' || hasTableDataStructure) && 
     (hasTableData || needsTableConversion);
   
   // Determine if we should show data input or structure config
-  const shouldShowDataInput = isFillMode || (isEditMode && normalizedFieldType === 'table' && (hasTableData || needsTableConversion) && !isEditingStructure);
+  const shouldShowDataInput = isFillMode || (isEditMode && (normalizedFieldType === 'table' || hasTableDataStructure) && (hasTableData || needsTableConversion) && !isEditingStructure);
+
+  // Auto-convert field type if it has table data but wrong type
+  useEffect(() => {
+    if (needsTableConversion && field.type !== 'table') {
+      console.log('Auto-converting field to table type:', field.name);
+      onUpdateField(field.id, 'type', 'table');
+    }
+  }, [needsTableConversion, field.type, field.id, field.name, onUpdateField]);
   
   console.log('CustomFieldItem debug:', {
     fieldName: field.name,

@@ -1,6 +1,7 @@
 
 import { toast } from 'sonner';
 import { playEndOfSpeechCueIfEnabled } from '@/utils/audioCues';
+import { supabase } from '@/integrations/supabase/client';
 
 // ElevenLabs API configuration
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
@@ -77,13 +78,20 @@ export const getElevenLabsApiKey = (): string | null => {
   }
 };
 
+/**
+ * @deprecated This function stores API keys in localStorage which is INSECURE.
+ * API keys are now handled server-side via Supabase Edge Functions.
+ * This function is kept for backwards compatibility only.
+ * Contact your administrator to configure server-side API keys.
+ */
 export const setElevenLabsApiKey = (apiKey: string): void => {
   try {
+    console.warn('⚠️ DEPRECATED: Storing API keys in localStorage is insecure. Please use server-side configuration.');
     console.log('🔑 Setting ElevenLabs API key:', apiKey ? 'Key provided' : 'Empty key');
     if (apiKey.trim()) {
       localStorage.setItem('elevenlabs_api_key', apiKey.trim());
       console.log('✅ ElevenLabs API key saved to localStorage');
-      toast.success('ElevenLabs API key saved successfully');
+      toast.success('Note: API keys are now managed server-side for security');
     } else {
       localStorage.removeItem('elevenlabs_api_key');
       console.log('🗑️ ElevenLabs API key removed from localStorage');
@@ -95,9 +103,17 @@ export const setElevenLabsApiKey = (apiKey: string): void => {
   }
 };
 
+/**
+ * @deprecated This function retrieves API keys from localStorage which is INSECURE.
+ * API keys are now handled server-side via Supabase Edge Functions.
+ * This function is kept for backwards compatibility only.
+ */
 export const getMiniMaxApiKey = (): string | null => {
   try {
     const key = localStorage.getItem('minimax_api_key');
+    if (key) {
+      console.warn('⚠️ DEPRECATED: Reading API keys from localStorage. Please use server-side configuration.');
+    }
     console.log('🔑 Getting MiniMax API key:', key ? 'Found' : 'Not found');
     return key;
   } catch (error) {
@@ -106,6 +122,11 @@ export const getMiniMaxApiKey = (): string | null => {
   }
 };
 
+/**
+ * @deprecated This function stores API keys in localStorage which is INSECURE.
+ * API keys should be configured server-side only.
+ * This function is kept for backwards compatibility only.
+ */
 export const setMiniMaxApiKey = (apiKey: string): void => {
   try {
     console.log('🔑 Setting MiniMax API key:', apiKey ? 'Key provided' : 'Empty key');
@@ -319,92 +340,84 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
 };
 
 const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> => {
-  const apiKey = getElevenLabsApiKey();
-  if (!apiKey) {
-    throw new Error('ElevenLabs API key not found. Please set your API key in voice settings.');
-  }
-
-  // Validate API key format - ElevenLabs keys can have various formats
-  if (apiKey.length < 10) {
-    throw new Error('Invalid ElevenLabs API key format. Please check your API key in settings.');
-  }
-
   const selectedVoice = voice || getSelectedVoice();
   // Capitalize the voice name for lookup in AVAILABLE_VOICES
   const capitalizedVoice = selectedVoice.charAt(0).toUpperCase() + selectedVoice.slice(1);
   const voiceId = AVAILABLE_VOICES[capitalizedVoice as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
 
   console.log('🎙️ TTS: Using ElevenLabs voice:', selectedVoice, 'ID:', voiceId);
-  console.log('🔑 TTS: API key length:', apiKey.length, 'starts with:', apiKey.substring(0, 10) + '...');
 
   // Choose model based on language: English -> eleven_turbo_v2, otherwise multilingual
   const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
   const modelId = speechLanguage.startsWith('en') ? 'eleven_turbo_v2' : 'eleven_multilingual_v2';
   console.log('🎛️ TTS: ElevenLabs model selected:', modelId, 'lang:', speechLanguage);
+  console.log('🔒 TTS: Using secure server-side API call via Supabase Edge Function');
 
-  const response = await fetch(`${ELEVENLABS_API_URL}/${voiceId}`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'audio/mpeg',
-      'Content-Type': 'application/json',
-      'xi-api-key': apiKey,
-    },
-    body: JSON.stringify({
-      text: text,
-      model_id: modelId,
-      voice_settings: VOICE_SETTINGS,
-    }),
-  });
+  try {
+    // Call the secure Supabase edge function instead of exposing API keys
+    const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+      body: {
+        text: text,
+        voiceId: voiceId,
+        modelId: modelId
+      }
+    });
 
-  if (!response.ok) {
-    try {
-      const errorData = await response.json();
-      console.error('🚨 TTS: ElevenLabs API error:', response.status, JSON.stringify(errorData));
-      
-      // Check for specific error types - improved error detection
-      if (errorData.detail?.status === 'quota_exceeded' || errorData.detail?.message?.includes('quota')) {
-        const quotaMessage = errorData.detail.message || 'Credits exhausted';
-        toast.error(`ElevenLabs quota exceeded: ${quotaMessage}`);
-        throw new Error(`ElevenLabs quota exceeded: ${quotaMessage}`);
-      } else if (response.status === 401) {
-        toast.error('ElevenLabs API key is invalid or expired');
-        throw new Error('ElevenLabs API key is invalid or expired');
-      } else if (response.status === 429) {
-        toast.error('ElevenLabs rate limit exceeded');
+    if (error) {
+      console.error('🚨 TTS: Edge function error:', error);
+
+      // Check for specific error messages that indicate fallback needed
+      if (error.message?.includes('quota') || error.message?.includes('credits')) {
+        toast.error(`ElevenLabs quota exceeded. Falling back to browser TTS.`);
+        throw new Error('ElevenLabs quota exceeded');
+      } else if (error.message?.includes('API key')) {
+        toast.error('ElevenLabs not configured. Please contact support or use browser TTS.');
+        throw new Error('ElevenLabs API key not configured');
+      } else if (error.message?.includes('rate limit')) {
+        toast.error('ElevenLabs rate limit exceeded. Falling back to browser TTS.');
         throw new Error('ElevenLabs rate limit exceeded');
       } else {
-        const errorMessage = errorData.detail?.message || `HTTP ${response.status}`;
-        toast.error(`ElevenLabs API error: ${errorMessage}`);
-        throw new Error(`ElevenLabs API error: ${errorMessage}`);
+        toast.error(`Voice service error. Falling back to browser TTS.`);
+        throw new Error(`ElevenLabs error: ${error.message}`);
       }
-    } catch (parseError) {
-      // Fallback if response isn't JSON
-      const errorText = await response.text();
-      console.error('🚨 TTS: ElevenLabs API error (non-JSON):', response.status, errorText);
-      toast.error(`ElevenLabs API error: ${response.status}`);
-      throw new Error(`API error: ${response.status}`);
     }
+
+    if (!data || !data.audioContent) {
+      console.error('🚨 TTS: No audio content returned from edge function');
+      toast.error('No audio received from voice service');
+      throw new Error('No audio content received');
+    }
+
+    // Convert base64 audio back to blob
+    const binaryString = atob(data.audioContent);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        console.log('🔊 TTS: ElevenLabs audio playback completed');
+        resolve();
+      };
+
+      audio.onerror = (error) => {
+        URL.revokeObjectURL(audioUrl);
+        console.error('🚨 TTS: Audio playback error:', error);
+        reject(error);
+      };
+
+      audio.play().catch(reject);
+    });
+  } catch (err) {
+    console.error('🚨 TTS: Unexpected error in speakWithElevenLabs:', err);
+    throw err;
   }
-
-  const audioBlob = await response.blob();
-  const audioUrl = URL.createObjectURL(audioBlob);
-  const audio = new Audio(audioUrl);
-
-  return new Promise((resolve, reject) => {
-    audio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
-      console.log('🔊 TTS: ElevenLabs audio playback completed');
-      resolve();
-    };
-
-    audio.onerror = (error) => {
-      URL.revokeObjectURL(audioUrl);
-      console.error('🚨 TTS: Audio playback error:', error);
-      reject(error);
-    };
-
-    audio.play().catch(reject);
-  });
 };
 
 // Cache for GroupId to avoid repeated JWT parsing

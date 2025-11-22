@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sun, Moon, Mic, RefreshCcw, Zap, Users, Briefcase, User, Brain, Mail, Shield } from "lucide-react";
+import { Check, Sun, Moon, Mic, RefreshCcw, Zap, Users, Briefcase, User, Brain, Mail } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListModal } from "@/components/WaitingListModal";
@@ -164,9 +164,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-8 sm:px-12">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
+              <img
+                src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png"
+                alt="Save Me Logo"
+                className="w-10 h-10 object-contain"
+              />
               <span className="text-lg font-semibold text-white">
                 Save Me
               </span>

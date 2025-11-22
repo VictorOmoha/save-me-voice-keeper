@@ -66,7 +66,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
         {/* Content with Voice Interface */}
         <div className="flex-1 container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-white dark:bg-gray-950 rounded-lg p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 bg-card rounded-lg p-6">
             {/* Voice Interface - Always visible on the left */}
             <div className="hidden lg:block lg:col-span-1">
               <div className="sticky top-6">

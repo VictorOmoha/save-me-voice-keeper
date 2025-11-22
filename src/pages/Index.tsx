@@ -158,41 +158,40 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-black">
       {/* Navigation */}
-      <nav className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-50 border-gray-200 dark:border-gray-700 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-1 group">
-              <img 
-                src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
-                alt="Save Me Logo" 
-                className="w-12 h-12 object-contain transition-transform duration-300 group-hover:scale-110"
+      <nav className="border-b border-gray-800 bg-black sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-8 sm:px-12">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-3">
+              <img
+                src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png"
+                alt="Save Me Logo"
+                className="w-10 h-10 object-contain"
               />
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 dark:from-white dark:to-white bg-clip-text text-transparent transition-all duration-300 group-hover:scale-105">
+              <span className="text-lg font-semibold text-white">
                 Save Me
               </span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-6">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleTheme}
-                className="text-foreground hover:text-foreground transition-all duration-300 hover:scale-110 hover:rotate-12"
+                className="text-gray-400 hover:text-white"
               >
                 {getThemeIcon()}
               </Button>
               {isAuthenticated ? (
                 <Link to="/dashboard">
-                  <Button variant="gradient" className="transition-all duration-300 hover:scale-105 hover:shadow-lg">
-                    Go to Dashboard
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    Dashboard
                   </Button>
                 </Link>
               ) : (
-                <Button 
-                  variant="gradient"
+                <Button
                   onClick={() => setIsWaitingListModalOpen(true)}
-                  className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   Join Waiting List
                 </Button>
@@ -203,43 +202,40 @@ const Index = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-20 px-4 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight md:leading-tight pb-2 min-h-[200px] flex items-center justify-center">
-            <TypewriterText 
-              text="Never Lose Important Information Again"
-              speed={80}
-              delay={1000}
-            />
+      <section className="py-32 px-8 sm:px-12">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold mb-12 leading-[1.1] text-white">
+            Never Lose<br />
+            Important<br />
+            Information<br />
+            Again
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto animate-fade-in">
+          <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl leading-relaxed">
             Save Me is your AI-powered personal information manager. Store, organize, and retrieve any data with voice commands across all your devices.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-6">
             {isAuthenticated ? (
               <Link to="/dashboard">
-                <Button 
-                  size="lg" 
-                  variant="gradient"
-                  className="px-8 py-3 text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1"
+                <Button
+                  size="lg"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg rounded-full"
                 >
                   Go to Dashboard
                 </Button>
               </Link>
             ) : (
-              <Button 
-                size="lg" 
-                variant="gradient"
-                className="px-8 py-3 text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1"
+              <Button
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg rounded-full"
                 onClick={() => setIsWaitingListModalOpen(true)}
               >
                 Join Waiting List
               </Button>
             )}
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="px-8 py-3 text-lg border-gray-300 dark:border-gray-600 text-foreground hover:bg-accent transition-all duration-300 hover:scale-105 hover:shadow-lg hover:-translate-y-1"
+            <Button
+              size="lg"
+              variant="ghost"
+              className="text-white hover:bg-gray-900 px-8 py-6 text-lg rounded-full border border-gray-800"
               onClick={handleWatchDemo}
               disabled={!activeDemoVideo}
             >
@@ -250,12 +246,12 @@ const Index = () => {
       </section>
 
       {/* Featured Video Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground transition-all duration-300 hover:scale-105">
+      <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
             See Save Me in Action
           </h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-400 mb-12 max-w-3xl">
             Watch how Save Me transforms the way you capture, organize, and retrieve your important information
           </p>
           {activeCanvidVideo ? (
@@ -283,13 +279,13 @@ const Index = () => {
       </section>
 
       {/* Who Is This For Section */}
-      <section className="py-20 px-4 bg-white dark:bg-gray-900/30">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground transition-all duration-300 hover:scale-105">
+      <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-16">
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
               Who Is Save Me For?
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl">
               Save Me is designed for anyone who struggles to keep track of important information across their personal and professional life
             </p>
           </div>
@@ -381,61 +377,60 @@ const Index = () => {
           </div>
 
           {/* Common Pain Points */}
-          <div className="mt-16 bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-8 transition-all duration-300 hover:shadow-lg">
-            <h3 className="text-2xl font-bold text-center mb-8 text-foreground transition-all duration-300 hover:scale-105">
+          <div className="mt-16 bg-gray-900 rounded-2xl p-12 border border-gray-800">
+            <h3 className="text-3xl md:text-4xl font-bold mb-12 text-white">
               Do Any of These Sound Familiar?
             </h3>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="flex items-start space-x-3 group">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-all duration-300 group-hover:scale-150"></div>
-                  <p className="text-muted-foreground transition-all duration-300 group-hover:translate-x-2">
-                    <strong className="text-foreground">Information scattered everywhere:</strong> Notes in different apps, emails, sticky notes, and scraps of paper
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300">
+                    <strong className="text-white">Information scattered everywhere:</strong> Notes in different apps, emails, sticky notes, and scraps of paper
                   </p>
                 </div>
                 <div className="flex items-start space-x-3 group">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-all duration-300 group-hover:scale-150"></div>
-                  <p className="text-muted-foreground transition-all duration-300 group-hover:translate-x-2">
-                    <strong className="text-foreground">Can't find what you need:</strong> Spending precious time searching through multiple apps and folders
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300">
+                    <strong className="text-white">Can't find what you need:</strong> Spending precious time searching through multiple apps and folders
                   </p>
                 </div>
                 <div className="flex items-start space-x-3 group">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-all duration-300 group-hover:scale-150"></div>
-                  <p className="text-muted-foreground transition-all duration-300 group-hover:translate-x-2">
-                    <strong className="text-foreground">Device switching frustration:</strong> Information saved on one device but needed on another
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300">
+                    <strong className="text-white">Device switching frustration:</strong> Information saved on one device but needed on another
                   </p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3 group">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-all duration-300 group-hover:scale-150"></div>
-                  <p className="text-muted-foreground transition-all duration-300 group-hover:translate-x-2">
-                    <strong className="text-foreground">No time to organize:</strong> Too busy to set up complex systems or learn new tools
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300">
+                    <strong className="text-white">No time to organize:</strong> Too busy to set up complex systems or learn new tools
                   </p>
                 </div>
                 <div className="flex items-start space-x-3 group">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-all duration-300 group-hover:scale-150"></div>
-                  <p className="text-muted-foreground transition-all duration-300 group-hover:translate-x-2">
-                    <strong className="text-foreground">Information overload:</strong> Drowning in data with no good way to make sense of it all
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300">
+                    <strong className="text-white">Information overload:</strong> Drowning in data with no good way to make sense of it all
                   </p>
                 </div>
                 <div className="flex items-start space-x-3 group">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 transition-all duration-300 group-hover:scale-150"></div>
-                  <p className="text-muted-foreground transition-all duration-300 group-hover:translate-x-2">
-                    <strong className="text-foreground">Forgetting important details:</strong> Missing deadlines, appointments, or key information when you need it most
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-300">
+                    <strong className="text-white">Forgetting important details:</strong> Missing deadlines, appointments, or key information when you need it most
                   </p>
                 </div>
               </div>
             </div>
-            
-            <div className="text-center mt-8">
-              <p className="text-lg text-foreground font-semibold mb-4">
+
+            <div className="text-center mt-12">
+              <p className="text-xl text-white font-semibold mb-6">
                 If you nodded along to any of these, Save Me is built for you.
               </p>
-              <Button 
-                size="lg" 
-                variant="gradient"
-                className="px-8 py-3 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:-translate-y-1"
+              <Button
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg rounded-full"
                 onClick={() => setIsWaitingListModalOpen(true)}
               >
                 Join the Waiting List
@@ -447,12 +442,12 @@ const Index = () => {
 
       {/* Demo Section */}
       {activeDemoVideo && (
-        <section className="py-20 px-4 bg-gray-50 dark:bg-gray-800/30">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground transition-all duration-300 hover:scale-105">
+        <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
               Detailed Demo
             </h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-400 mb-12 max-w-3xl">
               Watch a detailed walkthrough of Save Me's features and capabilities
             </p>
             <div className="relative rounded-lg overflow-hidden shadow-2xl mx-auto max-w-3xl">
@@ -470,13 +465,13 @@ const Index = () => {
       )}
 
       {/* Dashboard Demo Section */}
-      <section className="py-20 px-4 bg-gray-50 dark:bg-gray-800/30">
+      <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground transition-all duration-300 hover:scale-105">
+          <div className="mb-16">
+            <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
               Dashboard Preview
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl">
               Experience our intuitive dashboard that adapts to your preferences with seamless dark and light modes
             </p>
           </div>
@@ -555,9 +550,9 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-white dark:bg-gray-800/50">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-foreground transition-all duration-300 hover:scale-105">Why Choose Save Me?</h2>
+      <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-5xl md:text-6xl font-bold mb-16 text-white">Why Choose Save Me?</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="text-center hover:shadow-lg transition-all duration-300 bg-card border-border hover:scale-105 hover:-translate-y-2 group">
               <CardHeader>
@@ -605,16 +600,16 @@ const Index = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-20 px-4 bg-gray-50 dark:bg-gray-900/50">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4 text-foreground transition-all duration-300 hover:scale-105">Planned Pricing</h2>
-          <p className="text-muted-foreground text-center mb-2">Join our waiting list to get early access when we launch</p>
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-8 max-w-2xl mx-auto transition-all duration-300 hover:scale-105">
-            <p className="text-sm text-blue-800 dark:text-blue-200 text-center">
-              🚀 <strong>Save Me is coming soon!</strong> These are our planned pricing tiers. Join the waiting list to be notified when we launch and get early access to these features.
+      <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">Planned Pricing</h2>
+          <p className="text-xl text-gray-400 mb-8 max-w-3xl">Join our waiting list to get early access when we launch</p>
+          <div className="bg-blue-600/10 border border-blue-600/20 rounded-2xl p-6 mb-12 max-w-3xl">
+            <p className="text-blue-400">
+              🚀 <strong className="text-white">Save Me is coming soon!</strong> These are our planned pricing tiers. Join the waiting list to be notified when we launch and get early access to these features.
             </p>
           </div>
-          <p className="text-sm text-muted-foreground text-center mb-12">
+          <p className="text-sm text-gray-400 mb-12">
             • Monthly billing • Cancel anytime • No hidden fees • 14-day free trial on paid plans
           </p>
           
@@ -648,9 +643,10 @@ const Index = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button 
-                    className="w-full transition-all duration-300 hover:scale-105 hover:shadow-lg" 
-                    variant={plan.popular ? 'gradient' : 'outline'}
+                  <Button
+                    className={`w-full transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+                      plan.popular ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700'
+                    }`}
                     onClick={() => setIsWaitingListModalOpen(true)}
                   >
                     Join Waiting List
@@ -675,8 +671,8 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 dark:bg-gray-950 text-white py-12 px-4 transition-all duration-300">
-        <div className="max-w-6xl mx-auto text-center">
+      <footer className="bg-black border-t border-gray-900 text-white py-16 px-8 sm:px-12">
+        <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-1 mb-4 group">
             <img 
               src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 

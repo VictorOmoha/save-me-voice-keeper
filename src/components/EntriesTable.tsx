@@ -255,7 +255,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Your Saved Information</h2>
+        <h2 className="text-2xl font-bold text-white">Your Saved Information</h2>
         <div className="flex items-center space-x-2">
           <ExportButton
             entries={entries}

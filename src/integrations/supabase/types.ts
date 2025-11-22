@@ -528,7 +528,7 @@ export type Database = {
         Returns: boolean
       }
       get_current_storage_usage: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           db_bytes_used: number
           file_bytes_used: number
@@ -539,10 +539,7 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_tier_limit_bytes: {
-        Args: { _tier: string }
-        Returns: number
-      }
+      get_tier_limit_bytes: { Args: { _tier: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -550,10 +547,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      refresh_user_db_usage: {
-        Args: { p_user_id: string }
-        Returns: undefined
-      }
+      refresh_user_db_usage: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

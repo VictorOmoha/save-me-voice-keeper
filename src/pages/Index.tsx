@@ -189,19 +189,12 @@ const Index = () => {
                   </Button>
                 </Link>
               ) : (
-                <>
-                  <Link to="/login">
-                    <Button variant="ghost" className="text-gray-400 hover:text-white">
-                      Login
-                    </Button>
-                  </Link>
-                  <Button
-                    onClick={() => setIsWaitingListModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Join Waiting List
-                  </Button>
-                </>
+                <Button
+                  onClick={() => setIsWaitingListModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Join Waiting List
+                </Button>
               )}
             </div>
           </div>

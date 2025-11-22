@@ -280,12 +280,12 @@ const Index = () => {
 
       {/* Who Is This For Section */}
       <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-7xl mx-auto text-right">
           <div className="mb-16">
             <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
               Who Is Save Me For?
             </h2>
-            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-400 max-w-3xl ml-auto">
               Save Me is designed for anyone who struggles to keep track of important information across their personal and professional life
             </p>
           </div>

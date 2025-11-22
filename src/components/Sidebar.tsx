@@ -12,8 +12,7 @@ import {
   User, 
   Plus,
   Settings,
-  Brain,
-  Shield
+  Brain
 } from "lucide-react";
 import { SavedEntry } from "@/types/dashboard";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
@@ -49,9 +48,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
-            <Shield className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img 
+            src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
+            alt="Save Me Logo" 
+            className="w-10 h-10 object-contain"
+          />
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Save Me
           </span>

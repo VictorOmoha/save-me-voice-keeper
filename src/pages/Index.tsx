@@ -203,17 +203,17 @@ const Index = () => {
 
       {/* Hero Section */}
       <section className="py-32 px-8 sm:px-12">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold mb-12 leading-[1.1] text-white">
             Never Lose<br />
             Important<br />
             Information<br />
             Again
           </h1>
-          <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl leading-relaxed">
+          <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
             Save Me is your AI-powered personal information manager. Store, organize, and retrieve any data with voice commands across all your devices.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
             {isAuthenticated ? (
               <Link to="/dashboard">
                 <Button
@@ -247,11 +247,11 @@ const Index = () => {
 
       {/* Featured Video Section */}
       <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
             See Save Me in Action
           </h2>
-          <p className="text-xl text-gray-400 mb-12 max-w-3xl">
+          <p className="text-xl text-gray-400 mb-12 max-w-3xl mx-auto">
             Watch how Save Me transforms the way you capture, organize, and retrieve your important information
           </p>
           {activeCanvidVideo ? (
@@ -280,12 +280,12 @@ const Index = () => {
 
       {/* Who Is This For Section */}
       <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto text-center">
           <div className="mb-16">
             <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
               Who Is Save Me For?
             </h2>
-            <p className="text-xl text-gray-400 max-w-3xl">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Save Me is designed for anyone who struggles to keep track of important information across their personal and professional life
             </p>
           </div>
@@ -443,11 +443,11 @@ const Index = () => {
       {/* Demo Section */}
       {activeDemoVideo && (
         <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto text-center">
             <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
               Detailed Demo
             </h2>
-            <p className="text-xl text-gray-400 mb-12 max-w-3xl">
+            <p className="text-xl text-gray-400 mb-12 max-w-3xl mx-auto">
               Watch a detailed walkthrough of Save Me's features and capabilities
             </p>
             <div className="relative rounded-lg overflow-hidden shadow-2xl mx-auto max-w-3xl">
@@ -466,12 +466,12 @@ const Index = () => {
 
       {/* Dashboard Demo Section */}
       <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto text-center">
           <div className="mb-16">
             <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">
               Dashboard Preview
             </h2>
-            <p className="text-xl text-gray-400 max-w-3xl">
+            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
               Experience our intuitive dashboard that adapts to your preferences with seamless dark and light modes
             </p>
           </div>
@@ -551,7 +551,7 @@ const Index = () => {
 
       {/* Features Section */}
       <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-5xl md:text-6xl font-bold mb-16 text-white">Why Choose Save Me?</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="text-center hover:shadow-lg transition-all duration-300 bg-card border-border hover:scale-105 hover:-translate-y-2 group">
@@ -601,10 +601,10 @@ const Index = () => {
 
       {/* Pricing Section */}
       <section className="py-20 px-8 sm:px-12 bg-black border-t border-gray-900">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-5xl md:text-6xl font-bold mb-6 text-white">Planned Pricing</h2>
-          <p className="text-xl text-gray-400 mb-8 max-w-3xl">Join our waiting list to get early access when we launch</p>
-          <div className="bg-blue-600/10 border border-blue-600/20 rounded-2xl p-6 mb-12 max-w-3xl">
+          <p className="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">Join our waiting list to get early access when we launch</p>
+          <div className="bg-blue-600/10 border border-blue-600/20 rounded-2xl p-6 mb-12 max-w-3xl mx-auto">
             <p className="text-blue-400">
               🚀 <strong className="text-white">Save Me is coming soon!</strong> These are our planned pricing tiers. Join the waiting list to be notified when we launch and get early access to these features.
             </p>

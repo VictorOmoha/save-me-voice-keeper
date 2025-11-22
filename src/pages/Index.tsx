@@ -203,17 +203,17 @@ const Index = () => {
 
       {/* Hero Section */}
       <section className="py-32 px-8 sm:px-12">
-        <div className="max-w-7xl mx-auto text-center">
+        <div className="max-w-7xl mx-auto text-left">
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold mb-12 leading-[1.1] text-white">
             Never Lose<br />
             Important<br />
             Information<br />
             Again
           </h1>
-          <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl leading-relaxed">
             Save Me is your AI-powered personal information manager. Store, organize, and retrieve any data with voice commands across all your devices.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-6">
             {isAuthenticated ? (
               <Link to="/dashboard">
                 <Button

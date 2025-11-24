@@ -5,6 +5,7 @@ import { Download, FileText, Eye, X } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import DOMPurify from 'dompurify';
 
 interface DocumentViewerProps {
   isOpen: boolean;
@@ -227,7 +228,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 {fileName.endsWith('.html') ? (
                   <div 
                     className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: documentContent }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(documentContent) }}
                   />
                 ) : (
                   <pre className="whitespace-pre-wrap text-sm text-foreground font-mono">

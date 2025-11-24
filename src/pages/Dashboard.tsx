@@ -80,37 +80,11 @@ export default function Dashboard() {
 
   
 
-  // Add voice processor for enhanced voice integration with forms
-  const {
-    conversationState: voiceConversationState,
-    isInConversation: isVoiceInConversation,
-    processVoiceInput: unifiedProcessVoiceInput,
-    processHybridSelection
-  } = useUnifiedVoiceProcessor({
-    savedEntries: savedEntries,
-    onCreateEntry: handleAddEntry,
-    onEditEntry: editEntry,
-    onDeleteEntry: deleteEntry,
-    onSaveEntry: saveEntry,
-    onCancelEdit: handleCancelEdit,
-  });
-
-  // Enhanced voice input that handles both commands and conversations
+  // Single unified voice processor - no separate processors
   const enhancedVoiceInputHandler = async (text: string) => {
-    console.log('🎤 Dashboard: Enhanced voice input handler called with:', text);
-    console.log('📊 Dashboard: Current state check - showAddEntry:', showAddEntry, 'unified isInConversation:', voiceConversationState?.isInConversation);
-    console.log('🔍 Dashboard: Unified conversation state:', voiceConversationState);
-    
-    // If we're in a voice conversation, let the ConversationalVoiceInterface handle it directly
-    // to maintain conversation context. Otherwise, use unified processor for commands.
-    if (voiceConversationState?.isInConversation) {
-      console.log('🎯 Dashboard: In conversation mode - letting ConversationalVoiceInterface handle internally');
-      // Don't process here - let the ConversationalVoiceInterface use its internal processor
-      return;
-    }
-    
-    console.log('🎯 Dashboard: Not in conversation - routing to unified processor for commands');
-    await unifiedProcessVoiceInput(text);
+    console.log('🎤 Dashboard: Voice input received:', text);
+    // Let the ConversationalVoiceInterface handle all voice processing
+    // It will route to the appropriate handler based on conversation state
   };
 
   useEffect(() => {
@@ -252,27 +226,16 @@ export default function Dashboard() {
               />
             </div>
           ) : (
-            // Use VoiceGuidedEntryWizard for new entries with voice conversation
-            showAddEntry && voiceConversationState?.isInConversation ? (
-              <VoiceGuidedEntryWizard
-                onSave={saveEntry}
-                onCancel={handleCancelEdit}
-                conversationState={voiceConversationState}
-                isVoiceActive={voiceConversationState.isInConversation}
-                onHybridSelection={processHybridSelection}
-              />
-            ) : (
-              <DataEntryForm
-                mode={getFormMode()}
-                editEntry={editingEntry}
-                templateEntry={fillingEntry}
-                onSave={saveEntry}
-                onCancel={handleCancelEdit}
-                isVoiceActive={voiceConversationState?.isInConversation || false}
-                isSaving={isSaving}
-                voiceConversationState={voiceConversationState}
-              />
-            )
+            // Use standard DataEntryForm for all entries
+            <DataEntryForm
+              mode={getFormMode()}
+              editEntry={editingEntry}
+              templateEntry={fillingEntry}
+              onSave={saveEntry}
+              onCancel={handleCancelEdit}
+              isVoiceActive={false}
+              isSaving={isSaving}
+            />
           )}
         </>
       ) : (

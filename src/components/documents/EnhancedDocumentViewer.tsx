@@ -9,6 +9,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import mammoth from 'mammoth';
 import { RichTextEditor } from '@/components/documents/RichTextEditor';
 import { printBlobDocument, printDocumentHtml } from '@/utils/printUtils';
+import DOMPurify from 'dompurify';
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -517,7 +518,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                   <div className="p-4">
                     <div 
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: documentState.content }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(documentState.content) }}
                     />
                   </div>
                 )}
@@ -528,7 +529,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                     {fileName.endsWith('.html') ? (
                       <div 
                         className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: documentState.content }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(documentState.content) }}
                       />
                     ) : (
                       <pre className="whitespace-pre-wrap text-sm text-foreground font-mono">

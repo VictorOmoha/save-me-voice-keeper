@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, FileText, Users, Shield, Zap, Star, Table, Grid3X3 } from "lucide-react";
 import { RecentEntries } from "@/components/RecentEntries";
+import { EnhancedRecentEntries } from "@/components/entries";
 import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { DocumentCreator } from "@/components/DocumentCreator";
@@ -229,13 +230,17 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         </div>
       </div>
 
-      {/* Recent Entries */}
-      <RecentEntries 
-        entries={savedEntries.slice(0, 6)}
+      {/* Recent Entries - Enhanced Display */}
+      <EnhancedRecentEntries
+        entries={savedEntries}
+        maxEntries={6}
         onEdit={onEditEntry}
         onFill={onFillEntry}
+        onDelete={onDeleteEntry}
         onView={onViewDocument}
         onViewAll={onViewAllEntries}
+        title="Recent Entries"
+        showViewToggle={true}
       />
 
       {/* Features Preview */}

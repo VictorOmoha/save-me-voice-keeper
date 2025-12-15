@@ -1,0 +1,600 @@
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SavedEntry } from "@/types/dashboard";
+import {
+  FileText,
+  Heart,
+  Users,
+  DollarSign,
+  User,
+  Calendar,
+  Clock,
+  Edit,
+  Download,
+  Eye,
+  Printer,
+  Copy,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  Briefcase,
+  Shield,
+  Pill,
+  FileCheck,
+  Tag,
+  CheckCircle2,
+  ExternalLink,
+  X
+} from "lucide-react";
+import { toast } from "sonner";
+import { ImageGallery } from "@/components/forms/ImageGallery";
+import { extractImagesFromEntry } from "@/utils/imageUtils";
+import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
+import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCardViewer";
+import { TableData } from "@/components/forms/types";
+import { cn } from "@/lib/utils";
+
+interface EnhancedEntryViewDialogProps {
+  entry: SavedEntry | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onEdit?: (entry: SavedEntry) => void;
+  onFill?: (entry: SavedEntry) => void;
+  onViewDocument?: (entry: SavedEntry) => void;
+  onPrint?: (entry: SavedEntry) => void;
+}
+
+// Category configuration
+const categoryConfig: Record<string, {
+  icon: React.ElementType;
+  color: string;
+  bgColor: string;
+  gradientFrom: string;
+  gradientTo: string;
+  fieldIcons: Record<string, React.ElementType>;
+}> = {
+  Documents: {
+    icon: FileText,
+    color: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-500",
+    gradientFrom: "from-blue-500",
+    gradientTo: "to-blue-600",
+    fieldIcons: {
+      documentType: FileCheck,
+      expirationDate: Calendar,
+      issuer: Briefcase,
+    }
+  },
+  Health: {
+    icon: Heart,
+    color: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-500",
+    gradientFrom: "from-red-500",
+    gradientTo: "to-rose-600",
+    fieldIcons: {
+      medication: Pill,
+      doctor: User,
+      hospital: MapPin,
+      nextAppointment: Calendar,
+    }
+  },
+  Contacts: {
+    icon: Users,
+    color: "text-green-600 dark:text-green-400",
+    bgColor: "bg-green-500",
+    gradientFrom: "from-green-500",
+    gradientTo: "to-emerald-600",
+    fieldIcons: {
+      phone: Phone,
+      email: Mail,
+      company: Briefcase,
+      address: MapPin,
+    }
+  },
+  Finance: {
+    icon: DollarSign,
+    color: "text-amber-600 dark:text-amber-400",
+    bgColor: "bg-amber-500",
+    gradientFrom: "from-amber-500",
+    gradientTo: "to-orange-600",
+    fieldIcons: {
+      accountNumber: CreditCard,
+      bank: Briefcase,
+      cardNumber: CreditCard,
+    }
+  },
+  Personal: {
+    icon: User,
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-500",
+    gradientFrom: "from-purple-500",
+    gradientTo: "to-violet-600",
+    fieldIcons: {
+      date: Calendar,
+      reminder: Clock,
+    }
+  },
+  Insurance: {
+    icon: Shield,
+    color: "text-teal-600 dark:text-teal-400",
+    bgColor: "bg-teal-500",
+    gradientFrom: "from-teal-500",
+    gradientTo: "to-cyan-600",
+    fieldIcons: {
+      policyNumber: FileCheck,
+      provider: Briefcase,
+      expirationDate: Calendar,
+    }
+  },
+};
+
+const defaultConfig = {
+  icon: Tag,
+  color: "text-gray-600 dark:text-gray-400",
+  bgColor: "bg-gray-500",
+  gradientFrom: "from-gray-500",
+  gradientTo: "to-slate-600",
+  fieldIcons: {}
+};
+
+// Format field value for display
+const formatFieldValue = (key: string, value: any): { formatted: string; type: "text" | "date" | "currency" | "phone" | "masked" | "email" | "url" } => {
+  if (value === null || value === undefined || value === "") {
+    return { formatted: "—", type: "text" };
+  }
+
+  // Handle file size
+  if (key.toLowerCase().includes("size") && typeof value === "number") {
+    if (value < 1024) return { formatted: `${value} B`, type: "text" };
+    if (value < 1024 * 1024) return { formatted: `${(value / 1024).toFixed(1)} KB`, type: "text" };
+    return { formatted: `${(value / (1024 * 1024)).toFixed(1)} MB`, type: "text" };
+  }
+
+  // Handle dates
+  if (key.toLowerCase().includes("date") || key.toLowerCase().includes("expir") || key.toLowerCase().includes("appointment")) {
+    const date = new Date(value);
+    if (!isNaN(date.getTime())) {
+      const formatted = date.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+      return { formatted, type: "date" };
+    }
+  }
+
+  // Handle phone numbers
+  if (key.toLowerCase().includes("phone") || key.toLowerCase().includes("mobile") || key.toLowerCase().includes("tel")) {
+    const cleaned = String(value).replace(/\D/g, "");
+    if (cleaned.length === 10) {
+      return { formatted: `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`, type: "phone" };
+    }
+    if (cleaned.length === 11 && cleaned[0] === "1") {
+      return { formatted: `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`, type: "phone" };
+    }
+    return { formatted: String(value), type: "phone" };
+  }
+
+  // Handle email
+  if (key.toLowerCase().includes("email")) {
+    return { formatted: String(value), type: "email" };
+  }
+
+  // Handle URLs
+  if (key.toLowerCase().includes("url") || key.toLowerCase().includes("website") || key.toLowerCase().includes("link")) {
+    return { formatted: String(value), type: "url" };
+  }
+
+  // Handle currency
+  if (key.toLowerCase().includes("balance") || key.toLowerCase().includes("amount") ||
+      key.toLowerCase().includes("price") || key.toLowerCase().includes("cost") ||
+      key.toLowerCase().includes("premium")) {
+    const num = parseFloat(value);
+    if (!isNaN(num)) {
+      const formatted = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num);
+      return { formatted, type: "currency" };
+    }
+  }
+
+  // Handle card/account numbers (mask them)
+  if (key.toLowerCase().includes("cardnumber") || key.toLowerCase().includes("accountnumber") ||
+      key.toLowerCase().includes("ssn") || key.toLowerCase().includes("social")) {
+    const str = String(value).replace(/\s/g, "");
+    if (str.length >= 4) {
+      return { formatted: `${"•".repeat(str.length - 4)} ${str.slice(-4)}`, type: "masked" };
+    }
+  }
+
+  return { formatted: String(value), type: "text" };
+};
+
+// Format field name for display
+const formatFieldName = (key: string): string => {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, str => str.toUpperCase())
+    .replace(/_/g, " ")
+    .trim();
+};
+
+export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = ({
+  entry,
+  isOpen,
+  onClose,
+  onEdit,
+  onFill,
+  onViewDocument,
+  onPrint,
+}) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  // Listen for voice command to close entry
+  useEffect(() => {
+    const handleCloseCommand = () => {
+      if (isOpen) {
+        onClose();
+      }
+    };
+
+    window.addEventListener("close-entry-dialog", handleCloseCommand);
+    return () => {
+      window.removeEventListener("close-entry-dialog", handleCloseCommand);
+    };
+  }, [isOpen, onClose]);
+
+  if (!entry) return null;
+
+  const category = entry.fields.category as string || "Personal";
+  const config = categoryConfig[category] || defaultConfig;
+  const CategoryIcon = config.icon;
+
+  // Extract images from the entry
+  const entryImages = extractImagesFromEntry(entry);
+
+  // Check if this is a document entry with an uploaded file
+  const isDocumentWithFile = entry.fields.category === "Documents" && entry.fields.hasUploadedFile;
+  const hasFile = entry.fields.hasUploadedFile && entry.fields.fileName;
+
+  // Filter out metadata fields
+  const metadataFields = ["category", "hasUploadedFile", "fileName", "fileSize", "fileType"];
+  const displayFields = Object.entries(entry.fields)
+    .filter(([key]) => !metadataFields.includes(key))
+    .filter(([key, value]) => {
+      // Skip image fields that are already shown in the gallery
+      if (entryImages.includes(String(value)) ||
+          (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) {
+        return false;
+      }
+      return true;
+    });
+
+  const handleDownload = async () => {
+    if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
+      toast.error("No file available for download");
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      const allKeys = Object.keys(localStorage);
+      const documentKeys = allKeys.filter(key => key.startsWith("document_"));
+
+      let fileData = null;
+      for (const key of documentKeys) {
+        try {
+          const storedData = JSON.parse(localStorage.getItem(key) || "");
+          if (storedData.name === entry.fields.fileName) {
+            fileData = storedData;
+            break;
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      if (!fileData) {
+        toast.error("File data not found in storage");
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.href = fileData.data;
+      link.download = fileData.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success(`Downloaded ${fileData.name}`);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download file");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handlePrint = () => {
+    if (onPrint) {
+      onPrint(entry);
+    } else {
+      // Fallback to basic print
+      const { printSingleEntry } = require("@/utils/printUtils");
+      printSingleEntry(entry, { includeMetadata: true });
+    }
+    toast.success("Print dialog opened");
+  };
+
+  const createdDate = new Date(entry.createdAt).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+
+  const updatedDate = new Date(entry.updatedAt).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden p-0">
+        {/* Header with gradient */}
+        <div className={cn(
+          "relative px-6 pt-6 pb-8 bg-gradient-to-br",
+          config.gradientFrom,
+          config.gradientTo
+        )}>
+          {/* Close button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-white/20"
+            onClick={onClose}
+          >
+            <X className="w-5 h-5" />
+          </Button>
+
+          <div className="flex items-start gap-4">
+            <div className="p-4 rounded-2xl bg-white/20 backdrop-blur-sm">
+              <CategoryIcon className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-2xl font-bold text-white mb-2">
+                {entry.title}
+              </DialogTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">
+                  {category}
+                </Badge>
+                {hasFile && (
+                  <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm gap-1">
+                    <FileText className="w-3 h-3" />
+                    {entry.fields.fileName}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Timestamps */}
+          <div className="mt-4 flex flex-wrap gap-4 text-white/80 text-sm">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              <span>Created {createdDate}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              <span>Updated {updatedDate}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-6 overflow-y-auto max-h-[calc(90vh-280px)]">
+          {/* Images Gallery */}
+          {entryImages.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Images ({entryImages.length})
+              </h3>
+              <ImageGallery images={entryImages} readOnly={true} />
+            </div>
+          )}
+
+          {/* Entry Fields */}
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+              Entry Details
+            </h3>
+
+            <div className="grid gap-4">
+              {displayFields.map(([key, value]) => {
+                // Handle table fields
+                if (typeof value === "object" && value !== null && "columns" in value && "rows" in value) {
+                  const tableData = value as TableData;
+                  const isShoppingList = tableData.columns.some(col =>
+                    ["item", "quantity", "price", "cost", "purchased", "got it"].some(term =>
+                      col.name.toLowerCase().includes(term)
+                    )
+                  );
+
+                  return (
+                    <div key={key} className="space-y-2">
+                      <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        <Tag className={cn("w-4 h-4", config.color)} />
+                        {formatFieldName(key)}
+                      </label>
+                      <div className="rounded-lg border overflow-hidden">
+                        {isShoppingList ? (
+                          <ShoppingListCardViewer
+                            value={tableData}
+                            title={key}
+                            showExport={true}
+                          />
+                        ) : (
+                          <TableFieldViewer
+                            value={tableData}
+                            title={key}
+                            showExport={true}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Handle regular fields
+                const FieldIcon = config.fieldIcons[key] || Tag;
+                const { formatted, type } = formatFieldValue(key, value);
+
+                return (
+                  <div
+                    key={key}
+                    className="group p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        "bg-muted group-hover:bg-background transition-colors"
+                      )}>
+                        <FieldIcon className={cn("w-4 h-4", config.color)} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          {formatFieldName(key)}
+                        </label>
+                        <div className="mt-1">
+                          {type === "email" ? (
+                            <a
+                              href={`mailto:${formatted}`}
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              {formatted}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : type === "phone" ? (
+                            <a
+                              href={`tel:${formatted.replace(/\D/g, "")}`}
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              {formatted}
+                              <Phone className="w-3 h-3" />
+                            </a>
+                          ) : type === "url" ? (
+                            <a
+                              href={formatted.startsWith("http") ? formatted : `https://${formatted}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              {formatted}
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : type === "currency" ? (
+                            <span className="text-lg font-semibold text-green-600 dark:text-green-400">
+                              {formatted}
+                            </span>
+                          ) : type === "masked" ? (
+                            <span className="font-mono text-muted-foreground">
+                              {formatted}
+                            </span>
+                          ) : type === "date" ? (
+                            <span className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              {formatted}
+                            </span>
+                          ) : (
+                            <p className="text-foreground whitespace-pre-wrap">
+                              {formatted}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions Footer */}
+        <div className="px-6 py-4 border-t bg-muted/30 flex flex-wrap gap-2 justify-end">
+          {isDocumentWithFile && onViewDocument && (
+            <Button
+              onClick={() => {
+                onViewDocument(entry);
+                onClose();
+              }}
+              variant="outline"
+              className="gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              View Document
+            </Button>
+          )}
+          {hasFile && (
+            <Button
+              onClick={handleDownload}
+              variant="outline"
+              disabled={isDownloading}
+              className="gap-2 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300 hover:bg-green-50"
+            >
+              <Download className="h-4 w-4" />
+              {isDownloading ? "Downloading..." : "Download"}
+            </Button>
+          )}
+          <Button
+            onClick={handlePrint}
+            variant="outline"
+            className="gap-2"
+          >
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
+          {onFill && (
+            <Button
+              onClick={() => {
+                onFill(entry);
+                onClose();
+              }}
+              variant="outline"
+              className="gap-2"
+            >
+              <Copy className="h-4 w-4" />
+              Use as Template
+            </Button>
+          )}
+          {onEdit && (
+            <Button
+              onClick={() => {
+                onEdit(entry);
+                onClose();
+              }}
+              className={cn("gap-2 bg-gradient-to-r", config.gradientFrom, config.gradientTo, "text-white hover:opacity-90")}
+            >
+              <Edit className="h-4 w-4" />
+              Edit Entry
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default EnhancedEntryViewDialog;

@@ -18,6 +18,7 @@ export interface UserPreferences {
   tts_service: 'elevenlabs' | 'minimax' | 'browser';
   elevenlabs_voice_id?: string;
   minimax_voice_id?: string;
+  has_completed_onboarding?: boolean;
 }
 
 const defaultPreferences: UserPreferences = {
@@ -33,6 +34,7 @@ const defaultPreferences: UserPreferences = {
   voice_speech_rate: 1.0,
   voice_volume: 1.0,
   tts_service: 'elevenlabs',
+  has_completed_onboarding: false,
 };
 
 export const useUserPreferences = () => {
@@ -81,6 +83,7 @@ export const useUserPreferences = () => {
           tts_service: (data.tts_service as 'elevenlabs' | 'minimax' | 'browser') || 'elevenlabs',
           elevenlabs_voice_id: data.elevenlabs_voice_id,
           minimax_voice_id: data.minimax_voice_id,
+          has_completed_onboarding: data.has_completed_onboarding ?? false,
         });
       }
     } catch (error) {

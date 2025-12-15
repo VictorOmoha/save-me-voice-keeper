@@ -26,6 +26,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
 import BrainDump from "./pages/BrainDump";
+import Onboarding from "./pages/Onboarding";
  
 const queryClient = new QueryClient();
  
@@ -56,6 +57,7 @@ const App = () => (
                     <Route path="/voice-test" element={<VoiceTest />} />
                     <Route path="/user-guide" element={<UserGuide />} />
                     <Route path="/brain-dump" element={<BrainDump />} />
+                    <Route path="/onboarding" element={<Onboarding />} />
                     <Route path="/terms" element={<TermsOfService />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="*" element={<NotFound />} />

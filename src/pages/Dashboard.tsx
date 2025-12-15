@@ -30,6 +30,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
   const [documentViewerState, setDocumentViewerState] = useState<{
@@ -96,6 +97,27 @@ export default function Dashboard() {
       }
       setUser(user);
       setLoading(false);
+
+      // Check if user has completed onboarding
+      try {
+        const { data: preferences } = await supabase
+          .from('user_preferences')
+          .select('has_completed_onboarding')
+          .eq('user_id', user.id)
+          .single();
+
+        // If no preferences exist or onboarding not completed, redirect to onboarding
+        if (!preferences || !preferences.has_completed_onboarding) {
+          navigate('/onboarding');
+          return;
+        }
+      } catch (error) {
+        // If error fetching preferences (new user), redirect to onboarding
+        console.log('Redirecting to onboarding for new user');
+        navigate('/onboarding');
+        return;
+      }
+      setCheckingOnboarding(false);
     };
 
     getUser();
@@ -195,7 +217,7 @@ export default function Dashboard() {
     setDocumentEditorState({ isOpen: false, entry: null });
   };
 
-  if (loading || entriesLoading) {
+  if (loading || entriesLoading || checkingOnboarding) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 

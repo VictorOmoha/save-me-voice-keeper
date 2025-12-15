@@ -1,12 +1,21 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Brain } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Settings, Brain, LogOut, User, CreditCard, HelpCircle } from "lucide-react";
 import { SmartSearchWithBoundary as SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
-import { Link, useLocation } from "react-router-dom";
-import { 
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
@@ -15,6 +24,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ThemeToggle } from "./ThemeToggle";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SearchHeaderProps {
   searchQuery: string;
@@ -42,10 +53,32 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
   onFillEntry,
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
+  const navigate = useNavigate();
 
   const handleEntrySelect = (entry: SavedEntry) => {
     setViewingEntry(entry);
   };
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        toast.error("Failed to sign out");
+      } else {
+        toast.success("Signed out successfully");
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast.error("Failed to sign out");
+    }
+  };
+
+  const userInitials = userName
+    ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'U';
+
   const location = useLocation();
   const breadcrumbs = (() => {
     const path = location.pathname;
@@ -84,12 +117,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center space-x-4">
-          <Button asChild variant="ghost" size="icon" aria-label="Settings" title="Settings">
-            <Link to="/settings">
-              <Settings className="w-4 h-4" />
-            </Link>
-          </Button>
+        <div className="flex items-center space-x-3">
           <ThemeToggle />
           <Button asChild variant="outline" size="sm">
             <Link to="/brain-dump" className="flex items-center gap-2" aria-label="Open Brain Dump">
@@ -112,6 +140,47 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             <Plus className="w-4 h-4" />
             <span>Add Entry</span>
           </Button>
+
+          {/* User Menu Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{userName || 'User'}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    Manage your account
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile & Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/subscription')}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                <span>Subscription</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/user-guide')}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                <span>Help & Guide</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
       

@@ -356,6 +356,7 @@ export type Database = {
           created_at: string
           elevenlabs_voice_id: string | null
           email_notifications: boolean | null
+          has_completed_onboarding: boolean | null
           id: string
           language: string | null
           minimax_voice_id: string | null
@@ -376,6 +377,7 @@ export type Database = {
           created_at?: string
           elevenlabs_voice_id?: string | null
           email_notifications?: boolean | null
+          has_completed_onboarding?: boolean | null
           id?: string
           language?: string | null
           minimax_voice_id?: string | null
@@ -396,6 +398,7 @@ export type Database = {
           created_at?: string
           elevenlabs_voice_id?: string | null
           email_notifications?: boolean | null
+          has_completed_onboarding?: boolean | null
           id?: string
           language?: string | null
           minimax_voice_id?: string | null

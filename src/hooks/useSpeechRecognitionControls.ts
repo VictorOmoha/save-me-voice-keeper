@@ -50,15 +50,24 @@ export const useSpeechRecognitionControls = ({
     if ((window as any).__tts_is_speaking) {
       console.log('Waiting for TTS to finish before starting listening...');
       toast.info('Waiting for system to finish speaking...');
-      
+
       const waitForTTS = () => {
         if (!(window as any).__tts_is_speaking) {
-          startListening();
+          // Don't recursively call startListening - directly start recognition
+          try {
+            (window as any).__manual_stop = false;
+            setTranscript("");
+            setLastProcessedTranscript("");
+            recognitionRef.current?.start();
+            console.log('Speech recognition started after TTS finished');
+          } catch (e) {
+            console.log('Could not start after TTS:', e);
+          }
         } else {
           setTimeout(waitForTTS, 500);
         }
       };
-      setTimeout(waitForTTS, 1000);
+      setTimeout(waitForTTS, 500);
       return;
     }
     
@@ -144,10 +153,8 @@ export const useSpeechRecognitionControls = ({
     (window as any).__speech_recognition_active = false;
     (window as any).__processed_commands = new Set();
     
-    // Clear manual stop flag after reset
-    setTimeout(() => {
-      (window as any).__manual_stop = false;
-    }, 1000);
+    // Clear manual stop flag immediately after reset (not delayed)
+    (window as any).__manual_stop = false;
     
     toast.success('🔄 Voice recognition reset - ready for commands', {
       description: 'Click "Start Voice Commands" to begin listening',

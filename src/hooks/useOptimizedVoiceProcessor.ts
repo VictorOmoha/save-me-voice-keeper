@@ -25,6 +25,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
     startCreateEntryConversation,
     endConversation,
     processConversationStep,
+    getConversationState,
   } = useVoiceConversationManager({
     onCreateEntry: props.onCreateEntry,
     onSaveEntry: props.onSaveEntry,
@@ -49,8 +50,20 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
 
     try {
       // Process conversation if in conversation
-      if (conversationState.isInConversation) {
+      // IMPORTANT: Use getConversationState() to get current state, not stale closure value
+      const currentConversationState = getConversationState();
+
+      console.log('🎯 Voice Processor: Checking conversation state:', {
+        isInConversation: currentConversationState.isInConversation,
+        currentStep: currentConversationState.currentStep?.type,
+        staleState: conversationState.isInConversation,
+        transcript
+      });
+
+      if (currentConversationState.isInConversation) {
+        console.log('🎯 Voice Processor: In conversation, processing step for:', currentConversationState.currentStep?.type);
         const handled = processConversationStep(transcript);
+        console.log('🎯 Voice Processor: Conversation step result:', handled);
         if (handled) {
           return true;
         }
@@ -166,7 +179,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       }, 300);
     }
   }, [
-    conversationState,
+    getConversationState,
     processConversationStep,
     startCreateEntryConversation,
     endConversation,
@@ -174,7 +187,8 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
     props.savedEntries,
     props.onEditEntry,
     props.onDeleteEntry,
-    props.onCancelEdit
+    props.onCancelEdit,
+    conversationState.isInConversation // Still include for re-render triggers
   ]);
 
   return {

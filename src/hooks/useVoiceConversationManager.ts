@@ -257,10 +257,16 @@ export const useVoiceConversationManager = ({
 
     return true;
   }, [formTitleSetter, formCategorySetter, formAddFieldFunction, onSaveEntry, endConversation]);
+  // Expose a getter for the current state ref to avoid stale closures
+  const getConversationState = useCallback(() => {
+    return conversationStateRef.current;
+  }, []);
+
   return {
     conversationState,
     startCreateEntryConversation,
     endConversation,
     processConversationStep,
+    getConversationState,
   };
 };

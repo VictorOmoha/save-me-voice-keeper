@@ -16,8 +16,18 @@ export const useTTSEventHandler = ({
   setIsListening = () => {},
 }: UseTTSEventHandlerProps) => {
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // Track if voice was active before TTS started
-  const wasActiveBeforeTTSRef = useRef<boolean>(false);
+  // Use refs to always have current values in event handlers
+  const isListeningRef = useRef(isListening);
+  const conversationActiveRef = useRef(conversationState?.isActive || false);
+
+  // Keep refs updated with latest values
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
+
+  useEffect(() => {
+    conversationActiveRef.current = conversationState?.isActive || false;
+  }, [conversationState?.isActive]);
 
   useEffect(() => {
 const handleTTSCompleted = async (event: CustomEvent) => {
@@ -27,7 +37,7 @@ const handleTTSCompleted = async (event: CustomEvent) => {
       // CRITICAL: Clear manual stop flag so recognition can restart
       (window as any).__manual_stop = false;
 
-      console.log('🔊 TTS Event Handler: TTS completed, manual_stop cleared, wasActive:', wasActiveBeforeTTSRef.current);
+      console.log('🔊 TTS Event Handler: TTS completed, will restart recognition');
 
       // Clear any existing restart timeout
       if (restartTimeoutRef.current) {
@@ -35,32 +45,24 @@ const handleTTSCompleted = async (event: CustomEvent) => {
         restartTimeoutRef.current = null;
       }
 
-      // Restart if conversation is active OR if voice was active before TTS started
-      if (conversationState?.isActive || wasActiveBeforeTTSRef.current) {
-        // Give a small grace period before restarting to avoid feedback
-        restartTimeoutRef.current = setTimeout(() => {
-          try {
-            // Ensure manual_stop is still false before starting
-            (window as any).__manual_stop = false;
-            // Reset restart attempts to allow fresh restart cycle
-            speechRecognition.resetRestartAttempts();
-            speechRecognition.start();
-            console.log('🎤 TTS Event Handler: Recognition restarted after TTS');
-          } catch (e) {
-            console.log('TTS Event Handler: start after TTS failed', e);
-          }
-        }, 500);
-      }
-
-      // Reset the flag after handling
-      wasActiveBeforeTTSRef.current = false;
+      // ALWAYS try to restart after TTS - the singleton will manage actual state
+      // Give a small grace period before restarting to avoid feedback
+      restartTimeoutRef.current = setTimeout(() => {
+        try {
+          // Ensure manual_stop is still false before starting
+          (window as any).__manual_stop = false;
+          // Reset restart attempts to allow fresh restart cycle
+          speechRecognition.resetRestartAttempts();
+          speechRecognition.start();
+          console.log('🎤 TTS Event Handler: Recognition restarted after TTS');
+        } catch (e) {
+          console.log('TTS Event Handler: start after TTS failed', e);
+        }
+      }, 500);
     };
 
 const handleTTSStarted = () => {
-      // Remember if recognition was active before TTS
-      wasActiveBeforeTTSRef.current = isListening || conversationState?.isActive || false;
-
-      console.log('🔊 TTS Event Handler: TTS started - wasActive:', wasActiveBeforeTTSRef.current);
+      console.log('🔊 TTS Event Handler: TTS started - pausing recognition');
       (window as any).__tts_is_speaking = true;
       try {
         speechRecognition.stop();
@@ -72,15 +74,16 @@ const handleTTSStarted = () => {
 
     window.addEventListener('tts-completed', handleTTSCompleted as EventListener);
     window.addEventListener('tts-started', handleTTSStarted as EventListener);
-    
+
     return () => {
       window.removeEventListener('tts-completed', handleTTSCompleted as EventListener);
       window.removeEventListener('tts-started', handleTTSStarted as EventListener);
-      
+
       if (restartTimeoutRef.current) {
         clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = null;
       }
     };
-  }, [conversationState?.isActive, isListening, recognitionRef, setIsListening]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount - we use refs for current values
 };

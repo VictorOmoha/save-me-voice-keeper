@@ -16,6 +16,8 @@ export const useTTSEventHandler = ({
   setIsListening = () => {},
 }: UseTTSEventHandlerProps) => {
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Track if voice was active before TTS started
+  const wasActiveBeforeTTSRef = useRef<boolean>(false);
 
   useEffect(() => {
 const handleTTSCompleted = async (event: CustomEvent) => {
@@ -25,7 +27,7 @@ const handleTTSCompleted = async (event: CustomEvent) => {
       // CRITICAL: Clear manual stop flag so recognition can restart
       (window as any).__manual_stop = false;
 
-      console.log('🔊 TTS Event Handler: TTS completed, manual_stop cleared');
+      console.log('🔊 TTS Event Handler: TTS completed, manual_stop cleared, wasActive:', wasActiveBeforeTTSRef.current);
 
       // Clear any existing restart timeout
       if (restartTimeoutRef.current) {
@@ -33,7 +35,8 @@ const handleTTSCompleted = async (event: CustomEvent) => {
         restartTimeoutRef.current = null;
       }
 
-      if (conversationState?.isActive) {
+      // Restart if conversation is active OR if voice was active before TTS started
+      if (conversationState?.isActive || wasActiveBeforeTTSRef.current) {
         // Give a small grace period before restarting to avoid feedback
         restartTimeoutRef.current = setTimeout(() => {
           try {
@@ -48,10 +51,16 @@ const handleTTSCompleted = async (event: CustomEvent) => {
           }
         }, 500);
       }
+
+      // Reset the flag after handling
+      wasActiveBeforeTTSRef.current = false;
     };
 
 const handleTTSStarted = () => {
-      console.log('🔊 TTS Event Handler: TTS started - ensuring recognition is paused');
+      // Remember if recognition was active before TTS
+      wasActiveBeforeTTSRef.current = isListening || conversationState?.isActive || false;
+
+      console.log('🔊 TTS Event Handler: TTS started - wasActive:', wasActiveBeforeTTSRef.current);
       (window as any).__tts_is_speaking = true;
       try {
         speechRecognition.stop();

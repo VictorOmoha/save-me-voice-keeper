@@ -83,7 +83,7 @@ export const useUserPreferences = () => {
           tts_service: (data.tts_service as 'elevenlabs' | 'minimax' | 'browser') || 'elevenlabs',
           elevenlabs_voice_id: data.elevenlabs_voice_id,
           minimax_voice_id: data.minimax_voice_id,
-          has_completed_onboarding: data.has_completed_onboarding ?? false,
+          has_completed_onboarding: (data as any).has_completed_onboarding ?? false,
         });
       }
     } catch (error) {

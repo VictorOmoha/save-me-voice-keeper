@@ -58,18 +58,52 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
 
       // Process simple commands
       const lowerTranscript = transcript.toLowerCase().trim();
-      
+
+      console.log('🎯 Voice Processor: Processing command:', lowerTranscript);
+
+      // Close/cancel entry form command
+      if (lowerTranscript.includes('close entry') || lowerTranscript.includes('close form') ||
+          lowerTranscript.includes('cancel entry') || lowerTranscript.includes('go back')) {
+        if (conversationState.isInConversation) {
+          endConversation();
+        }
+        props.onCancelEdit();
+        toast.info("Form closed");
+        // Dispatch event to close form
+        window.dispatchEvent(new CustomEvent('voice-close-form'));
+        return true;
+      }
+
       // Create entry command
-      if (lowerTranscript.includes('create') || lowerTranscript.includes('new entry')) {
+      if (lowerTranscript.includes('create') && (lowerTranscript.includes('entry') || lowerTranscript.includes('new'))) {
+        console.log('🎯 Voice Processor: Starting create entry conversation');
         startCreateEntryConversation();
         return true;
+      }
+
+      // Open entry command
+      const openMatch = lowerTranscript.match(/open\s+(.+)/);
+      if (openMatch) {
+        const titleToOpen = openMatch[1].replace(/[.,!?]$/g, '').trim();
+        console.log('🎯 Voice Processor: Looking for entry:', titleToOpen);
+        const entry = props.savedEntries.find(e =>
+          e.title.toLowerCase().includes(titleToOpen.toLowerCase())
+        );
+        if (entry) {
+          props.onEditEntry(entry);
+          toast.success(`Opening: ${entry.title}`);
+          return true;
+        } else {
+          toast.error(`Entry "${titleToOpen}" not found`);
+          return false;
+        }
       }
 
       // Edit entry command
       const editMatch = lowerTranscript.match(/edit\s+(.+)/);
       if (editMatch) {
-        const titleToEdit = editMatch[1];
-        const entry = props.savedEntries.find(e => 
+        const titleToEdit = editMatch[1].replace(/[.,!?]$/g, '').trim();
+        const entry = props.savedEntries.find(e =>
           e.title.toLowerCase().includes(titleToEdit.toLowerCase())
         );
         if (entry) {
@@ -85,8 +119,8 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       // Delete entry command with confirmation
       const deleteMatch = lowerTranscript.match(/delete\s+(.+)/);
       if (deleteMatch) {
-        const titleToDelete = deleteMatch[1];
-        const entry = props.savedEntries.find(e => 
+        const titleToDelete = deleteMatch[1].replace(/[.,!?]$/g, '').trim();
+        const entry = props.savedEntries.find(e =>
           e.title.toLowerCase().includes(titleToDelete.toLowerCase())
         );
         if (entry) {
@@ -122,6 +156,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
         }
       }
 
+      console.log('🎯 Voice Processor: No command matched');
       return false;
 
     } finally {

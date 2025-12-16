@@ -7,6 +7,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Allowed origins for redirect URLs (prevent open redirect attacks)
+const ALLOWED_ORIGINS = [
+  "https://saveme.space",
+  "https://www.saveme.space",
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:8080",
+];
+
+function isAllowedOrigin(origin: string | null): string {
+  if (!origin) return ALLOWED_ORIGINS[0]; // Default to production
+
+  // Check if origin matches any allowed origin
+  const normalizedOrigin = origin.toLowerCase().replace(/\/$/, '');
+  for (const allowed of ALLOWED_ORIGINS) {
+    if (normalizedOrigin === allowed.toLowerCase()) {
+      return origin;
+    }
+  }
+
+  // If not in allowlist, default to production origin
+  console.warn(`Rejected untrusted origin: ${origin}`);
+  return ALLOWED_ORIGINS[0];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -44,10 +69,13 @@ serve(async (req) => {
 
     const customerId = customers.data[0].id;
 
-    const origin = req.headers.get("origin") || "http://localhost:3000";
+    // Validate and sanitize origin to prevent open redirect attacks
+    const requestOrigin = req.headers.get("origin");
+    const safeOrigin = isAllowedOrigin(requestOrigin);
+
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/subscription`,
+      return_url: `${safeOrigin}/subscription`,
     });
 
     return new Response(JSON.stringify({ url: portalSession.url }), {

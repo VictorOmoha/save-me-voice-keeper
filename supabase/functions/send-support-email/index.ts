@@ -4,6 +4,17 @@ import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
+// HTML escape function to prevent XSS attacks
+function escapeHtml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -54,15 +65,22 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Missing required fields");
     }
 
-    // Format the email content
+    // Escape all user inputs to prevent XSS/HTML injection
+    const safeUserName = escapeHtml(userName || 'Unknown');
+    const safeUserEmail = escapeHtml(userEmail || user.email || '');
+    const safeCategory = escapeHtml(category);
+    const safeSubject = escapeHtml(subject);
+    const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+
+    // Format the email content with escaped values
     const emailContent = `
       <h2>New Support Request</h2>
-      <p><strong>From:</strong> ${userName || 'Unknown'} (${userEmail || user.email})</p>
-      <p><strong>Category:</strong> ${category}</p>
-      <p><strong>Subject:</strong> ${subject}</p>
+      <p><strong>From:</strong> ${safeUserName} (${safeUserEmail})</p>
+      <p><strong>Category:</strong> ${safeCategory}</p>
+      <p><strong>Subject:</strong> ${safeSubject}</p>
       <hr>
       <h3>Message:</h3>
-      <p>${message.replace(/\n/g, '<br>')}</p>
+      <p>${safeMessage}</p>
       <hr>
       <p><em>User ID: ${user.id}</em></p>
       <p><em>Submitted at: ${new Date().toISOString()}</em></p>
@@ -71,7 +89,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Support <noreply@saveme.space>",
       to: ["info@saveme.space"],
-      subject: `Support Request: ${subject}`,
+      subject: `Support Request: ${safeSubject}`,
       html: emailContent,
       reply_to: userEmail || user.email,
     });

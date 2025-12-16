@@ -107,7 +107,8 @@ export default function Dashboard() {
           .single();
 
         // If no preferences exist or onboarding not completed, redirect to onboarding
-        if (!preferences || !preferences.has_completed_onboarding) {
+        const hasCompletedOnboarding = (preferences as any)?.has_completed_onboarding;
+        if (!preferences || !hasCompletedOnboarding) {
           navigate('/onboarding');
           return;
         }

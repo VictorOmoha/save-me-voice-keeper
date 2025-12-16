@@ -274,10 +274,20 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     // Try primary service first, then fallback to secondary or browser
     let primaryFailed = false;
     
+    // Helper to dispatch completion event
+    const dispatchCompleted = () => {
+      try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
+      (window as any).__tts_is_speaking = false;
+      (window as any).__last_tts_end_time = Date.now();
+      window.dispatchEvent(new CustomEvent('tts-completed'));
+      console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
+    };
+
     if (effectiveService === 'elevenlabs' && elevenLabsKey) {
       try {
         console.log('🎙️ TTS: Using ElevenLabs TTS (effective)');
         await speakWithElevenLabs(text, voice);
+        dispatchCompleted();
         return; // Success, exit early
       } catch (error: any) {
         console.warn('⚠️ TTS: ElevenLabs failed, trying fallback:', error?.message || error);
@@ -287,18 +297,19 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       try {
         console.log('🎙️ TTS: Using MiniMax TTS (effective)');
         await speakWithMiniMax(text);
+        dispatchCompleted();
         return; // Success, exit early
       } catch (error: any) {
         console.warn('⚠️ TTS: MiniMax failed, trying fallback:', error?.message || error);
         primaryFailed = true;
       }
     }
-    
+
     // Try secondary service if primary failed or no key available
     if (primaryFailed || !(effectiveService === 'elevenlabs' ? elevenLabsKey : miniMaxKey)) {
       const fallbackService: TTSService = effectiveService === 'elevenlabs' ? 'minimax' : 'elevenlabs';
       const fallbackKey = fallbackService === 'elevenlabs' ? elevenLabsKey : miniMaxKey;
-      
+
       if (fallbackKey) {
         try {
           console.log(`🔄 TTS: Trying fallback service: ${fallbackService}`);
@@ -307,19 +318,21 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
           } else {
             await speakWithMiniMax(text);
           }
+          dispatchCompleted();
           return; // Success with fallback
         } catch (fallbackError: any) {
           console.warn('⚠️ TTS: Fallback service also failed:', fallbackError?.message || fallbackError);
         }
       }
     }
-    
+
     // Final fallback to browser TTS
     console.log('🔄 TTS: All API services failed or unavailable, falling back to browser TTS');
     try {
       const speechRate = parseFloat(localStorage.getItem('speech_rate') || '0.9');
       const speechVolume = parseFloat(localStorage.getItem('speech_volume') || '0.8');
       await speakWithBrowser(text, { rate: speechRate, pitch: 1, volume: speechVolume });
+      dispatchCompleted();
     } catch (browserError) {
       console.error('🚨 TTS: All services failed including browser TTS:', browserError);
       throw new Error('All TTS services failed. Please check your API keys or browser compatibility.');
@@ -327,16 +340,13 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   } catch (error) {
     console.error('🚨 TTS: Error during speech:', error);
     toast.error('TTS failed. Please check your API key and try again.');
-    } finally {
-      try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
-      // Clear TTS flag and dispatch completion event after a brief delay
-      setTimeout(() => {
-        (window as any).__tts_is_speaking = false;
-        (window as any).__last_tts_end_time = Date.now();
-        window.dispatchEvent(new CustomEvent('tts-completed'));
-        console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
-      }, 1000);
-    }
+    // Also clear TTS flag on error so recognition can restart
+    try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
+    (window as any).__tts_is_speaking = false;
+    (window as any).__last_tts_end_time = Date.now();
+    window.dispatchEvent(new CustomEvent('tts-completed'));
+    console.log('🔊 TTS: Speech error, dispatched tts-completed event');
+  }
 };
 
 const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> => {

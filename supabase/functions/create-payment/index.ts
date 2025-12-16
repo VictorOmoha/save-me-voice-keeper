@@ -12,11 +12,36 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Use anon for user-auth if present (but this function is public)
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return new Response(
+      JSON.stringify({ error: "Server configuration error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+
+  // Require authentication for payment creation
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) {
+    return new Response(
+      JSON.stringify({ error: "Authentication required to create payment" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ error: "Invalid or expired token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -26,19 +51,11 @@ serve(async (req) => {
     // Accept optional body for quantity or metadata
     const body = await req.json().catch(() => ({}));
 
-    // Try to get user email if logged in; else fallback
-    let customerEmail: string | undefined;
-    try {
-      const authHeader = req.headers.get("Authorization");
-      if (authHeader) {
-        const token = authHeader.replace("Bearer ", "");
-        const { data } = await supabaseClient.auth.getUser(token);
-        customerEmail = data.user?.email ?? undefined;
-      }
-    } catch (_) {}
+    // Use authenticated user's email
+    const customerEmail = user.email;
 
     const session = await stripe.checkout.sessions.create({
-      customer_email: customerEmail ?? "guest@example.com",
+      customer_email: customerEmail,
       line_items: [
         {
           price_data: {

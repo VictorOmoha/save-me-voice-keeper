@@ -26,12 +26,40 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { url, path, expiresIn = 600 } = await req.json();
+    // Authenticate user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await userClient.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { url, path, expiresIn = 600 } = await req.json();
+
     const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    if (!SERVICE_ROLE_KEY) {
       return new Response(
         JSON.stringify({ error: 'Supabase environment not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

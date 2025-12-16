@@ -22,8 +22,10 @@ const handleTTSCompleted = async (event: CustomEvent) => {
       // Mark TTS finished
       (window as any).__tts_is_speaking = false;
       (window as any).__last_tts_end_time = Date.now();
+      // CRITICAL: Clear manual stop flag so recognition can restart
+      (window as any).__manual_stop = false;
 
-      console.log('🔊 TTS Event Handler: TTS completed');
+      console.log('🔊 TTS Event Handler: TTS completed, manual_stop cleared');
 
       // Clear any existing restart timeout
       if (restartTimeoutRef.current) {
@@ -35,7 +37,12 @@ const handleTTSCompleted = async (event: CustomEvent) => {
         // Give a small grace period before restarting to avoid feedback
         restartTimeoutRef.current = setTimeout(() => {
           try {
+            // Ensure manual_stop is still false before starting
+            (window as any).__manual_stop = false;
+            // Reset restart attempts to allow fresh restart cycle
+            speechRecognition.resetRestartAttempts();
             speechRecognition.start();
+            console.log('🎤 TTS Event Handler: Recognition restarted after TTS');
           } catch (e) {
             console.log('TTS Event Handler: start after TTS failed', e);
           }

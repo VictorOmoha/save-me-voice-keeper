@@ -127,15 +127,9 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         return;
       }
 
-      // Always use internal processor to maintain conversation state
-      // If we're in conversation mode, the dashboard handler should not interfere
-      if (actuallyInConversation) {
-        await processVoiceInput(transcript);
-      } else if (onEnhancedVoiceInput) {
-        await onEnhancedVoiceInput(transcript);
-      } else {
-        await processVoiceInput(transcript);
-      }
+      // Always use internal processor for voice commands
+      // The internal processor handles all commands including create, open, delete, search, etc.
+      await processVoiceInput(transcript);
     } catch (error) {
       errorTracker.logError('voice', 'Error processing voice input', { transcript }, error as Error);
       toast.error('Sorry, I had trouble understanding that command.');

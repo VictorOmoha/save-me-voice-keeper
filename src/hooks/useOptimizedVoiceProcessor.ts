@@ -77,7 +77,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       // Close/cancel entry form command
       if (lowerTranscript.includes('close entry') || lowerTranscript.includes('close form') ||
           lowerTranscript.includes('cancel entry') || lowerTranscript.includes('go back')) {
-        if (conversationState.isInConversation) {
+        if (currentConversationState.isInConversation) {
           endConversation();
         }
         props.onCancelEdit();

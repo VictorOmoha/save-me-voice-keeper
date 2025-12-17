@@ -1,10 +1,13 @@
 project_id = "knblffjeqnlqcdnxgmyy"
 
 [functions.elevenlabs-tts]
-verify_jwt = false
+verify_jwt = true
+
+[functions.voice-to-text]
+verify_jwt = true
 
 [functions.create-payment]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-signed-demo-video]
 verify_jwt = false

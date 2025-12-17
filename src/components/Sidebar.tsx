@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <div className="w-64 bg-background border-r border-border h-full flex flex-col">
+    <div className="hidden md:flex w-64 bg-background border-r border-border h-full flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3">

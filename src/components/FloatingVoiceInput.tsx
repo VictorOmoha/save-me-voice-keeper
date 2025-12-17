@@ -49,8 +49,8 @@ export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
     await onEnhancedVoiceInput(transcript);
   };
   return (
-    <div className="fixed bottom-4 right-20 z-40">
-      <ConversationalVoiceInterface 
+    <div className="fixed bottom-4 right-4 sm:right-20 z-40 safe-area-inset-bottom">
+      <ConversationalVoiceInterface
         savedEntries={savedEntries}
         onCreateEntry={onCreateEntry}
         onEditEntry={onEditEntry}

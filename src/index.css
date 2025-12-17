@@ -106,5 +106,95 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Responsive font scaling */
+  html {
+    font-size: 14px;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  /* Touch-friendly tap targets for mobile */
+  @media (max-width: 767px) {
+    button,
+    [role="button"],
+    a,
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+    }
+
+    /* Ensure clickable items have enough spacing */
+    .space-y-1 > * + * {
+      margin-top: 0.5rem;
+    }
+
+    .space-y-2 > * + * {
+      margin-top: 0.75rem;
+    }
+  }
+
+  /* Landscape orientation adjustments */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .min-h-screen {
+      min-height: auto;
+    }
+
+    /* Reduce padding in landscape on small devices */
+    .py-6 {
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+    }
+
+    .p-6 {
+      padding: 1rem;
+    }
+  }
+
+  /* Safe area insets for iOS devices with notches */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+}
+
+/* Additional mobile-specific utilities */
+@layer utilities {
+  /* Prevent text selection on touch devices for UI elements */
+  .touch-none-select {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Smooth scrolling for mobile */
+  .scroll-smooth-touch {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 

@@ -48,6 +48,13 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId: string | undefined = customers.data[0]?.id;
 
+    // Get origin from header or referer, fallback to production URL
+    const origin = req.headers.get("origin")
+      || req.headers.get("referer")?.replace(/\/[^\/]*$/, '')
+      || "https://saveme.space";
+
+    console.log("Creating checkout session with origin:", origin);
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -63,9 +70,11 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/`,
-      cancel_url: `${req.headers.get("origin")}/subscription`,
+      success_url: `${origin}/`,
+      cancel_url: `${origin}/subscription`,
     });
+
+    console.log("Checkout session created:", session.id, "URL:", session.url);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

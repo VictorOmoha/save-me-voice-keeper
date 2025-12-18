@@ -70,24 +70,36 @@ const Subscription = () => {
     setLoadingPlan(planName);
 
     try {
+      console.log('Starting checkout for plan:', planName);
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: planName },
       });
 
+      console.log('Checkout response:', { data, error });
+
       if (error) {
         console.error('Checkout error:', error);
-        toast.error('Failed to start checkout. Please try again.');
+        toast.error(`Failed to start checkout: ${error.message || 'Unknown error'}`);
+        return;
+      }
+
+      if (data?.error) {
+        console.error('Checkout API error:', data.error);
+        toast.error(`Checkout error: ${data.error}`);
         return;
       }
 
       if (data?.url) {
+        console.log('Redirecting to:', data.url);
         // Redirect to Stripe Checkout
         window.location.href = data.url;
       } else {
-        toast.error('Failed to create checkout session.');
+        console.error('No URL in response:', data);
+        toast.error('Failed to create checkout session. No URL returned.');
       }
     } catch (err) {
-      console.error('Checkout error:', err);
+      console.error('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPlan(null);

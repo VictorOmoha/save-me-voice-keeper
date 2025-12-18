@@ -4,14 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CreditCard, Crown, Zap, Building } from "lucide-react";
+import { CreditCard, Crown, Zap, Building, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const SubscriptionSettings = () => {
   const { user } = useAuth();
   const [isUpgradeDialogOpen, setIsUpgradeDialogOpen] = useState(false);
-  
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
   const currentTier = user?.subscriptionTier || 'free';
   
   const plans = [
@@ -53,9 +56,72 @@ export const SubscriptionSettings = () => {
     }
   ];
 
-  const handleUpgrade = (planName: string) => {
-    toast.info(`Upgrade to ${planName} plan coming soon`);
-    setIsUpgradeDialogOpen(false);
+  const handleUpgrade = async (planName: string) => {
+    if (planName === "Free") return;
+
+    if (planName === "Enterprise") {
+      toast.info("Please contact us for Enterprise pricing");
+      return;
+    }
+
+    setLoadingPlan(planName);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan: planName },
+      });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        toast.error(`Failed to start checkout: ${error.message || 'Unknown error'}`);
+        return;
+      }
+
+      if (data?.error) {
+        console.error('Checkout API error:', data.error);
+        toast.error(`Checkout error: ${data.error}`);
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error('Failed to create checkout session. No URL returned.');
+      }
+    } catch (err) {
+      console.error('Checkout exception:', err);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+      setIsUpgradeDialogOpen(false);
+    }
+  };
+
+  const handleManageBilling = async () => {
+    setLoadingPortal(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: {},
+      });
+
+      if (error) {
+        console.error('Portal error:', error);
+        toast.error('Failed to open billing portal. Please try again.');
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error('Failed to create portal session. You may not have an active subscription.');
+      }
+    } catch (err) {
+      console.error('Portal error:', err);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setLoadingPortal(false);
+    }
   };
 
   const currentPlan = plans.find(plan => plan.current) || plans[0];
@@ -129,14 +195,27 @@ export const SubscriptionSettings = () => {
                           <li key={index} className="text-xs text-muted-foreground">• {feature}</li>
                         ))}
                       </ul>
-                      <Button 
+                      <Button
                         variant={plan.current ? "outline" : "default"}
-                        size="sm" 
+                        size="sm"
                         className="w-full"
-                        disabled={plan.current}
+                        disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
                         onClick={() => handleUpgrade(plan.name)}
                       >
-                        {plan.current ? 'Current Plan' : 'Select Plan'}
+                        {loadingPlan === plan.name ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : plan.current ? (
+                          'Current Plan'
+                        ) : plan.name === "Free" ? (
+                          'Free Plan'
+                        ) : plan.name === "Enterprise" ? (
+                          'Contact Us'
+                        ) : (
+                          'Select Plan'
+                        )}
                       </Button>
                       {!plan.current && plan.name !== "Free" && plan.name !== "Enterprise" && (
                         <p className="text-xs text-muted-foreground text-center mt-2">
@@ -150,11 +229,21 @@ export const SubscriptionSettings = () => {
             </DialogContent>
           </Dialog>
           
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => toast.info("Billing history coming soon")}>
-            Billing History
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => toast.info("Payment update coming soon")}>
-            Update Payment
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            disabled={loadingPortal}
+            onClick={handleManageBilling}
+          >
+            {loadingPortal ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Manage Billing'
+            )}
           </Button>
         </div>
       </CardContent>

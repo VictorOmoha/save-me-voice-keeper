@@ -65,12 +65,19 @@ const Subscription = () => {
   ];
 
   const handleUpgrade = async (planName: string) => {
-    if (planName === "Free") return;
+    console.log('handleUpgrade called with:', planName);
 
+    if (planName === "Free") {
+      console.log('Free plan selected, returning early');
+      return;
+    }
+
+    console.log('Setting loading state for:', planName);
     setLoadingPlan(planName);
 
     try {
       console.log('Starting checkout for plan:', planName);
+      console.log('Session token available:', !!session?.access_token);
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: planName },
@@ -225,7 +232,11 @@ const Subscription = () => {
                 <Button
                   className={`w-full ${plan.current ? 'bg-gray-400' : 'bg-gradient-primary hover:opacity-90 text-primary-foreground'}`}
                   disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
-                  onClick={() => handleUpgrade(plan.name)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    console.log('Button clicked for plan:', plan.name, 'current:', plan.current, 'loading:', loadingPlan);
+                    handleUpgrade(plan.name);
+                  }}
                 >
                   {loadingPlan === plan.name ? (
                     <>

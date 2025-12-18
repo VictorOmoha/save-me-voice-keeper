@@ -143,48 +143,48 @@ const Subscription = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader 
+      <DashboardHeader
         searchQuery=""
         onSearchChange={() => {}}
         userName="User"
       />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Subscription Management
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-700">
             Manage your plan and billing preferences
           </p>
         </div>
 
         {/* Current Plan Status */}
-        <Card className="mb-8">
+        <Card className="mb-8 bg-white border border-gray-200">
           <CardHeader>
-            <CardTitle>Current Plan</CardTitle>
-            <CardDescription>Your subscription details</CardDescription>
+            <CardTitle className="text-gray-900">Current Plan</CardTitle>
+            <CardDescription className="text-gray-600">Your subscription details</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <div className="flex items-center space-x-2 mb-2">
-                  <Badge variant="default" className="bg-gradient-primary text-primary-foreground">
+                  <Badge variant="default" className="bg-blue-600 text-white font-semibold">
                     {user?.subscriptionTier?.toUpperCase()} PLAN
                   </Badge>
                   {user?.subscriptionActive && (
-                    <Badge variant="outline" className="text-green-600 border-green-600">
+                    <Badge variant="outline" className="text-green-700 border-green-600 bg-green-50 font-medium">
                       Active
                     </Badge>
                   )}
                 </div>
-                <p className="text-gray-600">
+                <p className="text-gray-700">
                   {user?.subscriptionTier === 'free' && "You're on our free plan with basic features."}
                   {user?.subscriptionTier === 'basic' && "Enjoy unlimited entries and voice features."}
                   {user?.subscriptionTier === 'premium' && "Access to all premium features and priority support."}
                 </p>
               </div>
-              <Button onClick={handleManageBilling} variant="outline" disabled={loadingPortal}>
+              <Button onClick={handleManageBilling} variant="outline" disabled={loadingPortal} className="border-gray-300 text-gray-700 hover:bg-gray-100">
                 {loadingPortal ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -201,36 +201,36 @@ const Subscription = () => {
         {/* Available Plans */}
         <div className="grid md:grid-cols-3 gap-8">
           {plans.map((plan, index) => (
-            <Card key={index} className={`relative hover:shadow-lg transition-shadow ${
-              plan.current ? 'border-blue-500 shadow-lg' : ''
+            <Card key={index} className={`relative hover:shadow-lg transition-shadow bg-white border ${
+              plan.current ? 'border-blue-500 border-2 shadow-lg' : 'border-gray-200'
             }`}>
               {plan.current && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white font-semibold">
                   Current Plan
                 </Badge>
               )}
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                <CardTitle className="text-2xl text-gray-900">{plan.name}</CardTitle>
                 <div className="flex items-baseline justify-center mb-2">
                   <span className="text-4xl font-bold text-blue-600">{plan.price}</span>
-                  <span className="text-lg text-gray-500 ml-1">/{plan.period === "Forever" ? "forever" : "month"}</span>
+                  <span className="text-lg text-gray-600 ml-1">/{plan.period === "Forever" ? "forever" : "month"}</span>
                 </div>
-                <div className="text-sm text-gray-500 font-medium">
+                <div className="text-sm text-gray-600 font-medium">
                   {plan.period === "Forever" ? "No recurring charges" : "Billed monthly"}
                 </div>
-                <CardDescription className="mt-2">{plan.description}</CardDescription>
+                <CardDescription className="mt-2 text-gray-600">{plan.description}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-center">
-                      <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
+                      <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
+                      <span className="text-sm text-gray-800">{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Button
-                  className={`w-full ${plan.current ? 'bg-gray-400' : 'bg-gradient-primary hover:opacity-90 text-primary-foreground'}`}
+                  className={`w-full font-medium ${plan.current ? 'bg-gray-400 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                   disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
                   onClick={(e) => {
                     e.preventDefault();
@@ -252,7 +252,7 @@ const Subscription = () => {
                   )}
                 </Button>
                 {!plan.current && plan.name !== "Free" && (
-                  <p className="text-xs text-gray-500 text-center mt-2">
+                  <p className="text-xs text-gray-600 text-center mt-2">
                     14-day free trial included
                   </p>
                 )}
@@ -262,43 +262,43 @@ const Subscription = () => {
         </div>
 
         {/* Billing Information */}
-        <Card className="mt-8">
+        <Card className="mt-8 bg-white border border-gray-200">
           <CardHeader>
-            <CardTitle>Billing Information</CardTitle>
-            <CardDescription>Pricing details and payment terms</CardDescription>
+            <CardTitle className="text-gray-900">Billing Information</CardTitle>
+            <CardDescription className="text-gray-600">Pricing details and payment terms</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 text-sm text-gray-600">
+            <div className="space-y-4 text-sm">
               <div className="flex justify-between">
-                <span>Billing Cycle:</span>
-                <span className="font-medium">Monthly (cancel anytime)</span>
+                <span className="text-gray-700">Billing Cycle:</span>
+                <span className="font-medium text-gray-900">Monthly (cancel anytime)</span>
               </div>
               <div className="flex justify-between">
-                <span>Free Trial:</span>
-                <span className="font-medium">14 days on paid plans</span>
+                <span className="text-gray-700">Free Trial:</span>
+                <span className="font-medium text-gray-900">14 days on paid plans</span>
               </div>
               <div className="flex justify-between">
-                <span>Payment Methods:</span>
-                <span className="font-medium">Credit/Debit Cards, PayPal</span>
+                <span className="text-gray-700">Payment Methods:</span>
+                <span className="font-medium text-gray-900">Credit/Debit Cards, PayPal</span>
               </div>
               <div className="flex justify-between">
-                <span>Refund Policy:</span>
-                <span className="font-medium">Pro-rated refunds available</span>
+                <span className="text-gray-700">Refund Policy:</span>
+                <span className="font-medium text-gray-900">Pro-rated refunds available</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Billing History */}
-        <Card className="mt-8">
+        <Card className="mt-8 bg-white border border-gray-200">
           <CardHeader>
-            <CardTitle>Billing History</CardTitle>
-            <CardDescription>Your recent transactions</CardDescription>
+            <CardTitle className="text-gray-900">Billing History</CardTitle>
+            <CardDescription className="text-gray-600">Your recent transactions</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-gray-500">
-              <p>No billing history available</p>
-              <p className="text-sm">Transaction history will appear here once you upgrade</p>
+            <div className="text-center py-8">
+              <p className="text-gray-700">No billing history available</p>
+              <p className="text-sm text-gray-600">Transaction history will appear here once you upgrade</p>
             </div>
           </CardContent>
         </Card>

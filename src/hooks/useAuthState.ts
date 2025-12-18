@@ -10,11 +10,26 @@ export const useAuthState = () => {
 
   const fetchAndSetUser = async (session: any) => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
+      // Fetch profile and subscription data in parallel
+      const [profileResult, subscriptionResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle(),
+        supabase
+          .from('subscribers')
+          .select('subscription_tier, subscribed')
+          .eq('email', session.user.email)
+          .maybeSingle()
+      ]);
+
+      const profile = profileResult.data;
+      const subscription = subscriptionResult.data;
+
+      // Determine subscription tier and status
+      const subscriptionTier = subscription?.subscription_tier || 'free';
+      const subscriptionActive = subscription?.subscribed ?? true;
 
       if (profile) {
         setUser({
@@ -22,20 +37,20 @@ export const useAuthState = () => {
           email: session.user.email || '',
           full_name: profile.full_name,
           avatar_url: profile.avatar_url,
-          subscriptionTier: 'free',
-          subscriptionActive: true
+          subscriptionTier: subscriptionTier as 'free' | 'basic' | 'premium' | 'enterprise',
+          subscriptionActive
         });
       } else {
         // Create fallback user if no profile exists
         setUser({
           id: session.user.id,
           email: session.user.email || '',
-          full_name: session.user.user_metadata?.full_name || 
-                   session.user.user_metadata?.name || 
+          full_name: session.user.user_metadata?.full_name ||
+                   session.user.user_metadata?.name ||
                    session.user.email?.split('@')[0] || 'User',
           avatar_url: session.user.user_metadata?.avatar_url || null,
-          subscriptionTier: 'free',
-          subscriptionActive: true
+          subscriptionTier: subscriptionTier as 'free' | 'basic' | 'premium' | 'enterprise',
+          subscriptionActive
         });
       }
     } catch (error) {
@@ -44,8 +59,8 @@ export const useAuthState = () => {
       setUser({
         id: session.user.id,
         email: session.user.email || '',
-        full_name: session.user.user_metadata?.full_name || 
-                 session.user.user_metadata?.name || 
+        full_name: session.user.user_metadata?.full_name ||
+                 session.user.user_metadata?.name ||
                  session.user.email?.split('@')[0] || 'User',
         avatar_url: session.user.user_metadata?.avatar_url || null,
         subscriptionTier: 'free',

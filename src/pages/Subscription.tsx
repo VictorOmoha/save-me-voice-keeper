@@ -1,15 +1,19 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Subscription = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, session } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [loadingPortal, setLoadingPortal] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -60,14 +64,62 @@ const Subscription = () => {
     }
   ];
 
-  const handleUpgrade = (planName: string) => {
-    toast.success(`Redirecting to ${planName} upgrade...`);
-    // In a real app, this would initiate Stripe checkout
+  const handleUpgrade = async (planName: string) => {
+    if (planName === "Free") return;
+
+    setLoadingPlan(planName);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan: planName },
+      });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        toast.error('Failed to start checkout. Please try again.');
+        return;
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        toast.error('Failed to create checkout session.');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setLoadingPlan(null);
+    }
   };
 
-  const handleManageBilling = () => {
-    toast.success("Opening billing portal...");
-    // In a real app, this would open Stripe customer portal
+  const handleManageBilling = async () => {
+    setLoadingPortal(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: {},
+      });
+
+      if (error) {
+        console.error('Portal error:', error);
+        toast.error('Failed to open billing portal. Please try again.');
+        return;
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe Customer Portal
+        window.location.href = data.url;
+      } else {
+        toast.error('Failed to create portal session. You may not have an active subscription.');
+      }
+    } catch (err) {
+      console.error('Portal error:', err);
+      toast.error('An error occurred. Please try again.');
+    } finally {
+      setLoadingPortal(false);
+    }
   };
 
   return (
@@ -113,8 +165,15 @@ const Subscription = () => {
                   {user?.subscriptionTier === 'premium' && "Access to all premium features and priority support."}
                 </p>
               </div>
-              <Button onClick={handleManageBilling} variant="outline">
-                Manage Billing
+              <Button onClick={handleManageBilling} variant="outline" disabled={loadingPortal}>
+                {loadingPortal ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Manage Billing'
+                )}
               </Button>
             </div>
           </CardContent>
@@ -151,12 +210,23 @@ const Subscription = () => {
                     </li>
                   ))}
                 </ul>
-                <Button 
+                <Button
                   className={`w-full ${plan.current ? 'bg-gray-400' : 'bg-gradient-primary hover:opacity-90 text-primary-foreground'}`}
-                  disabled={plan.current}
+                  disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
                   onClick={() => handleUpgrade(plan.name)}
                 >
-                  {plan.current ? 'Current Plan' : `Upgrade to ${plan.name}`}
+                  {loadingPlan === plan.name ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : plan.current ? (
+                    'Current Plan'
+                  ) : plan.name === "Free" ? (
+                    'Free Plan'
+                  ) : (
+                    `Upgrade to ${plan.name}`
+                  )}
                 </Button>
                 {!plan.current && plan.name !== "Free" && (
                   <p className="text-xs text-gray-500 text-center mt-2">

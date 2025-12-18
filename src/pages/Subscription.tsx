@@ -127,11 +127,17 @@ const Subscription = () => {
         return;
       }
 
+      if (data?.error) {
+        console.error('Portal API error:', data.error);
+        toast.info(data.error);
+        return;
+      }
+
       if (data?.url) {
         // Redirect to Stripe Customer Portal
         window.location.href = data.url;
       } else {
-        toast.error('Failed to create portal session. You may not have an active subscription.');
+        toast.info('No billing account found. Please subscribe to a plan first.');
       }
     } catch (err) {
       console.error('Portal error:', err);

@@ -38,6 +38,7 @@ import {
 import { toast } from "sonner";
 import { ImageGallery } from "@/components/forms/ImageGallery";
 import { extractImagesFromEntry } from "@/utils/imageUtils";
+import { printSingleEntry } from "@/utils/printUtils";
 import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
 import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCardViewer";
 import { TableData } from "@/components/forms/types";
@@ -328,8 +329,6 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
     if (onPrint) {
       onPrint(entry);
     } else {
-      // Fallback to basic print
-      const { printSingleEntry } = require("@/utils/printUtils");
       printSingleEntry(entry, { includeMetadata: true });
     }
     toast.success("Print dialog opened");

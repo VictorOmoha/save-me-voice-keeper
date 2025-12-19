@@ -272,8 +272,26 @@ const BrainDumpPage: React.FC = () => {
   };
 
   const isProcessCommand = (text: string) => /\b(process|structure|organis|organiz|analy[sz]e|summari[sz]e|make\s+notes|turn\s+this\s+into\s+notes)\b/.test(text);
+
+  // Filter out TTS echo - these are phrases the system says back that might be picked up by the mic
+  const isTTSEcho = (text: string): boolean => {
+    const ttsPatterns = [
+      /saved?\s+(your\s+)?structured\s+notes?/i,
+      /processed?\s+(your\s+)?brain\s*dump/i,
+      /opening\s+dashboard/i,
+      /start\s+your\s+brain\s*dump/i,
+      /say\s+["']?process["']?\s+when/i,
+    ];
+    return ttsPatterns.some(pattern => pattern.test(text));
+  };
+
   const parseSaveCommand = (text: string): { save: true; category?: string } | null => {
+    // Ignore TTS echo
+    if (isTTSEcho(text)) return null;
     if (!/\b(save|store|commit)\b/.test(text)) return null;
+    // Make sure it's an actual command, not just the word "save" in TTS output
+    // Require more context: "save it", "save this", "save to", etc.
+    if (!/\b(save\s+(it|this|that|to|as|in|under|my|the)|store\s+(it|this|that)|commit)\b/i.test(text)) return null;
     const m = text.match(/save(?:\s+it)?\s+(?:as|to|in|under)\s+([a-zA-Z\s-]+)/);
     if (m?.[1]) {
       const cat = normalizeCategory(m[1]);
@@ -299,6 +317,13 @@ const BrainDumpPage: React.FC = () => {
     const t = (transcript || '').trim();
     if (!t || t === lastHandledRef.current) return;
     const lower = t.toLowerCase();
+
+    // Filter out TTS echo early - don't process anything that sounds like system feedback
+    if (isTTSEcho(lower)) {
+      console.log('🔇 BrainDump: Ignoring TTS echo:', t);
+      lastHandledRef.current = t;
+      return;
+    }
 
     // Handle navigation intents first
     if (isDashboardNavCommand(lower)) {

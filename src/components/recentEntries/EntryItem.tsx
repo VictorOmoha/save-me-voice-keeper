@@ -1,8 +1,9 @@
 
+import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
 import { getCategoryIcon, getCategoryColor, getCategoryName } from "./categoryUtils";
-import { FileText, Eye, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import { toast } from "sonner";
@@ -12,7 +13,7 @@ interface EntryItemProps {
   onClick: (entry: SavedEntry) => void;
 }
 
-export const EntryItem: React.FC<EntryItemProps> = ({ entry, onClick }) => {
+const EntryItemComponent: React.FC<EntryItemProps> = ({ entry, onClick }) => {
   const Icon = getCategoryIcon(entry);
   const categoryColor = getCategoryColor(entry);
   const categoryName = getCategoryName(entry);
@@ -65,3 +66,11 @@ export const EntryItem: React.FC<EntryItemProps> = ({ entry, onClick }) => {
     </div>
   );
 };
+
+// Memoized component to prevent unnecessary re-renders
+export const EntryItem = React.memo(EntryItemComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.entry.id === nextProps.entry.id &&
+    prevProps.entry.updatedAt === nextProps.entry.updatedAt
+  );
+});

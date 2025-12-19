@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ interface EntryCardProps {
   isDownloading: boolean;
 }
 
-export const EntryCard: React.FC<EntryCardProps> = ({
+const EntryCardComponent: React.FC<EntryCardProps> = ({
   entry,
   onEdit,
   onDelete,
@@ -115,3 +116,12 @@ export const EntryCard: React.FC<EntryCardProps> = ({
     </div>
   );
 };
+
+// Memoized component to prevent unnecessary re-renders
+export const EntryCard = React.memo(EntryCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.entry.id === nextProps.entry.id &&
+    prevProps.entry.updatedAt === nextProps.entry.updatedAt &&
+    prevProps.isDownloading === nextProps.isDownloading
+  );
+});

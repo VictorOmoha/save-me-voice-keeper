@@ -41,7 +41,7 @@ interface EnhancedEntryCardProps {
   className?: string;
 }
 
-export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
+const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
   entry,
   onView,
   onEdit,
@@ -392,5 +392,16 @@ export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
     </Card>
   );
 };
+
+// Memoized component to prevent unnecessary re-renders
+export const EnhancedEntryCard = React.memo(EnhancedEntryCardComponent, (prevProps, nextProps) => {
+  // Only re-render if the entry data or variant changes
+  return (
+    prevProps.entry.id === nextProps.entry.id &&
+    prevProps.entry.updatedAt === nextProps.entry.updatedAt &&
+    prevProps.variant === nextProps.variant &&
+    prevProps.className === nextProps.className
+  );
+});
 
 export default EnhancedEntryCard;

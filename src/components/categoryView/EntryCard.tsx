@@ -65,33 +65,24 @@ export const EntryCard: React.FC<EntryCardProps> = ({
               <Printer className="w-4 h-4 transition-transform duration-200 ease-in-out hover:rotate-12" />
             </Button>
             <Button
-              onClick={() => {
-                console.log('Fill button clicked for entry:', entry.title);
-                onFill(entry);
-              }}
+              onClick={() => onFill(entry)}
               variant="outline"
               size="sm"
               className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
             >
               Fill Form
             </Button>
-            <Button 
-              onClick={() => {
-                console.log('Edit button clicked for entry:', entry.title);
-                onEdit(entry);
-              }}
-              variant="outline" 
+            <Button
+              onClick={() => onEdit(entry)}
+              variant="outline"
               size="sm"
               className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
             >
               Edit
             </Button>
-            <Button 
-              onClick={() => {
-                console.log('Delete button clicked for entry:', entry.id);
-                onDelete(entry.id);
-              }}
-              variant="outline" 
+            <Button
+              onClick={() => onDelete(entry.id)}
+              variant="outline"
               size="sm"
               className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
             >

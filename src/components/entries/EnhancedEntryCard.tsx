@@ -5,10 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
 import {
   FileText,
-  Heart,
-  Users,
-  DollarSign,
-  User,
   Calendar,
   Clock,
   Edit,
@@ -17,14 +13,6 @@ import {
   Download,
   Eye,
   MoreHorizontal,
-  Phone,
-  Mail,
-  MapPin,
-  CreditCard,
-  Briefcase,
-  Shield,
-  Pill,
-  FileCheck,
   Tag,
   Printer
 } from "lucide-react";
@@ -38,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { getCategoryConfig } from "@/utils/categoryConfig";
+import { formatFieldValue, formatFieldName, metadataFields } from "@/utils/fieldFormatters";
 
 interface EnhancedEntryCardProps {
   entry: SavedEntry;
@@ -50,164 +40,6 @@ interface EnhancedEntryCardProps {
   variant?: "grid" | "list" | "compact";
   className?: string;
 }
-
-// Category configuration with colors, icons, and field priorities
-const categoryConfig: Record<string, {
-  icon: React.ElementType;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-  priorityFields: string[];
-  fieldIcons: Record<string, React.ElementType>;
-}> = {
-  Documents: {
-    icon: FileText,
-    color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-50 dark:bg-blue-950/30",
-    borderColor: "border-blue-200 dark:border-blue-800",
-    priorityFields: ["documentType", "description", "expirationDate", "issuer"],
-    fieldIcons: {
-      documentType: FileCheck,
-      expirationDate: Calendar,
-      issuer: Briefcase,
-    }
-  },
-  Health: {
-    icon: Heart,
-    color: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-50 dark:bg-red-950/30",
-    borderColor: "border-red-200 dark:border-red-800",
-    priorityFields: ["condition", "medication", "doctor", "hospital", "dosage", "nextAppointment"],
-    fieldIcons: {
-      medication: Pill,
-      doctor: User,
-      hospital: MapPin,
-      nextAppointment: Calendar,
-    }
-  },
-  Contacts: {
-    icon: Users,
-    color: "text-green-600 dark:text-green-400",
-    bgColor: "bg-green-50 dark:bg-green-950/30",
-    borderColor: "border-green-200 dark:border-green-800",
-    priorityFields: ["name", "phone", "email", "company", "relationship", "address"],
-    fieldIcons: {
-      phone: Phone,
-      email: Mail,
-      company: Briefcase,
-      address: MapPin,
-    }
-  },
-  Finance: {
-    icon: DollarSign,
-    color: "text-amber-600 dark:text-amber-400",
-    bgColor: "bg-amber-50 dark:bg-amber-950/30",
-    borderColor: "border-amber-200 dark:border-amber-800",
-    priorityFields: ["accountType", "accountNumber", "bank", "balance", "cardNumber"],
-    fieldIcons: {
-      accountNumber: CreditCard,
-      bank: Briefcase,
-      cardNumber: CreditCard,
-    }
-  },
-  Personal: {
-    icon: User,
-    color: "text-purple-600 dark:text-purple-400",
-    bgColor: "bg-purple-50 dark:bg-purple-950/30",
-    borderColor: "border-purple-200 dark:border-purple-800",
-    priorityFields: ["notes", "description", "date", "reminder"],
-    fieldIcons: {
-      date: Calendar,
-      reminder: Clock,
-    }
-  },
-  Insurance: {
-    icon: Shield,
-    color: "text-teal-600 dark:text-teal-400",
-    bgColor: "bg-teal-50 dark:bg-teal-950/30",
-    borderColor: "border-teal-200 dark:border-teal-800",
-    priorityFields: ["policyNumber", "provider", "coverage", "premium", "expirationDate"],
-    fieldIcons: {
-      policyNumber: FileCheck,
-      provider: Briefcase,
-      expirationDate: Calendar,
-    }
-  },
-};
-
-const defaultConfig = {
-  icon: Tag,
-  color: "text-gray-600 dark:text-gray-400",
-  bgColor: "bg-gray-50 dark:bg-gray-950/30",
-  borderColor: "border-gray-200 dark:border-gray-800",
-  priorityFields: [],
-  fieldIcons: {}
-};
-
-// Format field value for display
-const formatFieldValue = (key: string, value: any): string => {
-  if (value === null || value === undefined || value === "") return "";
-
-  // Handle file size
-  if (key.toLowerCase().includes("size") && typeof value === "number") {
-    if (value < 1024) return `${value} B`;
-    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  // Handle dates
-  if (key.toLowerCase().includes("date") || key.toLowerCase().includes("expir")) {
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
-      });
-    }
-  }
-
-  // Handle phone numbers
-  if (key.toLowerCase().includes("phone") || key.toLowerCase().includes("mobile")) {
-    const cleaned = String(value).replace(/\D/g, "");
-    if (cleaned.length === 10) {
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-  }
-
-  // Handle currency
-  if (key.toLowerCase().includes("balance") || key.toLowerCase().includes("amount") || key.toLowerCase().includes("price")) {
-    const num = parseFloat(value);
-    if (!isNaN(num)) {
-      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num);
-    }
-  }
-
-  // Handle card/account numbers (mask them)
-  if (key.toLowerCase().includes("cardnumber") || key.toLowerCase().includes("accountnumber")) {
-    const str = String(value);
-    if (str.length >= 4) {
-      return `****${str.slice(-4)}`;
-    }
-  }
-
-  // Truncate long text
-  const strValue = String(value);
-  if (strValue.length > 100) {
-    return strValue.slice(0, 100) + "...";
-  }
-
-  return strValue;
-};
-
-// Format field name for display
-const formatFieldName = (key: string): string => {
-  return key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, str => str.toUpperCase())
-    .replace(/_/g, " ")
-    .trim();
-};
 
 export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
   entry,
@@ -230,11 +62,10 @@ export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
     }
   };
   const category = entry.fields.category as string || "Personal";
-  const config = categoryConfig[category] || defaultConfig;
+  const config = getCategoryConfig(category);
   const CategoryIcon = config.icon;
 
-  // Filter out metadata fields
-  const metadataFields = ["category", "hasUploadedFile", "fileName", "fileSize", "fileType", "documentType"];
+  // Filter out metadata fields (using imported metadataFields)
   const displayFields = Object.entries(entry.fields)
     .filter(([key]) => !metadataFields.includes(key))
     .filter(([_, value]) => value !== null && value !== undefined && value !== "");

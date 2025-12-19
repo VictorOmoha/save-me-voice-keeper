@@ -18,6 +18,7 @@ import { printProfessionally } from "@/components/entries/ProfessionalPrintView"
 import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
 import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCardViewer";
 import { TableData } from "@/components/forms/types";
+import { logVoice, logError } from "@/utils/logger";
 
 interface EntryViewDialogProps {
   entry: SavedEntry | null;
@@ -42,7 +43,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   useEffect(() => {
     const handleCloseCommand = () => {
       if (isOpen) {
-        console.log('🎤 Voice command: Closing entry dialog');
+        logVoice('Voice command: Closing entry dialog');
         onClose();
       }
     };
@@ -108,7 +109,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
       
       toast.success(`Downloaded ${fileData.name}`);
     } catch (error) {
-      console.error('Download error:', error);
+      logError('Download error', error);
       toast.error("Failed to download file");
     } finally {
       setIsDownloading(false);

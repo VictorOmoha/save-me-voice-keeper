@@ -4,6 +4,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
 import { voiceProcessor, EnhancedVoiceCommand } from "@/utils/enhancedVoiceProcessor";
+import { logDashboard, logVoice, logError } from "@/utils/logger";
 
 export const useDashboard = () => {
   const {
@@ -28,7 +29,7 @@ export const useDashboard = () => {
   
   // Clear any stuck state on mount
   useEffect(() => {
-    console.log('🧹 Dashboard: Clearing any stuck voice processor state on mount');
+    logDashboard('Clearing any stuck voice processor state on mount');
     voiceProcessor.clearConfirmationState();
     setHasPendingConfirmation(false);
     setConversationState('idle');
@@ -39,7 +40,7 @@ export const useDashboard = () => {
   // Enhanced voice input handler that supports brain dumps and structured data
   const handleEnhancedVoiceInput = useCallback(async (text: string) => {
     if (processingRef.current) {
-      console.log('Already processing voice input, skipping...');
+      logVoice('Already processing voice input, skipping...');
       return;
     }
 
@@ -48,9 +49,8 @@ export const useDashboard = () => {
     setConversationState('listening');
 
     try {
-      console.log('🎤 Dashboard: Processing enhanced voice input:', text);
-      console.log('🎯 Dashboard Voice Handler: Called with text:', text);
-      console.log('🎯 Dashboard Voice Handler: Current state - showAddEntry:', showAddEntry);
+      logVoice('Processing enhanced voice input', text);
+      logDashboard('Voice handler state', { showAddEntry });
 
       // CRITICAL: Check if we're in conversation mode first
       // If the VoiceGuidedEntryWizard is active (showAddEntry is true), 
@@ -58,11 +58,8 @@ export const useDashboard = () => {
       const isInWizardConversation = showAddEntry && text !== 'Create a new entry.' && text !== 'create a new entry';
       
       if (isInWizardConversation) {
-        console.log('🧙 Dashboard: In wizard conversation mode - routing to unified processor');
-        // Use the unified processor directly instead of dispatching event
-        // We'll need access to the unified processor here
-        console.log('🧙 Dashboard: Voice input should be processed as conversation step:', text);
-        // For now, just return and let the parent handle this differently
+        logDashboard('In wizard conversation mode - routing to unified processor');
+        logVoice('Voice input should be processed as conversation step', text);
         return;
       }
 
@@ -89,13 +86,13 @@ export const useDashboard = () => {
       };
 
       const command = await voiceProcessor.processVoiceCommand(text, context);
-      console.log('🎯 Dashboard: Processed command:', command);
+      logDashboard('Processed command', command);
 
       setLastVoiceCommand(command);
 
       // Handle confirmation prompts
       if (command.needsConfirmation && !command.parameters.confirmed) {
-        console.log('🤔 Dashboard: Command needs confirmation, setting up confirmation state');
+        logDashboard('Command needs confirmation, setting up confirmation state');
         setHasPendingConfirmation(true);
         setConversationState('confirming');
         setLastVoiceCommand(command);
@@ -108,7 +105,7 @@ export const useDashboard = () => {
       }
 
       // Execute the command
-      console.log('🚀 Dashboard: Executing voice command:', command);
+      logDashboard('Executing voice command', command);
       await executeVoiceCommand(command);
 
       // Provide conversational response
@@ -128,7 +125,7 @@ export const useDashboard = () => {
       }
 
     } catch (error) {
-      console.error('❌ Dashboard: Error processing voice input:', error);
+      logError('Error processing voice input', error);
       toast.error('Sorry, I had trouble understanding that command.');
       speak('Sorry, I had trouble understanding that. Could you try again?');
       setConversationState('idle');
@@ -143,8 +140,8 @@ export const useDashboard = () => {
     try {
       const jsonData = structuredData.replace('CREATE_STRUCTURED_ENTRY:', '').trim();
       const parsed = JSON.parse(jsonData);
-      
-      console.log('🧠 Dashboard: Creating structured entry from brain dump:', parsed);
+
+      logDashboard('Creating structured entry from brain dump', parsed);
 
       // Create field definitions based on the structured content
       const fieldDefinitions = [
@@ -191,7 +188,7 @@ export const useDashboard = () => {
       speak(`Perfect! I've organized your brain dump into a structured entry called "${parsed.title}". What would you like to do next?`);
       
     } catch (error) {
-      console.error('Error creating structured entry:', error);
+      logError('Error creating structured entry', error);
       toast.error('Failed to process brain dump into structured entry');
       speak('Sorry, I had trouble organizing your brain dump. Could you try again?');
     }
@@ -199,17 +196,15 @@ export const useDashboard = () => {
 
   // Execute voice commands
   const executeVoiceCommand = useCallback(async (command: EnhancedVoiceCommand) => {
-    console.log('🚀 Dashboard: Executing command:', command.action);
-    console.log('🚀 Dashboard: Current state before command:', { showAddEntry, editingEntry, fillingEntry });
+    logDashboard('Executing command', { action: command.action, showAddEntry, editingEntry, fillingEntry });
 
     switch (command.action) {
       case 'create_entry':
       case 'initiate_create':
-        console.log('🟢 EXECUTING CREATE ENTRY COMMAND - Setting showAddEntry to TRUE');
+        logDashboard('Setting showAddEntry to TRUE');
         setShowAddEntry(true);
         setEditingEntry(null);
         setFillingEntry(null);
-        console.log('🟢 CREATE ENTRY STATE CHANGES DISPATCHED');
         break;
 
       case 'create_entry_with_content':
@@ -221,8 +216,7 @@ export const useDashboard = () => {
         break;
 
       case 'delete_entry':
-        console.log('🗑️ Dashboard: Delete entry command with params:', command.parameters);
-        // Always execute the delete handler - it will check for confirmation internally
+        logDashboard('Delete entry command', command.parameters);
         await handleDeleteEntry(command.parameters);
         break;
 
@@ -250,7 +244,7 @@ export const useDashboard = () => {
         break;
 
       default:
-        console.log('Unknown command action:', command.action);
+        logDashboard('Unknown command action', command.action);
     }
   }, [showAddEntry, editingEntry, fillingEntry]);
 
@@ -274,7 +268,7 @@ export const useDashboard = () => {
       await saveEntry(newEntry);
       toast.success(`Created: "${newEntry.title}"`);
     } catch (error) {
-      console.error('Error creating entry with content:', error);
+      logError('Error creating entry with content', error);
       toast.error('Failed to create entry');
     }
   }, []);
@@ -317,18 +311,13 @@ export const useDashboard = () => {
 
   // Handle deleting entry with improved state management
   const handleDeleteEntry = useCallback(async (params: any) => {
-    console.log('🗑️ Dashboard: handleDeleteEntry called with params:', params);
-    console.log('🗑️ Dashboard: Current state:', {
-      hasPendingConfirmation,
-      conversationState,
-      voiceProcessorPending: voiceProcessor.hasPendingConfirmation()
-    });
+    logDashboard('handleDeleteEntry called', { params, hasPendingConfirmation, conversationState });
     
     const { entryId, entryTitle, title, searchTerm, confirmed } = params;
     
     // Handle confirmed deletion
     if (confirmed === true) {
-      console.log('✅ Dashboard: Deletion confirmed, executing delete');
+      logDashboard('Deletion confirmed, executing delete');
       
       try {
         if (entryId) {
@@ -352,7 +341,7 @@ export const useDashboard = () => {
           }
         }
       } catch (error) {
-        console.error('❌ Dashboard: Delete operation failed:', error);
+        logError('Delete operation failed', error);
         toast.error('Failed to delete the entry');
         speak('Sorry, the deletion failed. Please try again.');
       }
@@ -366,7 +355,7 @@ export const useDashboard = () => {
     
     // Handle cancelled deletion
     if (confirmed === false) {
-      console.log('❌ Dashboard: Deletion cancelled');
+      logDashboard('Deletion cancelled');
       setHasPendingConfirmation(false);
       setConversationState('idle');
       setConversationData({ isActive: false });
@@ -376,7 +365,7 @@ export const useDashboard = () => {
     }
     
     // Process initial delete request - find and confirm target
-    console.log('🔍 Dashboard: Processing initial delete request');
+    logDashboard('Processing initial delete request');
     
     let targetEntryId = entryId;
     let targetEntryTitle = title || entryTitle;
@@ -409,7 +398,7 @@ export const useDashboard = () => {
     }
     
     if (targetEntryId && targetEntryTitle) {
-      console.log('🤔 Dashboard: Setting up deletion confirmation for:', targetEntryTitle);
+      logDashboard('Setting up deletion confirmation for', targetEntryTitle);
       
       // CRITICAL: Set conversation as active for TTS restart mechanism
       setHasPendingConfirmation(true);
@@ -430,9 +419,9 @@ export const useDashboard = () => {
       };
       
       setLastVoiceCommand(confirmationCommand);
-      
+
       // Speak confirmation and track TTS for filtering
-      console.log('🔊 Dashboard: Speaking confirmation prompt');
+      logDashboard('Speaking confirmation prompt');
       voiceProcessor.setLastTTSPrompt(confirmationCommand.conversationalResponse);
       speak(confirmationCommand.conversationalResponse);
     }

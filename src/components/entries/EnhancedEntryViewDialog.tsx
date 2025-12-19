@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -11,10 +10,6 @@ import {
 import { SavedEntry } from "@/types/dashboard";
 import {
   FileText,
-  Heart,
-  Users,
-  DollarSign,
-  User,
   Calendar,
   Clock,
   Edit,
@@ -23,15 +18,7 @@ import {
   Printer,
   Copy,
   Phone,
-  Mail,
-  MapPin,
-  CreditCard,
-  Briefcase,
-  Shield,
-  Pill,
-  FileCheck,
   Tag,
-  CheckCircle2,
   ExternalLink,
   X
 } from "lucide-react";
@@ -43,6 +30,9 @@ import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
 import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCardViewer";
 import { TableData } from "@/components/forms/types";
 import { cn } from "@/lib/utils";
+import { getCategoryConfig } from "@/utils/categoryConfig";
+import { formatFieldName, metadataFields } from "@/utils/fieldFormatters";
+import { logError } from "@/utils/logger";
 
 interface EnhancedEntryViewDialogProps {
   entry: SavedEntry | null;
@@ -54,98 +44,6 @@ interface EnhancedEntryViewDialogProps {
   onPrint?: (entry: SavedEntry) => void;
 }
 
-// Category configuration
-const categoryConfig: Record<string, {
-  icon: React.ElementType;
-  color: string;
-  bgColor: string;
-  gradientFrom: string;
-  gradientTo: string;
-  fieldIcons: Record<string, React.ElementType>;
-}> = {
-  Documents: {
-    icon: FileText,
-    color: "text-blue-600 dark:text-blue-400",
-    bgColor: "bg-blue-500",
-    gradientFrom: "from-blue-500",
-    gradientTo: "to-blue-600",
-    fieldIcons: {
-      documentType: FileCheck,
-      expirationDate: Calendar,
-      issuer: Briefcase,
-    }
-  },
-  Health: {
-    icon: Heart,
-    color: "text-red-600 dark:text-red-400",
-    bgColor: "bg-red-500",
-    gradientFrom: "from-red-500",
-    gradientTo: "to-rose-600",
-    fieldIcons: {
-      medication: Pill,
-      doctor: User,
-      hospital: MapPin,
-      nextAppointment: Calendar,
-    }
-  },
-  Contacts: {
-    icon: Users,
-    color: "text-green-600 dark:text-green-400",
-    bgColor: "bg-green-500",
-    gradientFrom: "from-green-500",
-    gradientTo: "to-emerald-600",
-    fieldIcons: {
-      phone: Phone,
-      email: Mail,
-      company: Briefcase,
-      address: MapPin,
-    }
-  },
-  Finance: {
-    icon: DollarSign,
-    color: "text-amber-600 dark:text-amber-400",
-    bgColor: "bg-amber-500",
-    gradientFrom: "from-amber-500",
-    gradientTo: "to-orange-600",
-    fieldIcons: {
-      accountNumber: CreditCard,
-      bank: Briefcase,
-      cardNumber: CreditCard,
-    }
-  },
-  Personal: {
-    icon: User,
-    color: "text-purple-600 dark:text-purple-400",
-    bgColor: "bg-purple-500",
-    gradientFrom: "from-purple-500",
-    gradientTo: "to-violet-600",
-    fieldIcons: {
-      date: Calendar,
-      reminder: Clock,
-    }
-  },
-  Insurance: {
-    icon: Shield,
-    color: "text-teal-600 dark:text-teal-400",
-    bgColor: "bg-teal-500",
-    gradientFrom: "from-teal-500",
-    gradientTo: "to-cyan-600",
-    fieldIcons: {
-      policyNumber: FileCheck,
-      provider: Briefcase,
-      expirationDate: Calendar,
-    }
-  },
-};
-
-const defaultConfig = {
-  icon: Tag,
-  color: "text-gray-600 dark:text-gray-400",
-  bgColor: "bg-gray-500",
-  gradientFrom: "from-gray-500",
-  gradientTo: "to-slate-600",
-  fieldIcons: {}
-};
 
 // Format field value for display
 const formatFieldValue = (key: string, value: any): { formatted: string; type: "text" | "date" | "currency" | "phone" | "masked" | "email" | "url" } => {
@@ -219,15 +117,6 @@ const formatFieldValue = (key: string, value: any): { formatted: string; type: "
   return { formatted: String(value), type: "text" };
 };
 
-// Format field name for display
-const formatFieldName = (key: string): string => {
-  return key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, str => str.toUpperCase())
-    .replace(/_/g, " ")
-    .trim();
-};
-
 export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = ({
   entry,
   isOpen,
@@ -256,7 +145,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
   if (!entry) return null;
 
   const category = entry.fields.category as string || "Personal";
-  const config = categoryConfig[category] || defaultConfig;
+  const config = getCategoryConfig(category);
   const CategoryIcon = config.icon;
 
   // Extract images from the entry
@@ -266,8 +155,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
   const isDocumentWithFile = entry.fields.category === "Documents" && entry.fields.hasUploadedFile;
   const hasFile = entry.fields.hasUploadedFile && entry.fields.fileName;
 
-  // Filter out metadata fields
-  const metadataFields = ["category", "hasUploadedFile", "fileName", "fileSize", "fileType"];
+  // Filter out metadata fields (using imported metadataFields)
   const displayFields = Object.entries(entry.fields)
     .filter(([key]) => !metadataFields.includes(key))
     .filter(([key, value]) => {
@@ -318,7 +206,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
 
       toast.success(`Downloaded ${fileData.name}`);
     } catch (error) {
-      console.error("Download error:", error);
+      logError("Download error", error);
       toast.error("Failed to download file");
     } finally {
       setIsDownloading(false);

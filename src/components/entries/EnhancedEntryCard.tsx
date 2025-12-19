@@ -28,7 +28,7 @@ import {
   Tag,
   Printer
 } from "lucide-react";
-import { printSingleEntry } from "@/utils/printUtils";
+import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -225,7 +225,7 @@ export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
     if (onPrint) {
       onPrint(entry);
     } else {
-      printSingleEntry(entry, { includeMetadata: true });
+      printProfessionally([entry], { title: entry.title, includeMetadata: true });
       toast.success("Print dialog opened");
     }
   };

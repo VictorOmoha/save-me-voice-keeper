@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
 import { Download, Printer } from "lucide-react";
-import { printSingleEntry } from "@/utils/printUtils";
+import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import { toast } from "sonner";
 
 interface EntryCardProps {
@@ -25,7 +25,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({
   isDownloading
 }) => {
   const handlePrint = () => {
-    printSingleEntry(entry, { includeMetadata: true });
+    printProfessionally([entry], { title: entry.title, includeMetadata: true });
     toast.success("Print dialog opened");
   };
 

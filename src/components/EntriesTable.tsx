@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { ExportButton } from "@/components/export/ExportButton";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { printSingleEntry } from "@/utils/printUtils";
+import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -110,7 +110,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   };
 
   const handlePrint = (entry: SavedEntry) => {
-    printSingleEntry(entry, { includeMetadata: true });
+    printProfessionally([entry], { title: entry.title, includeMetadata: true });
     toast.success("Print dialog opened");
   };
 

@@ -14,7 +14,7 @@ import { getCategoryIcon, getCategoryColor, getCategoryName, getEntryType } from
 import { toast } from "sonner";
 import { ImageGallery } from "@/components/forms/ImageGallery";
 import { extractImagesFromEntry } from "@/utils/imageUtils";
-import { printSingleEntry } from "@/utils/printUtils";
+import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
 import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCardViewer";
 import { TableData } from "@/components/forms/types";
@@ -116,7 +116,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   };
 
   const handlePrint = () => {
-    printSingleEntry(entry, { includeMetadata: true });
+    printProfessionally([entry], { title: entry.title, includeMetadata: true });
     toast.success("Print dialog opened");
   };
 

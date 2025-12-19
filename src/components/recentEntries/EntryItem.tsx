@@ -4,7 +4,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { getCategoryIcon, getCategoryColor, getCategoryName } from "./categoryUtils";
 import { FileText, Eye, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { printSingleEntry } from "@/utils/printUtils";
+import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import { toast } from "sonner";
 
 interface EntryItemProps {
@@ -19,7 +19,7 @@ export const EntryItem: React.FC<EntryItemProps> = ({ entry, onClick }) => {
   
   const handlePrint = (e: React.MouseEvent) => {
     e.stopPropagation();
-    printSingleEntry(entry, { includeMetadata: true });
+    printProfessionally([entry], { title: entry.title, includeMetadata: true });
     toast.success("Print dialog opened");
   };
   

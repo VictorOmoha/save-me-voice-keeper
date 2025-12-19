@@ -296,11 +296,11 @@ const BrainDumpPage: React.FC = () => {
 
     const saveCommandPatterns = [
       /^save\s+(it|this|that)\b/i,                    // "save it", "save this" at start
-      /\b(please|now|go\s+ahead\s+and|can\s+you)\s+save\b/i,  // "please save", "now save"
+      /\b(please|now|go\s+ahead\s+and|can\s+you)\s+save\s+(it|this|that)?\b/i,  // "please save it", "now save this"
       /\bsave\s+(it|this|that)\s*(now|please)?\s*$/i, // "save it" at end
       /\bsave\s+(to|as|in|under)\s+\w+/i,             // "save to work", "save as personal"
       /\bstore\s+(it|this|that)\b/i,                  // "store it"
-      /\bcommit\s+(it|this|that|changes?)?\b/i,       // "commit", "commit it"
+      // Note: Removed "commit" as it conflicts with git terminology
     ];
 
     const isValidSaveCommand = saveCommandPatterns.some(pattern => pattern.test(text));

@@ -6,11 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useSavedEntries } from "@/hooks/useSavedEntries";
-import { BrainDumpProcessor } from "@/utils/brainDumpProcessor";
+import { BrainDumpProcessor, ActionItem, actionItemsToStrings } from "@/utils/brainDumpProcessor";
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Sparkles, Loader2, Users, Tag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
 const processor = new BrainDumpProcessor();
 
 const BrainDumpPage: React.FC = () => {
@@ -53,12 +55,19 @@ const BrainDumpPage: React.FC = () => {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Personal");
   const [notes, setNotes] = useState<string[]>([]);
-  const [actionItems, setActionItems] = useState<string[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [keyPoints, setKeyPoints] = useState<string[]>([]);
   const [structuredFields, setStructuredFields] = useState<Record<string, any>>({});
   const [confidence, setConfidence] = useState<number | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [people, setPeople] = useState<string[]>([]);
+  const [summary, setSummary] = useState("");
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   const hasStructured = useMemo(() => !!title || actionItems.length || keyPoints.length || notes.length, [title, actionItems, keyPoints, notes]);
+
+  // Convert ActionItem[] to string[] for display
+  const actionItemStrings = useMemo(() => actionItemsToStrings(actionItems), [actionItems]);
 
   // Dedupe guards to avoid double start/speak when navigated via voice
   const introSpokenRef = useRef(false);
@@ -138,7 +147,58 @@ const BrainDumpPage: React.FC = () => {
     setNotes(result.notes || []);
     setStructuredFields(result.structuredFields || {});
     setConfidence(result.confidence || null);
+    setTags(result.tags || []);
+    setPeople(result.people || []);
     toast.success("Brain dump structured");
+  };
+
+  const handleEnhanceWithAI = async () => {
+    const content = (rawText || transcript).trim();
+    if (!content) {
+      toast.info("Speak or paste some text first");
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-brain-dump', {
+        body: { content },
+      });
+
+      if (error) {
+        console.error('AI enhance error:', error);
+        toast.error('Failed to enhance with AI. Using local processing.');
+        handleProcess();
+        return;
+      }
+
+      if (data?.error) {
+        console.error('AI enhance API error:', data.error);
+        toast.error(data.error);
+        handleProcess();
+        return;
+      }
+
+      if (data?.enhanced) {
+        const enhanced = data.enhanced;
+        setTitle(enhanced.title || '');
+        setSummary(enhanced.summary || '');
+        setCategory(enhanced.category || 'Personal');
+        setTags(enhanced.tags || []);
+        setActionItems(enhanced.actionItems || []);
+        setKeyPoints(enhanced.keyPoints || []);
+        setNotes(enhanced.notes || []);
+        setPeople(enhanced.people || []);
+        setConfidence(0.95); // AI processing has high confidence
+        toast.success("Enhanced with AI");
+      }
+    } catch (err) {
+      console.error('AI enhance exception:', err);
+      toast.error('AI enhancement failed. Using local processing.');
+      handleProcess();
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   const handleSave = async () => {
@@ -151,9 +211,12 @@ const BrainDumpPage: React.FC = () => {
       { id: 'category', name: 'category', type: 'text' as const },
       { id: 'originalText', name: 'Original Text', type: 'textarea' as const },
     ];
+    if (summary) fieldDefinitions.push({ id: 'summary', name: 'Summary', type: 'textarea' as const });
     if (actionItems.length) fieldDefinitions.push({ id: 'actionItems', name: 'Action Items', type: 'textarea' as const });
     if (keyPoints.length) fieldDefinitions.push({ id: 'keyPoints', name: 'Key Points', type: 'textarea' as const });
     if (notes.length) fieldDefinitions.push({ id: 'notes', name: 'Notes', type: 'textarea' as const });
+    if (tags.length) fieldDefinitions.push({ id: 'tags', name: 'Tags', type: 'text' as const });
+    if (people.length) fieldDefinitions.push({ id: 'people', name: 'People', type: 'text' as const });
 
     try {
       await saveEntry({
@@ -161,9 +224,12 @@ const BrainDumpPage: React.FC = () => {
         fields: {
           category,
           originalText: (rawText || transcript).trim(),
-          actionItems: actionItems.join('\n• '),
+          summary,
+          actionItems: actionItemStrings.join('\n• '),
           keyPoints: keyPoints.join('\n• '),
           notes: notes.join('\n\n'),
+          tags: tags.join(', '),
+          people: people.join(', '),
           confidence,
           ...structuredFields,
           source: 'brain_dump'
@@ -172,14 +238,17 @@ const BrainDumpPage: React.FC = () => {
         category,
       });
       toast.success("Saved structured brain dump");
-      // Reset minimal state
+      // Reset all state
       setRawText("");
       setTitle("");
+      setSummary("");
       setNotes([]);
       setActionItems([]);
       setKeyPoints([]);
       setStructuredFields({});
       setConfidence(null);
+      setTags([]);
+      setPeople([]);
     } catch (e) {
       // toast already shown in hook
     }
@@ -315,7 +384,7 @@ return (
               <CardTitle id="capture">Capture</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {!isListening ? (
                   <Button onClick={start} aria-label="Start recording">Start</Button>
                 ) : (
@@ -323,6 +392,25 @@ return (
                 )}
                 <Button variant="outline" onClick={reset} aria-label="Reset transcript">Reset</Button>
                 <Button variant="outline" onClick={handleProcess} aria-label="Process brain dump">Process</Button>
+                <Button
+                  variant="default"
+                  onClick={handleEnhanceWithAI}
+                  disabled={isEnhancing}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                  aria-label="Enhance with AI"
+                >
+                  {isEnhancing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enhancing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      AI Enhance
+                    </>
+                  )}
+                </Button>
               </div>
 
               <Textarea
@@ -344,10 +432,46 @@ return (
                 <label className="text-sm font-medium">Title</label>
                 <Input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Generated title" />
               </div>
+
+              {summary && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Summary</label>
+                  <Textarea value={summary} onChange={(e)=>setSummary(e.target.value)} className="min-h-[60px]" />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Category</label>
                 <Input value={category} onChange={(e)=>setCategory(e.target.value)} placeholder="e.g. Personal, Work" />
               </div>
+
+              {tags.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    <label className="text-sm font-medium">Tags</label>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {tags.map((tag, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {people.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <label className="text-sm font-medium">People Mentioned</label>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {people.map((person, i) => (
+                      <Badge key={i} variant="secondary" className="text-xs">@{person}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {actionItems.length > 0 && (
                 <div className="space-y-2">
@@ -355,7 +479,28 @@ return (
                     <h3 className="font-semibold">Action Items</h3>
                     <Badge variant="secondary">{actionItems.length}</Badge>
                   </div>
-                  <Textarea value={actionItems.join('\n')} onChange={(e)=>setActionItems(e.target.value.split('\n').filter(Boolean))} className="min-h-[120px]" />
+                  <div className="space-y-1">
+                    {actionItems.map((item, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm p-2 bg-muted/50 rounded">
+                        <span className={`flex-shrink-0 ${
+                          item.priority === 'high' ? 'text-red-500' :
+                          item.priority === 'medium' ? 'text-yellow-500' :
+                          item.priority === 'low' ? 'text-green-500' : ''
+                        }`}>
+                          {item.priority === 'high' ? '🔴' : item.priority === 'medium' ? '🟡' : item.priority === 'low' ? '🟢' : '•'}
+                        </span>
+                        <div className="flex-1">
+                          <span>{item.text}</span>
+                          {(item.dueDate || item.assignee) && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {item.dueDate && <span className="mr-2">Due: {item.dueDate}</span>}
+                              {item.assignee && <span>@{item.assignee}</span>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

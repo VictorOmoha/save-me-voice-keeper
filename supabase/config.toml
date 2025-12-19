@@ -27,6 +27,9 @@ verify_jwt = true
 [functions.send-support-email]
 verify_jwt = true
 
+[functions.enhance-brain-dump]
+verify_jwt = true
+
 # Stripe webhook must NOT verify JWT (Stripe uses its own signature verification)
 [functions.stripe-webhook]
 verify_jwt = false

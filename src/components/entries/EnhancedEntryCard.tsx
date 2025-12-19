@@ -25,8 +25,11 @@ import {
   Shield,
   Pill,
   FileCheck,
-  Tag
+  Tag,
+  Printer
 } from "lucide-react";
+import { printSingleEntry } from "@/utils/printUtils";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +46,7 @@ interface EnhancedEntryCardProps {
   onDelete?: (id: string) => void;
   onFill?: (entry: SavedEntry) => void;
   onDownload?: (entry: SavedEntry) => void;
+  onPrint?: (entry: SavedEntry) => void;
   variant?: "grid" | "list" | "compact";
   className?: string;
 }
@@ -212,9 +216,19 @@ export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
   onDelete,
   onFill,
   onDownload,
+  onPrint,
   variant = "grid",
   className,
 }) => {
+  const handlePrint = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (onPrint) {
+      onPrint(entry);
+    } else {
+      printSingleEntry(entry, { includeMetadata: true });
+      toast.success("Print dialog opened");
+    }
+  };
   const category = entry.fields.category as string || "Personal";
   const config = categoryConfig[category] || defaultConfig;
   const CategoryIcon = config.icon;
@@ -331,6 +345,9 @@ export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
                     <Download className="w-4 h-4 mr-2" /> Download File
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={() => handlePrint()}>
+                  <Printer className="w-4 h-4 mr-2" /> Print
+                </DropdownMenuItem>
                 {onDelete && (
                   <>
                     <DropdownMenuSeparator />
@@ -440,6 +457,9 @@ export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
                   <Download className="w-4 h-4 mr-2" /> Download File
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={() => handlePrint()}>
+                <Printer className="w-4 h-4 mr-2" /> Print
+              </DropdownMenuItem>
               {onDelete && (
                 <>
                   <DropdownMenuSeparator />
@@ -528,6 +548,14 @@ export const EnhancedEntryCard: React.FC<EnhancedEntryCardProps> = ({
               Edit
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-purple-600 hover:text-purple-700"
+            onClick={handlePrint}
+          >
+            <Printer className="w-3.5 h-3.5" />
+          </Button>
         </div>
       </CardContent>
     </Card>

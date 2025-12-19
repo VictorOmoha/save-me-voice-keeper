@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
-import { Download } from "lucide-react";
+import { Download, Printer } from "lucide-react";
+import { printSingleEntry } from "@/utils/printUtils";
+import { toast } from "sonner";
 
 interface EntryCardProps {
   entry: SavedEntry;
@@ -22,6 +24,11 @@ export const EntryCard: React.FC<EntryCardProps> = ({
   onDownload,
   isDownloading
 }) => {
+  const handlePrint = () => {
+    printSingleEntry(entry, { includeMetadata: true });
+    toast.success("Print dialog opened");
+  };
+
   return (
     <div className="transform transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-2 animate-fade-in">
       <Card className="hover:shadow-2xl transition-all duration-300 ease-in-out border hover:border-primary/40 group cursor-pointer">
@@ -49,12 +56,20 @@ export const EntryCard: React.FC<EntryCardProps> = ({
                 <Download className="w-4 h-4 transition-transform duration-200 ease-in-out hover:rotate-12" />
               </Button>
             )}
-            <Button 
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              size="sm"
+              className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
+            >
+              <Printer className="w-4 h-4 transition-transform duration-200 ease-in-out hover:rotate-12" />
+            </Button>
+            <Button
               onClick={() => {
                 console.log('Fill button clicked for entry:', entry.title);
                 onFill(entry);
               }}
-              variant="outline" 
+              variant="outline"
               size="sm"
               className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
             >

@@ -288,10 +288,24 @@ const BrainDumpPage: React.FC = () => {
   const parseSaveCommand = (text: string): { save: true; category?: string } | null => {
     // Ignore TTS echo
     if (isTTSEcho(text)) return null;
-    if (!/\b(save|store|commit)\b/.test(text)) return null;
-    // Make sure it's an actual command, not just the word "save" in TTS output
-    // Require more context: "save it", "save this", "save to", etc.
-    if (!/\b(save\s+(it|this|that|to|as|in|under|my|the)|store\s+(it|this|that)|commit)\b/i.test(text)) return null;
+
+    // Be very strict about save commands to avoid false positives
+    // Only match when it's clearly a command, not just the word "save" in normal speech
+    // Valid patterns: "save it", "save this", "save that", "please save", "now save", "save to [category]"
+    // Invalid: "trying to save my life", "save your structured notes" (TTS echo)
+
+    const saveCommandPatterns = [
+      /^save\s+(it|this|that)\b/i,                    // "save it", "save this" at start
+      /\b(please|now|go\s+ahead\s+and|can\s+you)\s+save\b/i,  // "please save", "now save"
+      /\bsave\s+(it|this|that)\s*(now|please)?\s*$/i, // "save it" at end
+      /\bsave\s+(to|as|in|under)\s+\w+/i,             // "save to work", "save as personal"
+      /\bstore\s+(it|this|that)\b/i,                  // "store it"
+      /\bcommit\s+(it|this|that|changes?)?\b/i,       // "commit", "commit it"
+    ];
+
+    const isValidSaveCommand = saveCommandPatterns.some(pattern => pattern.test(text));
+    if (!isValidSaveCommand) return null;
+
     const m = text.match(/save(?:\s+it)?\s+(?:as|to|in|under)\s+([a-zA-Z\s-]+)/);
     if (m?.[1]) {
       const cat = normalizeCategory(m[1]);

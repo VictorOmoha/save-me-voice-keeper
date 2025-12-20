@@ -19,7 +19,6 @@ import AllEntries from "./pages/AllEntries";
 import CategoryPage from "./pages/CategoryPage";
 import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
-import VoiceTest from "./pages/VoiceTest";
 import UserGuide from "./pages/UserGuide";
 import NotFound from "./pages/NotFound";
 import TermsOfService from "./pages/TermsOfService";
@@ -54,7 +53,6 @@ const App = () => (
                     <Route path="/category/:categoryName" element={<CategoryPage />} />
                     <Route path="/subscription" element={<Subscription />} />
                     <Route path="/settings" element={<Settings />} />
-                    <Route path="/voice-test" element={<VoiceTest />} />
                     <Route path="/user-guide" element={<UserGuide />} />
                     <Route path="/brain-dump" element={<BrainDump />} />
                     <Route path="/onboarding" element={<Onboarding />} />

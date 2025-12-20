@@ -6,8 +6,6 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { VoiceGuidedEntryWizard } from '@/components/VoiceGuidedEntryWizard';
-import { VoiceDebugPanel } from '@/components/voice/VoiceDebugPanel';
-import { VoiceStatusDebug } from '@/components/VoiceStatusDebug';
 import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { DocumentCreator } from '@/components/DocumentCreator';
@@ -312,17 +310,6 @@ export default function Dashboard() {
         onSave={handleDocumentSaved}
       />
       
-      
-      {/* Debug panel for voice system monitoring */}
-      <VoiceDebugPanel />
-      
-      <VoiceStatusDebug
-        isListening={false}
-        conversationState={conversationState}
-        hasPendingConfirmation={hasPendingConfirmation}
-        lastCommand={lastVoiceCommand?.action}
-        debugMode={true}
-      />
       
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}

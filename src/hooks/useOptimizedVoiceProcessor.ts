@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { SavedEntry } from '@/types/dashboard';
 import { useVoiceConversationManager } from './useVoiceConversationManager';
+import { speak } from '@/utils/textToSpeech';
 
 interface OptimizedVoiceProcessorProps {
   savedEntries: SavedEntry[];
@@ -104,10 +105,14 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
         );
         if (entry) {
           props.onEditEntry(entry);
-          toast.success(`Opening: ${entry.title}`);
+          const openMsg = `Opening ${entry.title}`;
+          toast.success(openMsg);
+          speak(openMsg);
           return true;
         } else {
-          toast.error(`Entry "${titleToOpen}" not found`);
+          const notFoundMsg = `Entry "${titleToOpen}" not found`;
+          toast.error(notFoundMsg);
+          speak(notFoundMsg);
           return false;
         }
       }
@@ -116,15 +121,20 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       const editMatch = lowerTranscript.match(/edit\s+(.+)/);
       if (editMatch) {
         const titleToEdit = editMatch[1].replace(/[.,!?]$/g, '').trim();
+        console.log('🎯 Voice Processor: Looking for entry to edit:', titleToEdit);
         const entry = props.savedEntries.find(e =>
           e.title.toLowerCase().includes(titleToEdit.toLowerCase())
         );
         if (entry) {
           props.onEditEntry(entry);
-          toast.success(`Editing: ${entry.title}`);
+          const editMsg = `Editing ${entry.title}`;
+          toast.success(editMsg);
+          speak(editMsg);
           return true;
         } else {
-          toast.error(`Entry "${titleToEdit}" not found`);
+          const notFoundMsg = `Entry "${titleToEdit}" not found`;
+          toast.error(notFoundMsg);
+          speak(notFoundMsg);
           return false;
         }
       }
@@ -133,15 +143,21 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       const deleteMatch = lowerTranscript.match(/delete\s+(.+)/);
       if (deleteMatch) {
         const titleToDelete = deleteMatch[1].replace(/[.,!?]$/g, '').trim();
+        console.log('🎯 Voice Processor: Looking for entry to delete:', titleToDelete);
         const entry = props.savedEntries.find(e =>
           e.title.toLowerCase().includes(titleToDelete.toLowerCase())
         );
         if (entry) {
           setPendingDeleteEntry(entry);
-          toast.info(`Say "confirm delete" to delete: ${entry.title}`);
+          const confirmMsg = `Say "confirm delete" to delete ${entry.title}`;
+          toast.info(confirmMsg);
+          speak(confirmMsg);
           return true;
         } else {
-          toast.error(`Entry "${titleToDelete}" not found`);
+          const notFoundMsg = `Entry "${titleToDelete}" not found`;
+          console.log('🎯 Voice Processor:', notFoundMsg);
+          toast.error(notFoundMsg);
+          speak(notFoundMsg);
           return false;
         }
       }
@@ -149,7 +165,9 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       // Confirm delete
       if (lowerTranscript.includes('confirm delete') && pendingDeleteEntry) {
         props.onDeleteEntry(pendingDeleteEntry.id);
-        toast.success(`Deleted: ${pendingDeleteEntry.title}`);
+        const deletedMsg = `Deleted ${pendingDeleteEntry.title}`;
+        toast.success(deletedMsg);
+        speak(deletedMsg);
         setPendingDeleteEntry(null);
         return true;
       }

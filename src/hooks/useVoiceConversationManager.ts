@@ -80,13 +80,22 @@ export const useVoiceConversationManager = ({
 
   const startCreateEntryConversation = useCallback(() => {
     onCreateEntry();
-    
-    setConversationState({
+
+    const newState = {
       isInConversation: true,
       currentStep: CONVERSATION_STEPS.TITLE,
       entryDraft: { fields: [] },
+    };
+
+    // Update ref immediately to avoid stale closure issues
+    conversationStateRef.current = newState;
+    setConversationState(newState);
+
+    console.log('🎤 Voice Conversation: Started conversation, state set:', {
+      isInConversation: conversationStateRef.current.isInConversation,
+      currentStep: conversationStateRef.current.currentStep?.type
     });
-    
+
     setTimeout(() => {
       speak(CONVERSATION_STEPS.TITLE.question);
       toast.info("🎤 " + CONVERSATION_STEPS.TITLE.question);
@@ -94,11 +103,15 @@ export const useVoiceConversationManager = ({
   }, [onCreateEntry]);
 
   const endConversation = useCallback(() => {
-    setConversationState({
+    const newState = {
       isInConversation: false,
       currentStep: null,
       entryDraft: { fields: [] },
-    });
+    };
+    // Update ref immediately
+    conversationStateRef.current = newState;
+    setConversationState(newState);
+    console.log('🎤 Voice Conversation: Ended conversation');
   }, []);
 
 // Category matching handled by shared utility in utils/categoryMatcher
@@ -120,17 +133,20 @@ export const useVoiceConversationManager = ({
     switch (currentStep.type) {
       case 'title':
         if (cleanedText.length < 2) return false;
-        
+
         const newEntryDraft = { ...entryDraft, title: cleanedText };
-        
-        setConversationState(prev => ({
-          ...prev,
+        const titleState = {
+          ...currentState,
           currentStep: CONVERSATION_STEPS.CATEGORY,
           entryDraft: newEntryDraft,
-        }));
-        
+        };
+        // Update ref immediately
+        conversationStateRef.current = titleState;
+        setConversationState(titleState);
+
+        console.log('🎤 Voice Conversation: Title set to:', cleanedText);
         formTitleSetter?.(cleanedText);
-        
+
         setTimeout(() => {
           speak(CONVERSATION_STEPS.CATEGORY.question);
           toast.success(`✅ Title set: "${cleanedText}"`);
@@ -139,7 +155,7 @@ export const useVoiceConversationManager = ({
 
       case 'category':
         const matchedCategory = matchCategory(cleanedText);
-        
+
         if (!matchedCategory) {
           setTimeout(() => {
             speak(`Please say one of: Documents, Health, Contacts, Finance, or Personal.`);
@@ -147,17 +163,20 @@ export const useVoiceConversationManager = ({
           }, 300);
           return false;
         }
-        
+
         const updatedDraft = { ...entryDraft, category: matchedCategory };
-        
-        setConversationState(prev => ({
-          ...prev,
+        const categoryState = {
+          ...currentState,
           currentStep: CONVERSATION_STEPS.MORE_FIELDS,
           entryDraft: updatedDraft,
-        }));
-        
+        };
+        // Update ref immediately
+        conversationStateRef.current = categoryState;
+        setConversationState(categoryState);
+
+        console.log('🎤 Voice Conversation: Category set to:', matchedCategory);
         formCategorySetter?.(matchedCategory);
-        
+
         setTimeout(() => {
           speak(CONVERSATION_STEPS.MORE_FIELDS.question);
           toast.success(`✅ Category set: ${matchedCategory}`);
@@ -166,10 +185,14 @@ export const useVoiceConversationManager = ({
 
       case 'more_fields':
         if (lowerTranscript.includes('yes') || lowerTranscript.includes('add')) {
-          setConversationState(prev => ({
-            ...prev,
+          const addFieldState = {
+            ...currentState,
             currentStep: CONVERSATION_STEPS.FIELD_NAME,
-          }));
+          };
+          // Update ref immediately
+          conversationStateRef.current = addFieldState;
+          setConversationState(addFieldState);
+          console.log('🎤 Voice Conversation: Adding custom field');
           setTimeout(() => {
             speak(CONVERSATION_STEPS.FIELD_NAME.question);
             toast.info("📝 Adding custom field");
@@ -211,11 +234,15 @@ export const useVoiceConversationManager = ({
         break;
 
       case 'field_name':
-        setConversationState(prev => ({
-          ...prev,
+        const fieldNameState = {
+          ...currentState,
           currentStep: CONVERSATION_STEPS.FIELD_TYPE,
           currentFieldName: cleanedText,
-        }));
+        };
+        // Update ref immediately
+        conversationStateRef.current = fieldNameState;
+        setConversationState(fieldNameState);
+        console.log('🎤 Voice Conversation: Field name set to:', cleanedText);
         setTimeout(() => {
           speak(CONVERSATION_STEPS.FIELD_TYPE.question);
           toast.success(`📝 Field name: "${cleanedText}"`);
@@ -224,30 +251,34 @@ export const useVoiceConversationManager = ({
 
       case 'field_type':
         const fieldTypes = ['text', 'number', 'date', 'textarea'];
-        const matchedType = fieldTypes.find(type => 
+        const matchedType = fieldTypes.find(type =>
           lowerTranscript.includes(type)
         ) as 'text' | 'number' | 'date' | 'textarea' || 'text';
-        
+
         const currentName = (currentState.currentFieldName ?? '').trim();
         const newField = {
           name: currentName.length ? currentName : 'Custom Field',
           type: matchedType
         };
-        
+
         const draftWithField = {
           ...entryDraft,
           fields: [...entryDraft.fields, newField]
         };
-        
-        setConversationState(prev => ({
-          ...prev,
+
+        const fieldTypeState = {
+          ...currentState,
           currentStep: CONVERSATION_STEPS.MORE_FIELDS,
           entryDraft: draftWithField,
           currentFieldName: undefined,
-        }));
-        
+        };
+        // Update ref immediately
+        conversationStateRef.current = fieldTypeState;
+        setConversationState(fieldTypeState);
+
+        console.log('🎤 Voice Conversation: Field type set to:', matchedType);
         formAddFieldFunction?.(newField.name, matchedType);
-        
+
         setTimeout(() => {
           speak(`Added ${matchedType} field "${newField.name}". ${CONVERSATION_STEPS.MORE_FIELDS.question}`);
           toast.success(`✅ Added field: ${newField.name}`);

@@ -16,7 +16,7 @@ export class SpeechRecognitionSingleton {
     onError?: (error: string) => void;
   } = {};
   private restartAttempts = 0;
-  private maxRestartAttempts = 3;
+  private maxRestartAttempts = 5;
   private restartTimeout: NodeJS.Timeout | null = null;
 
   private constructor() {
@@ -60,13 +60,20 @@ export class SpeechRecognitionSingleton {
     };
 
     this.recognition.onresult = (event) => {
-      // Skip if TTS is speaking or just finished
+      // Skip if TTS is actively speaking
       const now = Date.now();
       const lastTTSEnd = (window as any).__last_tts_end_time || 0;
-      const gracePeriod = 500; // Reduced to 0.5 seconds grace period after TTS ends
+      const gracePeriod = 300; // Short grace period to avoid echo pickup
 
-      if ((window as any).__tts_is_speaking || (now - lastTTSEnd < gracePeriod)) {
-        console.log('🚫 Recognition Singleton: Skipping - TTS is speaking or just finished');
+      // Only block if TTS is actively speaking
+      if ((window as any).__tts_is_speaking) {
+        console.log('🚫 Recognition Singleton: Skipping - TTS is actively speaking');
+        return;
+      }
+
+      // Small grace period right after TTS ends to avoid echo pickup
+      if (now - lastTTSEnd < gracePeriod) {
+        console.log('🚫 Recognition Singleton: Skipping - TTS just finished (grace period)');
         return;
       }
 

@@ -18,8 +18,12 @@ interface OptimizedVoiceProcessorProps {
 
 export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) => {
   const [pendingDeleteEntry, setPendingDeleteEntry] = useState<SavedEntry | null>(null);
+  const pendingDeleteEntryRef = useRef<SavedEntry | null>(null);
   const lastProcessedTranscript = useRef<string>('');
   const processingLock = useRef<boolean>(false);
+
+  // Keep ref in sync with state
+  pendingDeleteEntryRef.current = pendingDeleteEntry;
 
   const {
     conversationState,
@@ -139,6 +143,20 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
         }
       }
 
+      // Confirm delete - check this BEFORE delete command to avoid matching "confirm delete X" as "delete X"
+      // Use ref to get current value and avoid stale closure
+      const currentPendingDelete = pendingDeleteEntryRef.current;
+      console.log('🎯 Voice Processor: Checking confirm delete, pendingEntry:', currentPendingDelete?.title);
+      if (lowerTranscript.includes('confirm delete') && currentPendingDelete) {
+        props.onDeleteEntry(currentPendingDelete.id);
+        const deletedMsg = `Deleted ${currentPendingDelete.title}`;
+        toast.success(deletedMsg);
+        speak(deletedMsg);
+        setPendingDeleteEntry(null);
+        pendingDeleteEntryRef.current = null;
+        return true;
+      }
+
       // Delete entry command with confirmation
       const deleteMatch = lowerTranscript.match(/delete\s+(.+)/);
       if (deleteMatch) {
@@ -149,6 +167,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
         );
         if (entry) {
           setPendingDeleteEntry(entry);
+          pendingDeleteEntryRef.current = entry;
           const confirmMsg = `Say "confirm delete" to delete ${entry.title}`;
           toast.info(confirmMsg);
           speak(confirmMsg);
@@ -162,16 +181,6 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
         }
       }
 
-      // Confirm delete
-      if (lowerTranscript.includes('confirm delete') && pendingDeleteEntry) {
-        props.onDeleteEntry(pendingDeleteEntry.id);
-        const deletedMsg = `Deleted ${pendingDeleteEntry.title}`;
-        toast.success(deletedMsg);
-        speak(deletedMsg);
-        setPendingDeleteEntry(null);
-        return true;
-      }
-
       // Cancel operations
       if (lowerTranscript.includes('cancel')) {
         if (conversationState.isInConversation) {
@@ -180,8 +189,9 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
           toast.info("Operation cancelled");
           return true;
         }
-        if (pendingDeleteEntry) {
+        if (pendingDeleteEntryRef.current) {
           setPendingDeleteEntry(null);
+          pendingDeleteEntryRef.current = null;
           toast.info("Delete cancelled");
           return true;
         }
@@ -201,12 +211,12 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
     processConversationStep,
     startCreateEntryConversation,
     endConversation,
-    pendingDeleteEntry,
     props.savedEntries,
     props.onEditEntry,
     props.onDeleteEntry,
     props.onCancelEdit,
     conversationState.isInConversation // Still include for re-render triggers
+    // Note: pendingDeleteEntry removed - using ref to avoid stale closure
   ]);
 
   return {

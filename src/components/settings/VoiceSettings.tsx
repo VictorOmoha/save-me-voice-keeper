@@ -11,9 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Volume2, Mic, Key, Settings, Play, CheckCircle, AlertCircle } from "lucide-react";
 import { 
   getElevenLabsApiKey, 
-  setElevenLabsApiKey, 
   getMiniMaxApiKey,
-  setMiniMaxApiKey,
   getSelectedTTSService,
   setSelectedTTSService,
   VOICE_OPTIONS, 
@@ -24,8 +22,6 @@ import {
   setSelectedMiniMaxVoice,
   speak,
   stopCurrentSpeech,
-  validateElevenLabsApiKey,
-  validateMiniMaxApiKey,
   type TTSService
 } from "@/utils/textToSpeech";
 import { toast } from "sonner";
@@ -46,8 +42,6 @@ const LANGUAGE_OPTIONS = {
 };
 
 export const VoiceSettings: React.FC = () => {
-  const [apiKey, setApiKey] = useState('');
-  const [miniMaxApiKey, setMiniMaxApiKeyState] = useState('');
   const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>('elevenlabs');
   const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>('adam');
   const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>('male-qn-qingse');
@@ -57,7 +51,6 @@ export const VoiceSettings: React.FC = () => {
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [continuousListening, setContinuousListening] = useState(false);
   const [isTestingVoice, setIsTestingVoice] = useState(false);
-  const [isValidatingKey, setIsValidatingKey] = useState(false);
   const [audioCueEnabled, setAudioCueEnabled] = useState(true);
   const [audioCueVolume, setAudioCueVolume] = useState(0.6);
 
@@ -65,8 +58,7 @@ export const VoiceSettings: React.FC = () => {
   useEffect(() => {
     console.log('🔄 Initializing VoiceSettings state from localStorage');
     
-    setApiKey(getElevenLabsApiKey() || '');
-    setMiniMaxApiKeyState(getMiniMaxApiKey() || '');
+    // API keys are now managed server-side
     setSelectedTTSServiceState(getSelectedTTSService());
     setSelectedVoiceState(getSelectedVoice());
     setSelectedMiniMaxVoiceState(getSelectedMiniMaxVoice());
@@ -105,16 +97,7 @@ export const VoiceSettings: React.FC = () => {
   const saveSettings = () => {
     console.log('💾 Saving voice settings...');
     
-    // Save API keys
-    if (apiKey !== getElevenLabsApiKey()) {
-      setElevenLabsApiKey(apiKey);
-    }
-    
-    if (miniMaxApiKey !== getMiniMaxApiKey()) {
-      setMiniMaxApiKey(miniMaxApiKey);
-    }
-    
-    // Save other settings
+    // API keys are now managed server-side - only save voice preferences
     setSelectedTTSService(selectedTTSService);
     setSelectedVoice(selectedVoice);
     setSelectedMiniMaxVoice(selectedMiniMaxVoice);
@@ -162,58 +145,6 @@ export const VoiceSettings: React.FC = () => {
       toast.error('Voice test failed. Please check your settings.');
     } finally {
       setIsTestingVoice(false);
-    }
-  };
-
-  // Validate ElevenLabs API key
-  const validateElevenLabsKey = async () => {
-    if (!apiKey.trim()) {
-      toast.error('Please enter an ElevenLabs API key');
-      return;
-    }
-
-    setIsValidatingKey(true);
-    console.log('🔍 Validating ElevenLabs API key...');
-    
-    try {
-      const result = await validateElevenLabsApiKey(apiKey);
-      if (result.valid) {
-        setElevenLabsApiKey(apiKey);
-        toast.success('ElevenLabs API key is valid!');
-      } else {
-        toast.error(`ElevenLabs API key validation failed: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('🚨 ElevenLabs API key validation failed:', error);
-      toast.error('Failed to validate ElevenLabs API key. Please check your connection.');
-    } finally {
-      setIsValidatingKey(false);
-    }
-  };
-
-  // Validate MiniMax API key
-  const validateMiniMaxKey = async () => {
-    if (!miniMaxApiKey.trim()) {
-      toast.error('Please enter a MiniMax JWT token');
-      return;
-    }
-
-    setIsValidatingKey(true);
-    console.log('🔍 Validating MiniMax JWT token...');
-    
-    try {
-      const result = await validateMiniMaxApiKey(miniMaxApiKey);
-      if (result.valid) {
-        setMiniMaxApiKey(miniMaxApiKey);
-        toast.success('MiniMax JWT token is valid!');
-      } else {
-        toast.error(`MiniMax JWT validation failed: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('🚨 MiniMax JWT validation failed:', error);
-      toast.error('Failed to validate MiniMax JWT token. Please check your connection.');
-    } finally {
-      setIsValidatingKey(false);
     }
   };
 
@@ -395,93 +326,14 @@ export const VoiceSettings: React.FC = () => {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Key className="h-5 w-5" />
-                ElevenLabs API Configuration
-                {hasElevenLabsKey && (
-                  <Badge variant="secondary" className="ml-2">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Connected
-                  </Badge>
-                )}
+                API Configuration
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="apikey">API Key</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="apikey"
-                    type="password"
-                    placeholder="Enter your ElevenLabs API key"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                  />
-                  <Button 
-                    onClick={validateElevenLabsKey}
-                    disabled={isValidatingKey || !apiKey.trim()}
-                    variant="outline"
-                  >
-                    {isValidatingKey ? 'Validating...' : 'Validate'}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Get your API key from{' '}
-                  <a 
-                    href="https://elevenlabs.io" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    elevenlabs.io
-                  </a>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                MiniMax API Configuration
-                {hasMiniMaxKey && (
-                  <Badge variant="secondary" className="ml-2">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Connected
-                  </Badge>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="minimaxkey">API Key</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="minimaxkey"
-                    type="password"
-                    placeholder="Enter your MiniMax API key"
-                    value={miniMaxApiKey}
-                    onChange={(e) => setMiniMaxApiKeyState(e.target.value)}
-                  />
-                  <Button 
-                    onClick={validateMiniMaxKey}
-                    disabled={isValidatingKey || !miniMaxApiKey.trim()}
-                    variant="outline"
-                  >
-                    {isValidatingKey ? 'Validating...' : 'Validate'}
-                  </Button>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Get your API key from{' '}
-                  <a 
-                    href="https://www.minimax.io/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    minimax.io
-                  </a>
-                </p>
-              </div>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                API keys for ElevenLabs and MiniMax are now managed server-side for security.
+                Contact your administrator to configure voice services.
+              </p>
             </CardContent>
           </Card>
 

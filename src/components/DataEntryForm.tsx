@@ -10,7 +10,7 @@ import { FormFieldManager } from "./forms/FormFieldManager";
 import { CustomFieldItem } from "./forms/CustomFieldItem";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
-import { Mic, MicOff } from "lucide-react";
+import { Mic } from "lucide-react";
 
 interface DataEntryFormProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -153,7 +153,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-6 p-6">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 p-4 md:p-6">
         <div className={`space-y-2 transition-all duration-300 ${
           highlightedField === 'title' ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-2' : ''
         }`}>
@@ -233,11 +233,11 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           ))}
         </div>
 
-        <div className="flex justify-end space-x-2">
-          <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border" disabled={isSaving}>
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-2 pt-4">
+          <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border w-full sm:w-auto" disabled={isSaving}>
             Cancel
           </Button>
-          <Button type="submit" variant="gradient" disabled={isSaving}>
+          <Button type="submit" variant="gradient" className="w-full sm:w-auto" disabled={isSaving}>
             {isSaving ? 'Saving...' : editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
           </Button>
         </div>

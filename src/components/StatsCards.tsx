@@ -77,7 +77,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, u
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
@@ -86,30 +86,30 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, u
             className="transform transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1"
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            <Card className="hover:shadow-xl transition-all duration-300 ease-in-out border hover:border-primary/30 group cursor-pointer animate-fade-in">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 transition-all duration-300 ease-in-out">
-                    <p className="text-sm font-medium text-muted-foreground mb-1 transition-colors duration-200 group-hover:text-primary">
+            <Card className="hover:shadow-xl transition-all duration-300 ease-in-out border hover:border-primary/30 group cursor-pointer animate-fade-in h-full">
+              <CardContent className="p-3 md:p-6">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0 transition-all duration-300 ease-in-out">
+                    <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1 transition-colors duration-200 group-hover:text-primary truncate">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold text-card-foreground mb-1 transition-all duration-300 ease-in-out group-hover:scale-105">
+                    <p className="text-lg md:text-2xl font-bold text-card-foreground mb-0.5 md:mb-1 transition-all duration-300 ease-in-out group-hover:scale-105">
                       {stat.value}
                     </p>
-                    <p className="text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80">
+                    <p className="text-xs md:text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80 line-clamp-1">
                       {stat.subtitle || stat.value_subtitle}
                     </p>
                     {stat.showProgress && (
                       <div className="mt-2 transition-all duration-300 ease-in-out">
-                        <Progress value={stat.progress} className="h-2 transition-all duration-500 ease-in-out" />
+                        <Progress value={stat.progress} className="h-1.5 md:h-2 transition-all duration-500 ease-in-out" />
                         <p className="text-xs text-muted-foreground mt-1 transition-colors duration-200 group-hover:text-foreground/70">
-                          {stat.progress}% used
+                          {stat.progress}%
                         </p>
                       </div>
                     )}
                   </div>
-                  <div className={`w-12 h-12 rounded-lg ${stat.bgColor} flex items-center justify-center transition-all duration-300 ease-in-out group-hover:scale-110 group-hover:rotate-3`}>
-                    <Icon className={`w-6 h-6 ${stat.color} transition-all duration-300 ease-in-out group-hover:scale-110`} />
+                  <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg ${stat.bgColor} flex items-center justify-center shrink-0 transition-all duration-300 ease-in-out group-hover:scale-110 group-hover:rotate-3`}>
+                    <Icon className={`w-4 h-4 md:w-6 md:h-6 ${stat.color} transition-all duration-300 ease-in-out group-hover:scale-110`} />
                   </div>
                 </div>
               </CardContent>

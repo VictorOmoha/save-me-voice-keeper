@@ -110,18 +110,18 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Welcome Section */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-foreground mb-2">
-          Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}! 
+      <div className="text-center px-2">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
+          Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
           {userTier && (
-            <Badge variant="secondary" className="ml-2">
+            <Badge variant="secondary" className="ml-2 text-xs">
               {userTier}
             </Badge>
           )}
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
           Securely store and manage your important information
         </p>
       </div>
@@ -154,28 +154,28 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       {/* View All Entries - Prominent Access */}
       {savedEntries.length > 0 && (
         <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Table className="h-6 w-6 text-primary" />
+                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+                  <Table className="h-5 w-5 md:h-6 md:w-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">View All Entries</CardTitle>
-                  <p className="text-sm text-muted-foreground">Browse, search, and manage all your saved data in a comprehensive table</p>
+                  <CardTitle className="text-lg md:text-xl">View All Entries</CardTitle>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Browse and manage all your saved data</p>
                 </div>
               </div>
-              <Badge variant="secondary" className="text-lg px-3 py-1">
+              <Badge variant="secondary" className="text-sm md:text-lg px-2 md:px-3 py-1 w-fit">
                 {savedEntries.length} entries
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+          <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="hidden sm:flex items-center space-x-4 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
                   <Grid3X3 className="h-4 w-4" />
-                  <span>Sortable columns</span>
+                  <span>Sortable</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <FileText className="h-4 w-4" />
@@ -183,12 +183,12 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
                 </div>
                 <div className="flex items-center space-x-1">
                   <Users className="h-4 w-4" />
-                  <span>Export options</span>
+                  <span>Export</span>
                 </div>
               </div>
-              <Button 
+              <Button
                 onClick={onViewAllEntries}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
               >
                 <Table className="h-4 w-4 mr-2" />
                 Open Table View
@@ -200,8 +200,8 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
 
       {/* Categories Grid */}
       <div>
-        <h2 className="text-2xl font-semibold text-foreground mb-6">Browse by Category</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground mb-4 md:mb-6">Browse by Category</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {categories.map((category) => {
             const categoryEntries = savedEntries.filter(entry => {
               const entryCategory = entry.fields.category || 'Personal';
@@ -209,19 +209,19 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
             });
 
             return (
-              <Card 
+              <Card
                 key={category.name}
                 className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/50"
                 onClick={() => onCategorySelect(category.name)}
               >
-                <CardHeader className="text-center pb-2">
-                  <div className="text-3xl mb-2">{category.icon}</div>
-                  <CardTitle className="text-lg">{category.name}</CardTitle>
+                <CardHeader className="text-center p-3 md:p-4 pb-1 md:pb-2">
+                  <div className="text-2xl md:text-3xl mb-1 md:mb-2">{category.icon}</div>
+                  <CardTitle className="text-sm md:text-lg">{category.name}</CardTitle>
                 </CardHeader>
-                <CardContent className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">{category.description}</p>
+                <CardContent className="text-center p-3 md:p-4 pt-0">
+                  <p className="text-xs md:text-sm text-muted-foreground mb-2 line-clamp-2 hidden sm:block">{category.description}</p>
                   <Badge variant="outline" className="text-xs">
-                    {categoryEntries.length} entries
+                    {categoryEntries.length}
                   </Badge>
                 </CardContent>
               </Card>
@@ -244,39 +244,39 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       />
 
       {/* Features Preview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-border">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 pt-6 md:pt-8 border-t border-border">
         <Card className="text-center">
-          <CardHeader>
-            <Shield className="h-8 w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-lg">Secure Storage</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary mx-auto mb-2" />
+            <CardTitle className="text-base md:text-lg">Secure Storage</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Your data is encrypted and stored securely in the cloud
+          <CardContent className="p-4 md:p-6 pt-0">
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Your data is encrypted and stored securely
             </p>
           </CardContent>
         </Card>
 
         <Card className="text-center">
-          <CardHeader>
-            <Zap className="h-8 w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-lg">Quick Access</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <Zap className="h-6 w-6 md:h-8 md:w-8 text-primary mx-auto mb-2" />
+            <CardTitle className="text-base md:text-lg">Quick Access</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Find what you need instantly with powerful search and organization
+          <CardContent className="p-4 md:p-6 pt-0">
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Find what you need instantly with powerful search
             </p>
           </CardContent>
         </Card>
 
         <Card className="text-center">
-          <CardHeader>
-            <Star className="h-8 w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-lg">Smart Features</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <Star className="h-6 w-6 md:h-8 md:w-8 text-primary mx-auto mb-2" />
+            <CardTitle className="text-base md:text-lg">Smart Features</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Voice commands, smart templates, and automated organization
+          <CardContent className="p-4 md:p-6 pt-0">
+            <p className="text-xs md:text-sm text-muted-foreground">
+              Voice commands, templates, and auto organization
             </p>
           </CardContent>
         </Card>

@@ -37,10 +37,10 @@ const Index = () => {
     const fetchActiveVideos = async () => {
       try {
         console.log("Fetching active videos...");
+        // Use the public_demo_videos view for security - excludes sensitive uploaded_by field
         const { data, error } = await supabase
-          .from('demo_videos')
-          .select('video_url, title, video_type')
-          .eq('is_active', true);
+          .from('public_demo_videos')
+          .select('video_url, title, video_type');
 
         if (data && data.length > 0 && !error) {
           console.log("Active videos found:", data);

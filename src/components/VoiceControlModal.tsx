@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mic, MicOff, Settings, Volume2, VolumeX } from "lucide-react";
 import { processVoiceCommand, VoiceCommand } from "@/utils/voiceCommandProcessor";
-import { getElevenLabsApiKey, setElevenLabsApiKey, VOICE_OPTIONS, getSelectedVoice, setSelectedVoice, stopCurrentSpeech } from "@/utils/textToSpeech";
+import { getElevenLabsApiKey, VOICE_OPTIONS, getSelectedVoice, setSelectedVoice, stopCurrentSpeech } from "@/utils/textToSpeech";
 import { toast } from "sonner";
 
 interface VoiceControlModalProps {
@@ -33,12 +33,9 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number>();
 
+  // API keys are now managed server-side - show info message
   const handleApiKeySetup = () => {
-    const apiKey = prompt('Enter your ElevenLabs API key for premium voice responses:');
-    if (apiKey) {
-      setElevenLabsApiKey(apiKey);
-      toast.success('ElevenLabs API key saved! Premium voices enabled.');
-    }
+    toast.info('API keys are now managed server-side for security. Premium voices are available when configured by the administrator.');
   };
 
   const handleVoiceChange = (voice: string) => {

@@ -66,83 +66,23 @@ export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 // TTS Service type
 export type TTSService = 'elevenlabs' | 'minimax';
 
-// API Key management with improved error handling and logging
-export const getElevenLabsApiKey = (): string | null => {
-  try {
-    const key = localStorage.getItem('elevenlabs_api_key');
-    console.log('🔑 Getting ElevenLabs API key:', key ? 'Found' : 'Not found');
-    return key;
-  } catch (error) {
-    console.error('🚨 Error getting ElevenLabs API key:', error);
-    return null;
-  }
-};
+// API keys are now managed server-side only for security.
+// These stub functions return null to prevent localStorage usage.
 
 /**
- * @deprecated This function stores API keys in localStorage which is INSECURE.
- * API keys are now handled server-side via Supabase Edge Functions.
- * This function is kept for backwards compatibility only.
- * Contact your administrator to configure server-side API keys.
+ * Returns null - API keys are managed server-side via Supabase Edge Functions.
  */
-export const setElevenLabsApiKey = (apiKey: string): void => {
-  try {
-    console.warn('⚠️ DEPRECATED: Storing API keys in localStorage is insecure. Please use server-side configuration.');
-    console.log('🔑 Setting ElevenLabs API key:', apiKey ? 'Key provided' : 'Empty key');
-    if (apiKey.trim()) {
-      localStorage.setItem('elevenlabs_api_key', apiKey.trim());
-      console.log('✅ ElevenLabs API key saved to localStorage');
-      toast.success('Note: API keys are now managed server-side for security');
-    } else {
-      localStorage.removeItem('elevenlabs_api_key');
-      console.log('🗑️ ElevenLabs API key removed from localStorage');
-      toast.success('ElevenLabs API key removed');
-    }
-  } catch (error) {
-    console.error('🚨 Error setting ElevenLabs API key:', error);
-    toast.error('Failed to save ElevenLabs API key');
-  }
+export const getElevenLabsApiKey = (): string | null => {
+  // API keys are managed server-side only
+  return null;
 };
 
 /**
- * @deprecated This function retrieves API keys from localStorage which is INSECURE.
- * API keys are now handled server-side via Supabase Edge Functions.
- * This function is kept for backwards compatibility only.
+ * Returns null - API keys are managed server-side via Supabase Edge Functions.
  */
 export const getMiniMaxApiKey = (): string | null => {
-  try {
-    const key = localStorage.getItem('minimax_api_key');
-    if (key) {
-      console.warn('⚠️ DEPRECATED: Reading API keys from localStorage. Please use server-side configuration.');
-    }
-    console.log('🔑 Getting MiniMax API key:', key ? 'Found' : 'Not found');
-    return key;
-  } catch (error) {
-    console.error('🚨 Error getting MiniMax API key:', error);
-    return null;
-  }
-};
-
-/**
- * @deprecated This function stores API keys in localStorage which is INSECURE.
- * API keys should be configured server-side only.
- * This function is kept for backwards compatibility only.
- */
-export const setMiniMaxApiKey = (apiKey: string): void => {
-  try {
-    console.log('🔑 Setting MiniMax API key:', apiKey ? 'Key provided' : 'Empty key');
-    if (apiKey.trim()) {
-      localStorage.setItem('minimax_api_key', apiKey.trim());
-      console.log('✅ MiniMax API key saved to localStorage');
-      toast.success('MiniMax API key saved successfully');
-    } else {
-      localStorage.removeItem('minimax_api_key');
-      console.log('🗑️ MiniMax API key removed from localStorage');
-      toast.success('MiniMax API key removed');
-    }
-  } catch (error) {
-    console.error('🚨 Error setting MiniMax API key:', error);
-    toast.error('Failed to save MiniMax API key');
-  }
+  // API keys are managed server-side only
+  return null;
 };
 
 // Service preference

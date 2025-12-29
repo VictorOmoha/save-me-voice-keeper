@@ -19,13 +19,30 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic, Database } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Load saved entries for data management
   const [savedEntries, setSavedEntries] = useState<any[]>([]);
+  
+  // Check if user has admin role
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      setIsAdmin(!!data);
+    };
+    checkAdminRole();
+  }, [user]);
   
   useEffect(() => {
     const entries = localStorage.getItem('savedEntries');
@@ -84,10 +101,12 @@ const Settings = () => {
               <Database className="w-4 h-4 mr-2" />
               Data Management
             </TabsTrigger>
-            <TabsTrigger value="admin-videos" className="w-full justify-start">
-              <Video className="w-4 h-4 mr-2" />
-              Demo Videos
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="admin-videos" className="w-full justify-start">
+                <Video className="w-4 h-4 mr-2" />
+                Demo Videos
+              </TabsTrigger>
+            )}
             <TabsTrigger value="help" className="w-full justify-start">
               <HelpCircle className="w-4 h-4 mr-2" />
               Help & Support
@@ -119,9 +138,11 @@ const Settings = () => {
             <TabsContent value="data-management">
               <EnhancedDataManagementSettings />
             </TabsContent>
-            <TabsContent value="admin-videos">
-              <VideoUpload />
-            </TabsContent>
+            {isAdmin && (
+              <TabsContent value="admin-videos">
+                <VideoUpload />
+              </TabsContent>
+            )}
             <TabsContent value="help">
               <EnhancedHelpSupportSettings />
             </TabsContent>

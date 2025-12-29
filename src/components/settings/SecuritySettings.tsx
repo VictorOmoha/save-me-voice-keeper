@@ -24,8 +24,10 @@ export const SecuritySettings = () => {
       return;
     }
 
-    if (passwordForm.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    // Strong password validation: minimum 8 characters with complexity
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{}|;':",.<>\/\\`~])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{}|;':",.<>\/\\`~]{8,}$/;
+    if (!passwordRegex.test(passwordForm.newPassword)) {
+      toast.error("Password must be at least 8 characters with uppercase, lowercase, number, and special character");
       return;
     }
 

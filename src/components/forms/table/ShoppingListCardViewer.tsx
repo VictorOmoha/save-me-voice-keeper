@@ -21,40 +21,35 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!value || !value.columns || value.columns.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
-        No shopping list data available
-      </div>
-    );
-  }
+  // Find relevant columns (safe even if value is null/undefined)
+  const columns = value?.columns || [];
+  const rows = value?.rows || [];
 
-  // Find relevant columns
-  const itemColumn = value.columns.find(col => col.name.toLowerCase().includes('item'));
-  const quantityColumn = value.columns.find(col => col.name.toLowerCase().includes('quantity') || col.name.toLowerCase().includes('qty'));
-  const unitColumn = value.columns.find(col => col.name.toLowerCase().includes('unit'));
-  const priceColumn = value.columns.find(col => col.name.toLowerCase().includes('price') || col.name.toLowerCase().includes('cost'));
-  const categoryColumn = value.columns.find(col => col.name.toLowerCase().includes('category') || col.name.toLowerCase().includes('aisle'));
-  const purchasedColumn = value.columns.find(col => col.name.toLowerCase().includes('purchased') || col.name.toLowerCase().includes('got it') || col.type === 'checkbox');
-  const notesColumn = value.columns.find(col => col.name.toLowerCase().includes('notes') || col.name.toLowerCase().includes('note'));
+  const itemColumn = columns.find(col => col.name.toLowerCase().includes('item'));
+  const quantityColumn = columns.find(col => col.name.toLowerCase().includes('quantity') || col.name.toLowerCase().includes('qty'));
+  const unitColumn = columns.find(col => col.name.toLowerCase().includes('unit'));
+  const priceColumn = columns.find(col => col.name.toLowerCase().includes('price') || col.name.toLowerCase().includes('cost'));
+  const categoryColumn = columns.find(col => col.name.toLowerCase().includes('category') || col.name.toLowerCase().includes('aisle'));
+  const purchasedColumn = columns.find(col => col.name.toLowerCase().includes('purchased') || col.name.toLowerCase().includes('got it') || col.type === 'checkbox');
+  const notesColumn = columns.find(col => col.name.toLowerCase().includes('notes') || col.name.toLowerCase().includes('note'));
 
   const filteredRows = React.useMemo(() => {
-    if (!searchTerm) return value.rows;
-    
-    return value.rows.filter(row =>
+    if (!searchTerm) return rows;
+
+    return rows.filter(row =>
       Object.values(row).some(value =>
         String(value).toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
-  }, [value.rows, searchTerm]);
+  }, [rows, searchTerm]);
 
   // Calculate totals
   const totals = React.useMemo(() => {
     const totalItems = filteredRows.length;
-    const purchasedItems = purchasedColumn 
-      ? filteredRows.filter(row => row[purchasedColumn.id]).length 
+    const purchasedItems = purchasedColumn
+      ? filteredRows.filter(row => row[purchasedColumn.id]).length
       : 0;
-    const totalCost = priceColumn 
+    const totalCost = priceColumn
       ? filteredRows.reduce((sum, row) => sum + (parseFloat(row[priceColumn.id]) || 0), 0)
       : 0;
     const purchasedCost = priceColumn && purchasedColumn
@@ -72,6 +67,15 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
       remainingCost: totalCost - purchasedCost
     };
   }, [filteredRows, priceColumn, purchasedColumn]);
+
+  // Early return AFTER all hooks
+  if (!value || columns.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
+        No shopping list data available
+      </div>
+    );
+  }
 
   const exportToCSV = () => {
     try {

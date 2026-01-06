@@ -119,11 +119,11 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
     if (shouldShowDataInput) {
       // Show data input for filling or editing existing data
       switch (normalizedFieldType) {
-        case 'table':
+        case 'table': {
           // Initialize table data if not present or convert from simple value
           console.log('Processing table field, value:', field.value);
           let tableData: TableData;
-          
+
           if (needsTableConversion) {
             // Convert simple string value to table structure
             tableData = {
@@ -138,10 +138,10 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           } else {
             tableData = field.value || { columns: [], rows: [] };
           }
-          
+
           console.log('Table data after initialization:', tableData);
           console.log('Columns:', tableData.columns, 'Type:', typeof tableData.columns);
-          
+
           return (
             <div className="space-y-4">
               {(tableData.columns && Array.isArray(tableData.columns) && tableData.columns.length === 0) ? (
@@ -162,6 +162,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               )}
             </div>
           );
+        }
         case 'image':
           return (
             <div className="space-y-4">

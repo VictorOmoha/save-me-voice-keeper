@@ -22,13 +22,9 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  if (!value || !value.columns || value.columns.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
-        No table data available
-      </div>
-    );
-  }
+  // Safe access to columns and rows
+  const columns = value?.columns || [];
+  const rows = value?.rows || [];
 
   const handleSort = (columnId: string) => {
     if (sortColumn === columnId) {
@@ -40,7 +36,7 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
   };
 
   const filteredAndSortedRows = React.useMemo(() => {
-    let filtered = value.rows;
+    let filtered = rows;
 
     // Apply search filter
     if (searchTerm) {
@@ -56,23 +52,23 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
       filtered = [...filtered].sort((a, b) => {
         const aVal = a[sortColumn] || '';
         const bVal = b[sortColumn] || '';
-        
-        const column = value.columns.find(col => col.id === sortColumn);
-        
+
+        const column = columns.find(col => col.id === sortColumn);
+
         if (column?.type === 'number') {
           const aNum = parseFloat(String(aVal)) || 0;
           const bNum = parseFloat(String(bVal)) || 0;
           return sortDirection === 'asc' ? aNum - bNum : bNum - aNum;
         }
-        
+
         if (column?.type === 'date') {
           const aDate = new Date(String(aVal));
           const bDate = new Date(String(bVal));
-          return sortDirection === 'asc' 
+          return sortDirection === 'asc'
             ? aDate.getTime() - bDate.getTime()
             : bDate.getTime() - aDate.getTime();
         }
-        
+
         if (column?.type === 'checkbox') {
           const aBool = Boolean(aVal);
           const bBool = Boolean(bVal);
@@ -91,7 +87,16 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
     }
 
     return filtered;
-  }, [value.rows, searchTerm, sortColumn, sortDirection, value.columns]);
+  }, [rows, searchTerm, sortColumn, sortDirection, columns]);
+
+  // Early return AFTER all hooks
+  if (!value || columns.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
+        No table data available
+      </div>
+    );
+  }
 
   const exportToCSV = () => {
     try {

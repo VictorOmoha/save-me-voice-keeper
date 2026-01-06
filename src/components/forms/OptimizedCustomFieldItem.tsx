@@ -48,7 +48,7 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
     }`;
 
     switch (field.type) {
-      case 'table':
+      case 'table': {
         const tableData: TableData = field.value || { columns: [], rows: [] };
         return (
           <div className="space-y-4">
@@ -71,6 +71,7 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
             )}
           </div>
         );
+      }
       case 'textarea':
         return (
           <Textarea

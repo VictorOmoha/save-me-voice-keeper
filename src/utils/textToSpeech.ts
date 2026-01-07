@@ -45,10 +45,21 @@ export const MINIMAX_VOICES = {
   'broadcaster_female': 'Broadcaster Female'
 };
 
+// Google Cloud TTS voices
+export const GOOGLE_VOICES = {
+  'en-US-Neural2-A': 'Male (Neural)',
+  'en-US-Neural2-C': 'Female (Neural)',
+  'en-US-Neural2-D': 'Male (Neural 2)',
+  'en-US-Neural2-F': 'Female (Neural 2)',
+  'en-US-Standard-A': 'Male (Standard)',
+  'en-US-Standard-B': 'Male (Standard 2)',
+  'en-US-Standard-C': 'Female (Standard)',
+} as const;
+
 // Voice options for UI components
 export const VOICE_OPTIONS = {
   'adam': 'Adam',
-  'antoni': 'Antoni', 
+  'antoni': 'Antoni',
   'arnold': 'Arnold',
   'aria': 'Aria',
   'bella': 'Bella',
@@ -64,7 +75,7 @@ export const VOICE_OPTIONS = {
 export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 
 // TTS Service type
-export type TTSService = 'elevenlabs' | 'minimax';
+export type TTSService = 'elevenlabs' | 'minimax' | 'google';
 
 // API keys are now managed server-side only for security.
 // These stub functions return null to prevent localStorage usage.
@@ -88,10 +99,10 @@ export const getMiniMaxApiKey = (): string | null => {
 // Service preference
 export const getSelectedTTSService = (): TTSService => {
   const stored = localStorage.getItem('selected_tts_service');
-  if (stored && ['elevenlabs', 'minimax'].includes(stored)) {
+  if (stored && ['elevenlabs', 'minimax', 'google'].includes(stored)) {
     return stored as TTSService;
   }
-  return 'elevenlabs';
+  return 'google';
 };
 
 export const setSelectedTTSService = (service: TTSService): void => {
@@ -122,6 +133,18 @@ export const setSelectedMiniMaxVoice = (voice: keyof typeof MINIMAX_VOICES): voi
   localStorage.setItem('selected_minimax_voice', voice);
 };
 
+export const getSelectedGoogleVoice = (): keyof typeof GOOGLE_VOICES => {
+  const stored = localStorage.getItem('selected_google_voice');
+  if (stored && stored in GOOGLE_VOICES) {
+    return stored as keyof typeof GOOGLE_VOICES;
+  }
+  return 'en-US-Neural2-F';
+};
+
+export const setSelectedGoogleVoice = (voice: keyof typeof GOOGLE_VOICES): void => {
+  localStorage.setItem('selected_google_voice', voice);
+};
+
 // Improved TTS cache for speech recognition filtering
 const initializeTTSCache = () => {
   if (!(window as any).__recent_tts_texts) {
@@ -132,13 +155,13 @@ const initializeTTSCache = () => {
 const addToTTSCache = (text: string) => {
   initializeTTSCache();
   const cache = (window as any).__recent_tts_texts as string[];
-  
+
   // Add to cache and keep only last 3 items
   cache.unshift(text);
   if (cache.length > 3) {
     cache.splice(3);
   }
-  
+
   // Clear cache after 10 seconds (reduced for faster cleanup)
   setTimeout(() => {
     const index = cache.indexOf(text);
@@ -171,10 +194,10 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   }
 
   console.log('🔊 TTS: Starting speech:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
-  
+
   // Add to TTS cache for speech recognition filtering
   addToTTSCache(text);
-  
+
   // Set global flag and dispatch event BEFORE starting speech
   (window as any).__tts_is_speaking = true;
   window.dispatchEvent(new CustomEvent('tts-started'));
@@ -185,7 +208,7 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     const elevenLabsKey = getElevenLabsApiKey();
     const miniMaxKey = getMiniMaxApiKey();
     const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
-    
+
     console.log('🔧 TTS config:', {
       selectedService,
       hasElevenLabsKey: !!elevenLabsKey,
@@ -200,20 +223,20 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       setSelectedTTSService('elevenlabs');
       effectiveService = 'elevenlabs';
     }
-    
+
     // Determine voice and options
     let voice: string | undefined;
     let options: SpeechOptions | undefined;
-    
+
     if (typeof optionsOrVoice === 'string') {
       voice = optionsOrVoice;
     } else if (typeof optionsOrVoice === 'object') {
       options = optionsOrVoice;
     }
-    
+
     // Try primary service first, then fallback to secondary or browser
     let primaryFailed = false;
-    
+
     // Helper to dispatch completion event
     const dispatchCompleted = () => {
       try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
@@ -231,6 +254,16 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
         return; // Success, exit early
       } catch (error: any) {
         console.warn('⚠️ TTS: ElevenLabs failed, trying fallback:', error?.message || error);
+        primaryFailed = true;
+      }
+    } else if (effectiveService === 'google') {
+      try {
+        console.log('🎙️ TTS: Using Google Cloud TTS (effective)');
+        await speakWithGoogle(text, voice);
+        dispatchCompleted();
+        return; // Success, exit early
+      } catch (error: any) {
+        console.warn('⚠️ TTS: Google Cloud TTS failed, trying fallback:', error?.message || error);
         primaryFailed = true;
       }
     } else if (effectiveService === 'minimax' && miniMaxKey) {
@@ -370,6 +403,56 @@ const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> 
   }
 };
 
+const speakWithGoogle = async (text: string, voice?: string): Promise<void> => {
+  const selectedVoice = voice || getSelectedGoogleVoice();
+  const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
+
+  console.log('🎙️ TTS: Using Google Cloud TTS voice:', selectedVoice);
+
+  try {
+    const { data, error } = await supabase.functions.invoke('google-cloud-tts', {
+      body: {
+        text,
+        voiceName: selectedVoice,
+        languageCode: speechLanguage
+      }
+    });
+
+    if (error) {
+      console.error('🚨 TTS: Google Edge function error:', error);
+      throw new Error(`Google TTS error: ${error.message}`);
+    }
+
+    if (!data || !data.audioContent) {
+      throw new Error('No audio content received from Google TTS');
+    }
+
+    const binaryString = atob(data.audioContent);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        resolve();
+      };
+      audio.onerror = (error) => {
+        URL.revokeObjectURL(audioUrl);
+        reject(error);
+      };
+      audio.play().catch(reject);
+    });
+  } catch (err) {
+    console.error('🚨 TTS: Unexpected error in speakWithGoogle:', err);
+    throw err;
+  }
+};
+
 // Cache for GroupId to avoid repeated JWT parsing
 const groupIdCache = new Map<string, string>();
 
@@ -384,7 +467,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
 
   // Extract GroupId from JWT token with enhanced validation
   let groupId = '';
-  
+
   // Check cache first for performance
   if (groupIdCache.has(apiKey)) {
     groupId = groupIdCache.get(apiKey)!;
@@ -394,35 +477,35 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       // Validate JWT structure
       const jwtParts = apiKey.split('.');
       console.log('🔍 Debug: JWT parts count:', jwtParts.length);
-      
+
       if (jwtParts.length !== 3) {
         throw new Error('Invalid JWT format: expected 3 parts');
       }
 
       console.log('🔍 Debug: JWT header:', jwtParts[0]);
       console.log('🔍 Debug: JWT payload (base64):', jwtParts[1].substring(0, 100) + '...');
-      
+
       const payload = JSON.parse(atob(jwtParts[1]));
       console.log('🔍 Debug: Decoded JWT payload:', JSON.stringify(payload, null, 2));
-      
+
       // Try both GroupID and SubjectID from JWT
       const extractedGroupId = payload.GroupID;
       const subjectId = payload.SubjectID;
-      
+
       console.log('🔍 Debug: Extracted GroupID:', extractedGroupId);
       console.log('🔍 Debug: Extracted SubjectID:', subjectId);
       console.log('🔍 Debug: GroupID type:', typeof extractedGroupId);
       console.log('🔍 Debug: SubjectID type:', typeof subjectId);
-      
+
       // Use GroupID as primary
       groupId = extractedGroupId;
-      
+
       // Validate extracted GroupId
       if (!groupId || typeof groupId !== 'string' || groupId.trim() === '') {
         console.error('🚨 Debug: Invalid GroupId extracted:', { groupId, type: typeof groupId });
         throw new Error('Invalid or missing GroupId in JWT token');
       }
-      
+
       // Cache the GroupId for future use
       groupIdCache.set(apiKey, groupId);
       console.log('🔑 Extracted and cached GroupId from JWT:', groupId);
@@ -454,15 +537,15 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   };
 
   console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));
-  
+
   const startTime = performance.now();
 
   // Try multiple authentication approaches systematically
   console.log('🔍 Trying enhanced MiniMax authentication approaches...');
-  
+
   let response: Response;
   let lastError: string = '';
-  
+
   // Approach 1: GroupID in request body (common for many APIs)
   console.log('🔍 Approach 1: GroupID in request body');
   try {
@@ -471,7 +554,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       group_id: groupId,
       GroupId: groupId
     };
-    
+
     response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -481,14 +564,14 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       },
       body: JSON.stringify(bodyWithGroupId),
     });
-    
+
     if (response.ok) {
       console.log('✅ Approach 1 successful!');
     } else {
       const errorResult = await response.json();
       lastError = `Approach 1: ${errorResult.base_resp?.status_msg || errorResult.status_msg || 'Unknown error'}`;
       console.log('❌ Approach 1 failed:', lastError);
-      
+
       // Approach 2: Try with GroupId URL parameter
       console.log('🔍 Approach 2: GroupId as URL parameter');
       response = await fetch(`${apiUrl}?GroupId=${groupId}`, {
@@ -500,12 +583,12 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
         },
         body: JSON.stringify(requestBody),
       });
-      
+
       if (!response.ok) {
         const errorResult2 = await response.json();
         lastError = `Approach 2: ${errorResult2.base_resp?.status_msg || errorResult2.status_msg || 'Unknown error'}`;
         console.log('❌ Approach 2 failed:', lastError);
-        
+
         // Approach 3: Try alternative endpoint format
         console.log('🔍 Approach 3: Alternative endpoint format');
         const altApiUrl = `https://api.minimax.io/v1/text_to_speech/${groupId}`;
@@ -518,12 +601,12 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
           },
           body: JSON.stringify(requestBody),
         });
-        
+
         if (!response.ok) {
           const errorResult3 = await response.json();
           lastError = `Approach 3: ${errorResult3.base_resp?.status_msg || errorResult3.status_msg || 'Unknown error'}`;
           console.log('❌ Approach 3 failed:', lastError);
-          
+
           // Approach 4: Try with X-Group-ID header (fallback)
           console.log('🔍 Approach 4: X-Group-ID header');
           response = await fetch(apiUrl, {
@@ -536,7 +619,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
             },
             body: JSON.stringify(requestBody),
           });
-          
+
           if (!response.ok) {
             const errorResult4 = await response.json();
             lastError = `All approaches failed. Final: ${errorResult4.base_resp?.status_msg || errorResult4.status_msg || 'Unknown error'}`;
@@ -557,14 +640,14 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   }
 
   console.log('🌐 MiniMax response status:', response.status);
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('🚨 TTS: All MiniMax API approaches failed');
     console.error('🚨 TTS: Last error:', lastError);
     console.error('🚨 TTS: Response status:', response.status);
     console.error('🚨 TTS: Response text:', errorText);
-    
+
     toast.error('MiniMax TTS failed with all authentication methods. Using browser TTS instead.');
     throw new Error(`MiniMax API error: ${lastError}`);
   }
@@ -572,10 +655,10 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
   const result = await response.json();
   const endTime = performance.now();
   const requestDuration = endTime - startTime;
-  
+
   console.log('🔍 MiniMax full response:', JSON.stringify(result, null, 2));
   console.log('⏱️ MiniMax API request duration:', `${requestDuration.toFixed(2)}ms`);
-  
+
   // Check for errors in the response
   if (result.base_resp && result.base_resp.status_code !== 0) {
     console.error('🚨 MiniMax API returned error:', result.base_resp);
@@ -584,7 +667,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       errorCode: result.base_resp.status_code,
       errorMessage: result.base_resp.status_msg
     });
-    
+
     // Handle specific error codes
     if (result.base_resp.status_code === 2049) {
       // Clear cache for this API key since it's invalid
@@ -592,7 +675,7 @@ const speakWithMiniMax = async (text: string): Promise<void> => {
       toast.error('Your MiniMax JWT token is invalid or expired. Please update it in voice settings.');
       throw new Error('MiniMax API error: invalid api key - Please update your JWT token in settings');
     }
-    
+
     throw new Error(`MiniMax API error: ${result.base_resp?.status_msg || 'Unknown error'}`);
   }
 
@@ -652,7 +735,7 @@ const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    
+
     // Configure utterance with options
     utterance.rate = options?.rate || 0.9;
     utterance.pitch = options?.pitch || 1.0;
@@ -669,7 +752,7 @@ const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<
       || voices.find(v => v.lang.startsWith(baseLang))
       || voices.find(v => (v.name.includes('Google') || v.name.includes('Microsoft')) && v.lang.startsWith('en'))
       || voices.find(v => v.lang.startsWith('en'));
-    
+
     if (preferredVoice) {
       utterance.voice = preferredVoice;
       console.log('🎙️ TTS: Using browser voice:', preferredVoice.name, 'lang:', preferredVoice.lang);
@@ -703,16 +786,16 @@ export const testVoice = async (voice: string): Promise<void> => {
 // Stop any ongoing speech - exported for compatibility
 export const stopSpeaking = (): void => {
   console.log('🛑 TTS: Stopping all speech');
-  
+
   // Stop browser TTS
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
-  
+
   // Clear TTS flag and track end time
   (window as any).__tts_is_speaking = false;
   (window as any).__last_tts_end_time = Date.now();
-  
+
   // Dispatch completion event
   window.dispatchEvent(new CustomEvent('tts-completed'));
 };
@@ -751,16 +834,16 @@ export const validateElevenLabsApiKey = async (apiKey: string): Promise<{ valid:
     } else {
       const errorData = await response.json();
       console.error('❌ ElevenLabs API key validation failed:', errorData);
-      return { 
-        valid: false, 
-        error: errorData.detail?.message || `HTTP ${response.status}` 
+      return {
+        valid: false,
+        error: errorData.detail?.message || `HTTP ${response.status}`
       };
     }
   } catch (error) {
     console.error('❌ ElevenLabs API key validation error:', error);
-    return { 
-      valid: false, 
-      error: 'Network error during validation' 
+    return {
+      valid: false,
+      error: 'Network error during validation'
     };
   }
 };
@@ -787,9 +870,9 @@ export const validateMiniMaxApiKey = async (apiKey: string): Promise<{ valid: bo
     return { valid: true };
   } catch (error) {
     console.error('❌ MiniMax JWT validation error:', error);
-    return { 
-      valid: false, 
-      error: 'Invalid JWT token format' 
+    return {
+      valid: false,
+      error: 'Invalid JWT token format'
     };
   }
 };

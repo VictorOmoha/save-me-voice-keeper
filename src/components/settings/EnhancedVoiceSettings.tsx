@@ -69,7 +69,7 @@ export const EnhancedVoiceSettings = () => {
         {/* Speech Recognition */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Speech Recognition</h3>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-medium">Language</Label>
@@ -123,7 +123,7 @@ export const EnhancedVoiceSettings = () => {
         {/* Text-to-Speech */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Text-to-Speech</h3>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <Label className="text-sm font-medium">TTS Service</Label>
@@ -138,12 +138,37 @@ export const EnhancedVoiceSettings = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="browser">Browser</SelectItem>
+                <SelectItem value="google">Google Cloud TTS</SelectItem>
                 <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
                 <SelectItem value="minimax">MiniMax</SelectItem>
+                <SelectItem value="browser">Browser</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {preferences.tts_service === 'google' && (
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm font-medium">Google Cloud Voice</Label>
+                <p className="text-xs text-muted-foreground">Select a high-quality neural voice</p>
+              </div>
+              <Select
+                value={preferences.voice_id || 'en-US-Neural2-F'}
+                onValueChange={(value) => handleUpdatePreference('voice_id', value)}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en-US-Neural2-A">Male (Neural)</SelectItem>
+                  <SelectItem value="en-US-Neural2-C">Female (Neural)</SelectItem>
+                  <SelectItem value="en-US-Neural2-D">Male (Neural 2)</SelectItem>
+                  <SelectItem value="en-US-Neural2-F">Female (Neural 2)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label className="text-sm font-medium">Speech Rate: {preferences.voice_speech_rate}x</Label>
@@ -199,7 +224,7 @@ export const EnhancedVoiceSettings = () => {
             <h3 className="text-lg font-medium">API Configuration</h3>
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">
-                API keys for {preferences.tts_service} should be configured in the project settings for security.
+                API keys for {preferences.tts_service === 'google' ? 'Google Cloud' : preferences.tts_service} should be configured in the project settings for security.
               </p>
             </div>
           </div>

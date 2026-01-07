@@ -9,19 +9,20 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Volume2, Mic, Key, Settings, Play, CheckCircle, AlertCircle } from "lucide-react";
-import { 
-  getElevenLabsApiKey, 
+import {
+  getElevenLabsApiKey,
   getMiniMaxApiKey,
   getSelectedTTSService,
   setSelectedTTSService,
-  VOICE_OPTIONS, 
+  VOICE_OPTIONS,
   MINIMAX_VOICES,
-  getSelectedVoice, 
+  getSelectedVoice,
   setSelectedVoice,
-  getSelectedMiniMaxVoice,
-  setSelectedMiniMaxVoice,
   speak,
   stopCurrentSpeech,
+  GOOGLE_VOICES,
+  getSelectedGoogleVoice,
+  setSelectedGoogleVoice,
   type TTSService
 } from "@/utils/textToSpeech";
 import { toast } from "sonner";
@@ -45,6 +46,7 @@ export const VoiceSettings: React.FC = () => {
   const [selectedTTSService, setSelectedTTSServiceState] = useState<TTSService>('elevenlabs');
   const [selectedVoice, setSelectedVoiceState] = useState<keyof typeof VOICE_OPTIONS>('adam');
   const [selectedMiniMaxVoice, setSelectedMiniMaxVoiceState] = useState<keyof typeof MINIMAX_VOICES>('male-qn-qingse');
+  const [selectedGoogleVoice, setSelectedGoogleVoiceState] = useState<keyof typeof GOOGLE_VOICES>('en-US-Neural2-F');
   const [speechLanguage, setSpeechLanguage] = useState('en-US');
   const [speechRate, setSpeechRate] = useState(0.9);
   const [speechVolume, setSpeechVolume] = useState(0.8);
@@ -57,11 +59,12 @@ export const VoiceSettings: React.FC = () => {
   // Initialize state from localStorage on component mount
   useEffect(() => {
     console.log('🔄 Initializing VoiceSettings state from localStorage');
-    
+
     // API keys are now managed server-side
     setSelectedTTSServiceState(getSelectedTTSService());
     setSelectedVoiceState(getSelectedVoice());
     setSelectedMiniMaxVoiceState(getSelectedMiniMaxVoice());
+    setSelectedGoogleVoiceState(getSelectedGoogleVoice());
     setSpeechLanguage(localStorage.getItem('speech_language') || 'en-US');
     setSpeechRate(parseFloat(localStorage.getItem('speech_rate') || '0.9'));
     setSpeechVolume(parseFloat(localStorage.getItem('speech_volume') || '0.8'));
@@ -72,7 +75,7 @@ export const VoiceSettings: React.FC = () => {
     const cue = getAudioCueSettings();
     setAudioCueEnabled(cue.enabled);
     setAudioCueVolume(cue.volume);
-    
+
     console.log('✅ VoiceSettings state initialized');
   }, []);
 
@@ -96,12 +99,13 @@ export const VoiceSettings: React.FC = () => {
   // Save settings to localStorage
   const saveSettings = () => {
     console.log('💾 Saving voice settings...');
-    
+
     // API keys are now managed server-side - only save voice preferences
     setSelectedTTSService(selectedTTSService);
     setSelectedVoice(selectedVoice);
     setSelectedMiniMaxVoice(selectedMiniMaxVoice);
-    
+    setSelectedGoogleVoice(selectedGoogleVoice);
+
     localStorage.setItem('speech_language', speechLanguage);
     localStorage.setItem('speech_rate', speechRate.toString());
     localStorage.setItem('speech_volume', speechVolume.toString());
@@ -110,7 +114,7 @@ export const VoiceSettings: React.FC = () => {
 
     // Persist audio cue settings
     setAudioCueSettings({ enabled: audioCueEnabled, volume: audioCueVolume });
-    
+
     console.log('✅ Voice settings saved successfully');
     toast.success('Voice settings saved successfully!');
   };
@@ -119,27 +123,29 @@ export const VoiceSettings: React.FC = () => {
   const testVoice = async () => {
     setIsTestingVoice(true);
     stopCurrentSpeech();
-    
+
     try {
       const testText = "Hello! This is a test of your voice settings. How does this sound?";
       console.log('🎙️ Testing voice with current TTS service:', selectedTTSService);
-      
+
       if (selectedTTSService === 'elevenlabs') {
         console.log('🎙️ Testing ElevenLabs voice with:', selectedVoice);
       } else if (selectedTTSService === 'minimax') {
         console.log('🎙️ Testing MiniMax voice with:', selectedMiniMaxVoice);
+      } else if (selectedTTSService === 'google') {
+        console.log('🎙️ Testing Google Cloud voice with:', selectedGoogleVoice);
       } else {
         console.log('🎙️ Testing browser voice');
       }
-      
+
       await speak(testText, {
         rate: speechRate,
         pitch: 1,
         volume: speechVolume
       });
-      
+
       toast.success('Voice test completed!');
-      
+
     } catch (error) {
       console.error('🚨 Voice test failed:', error);
       toast.error('Voice test failed. Please check your settings.');
@@ -151,20 +157,22 @@ export const VoiceSettings: React.FC = () => {
   // Reset to defaults
   const resetToDefaults = () => {
     console.log('🔄 Resetting voice settings to defaults');
-    setSelectedTTSServiceState('elevenlabs');
+    setSelectedTTSServiceState('google');
     setSelectedVoiceState('adam');
     setSelectedMiniMaxVoiceState('male-qn-qingse');
+    setSelectedGoogleVoiceState('en-US-Neural2-F');
     setSpeechLanguage('en-US');
     setSpeechRate(0.9);
     setSpeechVolume(0.8);
     setAutoSpeak(false);
     setContinuousListening(false);
-    
+
     // Save defaults to localStorage immediately
-    setSelectedTTSService('elevenlabs');
+    setSelectedTTSService('google');
     setSelectedVoice('adam');
     setSelectedMiniMaxVoice('male-qn-qingse');
-    
+    setSelectedGoogleVoice('en-US-Neural2-F');
+
     toast.info('Settings reset to defaults');
   };
 
@@ -182,6 +190,14 @@ export const VoiceSettings: React.FC = () => {
     setSelectedMiniMaxVoiceState(voiceKey);
     setSelectedMiniMaxVoice(voiceKey); // Save immediately to localStorage
     toast.success(`MiniMax voice changed to ${MINIMAX_VOICES[voiceKey]}`);
+  };
+
+  const handleGoogleVoiceChange = (voice: string) => {
+    const voiceKey = voice as keyof typeof GOOGLE_VOICES;
+    console.log('🎙️ Google voice changed to:', voiceKey, 'Name:', GOOGLE_VOICES[voiceKey]);
+    setSelectedGoogleVoiceState(voiceKey);
+    setSelectedGoogleVoice(voiceKey); // Save immediately
+    toast.success(`Google voice changed to ${GOOGLE_VOICES[voiceKey]}`);
   };
 
   const hasElevenLabsKey = !!getElevenLabsApiKey();
@@ -301,6 +317,12 @@ export const VoiceSettings: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="google">
+                      <div className="flex items-center justify-between w-full">
+                        <span>Google Cloud TTS</span>
+                        <Badge variant="secondary" className="ml-2 text-xs">Primary</Badge>
+                      </div>
+                    </SelectItem>
                     <SelectItem value="elevenlabs">
                       <div className="flex items-center justify-between w-full">
                         <span>ElevenLabs</span>
@@ -331,7 +353,7 @@ export const VoiceSettings: React.FC = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                API keys for ElevenLabs and MiniMax are now managed server-side for security.
+                API keys for Google Cloud, ElevenLabs and MiniMax are now managed server-side for security.
                 Contact your administrator to configure voice services.
               </p>
             </CardContent>
@@ -384,6 +406,27 @@ export const VoiceSettings: React.FC = () => {
                 </div>
               )}
 
+              {selectedTTSService === 'google' && (
+                <div className="space-y-2">
+                  <Label>Google Cloud Voice</Label>
+                  <Select value={selectedGoogleVoice} onValueChange={handleGoogleVoiceChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(GOOGLE_VOICES).map(([key, name]) => (
+                        <SelectItem key={key} value={key}>
+                          {name} ({key})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Current selection: {GOOGLE_VOICES[selectedGoogleVoice]}
+                  </p>
+                </div>
+              )}
+
 
               <div className="space-y-2">
                 <Label>Speech Rate: {speechRate.toFixed(1)}x</Label>
@@ -409,7 +452,7 @@ export const VoiceSettings: React.FC = () => {
                 />
               </div>
 
-              <Button 
+              <Button
                 onClick={testVoice}
                 disabled={isTestingVoice}
                 variant="outline"
@@ -449,7 +492,7 @@ export const VoiceSettings: React.FC = () => {
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={resetToDefaults}
                 variant="outline"
                 className="w-full"

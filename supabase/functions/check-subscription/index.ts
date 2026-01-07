@@ -45,7 +45,7 @@ serve(async (req) => {
 
     // Check subscriptions
     const subscriptions = await stripe.subscriptions.list({ customer: customerId, limit: 1 });
-    const hasActive = subscriptions.data.some((s) => s.status === 'active');
+    const hasActive = subscriptions.data.some((s: { status: string }) => s.status === 'active');
 
     // Update subscribers table with current info
     await supabaseService.from('subscribers').upsert({

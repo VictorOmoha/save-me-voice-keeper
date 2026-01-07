@@ -207,7 +207,7 @@ Process this voice command: "${transcript}"`;
     console.error('Error in voice-ai-processor:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         intent: 'unknown',
         conversationalResponse: 'Sorry, I encountered an error processing your request. Please try again.'
       }),

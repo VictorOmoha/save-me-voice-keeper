@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Invalid JSON in request body',
-          details: parseError.message,
+          details: parseError instanceof Error ? parseError.message : String(parseError),
           fallback: 'browser_tts'
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         fallback: 'browser_tts',
         timestamp: new Date().toISOString()
       }),

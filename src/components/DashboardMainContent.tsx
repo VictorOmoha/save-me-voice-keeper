@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, Users, Shield, Zap, Star, Table, Grid3X3 } from "lucide-react";
+import { Plus, FileText, Users, Shield, Zap, Star, Table, Grid3X3, Heart, DollarSign, User, LucideIcon } from "lucide-react";
 import { RecentEntries } from "@/components/RecentEntries";
 import { EnhancedRecentEntries } from "@/components/entries";
 import { StatsCards } from "@/components/StatsCards";
@@ -46,12 +46,12 @@ interface DashboardMainContentProps {
   onViewDocument?: (entry: SavedEntry) => void;
 }
 
-const categories = [
-  { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
-  { name: 'Health', icon: '🏥', description: 'Medical records, prescriptions, appointments' },
-  { name: 'Contacts', icon: '👥', description: 'People, businesses, emergency contacts' },
-  { name: 'Finance', icon: '💰', description: 'Bank info, investments, insurance' },
-  { name: 'Personal', icon: '👤', description: 'Personal notes, memories, goals' },
+const categories: { name: string; icon: LucideIcon; description: string }[] = [
+  { name: 'Documents', icon: FileText, description: 'Official papers, certificates, contracts' },
+  { name: 'Health', icon: Heart, description: 'Medical records, prescriptions, appointments' },
+  { name: 'Contacts', icon: Users, description: 'People, businesses, emergency contacts' },
+  { name: 'Finance', icon: DollarSign, description: 'Bank info, investments, insurance' },
+  { name: 'Personal', icon: User, description: 'Personal notes, memories, goals' },
 ];
 
 export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
@@ -211,11 +211,13 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
             return (
               <Card
                 key={category.name}
-                className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/50"
+                className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/50 group"
                 onClick={() => onCategorySelect(category.name)}
               >
                 <CardHeader className="text-center p-3 md:p-4 pb-1 md:pb-2">
-                  <div className="text-2xl md:text-3xl mb-1 md:mb-2">{category.icon}</div>
+                  <div className="flex justify-center mb-1 md:mb-2">
+                    <category.icon className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
                   <CardTitle className="text-sm md:text-lg">{category.name}</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center p-3 md:p-4 pt-0">

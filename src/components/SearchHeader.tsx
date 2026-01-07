@@ -10,20 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Settings, Brain, LogOut, User, CreditCard, HelpCircle } from "lucide-react";
+import { Plus, Brain, LogOut, User, CreditCard, HelpCircle, ChevronRight } from "lucide-react";
 import { SmartSearchWithBoundary as SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { ThemeToggle } from "./ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -94,119 +85,120 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
     return items;
   })();
   return (
-    <div className="bg-background border-b border-border px-6 py-4">
+    <div className="bg-background border-b border-galvanized px-6 py-4">
       <div className="flex items-center justify-between max-w-7xl mx-auto">
-        {/* Logo/Title */}
-        <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-foreground">SaveMe</h1>
+        {/* Logo/Title - Skeletal */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="SAVEME" className="w-6 h-6 object-contain" />
+            <span className="mono text-foreground font-bold text-sm tracking-wider">
+              SAVEME
+            </span>
+          </div>
           {userName && (
-            <span className="text-muted-foreground">Welcome, {userName}</span>
+            <span className="mono text-xs text-muted-foreground tracking-wide">
+              :: {userName.split(' ')[0].toUpperCase()}
+            </span>
           )}
         </div>
 
-        {/* Smart Search Bar */}
+        {/* Smart Search Bar - Skeletal */}
         <div className="flex-1 max-w-md mx-6">
-          <SmartSearch 
+          <SmartSearch
             entries={savedEntries}
-            searchQuery={searchQuery} 
+            searchQuery={searchQuery}
             onSearchChange={onSearchChange}
             onEntrySelect={handleEntrySelect}
-            placeholder="🔍 Search with AI intelligence..."
-            className="w-full"
+            placeholder="SEARCH_ARCHIVE..."
+            className="w-full input-skeletal"
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center space-x-3">
-          <ThemeToggle />
-          <Button asChild variant="outline" size="sm">
-            <Link to="/brain-dump" className="flex items-center gap-2" aria-label="Open Brain Dump">
-              <Brain className="w-4 h-4" />
-              Brain Dump
-            </Link>
-          </Button>
-          <Button
-            onClick={onAllEntriesSelect}
-            variant="outline"
-            size="sm"
+        {/* Actions - Skeletal */}
+        <div className="flex items-center gap-2">
+          <Link
+            to="/brain-dump"
+            className="btn-galvanized btn-galvanized-secondary"
+            aria-label="Open Brain Dump"
           >
-            All Entries
-          </Button>
-          <Button
+            <Brain className="w-4 h-4" />
+            <span className="hidden sm:inline">BRAIN_DUMP</span>
+          </Link>
+          <button
+            onClick={onAllEntriesSelect}
+            className="btn-galvanized btn-galvanized-secondary"
+          >
+            ALL_ENTRIES
+          </button>
+          <button
             onClick={onAddEntry}
-            size="sm"
-            className="flex items-center space-x-2"
+            className="btn-galvanized btn-galvanized-primary"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Entry</span>
-          </Button>
+            <span>ADD_ENTRY</span>
+          </button>
 
-          {/* User Menu Dropdown */}
+          {/* User Menu Dropdown - Skeletal */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                    {userInitials}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
+              <button className="w-9 h-9 border border-galvanized bg-card flex items-center justify-center hover:border-primary transition-colors">
+                <span className="mono text-xs font-bold text-primary">
+                  {userInitials}
+                </span>
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{userName || 'User'}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    Manage your account
+            <DropdownMenuContent className="w-56 bg-card border border-galvanized" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal border-b border-galvanized pb-2">
+                <div className="flex flex-col gap-1">
+                  <p className="mono text-sm font-bold text-foreground">{userName || 'USER'}</p>
+                  <p className="mono text-xs text-muted-foreground">
+                    ACCOUNT_MANAGEMENT
                   </p>
                 </div>
               </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <DropdownMenuSeparator className="bg-galvanized" />
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="mono text-xs cursor-pointer hover:bg-primary/10">
                 <User className="mr-2 h-4 w-4" />
-                <span>Profile & Settings</span>
+                <span>PROFILE_SETTINGS</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/subscription')}>
+              <DropdownMenuItem onClick={() => navigate('/subscription')} className="mono text-xs cursor-pointer hover:bg-primary/10">
                 <CreditCard className="mr-2 h-4 w-4" />
-                <span>Subscription</span>
+                <span>SUBSCRIPTION</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/user-guide')}>
+              <DropdownMenuItem onClick={() => navigate('/user-guide')} className="mono text-xs cursor-pointer hover:bg-primary/10">
                 <HelpCircle className="mr-2 h-4 w-4" />
-                <span>Help & Guide</span>
+                <span>HELP_GUIDE</span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600">
+              <DropdownMenuSeparator className="bg-galvanized" />
+              <DropdownMenuItem onClick={handleSignOut} className="mono text-xs cursor-pointer text-red-500 hover:text-red-400 hover:bg-red-500/10">
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign out</span>
+                <span>SIGN_OUT</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-      
-      <div className="max-w-7xl mx-auto mt-2">
-        <Breadcrumb>
-          <BreadcrumbList>
-            {breadcrumbs.map((item, idx) => (
-              <span key={`${item.label}-${idx}`} className="contents">
-                <BreadcrumbItem>
-                  {item.to && idx !== breadcrumbs.length - 1 ? (
-                    <BreadcrumbLink asChild>
-                      <Link to={item.to}>{item.label}</Link>
-                    </BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
-                {idx < breadcrumbs.length - 1 && (
-                  <BreadcrumbSeparator />
-                )}
-              </span>
-            ))}
-          </BreadcrumbList>
-        </Breadcrumb>
+
+      {/* Breadcrumbs - Skeletal */}
+      <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-galvanized">
+        <div className="flex items-center gap-2 mono text-xs text-muted-foreground">
+          {breadcrumbs.map((item, idx) => (
+            <span key={`${item.label}-${idx}`} className="flex items-center gap-2">
+              {item.to && idx !== breadcrumbs.length - 1 ? (
+                <Link to={item.to} className="hover:text-primary transition-colors">
+                  {item.label.toUpperCase()}
+                </Link>
+              ) : (
+                <span className="text-foreground">{item.label.toUpperCase()}</span>
+              )}
+              {idx < breadcrumbs.length - 1 && (
+                <ChevronRight className="w-3 h-3" />
+              )}
+            </span>
+          ))}
+        </div>
       </div>
-      
+
       <EntryViewDialog
         entry={viewingEntry}
         isOpen={!!viewingEntry}

@@ -1,7 +1,5 @@
 
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { FileText, FolderOpen, HardDrive, Activity } from "lucide-react";
 import { SavedEntry } from "@/types/dashboard";
 import { useStorageStats } from "@/hooks/useStorageStats";
@@ -36,84 +34,81 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, u
     } catch (e) {
       // no-op
     }
-    // Only react to percentage changes
   }, [storageStats.percentage, storageStats.totalUsedFormatted, storageStats.limitFormatted]);
 
   const stats = [
     {
-      title: "Total Entries",
+      id: "0x001",
+      title: "TOTAL_ENTRIES",
       value: totalEntries.toString(),
-      subtitle: "+2 13% from last month",
+      subtitle: "RECORDS_IN_ARCHIVE",
       icon: FileText,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20"
     },
     {
-      title: "Categories",
+      id: "0x002",
+      title: "CATEGORIES",
       value: "5",
-      subtitle: "Organized collections",
+      subtitle: "ORGANIZED_COLLECTIONS",
       icon: FolderOpen,
-      color: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-50 dark:bg-green-900/20"
     },
     {
-      title: "Storage Used",
+      id: "0x003",
+      title: "STORAGE_USED",
       value: storageStats.totalUsedFormatted,
-      subtitle: `of ${storageStats.limitFormatted} available`,
+      subtitle: `OF ${storageStats.limitFormatted} AVAILABLE`,
       icon: HardDrive,
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20",
       showProgress: true,
       progress: storageStats.percentage
     },
     {
-      title: "Recent Activity",
+      id: "0x004",
+      title: "RECENT_ACTIVITY",
       value: recentActivityCount.toString(),
-      value_subtitle: "entries this week",
+      subtitle: "ENTRIES_THIS_WEEK",
       icon: Activity,
-      color: "text-orange-600 dark:text-orange-400",
-      bgColor: "bg-orange-50 dark:bg-orange-900/20"
     }
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
           <div
-            key={stat.title}
-            className="transform transition-all duration-300 ease-in-out hover:scale-105 hover:-translate-y-1"
+            key={stat.id}
+            className="skeleton-cell group cursor-pointer reveal"
+            data-id={stat.id}
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            <Card className="hover:shadow-xl transition-all duration-300 ease-in-out border hover:border-primary/30 group cursor-pointer animate-fade-in h-full">
-              <CardContent className="p-3 md:p-6">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0 transition-all duration-300 ease-in-out">
-                    <p className="text-xs md:text-sm font-medium text-muted-foreground mb-1 transition-colors duration-200 group-hover:text-primary truncate">
-                      {stat.title}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="mono text-xs text-muted-foreground mb-2 tracking-wider">
+                  {stat.title}
+                </p>
+                <p className="mono text-2xl md:text-3xl font-bold text-primary mb-1 group-hover:animate-pulse">
+                  {stat.value}
+                </p>
+                <p className="mono text-xs text-muted-foreground">
+                  {stat.subtitle}
+                </p>
+                {stat.showProgress && (
+                  <div className="mt-3">
+                    <div className="h-1 bg-zinc-800 overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-500"
+                        style={{ width: `${stat.progress}%` }}
+                      />
+                    </div>
+                    <p className="mono text-xs text-muted-foreground mt-1">
+                      {stat.progress}%
                     </p>
-                    <p className="text-lg md:text-2xl font-bold text-card-foreground mb-0.5 md:mb-1 transition-all duration-300 ease-in-out group-hover:scale-105">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs md:text-sm text-muted-foreground transition-colors duration-200 group-hover:text-foreground/80 line-clamp-1">
-                      {stat.subtitle || stat.value_subtitle}
-                    </p>
-                    {stat.showProgress && (
-                      <div className="mt-2 transition-all duration-300 ease-in-out">
-                        <Progress value={stat.progress} className="h-1.5 md:h-2 transition-all duration-500 ease-in-out" />
-                        <p className="text-xs text-muted-foreground mt-1 transition-colors duration-200 group-hover:text-foreground/70">
-                          {stat.progress}%
-                        </p>
-                      </div>
-                    )}
                   </div>
-                  <div className={`w-8 h-8 md:w-12 md:h-12 rounded-lg ${stat.bgColor} flex items-center justify-center shrink-0 transition-all duration-300 ease-in-out group-hover:scale-110 group-hover:rotate-3`}>
-                    <Icon className={`w-4 h-4 md:w-6 md:h-6 ${stat.color} transition-all duration-300 ease-in-out group-hover:scale-110`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                )}
+              </div>
+              <div className="w-10 h-10 border border-galvanized flex items-center justify-center shrink-0 group-hover:border-primary transition-colors">
+                <Icon className="w-5 h-5 text-primary" />
+              </div>
+            </div>
           </div>
         );
       })}

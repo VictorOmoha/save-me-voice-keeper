@@ -1,9 +1,5 @@
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, FileText, Users, Shield, Zap, Star, Table, Grid3X3, Heart, DollarSign, User, LucideIcon } from "lucide-react";
-import { RecentEntries } from "@/components/RecentEntries";
+import { FileText, Users, Shield, Zap, Star, Table, Grid3X3, Heart, DollarSign, User, LucideIcon } from "lucide-react";
 import { EnhancedRecentEntries } from "@/components/entries";
 import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
@@ -110,123 +106,121 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* Welcome Section */}
-      <div className="text-center px-2">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
-          Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}!
-          {userTier && (
-            <Badge variant="secondary" className="ml-2 text-xs">
-              {userTier}
-            </Badge>
-          )}
+    <div className="space-y-8">
+      {/* Welcome Section - Skeletal */}
+      <div className="text-center reveal">
+        <div className="protocol-tag mb-4">PROTOCOL: DATA_MANAGEMENT</div>
+        <h1 className="archive-title text-2xl md:text-3xl mb-3">
+          WELCOME_BACK{userName ? `::${userName.split(' ')[0].toUpperCase()}` : ''}
         </h1>
-        <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
-          Securely store and manage your important information
+        {userTier && (
+          <span className="badge-skeletal">
+            TIER::{userTier.toUpperCase()}
+          </span>
+        )}
+        <p className="mono text-sm text-muted-foreground mt-3">
+          SECURE ARCHIVE SYSTEM :: ALL TRANSMISSIONS ENCRYPTED
         </p>
       </div>
 
       {/* Quick Actions */}
-<NewQuickActions
-  onAddEntry={onAddEntry}
-  onVoiceInput={() => {}}
-  onEnhancedVoiceInput={onEnhancedVoiceInput}
-  onCreateDocument={onCreateDocument}
-  isVoiceProcessing={isVoiceProcessing}
-  lastVoiceCommand={lastVoiceCommand}
-  conversationState={conversationState}
-  hasPendingConfirmation={hasPendingConfirmation}
-  onCancelVoice={onCancelVoice}
-  conversationData={conversationData}
-  entries={savedEntries}
-  searchQuery={searchQuery}
-  onSearchChange={onSearchChange}
-  onEntrySelect={onViewDocument}
-/>
+      <NewQuickActions
+        onAddEntry={onAddEntry}
+        onVoiceInput={() => {}}
+        onEnhancedVoiceInput={onEnhancedVoiceInput}
+        onCreateDocument={onCreateDocument}
+        isVoiceProcessing={isVoiceProcessing}
+        lastVoiceCommand={lastVoiceCommand}
+        conversationState={conversationState}
+        hasPendingConfirmation={hasPendingConfirmation}
+        onCancelVoice={onCancelVoice}
+        conversationData={conversationData}
+        entries={savedEntries}
+        searchQuery={searchQuery}
+        onSearchChange={onSearchChange}
+        onEntrySelect={onViewDocument}
+      />
 
       {/* Stats Cards */}
-      <StatsCards 
+      <StatsCards
         totalEntries={savedEntries.length}
         entries={savedEntries}
         userTier={userTier}
       />
 
-      {/* View All Entries - Prominent Access */}
+      {/* View All Entries - Skeletal */}
       {savedEntries.length > 0 && (
-        <Card className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
-          <CardHeader className="p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary/10 rounded-lg shrink-0">
-                  <Table className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg md:text-xl">View All Entries</CardTitle>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Browse and manage all your saved data</p>
-                </div>
+        <div className="skeleton-cell" data-id="0x100">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 border border-galvanized flex items-center justify-center">
+                <Table className="w-6 h-6 text-primary" />
               </div>
-              <Badge variant="secondary" className="text-sm md:text-lg px-2 md:px-3 py-1 w-fit">
-                {savedEntries.length} entries
-              </Badge>
+              <div>
+                <h3 className="mono text-lg font-bold text-foreground">VIEW_ALL_ENTRIES</h3>
+                <p className="mono text-xs text-muted-foreground">BROWSE AND MANAGE YOUR SAVED DATA</p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="hidden sm:flex items-center space-x-4 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-1">
-                  <Grid3X3 className="h-4 w-4" />
-                  <span>Sortable</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <FileText className="h-4 w-4" />
-                  <span>Bulk actions</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Users className="h-4 w-4" />
-                  <span>Export</span>
-                </div>
-              </div>
-              <Button
+            <div className="flex items-center gap-4">
+              <span className="badge-skeletal">
+                {savedEntries.length} RECORDS
+              </span>
+              <button
                 onClick={onViewAllEntries}
-                className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
+                className="btn-galvanized btn-galvanized-primary"
               >
-                <Table className="h-4 w-4 mr-2" />
-                Open Table View
-              </Button>
+                <Table className="w-4 h-4" />
+                OPEN_TABLE_VIEW
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="hidden sm:flex items-center gap-6 mt-4 pt-4 border-t border-galvanized mono text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Grid3X3 className="w-4 h-4" />
+              <span>SORTABLE</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              <span>BULK_ACTIONS</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span>EXPORT</span>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Categories Grid */}
+      {/* Categories Grid - Skeletal */}
       <div>
-        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-foreground mb-4 md:mb-6">Browse by Category</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-          {categories.map((category) => {
+        <h2 className="mono text-xs text-muted-foreground tracking-wider mb-4">BROWSE_BY_CATEGORY</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {categories.map((category, index) => {
             const categoryEntries = savedEntries.filter(entry => {
               const entryCategory = entry.fields.category || 'Personal';
               return entryCategory === category.name;
             });
 
             return (
-              <Card
+              <div
                 key={category.name}
-                className="cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/50 group"
+                className="category-card-skeletal group reveal"
                 onClick={() => onCategorySelect(category.name)}
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <CardHeader className="text-center p-3 md:p-4 pb-1 md:pb-2">
-                  <div className="flex justify-center mb-1 md:mb-2">
-                    <category.icon className="h-6 w-6 md:h-8 md:w-8 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </div>
-                  <CardTitle className="text-sm md:text-lg">{category.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center p-3 md:p-4 pt-0">
-                  <p className="text-xs md:text-sm text-muted-foreground mb-2 line-clamp-2 hidden sm:block">{category.description}</p>
-                  <Badge variant="outline" className="text-xs">
-                    {categoryEntries.length}
-                  </Badge>
-                </CardContent>
-              </Card>
+                <div className="w-10 h-10 border border-galvanized flex items-center justify-center mb-3 group-hover:border-primary transition-colors">
+                  <category.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <h3 className="mono text-sm font-bold text-foreground mb-1">
+                  {category.name.toUpperCase()}
+                </h3>
+                <p className="mono text-xs text-muted-foreground mb-3 line-clamp-2 hidden sm:block">
+                  {category.description}
+                </p>
+                <span className="badge-skeletal">
+                  {categoryEntries.length}
+                </span>
+              </div>
             );
           })}
         </div>
@@ -245,43 +239,37 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         showViewToggle={true}
       />
 
-      {/* Features Preview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 pt-6 md:pt-8 border-t border-border">
-        <Card className="text-center">
-          <CardHeader className="p-4 md:p-6">
-            <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-base md:text-lg">Secure Storage</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0">
-            <p className="text-xs md:text-sm text-muted-foreground">
-              Your data is encrypted and stored securely
-            </p>
-          </CardContent>
-        </Card>
+      {/* Features Preview - Skeletal */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 border-t border-galvanized">
+        <div className="skeleton-cell text-center reveal" data-id="F001">
+          <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="mono text-sm font-bold text-foreground mb-2">SECURE_STORAGE</h3>
+          <p className="mono text-xs text-muted-foreground">
+            YOUR DATA IS ENCRYPTED AND STORED SECURELY
+          </p>
+        </div>
 
-        <Card className="text-center">
-          <CardHeader className="p-4 md:p-6">
-            <Zap className="h-6 w-6 md:h-8 md:w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-base md:text-lg">Quick Access</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0">
-            <p className="text-xs md:text-sm text-muted-foreground">
-              Find what you need instantly with powerful search
-            </p>
-          </CardContent>
-        </Card>
+        <div className="skeleton-cell text-center reveal" data-id="F002" style={{ animationDelay: '100ms' }}>
+          <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4">
+            <Zap className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="mono text-sm font-bold text-foreground mb-2">QUICK_ACCESS</h3>
+          <p className="mono text-xs text-muted-foreground">
+            FIND WHAT YOU NEED INSTANTLY WITH POWERFUL SEARCH
+          </p>
+        </div>
 
-        <Card className="text-center">
-          <CardHeader className="p-4 md:p-6">
-            <Star className="h-6 w-6 md:h-8 md:w-8 text-primary mx-auto mb-2" />
-            <CardTitle className="text-base md:text-lg">Smart Features</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6 pt-0">
-            <p className="text-xs md:text-sm text-muted-foreground">
-              Voice commands, templates, and auto organization
-            </p>
-          </CardContent>
-        </Card>
+        <div className="skeleton-cell text-center reveal" data-id="F003" style={{ animationDelay: '200ms' }}>
+          <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4">
+            <Star className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="mono text-sm font-bold text-foreground mb-2">SMART_FEATURES</h3>
+          <p className="mono text-xs text-muted-foreground">
+            VOICE COMMANDS, TEMPLATES, AND AUTO ORGANIZATION
+          </p>
+        </div>
       </div>
 
       {/* Floating Voice Input - Always Available */}

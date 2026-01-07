@@ -7,7 +7,7 @@ export const getCategoryName = (entry: SavedEntry) => {
   if (entry.fields?.category) {
     return entry.fields.category;
   }
-  
+
   // Fallback to title-based categorization
   const titleLower = entry.title.toLowerCase();
   if (titleLower.includes('document') || titleLower.includes('paper')) return 'Documents';
@@ -28,11 +28,11 @@ export const getCategoryIcon = (entry: SavedEntry) => {
 
 export const getCategoryColor = (entry: SavedEntry) => {
   const categoryName = getCategoryName(entry).toLowerCase();
-  if (categoryName.includes('document')) return 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
-  if (categoryName.includes('health') || categoryName.includes('medical')) return 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-  if (categoryName.includes('contact')) return 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400';
-  if (categoryName.includes('finance') || categoryName.includes('bank')) return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400';
-  return 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
+  if (categoryName.includes('document')) return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+  if (categoryName.includes('health') || categoryName.includes('medical')) return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
+  if (categoryName.includes('contact')) return 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20';
+  if (categoryName.includes('finance') || categoryName.includes('bank')) return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20';
+  return 'bg-primary/10 text-primary border border-primary/20';
 };
 
 export const getEntryType = (entry: SavedEntry): string => {

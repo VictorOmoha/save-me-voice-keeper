@@ -5,96 +5,113 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+/* ========================================
+   SKELETAL ARCHIVE DESIGN SYSTEM
+   A galvanized framework for data preservation
+   ======================================== */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Zinc Color Palette - Skeletal Archive */
+    --zinc-50: 210 40% 98%;
+    --zinc-100: 210 40% 96%;
+    --zinc-200: 214 32% 91%;
+    --zinc-300: 213 27% 84%;
+    --zinc-400: 215 20% 65%;
+    --zinc-500: 215 16% 47%;
+    --zinc-600: 215 19% 35%;
+    --zinc-700: 215 25% 27%;
+    --zinc-800: 217 33% 17%;
+    --zinc-900: 222 47% 11%;
+    --zinc-950: 229 84% 5%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Accent - Cyan/Sky Blue */
+    --accent-color: 199 89% 48%;
+    --accent-glow: 199 89% 58%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Skeletal Archive is ALWAYS dark - this is the design */
+    --background: 229 84% 5%;
+    --foreground: 213 27% 84%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 213 27% 84%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 213 27% 84%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 229 84% 5%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 96%;
 
-    --radius: 0.5rem;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 96%;
 
-    /* Brand gradients using semantic colors */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(217.2 91.2% 59.8%));
-    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--accent)));
-    --gradient-accent: linear-gradient(135deg, hsl(217.2 91.2% 59.8%), hsl(196 91% 59%));
-    --gradient-background: linear-gradient(135deg, hsl(217.2 32% 91%), hsl(213 27% 84%), hsl(193 43% 67%));
+    --border: 215 25% 20%;
+    --input: 217 33% 17%;
+    --ring: 199 89% 48%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --radius: 0;
+
+    /* Sidebar - Skeletal */
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 213 27% 84%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 229 84% 5%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 215 25% 18%;
+    --sidebar-ring: 199 89% 48%;
+
+    /* Typography */
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
   }
 
   .dark {
-    --background: 220 15% 8%;
-    --foreground: 210 40% 98%;
+    /* Dark mode uses same values - Skeletal Archive is inherently dark */
+    --background: 229 84% 5%;
+    --foreground: 213 27% 84%;
 
-    --card: 220 15% 12%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 213 27% 84%;
 
-    --popover: 220 15% 12%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 213 27% 84%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 229 84% 5%;
 
-    --secondary: 220 15% 16%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 220 15% 16%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 220 15% 16%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 96%;
 
-    --destructive: 0 62.8% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 210 40% 96%;
 
-    --border: 220 15% 18%;
-    --input: 220 15% 16%;
-    --ring: 217.2 91.2% 59.8%;
+    --border: 215 25% 18%;
+    --input: 217 33% 17%;
+    --ring: 199 89% 48%;
 
-    --sidebar-background: 220 15% 10%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 222.2 84% 4.9%;
-    --sidebar-accent: 220 15% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 220 15% 18%;
-    --gradient-background: linear-gradient(135deg, hsl(220 15% 12%), hsl(220 15% 14%), hsl(220 15% 16%));
-    
-    /* Dark mode gradient with darker blues for better contrast with light text */
-    --gradient-primary: linear-gradient(135deg, hsl(217.2 91.2% 35%), hsl(217.2 91.2% 45%));
+    --sidebar-background: 222 47% 5%;
+    --sidebar-foreground: 213 27% 84%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 229 84% 5%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 215 25% 15%;
   }
 }
 
@@ -103,8 +120,485 @@
     @apply border-border;
   }
 
+  html {
+    font-family: var(--font-sans);
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    line-height: 1.4;
+  }
+
+  /* NOISE TEXTURE OVERLAY - Galvanized effect */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.03;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* Remove default border-radius from all elements for industrial aesthetic */
+  button, input, textarea, select {
+    border-radius: 0 !important;
   }
 }
 
+@layer components {
+  /* GRID BLUEPRINT BACKGROUND */
+  .grid-blueprint {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, hsla(215, 20%, 65%, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, hsla(215, 20%, 65%, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* PROTOCOL TAG */
+  .protocol-tag {
+    font-family: var(--font-mono);
+    color: hsl(var(--primary));
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .protocol-tag::before {
+    content: "";
+    width: 40px;
+    height: 1px;
+    background: hsl(var(--primary));
+  }
+
+  /* GALVANIZED BUTTONS */
+  .btn-galvanized {
+    padding: 1rem 2rem;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 0 !important;
+  }
+
+  .btn-galvanized-primary {
+    background: hsl(210 40% 96%);
+    color: hsl(229 84% 5%);
+  }
+
+  .btn-galvanized-primary:hover {
+    background: hsl(var(--primary));
+    transform: translateY(-2px);
+  }
+
+  .btn-galvanized-secondary {
+    background: transparent;
+    color: hsl(210 40% 96%);
+    border: 1px solid hsl(215 25% 27%);
+  }
+
+  .btn-galvanized-secondary:hover {
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+  }
+
+  /* SKELETON CELLS */
+  .skeleton-cell {
+    border: 0.5px solid hsla(215, 20%, 65%, 0.1);
+    padding: 20px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: hsl(215 25% 27%);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .skeleton-cell:hover {
+    background: hsla(199, 89%, 48%, 0.1);
+    color: hsl(213 27% 84%);
+  }
+
+  .skeleton-cell::before {
+    content: attr(data-id);
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 0.55rem;
+    opacity: 0.5;
+  }
+
+  /* SCAN LINE ANIMATION */
+  .scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: hsl(var(--primary));
+    opacity: 0.5;
+    box-shadow: 0 0 15px hsl(var(--primary));
+    animation: scan 4s infinite linear;
+  }
+
+  @keyframes scan {
+    0% { top: 0%; }
+    100% { top: 100%; }
+  }
+
+  /* GALVANIZED CARD */
+  .galvanized-card {
+    background: hsla(222, 47%, 8%, 0.5);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.2);
+    transition: all 0.4s ease;
+    border-radius: 0 !important;
+  }
+
+  .galvanized-card:hover {
+    background: hsla(199, 89%, 48%, 0.03);
+    border-color: hsla(199, 89%, 48%, 0.3);
+  }
+
+  /* FEATURE NUMBERS */
+  .feature-num {
+    font-family: var(--font-mono);
+    color: hsl(var(--primary));
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* MONOSPACE TEXT */
+  .mono {
+    font-family: var(--font-mono);
+  }
+
+  /* GALVANIZED BORDER UTILITIES */
+  .border-galvanized {
+    border: 0.5px solid hsla(215, 20%, 65%, 0.3);
+  }
+
+  .border-galvanized-accent {
+    border-color: hsla(199, 89%, 48%, 0.5);
+  }
+
+  /* DATA SKELETON GRID */
+  .data-skeleton {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.3);
+    position: relative;
+    background: hsla(15, 23, 42, 0.5);
+  }
+
+  /* STATUS INDICATOR */
+  .status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: hsl(var(--primary));
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse-glow 2s infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; box-shadow: 0 0 5px hsl(var(--primary)); }
+    50% { opacity: 0.5; box-shadow: 0 0 10px hsl(var(--primary)); }
+  }
+
+  /* REVEAL ANIMATIONS */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes revealUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+
+  /* LOGO BOX */
+  .logo-box {
+    width: 24px;
+    height: 24px;
+    border: 2px solid hsl(var(--primary));
+    position: relative;
+  }
+
+  .logo-box::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    background: hsl(var(--primary));
+  }
+
+  /* SECTION HEADERS */
+  .section-header {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+    color: hsl(215 20% 65%);
+  }
+
+  /* ARCHIVE TITLE */
+  .archive-title {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 900;
+    line-height: 0.9;
+    color: hsl(210 40% 96%);
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
+
+  /* GLOW EFFECT */
+  .glow-accent {
+    box-shadow: 0 0 20px hsla(199, 89%, 48%, 0.3);
+  }
+
+  /* CATEGORY CARD - SKELETAL */
+  .category-card-skeletal {
+    background: hsla(222, 47%, 8%, 0.5);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.2);
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+    border-radius: 0 !important;
+  }
+
+  .category-card-skeletal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: hsl(var(--primary));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+
+  .category-card-skeletal:hover {
+    background: hsla(199, 89%, 48%, 0.05);
+    border-color: hsla(199, 89%, 48%, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .category-card-skeletal:hover::before {
+    transform: scaleX(1);
+  }
+
+  /* ENTRY CARD - SKELETAL */
+  .entry-card-skeletal {
+    background: hsla(222, 47%, 8%, 0.3);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.15);
+    transition: all 0.3s ease;
+    border-radius: 0 !important;
+  }
+
+  .entry-card-skeletal:hover {
+    background: hsla(199, 89%, 48%, 0.05);
+    border-color: hsla(199, 89%, 48%, 0.3);
+  }
+
+  /* STATS CARD - SKELETAL */
+  .stats-card-skeletal {
+    background: hsla(222, 47%, 8%, 0.4);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.2);
+    position: relative;
+    border-radius: 0 !important;
+  }
+
+  .stats-card-skeletal::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--primary)), transparent);
+    opacity: 0.3;
+  }
+
+  /* INPUT FIELDS - SKELETAL */
+  .input-skeletal {
+    background: hsla(222, 47%, 8%, 0.5);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.3);
+    color: hsl(210 40% 96%);
+    font-family: var(--font-mono);
+    transition: all 0.3s ease;
+    border-radius: 0 !important;
+  }
+
+  .input-skeletal:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 1px hsla(199, 89%, 48%, 0.3);
+    outline: none;
+  }
+
+  .input-skeletal::placeholder {
+    color: hsl(215 19% 35%);
+  }
+
+  /* VOICE INTERFACE - SKELETAL */
+  .voice-interface-skeletal {
+    background: hsla(222, 47%, 6%, 0.8);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.2);
+    position: relative;
+    border-radius: 0 !important;
+  }
+
+  .voice-interface-skeletal.active {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 30px hsla(199, 89%, 48%, 0.2);
+  }
+
+  /* SIDEBAR - SKELETAL */
+  .sidebar-skeletal {
+    background: hsl(var(--sidebar-background));
+    border-right: 0.5px solid hsla(215, 20%, 65%, 0.2);
+  }
+
+  /* NAV ITEM - SKELETAL */
+  .nav-item-skeletal {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: hsl(215 20% 65%);
+    transition: all 0.3s ease;
+    padding: 0.75rem 1rem;
+    border-left: 2px solid transparent;
+  }
+
+  .nav-item-skeletal:hover,
+  .nav-item-skeletal.active {
+    color: hsl(var(--primary));
+    background: hsla(199, 89%, 48%, 0.05);
+    border-left-color: hsl(var(--primary));
+  }
+
+  /* BADGE - SKELETAL */
+  .badge-skeletal {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.25rem 0.5rem;
+    background: hsla(199, 89%, 48%, 0.1);
+    color: hsl(var(--primary));
+    border: 0.5px solid hsla(199, 89%, 48%, 0.3);
+    border-radius: 0 !important;
+  }
+
+  /* DIALOG/MODAL - SKELETAL */
+  .dialog-skeletal {
+    background: hsl(222 47% 11%);
+    border: 0.5px solid hsla(215, 20%, 65%, 0.3);
+    border-radius: 0 !important;
+  }
+
+  /* TABLE - SKELETAL */
+  .table-skeletal {
+    border: 0.5px solid hsla(215, 20%, 65%, 0.2);
+  }
+
+  .table-skeletal th {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: hsl(215 20% 65%);
+    background: hsla(222, 47%, 8%, 0.5);
+    border-bottom: 0.5px solid hsla(215, 20%, 65%, 0.2);
+  }
+
+  .table-skeletal td {
+    border-bottom: 0.5px solid hsla(215, 20%, 65%, 0.1);
+  }
+
+  .table-skeletal tr:hover {
+    background: hsla(199, 89%, 48%, 0.03);
+  }
+
+  /* SCROLLBAR - SKELETAL */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(222 47% 11%);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(215 25% 27%);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+
+  /* FLOATING MIC BUTTON */
+  .floating-mic-skeletal {
+    background: hsl(var(--primary));
+    border: none;
+    color: hsl(229 84% 5%);
+    box-shadow: 0 0 30px hsla(199, 89%, 48%, 0.4);
+    transition: all 0.3s ease;
+  }
+
+  .floating-mic-skeletal:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 40px hsla(199, 89%, 48%, 0.6);
+  }
+
+  .floating-mic-skeletal.listening {
+    animation: mic-pulse 1.5s infinite;
+  }
+
+  @keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 30px hsla(199, 89%, 48%, 0.4); }
+    50% { box-shadow: 0 0 50px hsla(199, 89%, 48%, 0.8); }
+  }
+}
+
+/* Override all rounded classes for industrial aesthetic */
+@layer utilities {
+  .rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl, .rounded-full {
+    border-radius: 0 !important;
+  }
+}

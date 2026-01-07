@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Database } from "lucide-react";
 import { EntriesTable } from "@/components/EntriesTable";
 import { DataEntryForm } from "@/components/DataEntryForm";
-// (header replaced by DashboardLayout)
 import { SavedEntry } from "@/types/dashboard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useSavedEntries } from "@/hooks/useSavedEntries";
 import { EnhancedDocumentViewer } from "@/components/documents/EnhancedDocumentViewer";
@@ -159,8 +156,10 @@ export default function AllEntries() {
       >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading entries...</p>
+            <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <Database className="w-6 h-6 text-primary" />
+            </div>
+            <p className="mono text-xs text-muted-foreground">LOADING_ENTRIES...</p>
           </div>
         </div>
       </DashboardLayout>
@@ -184,39 +183,40 @@ export default function AllEntries() {
       onFillEntry={handleFillEntry as any}
       onEnhancedVoiceInput={processVoiceInput}
     >
-      <div className="mb-6 space-y-1">
-        <h1 className="text-2xl font-bold">All Entries</h1>
-        <p className="text-muted-foreground">
-          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'} total
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between mb-6">
-        <div />
-        <Button onClick={() => setShowAddEntry(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Entry
-        </Button>
+      {/* Page Header - Skeletal */}
+      <div className="mb-6">
+        <div className="protocol-tag mb-3">PROTOCOL: DATA_RETRIEVAL</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="archive-title text-2xl mb-1">ALL_ENTRIES</h1>
+            <p className="mono text-xs text-muted-foreground">
+              {filteredEntries.length} {filteredEntries.length === 1 ? 'RECORD' : 'RECORDS'} IN_ARCHIVE
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddEntry(true)}
+            className="btn-galvanized btn-galvanized-primary"
+          >
+            <Plus className="w-4 h-4" />
+            ADD_ENTRY
+          </button>
+        </div>
       </div>
 
       {showAddEntry && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>
-              {editingEntry ? 'Edit Entry' : templateEntry ? 'Fill Form Template' : 'Add New Entry'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DataEntryForm 
-              onSave={handleSaveEntry}
-              onCancel={handleCancelEdit}
-              editEntry={editingEntry}
-              templateEntry={templateEntry}
-              mode={editingEntry ? 'edit' : templateEntry ? 'fill' : 'create'}
-              isSaving={isSaving}
-            />
-          </CardContent>
-        </Card>
+        <div className="galvanized-card p-6 mb-6">
+          <h3 className="mono text-sm font-bold text-foreground mb-4 pb-3 border-b border-galvanized">
+            {editingEntry ? 'EDIT_ENTRY' : templateEntry ? 'FILL_TEMPLATE' : 'CREATE_NEW_ENTRY'}
+          </h3>
+          <DataEntryForm
+            onSave={handleSaveEntry}
+            onCancel={handleCancelEdit}
+            editEntry={editingEntry}
+            templateEntry={templateEntry}
+            mode={editingEntry ? 'edit' : templateEntry ? 'fill' : 'create'}
+            isSaving={isSaving}
+          />
+        </div>
       )}
 
       <EntriesTable

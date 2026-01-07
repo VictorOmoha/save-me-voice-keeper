@@ -53,65 +53,71 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Grid Blueprint Background */}
+      <div className="grid-blueprint" />
+
+      <div className="container mx-auto px-4 py-8 max-w-4xl relative">
+        {/* Header - Skeletal */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Settings</h1>
-            <p className="text-muted-foreground">Manage your account and preferences</p>
+            <div className="protocol-tag mb-3">PROTOCOL: CONFIGURATION</div>
+            <h1 className="archive-title text-2xl mb-1">SETTINGS</h1>
+            <p className="mono text-xs text-muted-foreground">MANAGE YOUR ACCOUNT AND PREFERENCES</p>
           </div>
-          <Button variant="outline" asChild>
-            <Link to="/dashboard">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Link>
-          </Button>
+          <Link to="/dashboard" className="btn-galvanized btn-galvanized-secondary">
+            <ArrowLeft className="w-4 h-4" />
+            DASHBOARD
+          </Link>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="flex gap-8">
-          <TabsList className="flex flex-col h-fit w-64 p-1">
-            <TabsTrigger value="profile" className="w-full justify-start">
-              <User className="w-4 h-4 mr-2" />
-              Profile
-            </TabsTrigger>
-            <TabsTrigger value="security" className="w-full justify-start">
-              <Shield className="w-4 h-4 mr-2" />
-              Security
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="w-full justify-start">
-              <Bell className="w-4 h-4 mr-2" />
-              Notifications
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="w-full justify-start">
-              <Palette className="w-4 h-4 mr-2" />
-              Appearance
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="w-full justify-start">
-              <Mic className="w-4 h-4 mr-2" />
-              Voice Settings
-            </TabsTrigger>
-            <TabsTrigger value="automation" className="w-full justify-start">
-              <Zap className="w-4 h-4 mr-2" />
-              Automation & API
-            </TabsTrigger>
-            <TabsTrigger value="subscription" className="w-full justify-start">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Subscription
-            </TabsTrigger>
-            <TabsTrigger value="data-management" className="w-full justify-start">
-              <Database className="w-4 h-4 mr-2" />
-              Data Management
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="admin-videos" className="w-full justify-start">
-                <Video className="w-4 h-4 mr-2" />
-                Demo Videos
+          {/* Settings Navigation - Skeletal */}
+          <div className="galvanized-card p-4 h-fit w-64">
+            <TabsList className="flex flex-col h-fit w-full bg-transparent p-0 gap-1">
+              <TabsTrigger value="profile" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <User className="w-4 h-4" />
+                PROFILE
               </TabsTrigger>
-            )}
-            <TabsTrigger value="help" className="w-full justify-start">
-              <HelpCircle className="w-4 h-4 mr-2" />
-              Help & Support
-            </TabsTrigger>
-          </TabsList>
+              <TabsTrigger value="security" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <Shield className="w-4 h-4" />
+                SECURITY
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <Bell className="w-4 h-4" />
+                NOTIFICATIONS
+              </TabsTrigger>
+              <TabsTrigger value="appearance" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <Palette className="w-4 h-4" />
+                APPEARANCE
+              </TabsTrigger>
+              <TabsTrigger value="voice" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <Mic className="w-4 h-4" />
+                VOICE_SETTINGS
+              </TabsTrigger>
+              <TabsTrigger value="automation" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <Zap className="w-4 h-4" />
+                AUTOMATION_API
+              </TabsTrigger>
+              <TabsTrigger value="subscription" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <CreditCard className="w-4 h-4" />
+                SUBSCRIPTION
+              </TabsTrigger>
+              <TabsTrigger value="data-management" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <Database className="w-4 h-4" />
+                DATA_MANAGEMENT
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="admin-videos" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                  <Video className="w-4 h-4" />
+                  DEMO_VIDEOS
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="help" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <HelpCircle className="w-4 h-4" />
+                HELP_SUPPORT
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <div className="flex-1">
             <TabsContent value="profile">

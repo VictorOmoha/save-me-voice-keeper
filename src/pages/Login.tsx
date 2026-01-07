@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
@@ -16,7 +14,6 @@ const Login = () => {
   const { login, signInWithGoogle, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to dashboard if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard", { replace: true });
@@ -26,7 +23,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await login(email, password);
-    
+
     if (result.error) {
       toast.error(result.error);
     } else {
@@ -38,7 +35,7 @@ const Login = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     const result = await signInWithGoogle();
-    
+
     if (result.error) {
       toast.error(result.error);
       setIsGoogleLoading(false);
@@ -48,87 +45,141 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-card border-border">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center space-x-1 mb-4">
-            <img 
-              src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
-              alt="Save Me Logo" 
-              className="w-16 h-16 object-contain"
-            />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-              Save Me
+    <div className="min-h-screen bg-background flex">
+      {/* Grid Blueprint Background */}
+      <div className="grid-blueprint" />
+
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 border-r border-galvanized flex-col justify-between p-12">
+        <div>
+          <div className="flex items-center gap-3 mb-8">
+            <img src="/logo.png" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
+            <span className="mono text-foreground font-bold tracking-wider">
+              SAVEME.SPACE
             </span>
           </div>
-          <CardTitle className="text-2xl text-card-foreground">Welcome Back</CardTitle>
-          <CardDescription className="text-muted-foreground">Sign in to your account to continue</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <GoogleSignInButton
-            onSignIn={handleGoogleSignIn}
-            isLoading={isGoogleLoading}
-            text="Sign in with Google"
-          />
-          
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
+        </div>
+
+        <div className="reveal">
+          <div className="protocol-tag mb-6">PROTOCOL: AUTHENTICATION</div>
+          <h1 className="archive-title text-4xl mb-6">
+            ACCESS<br />
+            YOUR<br />
+            ARCHIVE
+          </h1>
+          <p className="text-muted-foreground max-w-md">
+            Secure entry point to your galvanized data framework.
+            All transmissions encrypted end-to-end.
+          </p>
+        </div>
+
+        <div className="mono text-xs text-muted-foreground flex items-center gap-2">
+          <span className="status-dot" />
+          SECURE_CONNECTION_ESTABLISHED
+        </div>
+      </div>
+
+      {/* Right Panel - Login Form */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+            <img src="/logo.png" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
+            <span className="mono text-foreground font-bold tracking-wider">
+              SAVEME.SPACE
+            </span>
+          </div>
+
+          <div className="galvanized-card p-8">
+            <div className="text-center mb-8">
+              <h2 className="mono text-xl font-bold text-foreground mb-2">AUTHENTICATE</h2>
+              <p className="text-sm text-muted-foreground">Sign in to access your archive</p>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+
+            <GoogleSignInButton
+              onSignIn={handleGoogleSignIn}
+              isLoading={isGoogleLoading}
+              text="SIGN_IN_WITH_GOOGLE"
+            />
+
+            <div className="relative my-8">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-galvanized" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-card px-4 mono text-xs text-muted-foreground">
+                  OR_CONTINUE_WITH
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="mono text-xs text-muted-foreground uppercase tracking-wider">
+                  EMAIL_ADDRESS
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="user@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="input-skeletal h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="mono text-xs text-muted-foreground uppercase tracking-wider">
+                  PASSWORD
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="input-skeletal h-12"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full btn-galvanized btn-galvanized-primary justify-center"
+              >
+                {isLoading ? "AUTHENTICATING..." : "INITIATE_LOGIN"}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <Link
+                to="/reset-password"
+                className="mono text-xs text-primary hover:underline"
+              >
+                FORGOT_PASSWORD?
+              </Link>
+            </div>
+
+            <div className="mt-8 pt-6 border-t border-galvanized text-center">
+              <span className="text-sm text-muted-foreground">No archive yet? </span>
+              <Link to="/signup" className="mono text-sm text-primary hover:underline">
+                CREATE_ACCOUNT
+              </Link>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-                className="bg-background border-border text-foreground"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-                className="bg-background border-border text-foreground"
-              />
-            </div>
-            <Button 
-              type="submit" 
-              variant="gradient"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            <Link to="/reset-password" className="text-primary hover:underline font-medium">
-              Forgot your password?
+          {/* Footer Link */}
+          <div className="mt-8 text-center">
+            <Link to="/" className="mono text-xs text-muted-foreground hover:text-primary transition-colors">
+              ← RETURN_TO_HOME
             </Link>
           </div>
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Don't have an account? </span>
-            <Link to="/signup" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

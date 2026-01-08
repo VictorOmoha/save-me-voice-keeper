@@ -15,9 +15,12 @@ export interface UserPreferences {
   voice_auto_speak: boolean;
   voice_speech_rate: number;
   voice_volume: number;
-  tts_service: 'elevenlabs' | 'minimax' | 'browser';
+  tts_service: 'elevenlabs' | 'minimax' | 'google' | 'browser';
   elevenlabs_voice_id?: string;
   minimax_voice_id?: string;
+  google_voice_id?: string;
+  voice_audio_cue_enabled?: boolean;
+  voice_audio_cue_volume?: number;
   has_completed_onboarding?: boolean;
 }
 
@@ -33,7 +36,9 @@ const defaultPreferences: UserPreferences = {
   voice_auto_speak: true,
   voice_speech_rate: 1.0,
   voice_volume: 1.0,
-  tts_service: 'elevenlabs',
+  tts_service: 'google',
+  voice_audio_cue_enabled: true,
+  voice_audio_cue_volume: 0.4,
   has_completed_onboarding: false,
 };
 
@@ -45,7 +50,7 @@ export const useUserPreferences = () => {
 
   useEffect(() => {
     console.log('useUserPreferences: useEffect triggered, user:', !!user);
-    
+
     if (user) {
       loadPreferences();
     } else {
@@ -80,9 +85,12 @@ export const useUserPreferences = () => {
           voice_auto_speak: data.voice_auto_speak ?? true,
           voice_speech_rate: data.voice_speech_rate || 1.0,
           voice_volume: data.voice_volume || 1.0,
-          tts_service: (data.tts_service as 'elevenlabs' | 'minimax' | 'browser') || 'elevenlabs',
+          tts_service: (data.tts_service as 'elevenlabs' | 'minimax' | 'google' | 'browser') || 'google',
           elevenlabs_voice_id: data.elevenlabs_voice_id,
           minimax_voice_id: data.minimax_voice_id,
+          google_voice_id: (data as any).google_voice_id || 'en-US-Neural2-F',
+          voice_audio_cue_enabled: (data as any).voice_audio_cue_enabled ?? true,
+          voice_audio_cue_volume: (data as any).voice_audio_cue_volume ?? 0.4,
           has_completed_onboarding: (data as any).has_completed_onboarding ?? false,
         });
       }
@@ -113,7 +121,24 @@ export const useUserPreferences = () => {
 
       if (error) throw error;
 
-      setPreferences(prev => ({ ...prev, ...updates }));
+      setPreferences(prev => {
+        const next = { ...prev, ...updates };
+
+        // Sync to localStorage for pure utility functions in textToSpeech.ts
+        if (updates.tts_service) localStorage.setItem('selected_tts_service', updates.tts_service);
+        if (updates.elevenlabs_voice_id) localStorage.setItem('selected_voice', updates.elevenlabs_voice_id);
+        if (updates.minimax_voice_id) localStorage.setItem('selected_minimax_voice', updates.minimax_voice_id);
+        if (updates.google_voice_id) localStorage.setItem('selected_google_voice', updates.google_voice_id);
+        if (updates.voice_language) localStorage.setItem('speech_language', updates.voice_language);
+        if (updates.voice_speech_rate !== undefined) localStorage.setItem('speech_rate', String(updates.voice_speech_rate));
+        if (updates.voice_volume !== undefined) localStorage.setItem('speech_volume', String(updates.voice_volume));
+        if (updates.voice_auto_speak !== undefined) localStorage.setItem('auto_speak', String(updates.voice_auto_speak));
+        if (updates.voice_continuous_listening !== undefined) localStorage.setItem('continuous_listening', String(updates.voice_continuous_listening));
+        if (updates.voice_audio_cue_enabled !== undefined) localStorage.setItem('voice_audio_cue_enabled', String(updates.voice_audio_cue_enabled));
+        if (updates.voice_audio_cue_volume !== undefined) localStorage.setItem('voice_audio_cue_volume', String(updates.voice_audio_cue_volume));
+
+        return next;
+      });
       return true;
     } catch (error) {
       console.error('Error updating preferences:', error);

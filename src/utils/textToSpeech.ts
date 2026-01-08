@@ -453,275 +453,58 @@ const speakWithGoogle = async (text: string, voice?: string): Promise<void> => {
   }
 };
 
-// Cache for GroupId to avoid repeated JWT parsing
-const groupIdCache = new Map<string, string>();
-
 const speakWithMiniMax = async (text: string): Promise<void> => {
-  const apiKey = getMiniMaxApiKey();
-  if (!apiKey) {
-    throw new Error('MiniMax API key not found. Please set your MiniMax JWT token in voice settings.');
-  }
-
-  console.log('🔍 Debug: MiniMax API key length:', apiKey.length);
-  console.log('🔍 Debug: MiniMax API key starts with:', apiKey.substring(0, 50) + '...');
-
-  // Extract GroupId from JWT token with enhanced validation
-  let groupId = '';
-
-  // Check cache first for performance
-  if (groupIdCache.has(apiKey)) {
-    groupId = groupIdCache.get(apiKey)!;
-    console.log('🔑 Using cached GroupId:', groupId);
-  } else {
-    try {
-      // Validate JWT structure
-      const jwtParts = apiKey.split('.');
-      console.log('🔍 Debug: JWT parts count:', jwtParts.length);
-
-      if (jwtParts.length !== 3) {
-        throw new Error('Invalid JWT format: expected 3 parts');
-      }
-
-      console.log('🔍 Debug: JWT header:', jwtParts[0]);
-      console.log('🔍 Debug: JWT payload (base64):', jwtParts[1].substring(0, 100) + '...');
-
-      const payload = JSON.parse(atob(jwtParts[1]));
-      console.log('🔍 Debug: Decoded JWT payload:', JSON.stringify(payload, null, 2));
-
-      // Try both GroupID and SubjectID from JWT
-      const extractedGroupId = payload.GroupID;
-      const subjectId = payload.SubjectID;
-
-      console.log('🔍 Debug: Extracted GroupID:', extractedGroupId);
-      console.log('🔍 Debug: Extracted SubjectID:', subjectId);
-      console.log('🔍 Debug: GroupID type:', typeof extractedGroupId);
-      console.log('🔍 Debug: SubjectID type:', typeof subjectId);
-
-      // Use GroupID as primary
-      groupId = extractedGroupId;
-
-      // Validate extracted GroupId
-      if (!groupId || typeof groupId !== 'string' || groupId.trim() === '') {
-        console.error('🚨 Debug: Invalid GroupId extracted:', { groupId, type: typeof groupId });
-        throw new Error('Invalid or missing GroupId in JWT token');
-      }
-
-      // Cache the GroupId for future use
-      groupIdCache.set(apiKey, groupId);
-      console.log('🔑 Extracted and cached GroupId from JWT:', groupId);
-    } catch (error) {
-      console.error('🚨 Failed to extract GroupId from JWT:', error);
-      console.error('🚨 Debug: Raw API key for inspection:', apiKey);
-      throw new Error(`Invalid MiniMax JWT token format: ${error.message}`);
-    }
-  }
-
-  const apiUrl = MINIMAX_API_URL; // Use base URL without GroupId parameter
-  console.log('🌐 MiniMax API URL:', apiUrl);
-
-  const selectedVoice = getSelectedMiniMaxVoice();
-  console.log('🔑 Getting MiniMax API key:', apiKey ? 'Found' : 'Not found');
-  console.log('🎙️ TTS: Using MiniMax voice:', selectedVoice);
-
-  const requestBody = {
-    model: "speech-01",
-    text: text,
-    voice_id: selectedVoice,
-    speed: 1.0,
-    vol: 1.0,
-    pitch: 0,
-    audio_sample_rate: 32000,
-    bitrate: 128000,
-    // Include GroupId in base request
-    group_id: groupId
-  };
-
-  console.log('🔍 MiniMax request body:', JSON.stringify(requestBody, null, 2));
-
-  const startTime = performance.now();
-
-  // Try multiple authentication approaches systematically
-  console.log('🔍 Trying enhanced MiniMax authentication approaches...');
-
-  let response: Response;
-  let lastError: string = '';
-
-  // Approach 1: GroupID in request body (common for many APIs)
-  console.log('🔍 Approach 1: GroupID in request body');
   try {
-    const bodyWithGroupId = {
-      ...requestBody,
-      group_id: groupId,
-      GroupId: groupId
-    };
+    const selectedVoice = getSelectedMiniMaxVoice();
+    console.log('🎙️ TTS: Using MiniMax voice via Edge Function:', selectedVoice);
 
-    response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+    const { data, error } = await supabase.functions.invoke('minimax-tts', {
+      body: {
+        text,
+        voice_id: selectedVoice,
+        speed: 1.0,
+        vol: 1.0,
+        pitch: 0
       },
-      body: JSON.stringify(bodyWithGroupId),
     });
 
-    if (response.ok) {
-      console.log('✅ Approach 1 successful!');
-    } else {
-      const errorResult = await response.json();
-      lastError = `Approach 1: ${errorResult.base_resp?.status_msg || errorResult.status_msg || 'Unknown error'}`;
-      console.log('❌ Approach 1 failed:', lastError);
-
-      // Approach 2: Try with GroupId URL parameter
-      console.log('🔍 Approach 2: GroupId as URL parameter');
-      response = await fetch(`${apiUrl}?GroupId=${groupId}`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorResult2 = await response.json();
-        lastError = `Approach 2: ${errorResult2.base_resp?.status_msg || errorResult2.status_msg || 'Unknown error'}`;
-        console.log('❌ Approach 2 failed:', lastError);
-
-        // Approach 3: Try alternative endpoint format
-        console.log('🔍 Approach 3: Alternative endpoint format');
-        const altApiUrl = `https://api.minimax.io/v1/text_to_speech/${groupId}`;
-        response = await fetch(altApiUrl, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(requestBody),
-        });
-
-        if (!response.ok) {
-          const errorResult3 = await response.json();
-          lastError = `Approach 3: ${errorResult3.base_resp?.status_msg || errorResult3.status_msg || 'Unknown error'}`;
-          console.log('❌ Approach 3 failed:', lastError);
-
-          // Approach 4: Try with X-Group-ID header (fallback)
-          console.log('🔍 Approach 4: X-Group-ID header');
-          response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`,
-              'X-Group-ID': groupId,
-            },
-            body: JSON.stringify(requestBody),
-          });
-
-          if (!response.ok) {
-            const errorResult4 = await response.json();
-            lastError = `All approaches failed. Final: ${errorResult4.base_resp?.status_msg || errorResult4.status_msg || 'Unknown error'}`;
-            console.log('❌ All 4 approaches failed:', lastError);
-          } else {
-            console.log('✅ Approach 4 successful!');
-          }
-        } else {
-          console.log('✅ Approach 3 successful!');
-        }
-      } else {
-        console.log('✅ Approach 2 successful!');
-      }
+    if (error) {
+      console.error('🚨 MiniMax Edge Function error:', error);
+      throw error;
     }
-  } catch (fetchError) {
-    console.error('🚨 Network error during API call:', fetchError);
-    throw new Error(`Network error: ${fetchError.message}`);
-  }
 
-  console.log('🌐 MiniMax response status:', response.status);
+    if (!data.audioContent) {
+      console.error('🚨 MiniMax Edge Function returned no audioContent');
+      throw new Error('No audio content received from MiniMax');
+    }
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('🚨 TTS: All MiniMax API approaches failed');
-    console.error('🚨 TTS: Last error:', lastError);
-    console.error('🚨 TTS: Response status:', response.status);
-    console.error('🚨 TTS: Response text:', errorText);
+    // Play the audio from base64 string
+    const audioBlob = new Blob(
+      [Uint8Array.from(atob(data.audioContent), (c) => c.charCodeAt(0))],
+      { type: 'audio/mpeg' }
+    );
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
 
-    toast.error('MiniMax TTS failed with all authentication methods. Using browser TTS instead.');
-    throw new Error(`MiniMax API error: ${lastError}`);
-  }
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        console.log('🔊 TTS: MiniMax audio playback completed');
+        resolve();
+      };
 
-  const result = await response.json();
-  const endTime = performance.now();
-  const requestDuration = endTime - startTime;
+      audio.onerror = (err) => {
+        URL.revokeObjectURL(audioUrl);
+        console.error('🚨 TTS: Audio playback error:', err);
+        reject(err);
+      };
 
-  console.log('🔍 MiniMax full response:', JSON.stringify(result, null, 2));
-  console.log('⏱️ MiniMax API request duration:', `${requestDuration.toFixed(2)}ms`);
-
-  // Check for errors in the response
-  if (result.base_resp && result.base_resp.status_code !== 0) {
-    console.error('🚨 MiniMax API returned error:', result.base_resp);
-    console.error('📊 API Call Metrics:', {
-      duration: `${requestDuration.toFixed(2)}ms`,
-      errorCode: result.base_resp.status_code,
-      errorMessage: result.base_resp.status_msg
+      audio.play().catch(reject);
     });
-
-    // Handle specific error codes
-    if (result.base_resp.status_code === 2049) {
-      // Clear cache for this API key since it's invalid
-      groupIdCache.delete(apiKey);
-      toast.error('Your MiniMax JWT token is invalid or expired. Please update it in voice settings.');
-      throw new Error('MiniMax API error: invalid api key - Please update your JWT token in settings');
-    }
-
-    throw new Error(`MiniMax API error: ${result.base_resp?.status_msg || 'Unknown error'}`);
+  } catch (err) {
+    console.error('🚨 TTS: Unexpected error in speakWithMiniMax:', err);
+    throw err;
   }
-
-  // Log successful API call
-  console.log('✅ MiniMax API call successful', {
-    duration: `${requestDuration.toFixed(2)}ms`,
-    textLength: text.length,
-    voice: selectedVoice
-  });
-
-  // Handle different response formats
-  let audioData;
-  if (result.data?.audio) {
-    audioData = result.data.audio;
-  } else if (result.audio) {
-    audioData = result.audio;
-  } else if (result.data?.extra_info?.audio_content) {
-    audioData = result.data.extra_info.audio_content;
-  } else {
-    console.error('🚨 MiniMax response structure:', Object.keys(result));
-    throw new Error('No audio data found in MiniMax response');
-  }
-
-  if (!audioData) {
-    throw new Error('No audio data received from MiniMax');
-  }
-
-  const audioBlob = new Blob([Uint8Array.from(atob(audioData), c => c.charCodeAt(0))], { type: 'audio/wav' });
-  const audioUrl = URL.createObjectURL(audioBlob);
-  const audio = new Audio(audioUrl);
-
-  return new Promise((resolve, reject) => {
-    audio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
-      console.log('🔊 TTS: MiniMax audio playback completed');
-      resolve();
-    };
-
-    audio.onerror = (error) => {
-      URL.revokeObjectURL(audioUrl);
-      console.error('🚨 TTS: Audio playback error:', error);
-      reject(error);
-    };
-
-    audio.play().catch(reject);
-  });
 };
 
 const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<void> => {

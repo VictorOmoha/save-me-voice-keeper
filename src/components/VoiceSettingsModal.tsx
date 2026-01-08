@@ -11,6 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Volume2, Mic, Key, Settings, Play, CheckCircle, AlertCircle } from "lucide-react";
 import {
+  getElevenLabsApiKey,
+  getMiniMaxApiKey,
+  getSelectedTTSService,
+  setSelectedTTSService,
+  VOICE_OPTIONS,
+  MINIMAX_VOICES,
+  getSelectedVoice,
+  setSelectedVoice,
   getSelectedMiniMaxVoice,
   setSelectedMiniMaxVoice,
   speak,

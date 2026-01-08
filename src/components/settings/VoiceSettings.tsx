@@ -18,6 +18,8 @@ import {
   MINIMAX_VOICES,
   getSelectedVoice,
   setSelectedVoice,
+  getSelectedMiniMaxVoice,
+  setSelectedMiniMaxVoice,
   speak,
   stopCurrentSpeech,
   GOOGLE_VOICES,

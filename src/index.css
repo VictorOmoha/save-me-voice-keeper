@@ -75,6 +75,37 @@
     --font-sans: 'Inter', sans-serif;
   }
 
+  .light {
+    /* Light mode - Inverted Skeletal Archive */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 98%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 19% 35%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 199 89% 48%;
+  }
+
   .dark {
     /* Dark mode uses same values - Skeletal Archive is inherently dark */
     --background: 229 84% 5%;
@@ -593,6 +624,107 @@
   @keyframes mic-pulse {
     0%, 100% { box-shadow: 0 0 30px hsla(199, 89%, 48%, 0.4); }
     50% { box-shadow: 0 0 50px hsla(199, 89%, 48%, 0.8); }
+  }
+
+  /* ========================================
+     LIGHT MODE OVERRIDES
+     ======================================== */
+
+  .light .archive-title {
+    color: hsl(222 47% 11%);
+  }
+
+  .light .protocol-tag {
+    border-color: hsl(214 32% 91%);
+  }
+
+  .light .btn-galvanized-primary {
+    background: hsl(199 89% 48%);
+    color: white;
+  }
+
+  .light .btn-galvanized-primary:hover {
+    background: hsl(199 89% 38%);
+  }
+
+  .light .btn-galvanized-secondary {
+    color: hsl(222 47% 11%);
+    border-color: hsl(214 32% 91%);
+  }
+
+  .light .btn-galvanized-secondary:hover {
+    border-color: hsl(199 89% 48%);
+    color: hsl(199 89% 48%);
+  }
+
+  .light .skeleton-cell {
+    color: hsl(215 19% 35%);
+    border-color: hsla(215, 20%, 65%, 0.2);
+  }
+
+  .light .skeleton-cell:hover {
+    background: hsla(199, 89%, 48%, 0.05);
+    color: hsl(222 47% 11%);
+  }
+
+  .light .galvanized-card {
+    background: hsl(0 0% 98%);
+    border-color: hsl(214 32% 91%);
+  }
+
+  .light .category-card-skeletal {
+    background: hsl(0 0% 98%);
+    border-color: hsl(214 32% 91%);
+  }
+
+  .light .entry-card-skeletal {
+    background: hsla(0, 0%, 98%, 0.5);
+    border-color: hsl(214 32% 91%);
+  }
+
+  .light .entry-card-skeletal:hover {
+    background: hsla(199, 89%, 48%, 0.03);
+    border-color: hsla(199, 89%, 48%, 0.2);
+  }
+
+  .light .stats-card-skeletal {
+    background: hsl(0 0% 98%);
+    border-color: hsl(214 32% 91%);
+  }
+
+  .light .grid-blueprint {
+    background-image:
+      linear-gradient(to right, hsla(215, 20%, 35%, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, hsla(215, 20%, 35%, 0.08) 1px, transparent 1px);
+  }
+
+  .light ::-webkit-scrollbar-track {
+    background: hsl(0 0% 98%);
+  }
+
+  .light ::-webkit-scrollbar-thumb {
+    background: hsl(214 32% 91%);
+  }
+
+  .light ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+
+  /* Additional text contrast fixes for light mode */
+  .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+    color: hsl(222 47% 11%) !important;
+  }
+
+  .light .text-zinc-100 {
+    color: hsl(222 47% 11%) !important;
+  }
+
+  .light .text-zinc-500 {
+    color: hsl(215 19% 35%) !important;
+  }
+
+  .light .text-zinc-400 {
+    color: hsl(215 19% 40%) !important;
   }
 }
 

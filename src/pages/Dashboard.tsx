@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
@@ -11,10 +12,16 @@ import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { DocumentCreator } from '@/components/DocumentCreator';
 import { EnhancedDocumentViewer } from '@/components/documents/EnhancedDocumentViewer';
 import { DocumentEditor } from '@/components/documents/DocumentEditor';
+import { VoiceErrorBoundary } from '@/components/voice/ErrorBoundary';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
 import { SavedEntry } from '@/types/dashboard';
 import { toast } from 'sonner';
+
+// Type for user preferences response
+interface UserPreferences {
+  has_completed_onboarding: boolean;
+}
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -26,7 +33,7 @@ const categories = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -105,7 +112,7 @@ export default function Dashboard() {
           .single();
 
         // If no preferences exist or onboarding not completed, redirect to onboarding
-        const hasCompletedOnboarding = (preferences as any)?.has_completed_onboarding;
+        const hasCompletedOnboarding = (preferences as UserPreferences | null)?.has_completed_onboarding;
         if (!preferences || !hasCompletedOnboarding) {
           navigate('/onboarding');
           return;
@@ -180,7 +187,7 @@ export default function Dashboard() {
     console.log('📄 Dashboard: View document triggered for:', entry.title);
     const fileName = String(entry.fields.fileName || '').toLowerCase();
     const fileType = String(entry.fields.fileType || '').toLowerCase();
-    const hasInline = Boolean((entry.fields as any)?.documentContent);
+    const hasInline = Boolean(entry.fields?.documentContent);
     const isTextBased =
       hasInline ||
       fileName.endsWith('.txt') ||
@@ -221,21 +228,22 @@ export default function Dashboard() {
   }
 
   return (
-    <DashboardLayout
-      searchQuery={searchQuery}
-      onSearchChange={setSearchQuery}
-      userName={user?.user_metadata?.full_name || user?.email || 'User'}
-      savedEntries={savedEntries}
-      onAddEntry={handleAddEntry}
-      onCategorySelect={handleCategorySelect}
-      onAllEntriesSelect={handleAllEntriesSelect}
-      onEditEntry={editEntry}
-      onDeleteEntry={deleteEntry}
-      onSaveEntry={saveEntry}
-      onCancelEdit={handleCancelEdit}
-      onFillEntry={fillEntry}
-      onEnhancedVoiceInput={enhancedVoiceInputHandler}
-    >
+    <VoiceErrorBoundary>
+      <DashboardLayout
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        userName={user?.user_metadata?.full_name || user?.email || 'User'}
+        savedEntries={savedEntries}
+        onAddEntry={handleAddEntry}
+        onCategorySelect={handleCategorySelect}
+        onAllEntriesSelect={handleAllEntriesSelect}
+        onEditEntry={editEntry}
+        onDeleteEntry={deleteEntry}
+        onSaveEntry={saveEntry}
+        onCancelEdit={handleCancelEdit}
+        onFillEntry={fillEntry}
+        onEnhancedVoiceInput={enhancedVoiceInputHandler}
+      >
       {(showAddEntry || editingEntry || fillingEntry || showDocumentCreator) ? (
         <>
           {showDocumentCreator ? (
@@ -320,6 +328,7 @@ export default function Dashboard() {
         }}
         title={deleteDialog.entry?.title || ''}
       />
-    </DashboardLayout>
+      </DashboardLayout>
+    </VoiceErrorBoundary>
   );
 }

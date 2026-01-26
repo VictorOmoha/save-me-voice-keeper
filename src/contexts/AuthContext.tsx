@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { User as FirebaseUser } from 'firebase/auth';
-import { AuthContextType } from '@/types/auth';
+import { AuthContextType, ExtendedUser } from '@/types/auth';
 import { useAuthState } from '@/hooks/useAuthState';
 import { authService } from '@/services/authService';
 
@@ -48,11 +47,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return await authService.resetPassword(email);
   };
 
+  const combinedLoading = isLoading || authLoading;
+
+  // Create extended user with subscription info (default to free tier)
+  const extendedUser: ExtendedUser | null = user ? {
+    ...user,
+    subscriptionTier: 'free',
+    subscriptionActive: true
+  } as ExtendedUser : null;
+
   return (
     <AuthContext.Provider value={{
-      user,
-      loading: isLoading || authLoading,
+      user: extendedUser,
+      loading: combinedLoading,
+      isLoading: combinedLoading, // Alias for compatibility
       isAuthenticated: !!user,
+      session: user, // For compatibility - the user object acts as the session
       login,
       signup,
       signInWithGoogle,

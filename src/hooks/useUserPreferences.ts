@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 export interface UserPreferences {
@@ -62,17 +63,11 @@ export const useUserPreferences = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      const prefsRef = doc(db, 'user_preferences', user.uid);
+      const prefsSnap = await getDoc(prefsRef);
 
-      if (error && error.code !== 'PGRST116') {
-        throw error;
-      }
-
-      if (data) {
+      if (prefsSnap.exists()) {
+        const data = prefsSnap.data();
         setPreferences({
           theme: (data.theme as 'light' | 'dark' | 'system') || 'system',
           language: data.language || 'en',
@@ -88,10 +83,10 @@ export const useUserPreferences = () => {
           tts_service: (data.tts_service as 'elevenlabs' | 'minimax' | 'google' | 'browser') || 'google',
           elevenlabs_voice_id: data.elevenlabs_voice_id,
           minimax_voice_id: data.minimax_voice_id,
-          google_voice_id: (data as any).google_voice_id || 'en-US-Neural2-F',
-          voice_audio_cue_enabled: (data as any).voice_audio_cue_enabled ?? true,
-          voice_audio_cue_volume: (data as any).voice_audio_cue_volume ?? 0.4,
-          has_completed_onboarding: (data as any).has_completed_onboarding ?? false,
+          google_voice_id: data.google_voice_id || 'en-US-Neural2-F',
+          voice_audio_cue_enabled: data.voice_audio_cue_enabled ?? true,
+          voice_audio_cue_volume: data.voice_audio_cue_volume ?? 0.4,
+          has_completed_onboarding: data.has_completed_onboarding ?? false,
         });
       }
     } catch (error) {
@@ -110,16 +105,12 @@ export const useUserPreferences = () => {
     if (!user) return false;
 
     try {
-      const { error } = await supabase
-        .from('user_preferences')
-        .upsert({
-          user_id: user.id,
-          ...updates,
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (error) throw error;
+      const prefsRef = doc(db, 'user_preferences', user.uid);
+      await setDoc(prefsRef, {
+        user_id: user.uid,
+        ...updates,
+        updated_at: serverTimestamp()
+      }, { merge: true });
 
       setPreferences(prev => {
         const next = { ...prev, ...updates };

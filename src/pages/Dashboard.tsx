@@ -1,28 +1,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User as FirebaseUser } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
-import { VoiceGuidedEntryWizard } from '@/components/VoiceGuidedEntryWizard';
-import { ConversationalVoiceInterface } from '@/components/ConversationalVoiceInterface';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
 import { DocumentCreator } from '@/components/DocumentCreator';
 import { EnhancedDocumentViewer } from '@/components/documents/EnhancedDocumentViewer';
 import { DocumentEditor } from '@/components/documents/DocumentEditor';
 import { VoiceErrorBoundary } from '@/components/voice/ErrorBoundary';
 import { useDashboard } from '@/hooks/useDashboard';
-import { useUnifiedVoiceProcessor } from '@/hooks/useUnifiedVoiceProcessor';
+import { useAuth } from '@/contexts/AuthContext';
 import { SavedEntry } from '@/types/dashboard';
 import { toast } from 'sonner';
-
-// Type for user preferences response
-interface UserPreferences {
-  has_completed_onboarding: boolean;
-}
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -34,8 +26,7 @@ const categories = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
@@ -85,47 +76,46 @@ export default function Dashboard() {
     refreshEntries,
   } = useDashboard();
 
-  
-
   // Single unified voice processor - no separate processors
   const enhancedVoiceInputHandler = async (text: string) => {
     console.log('🎤 Dashboard: Voice input received:', text);
-    // Let the ConversationalVoiceInterface handle all voice processing
-    // It will route to the appropriate handler based on conversation state
   };
 
+  // Check auth state and onboarding
   useEffect(() => {
-    const getUser = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
+    const checkUserAndOnboarding = async () => {
+      // Wait for auth to finish loading
+      if (authLoading) return;
+
+      // If not authenticated, redirect to login
+      if (!isAuthenticated || !user) {
         navigate('/login');
         return;
       }
-      setUser(currentUser);
-      setLoading(false);
 
-      // Check if user has completed onboarding
+      // Check if user has completed onboarding (but be lenient - skip if error)
       try {
-        const prefsRef = doc(db, 'user_preferences', currentUser.uid);
+        const prefsRef = doc(db, 'user_preferences', user.uid);
         const prefsSnap = await getDoc(prefsRef);
 
-        // If no preferences exist or onboarding not completed, redirect to onboarding
         const hasCompletedOnboarding = prefsSnap.exists() && prefsSnap.data()?.has_completed_onboarding;
-        if (!prefsSnap.exists() || !hasCompletedOnboarding) {
-          navigate('/onboarding');
-          return;
+        if (!hasCompletedOnboarding) {
+          // Only redirect to onboarding if preferences don't exist at all
+          // If they exist but has_completed_onboarding is false, still allow access
+          if (!prefsSnap.exists()) {
+            navigate('/onboarding');
+            return;
+          }
         }
       } catch (error) {
-        // If error fetching preferences (new user), redirect to onboarding
-        console.log('Redirecting to onboarding for new user');
-        navigate('/onboarding');
-        return;
+        // If error fetching preferences, just continue to dashboard
+        console.log('Could not fetch preferences, continuing to dashboard:', error);
       }
       setCheckingOnboarding(false);
     };
 
-    getUser();
-  }, [navigate, handleAddEntry, handleEnhancedVoiceInput]);
+    checkUserAndOnboarding();
+  }, [authLoading, isAuthenticated, user, navigate]);
 
   // Listen for voice command to close entry forms
   useEffect(() => {
@@ -146,7 +136,7 @@ export default function Dashboard() {
 
     window.addEventListener('close-entry-form', handleCloseFormCommand);
     window.addEventListener('show-delete-confirmation', handleDeleteConfirmation as EventListener);
-    
+
     return () => {
       window.removeEventListener('close-entry-form', handleCloseFormCommand);
       window.removeEventListener('show-delete-confirmation', handleDeleteConfirmation as EventListener);
@@ -221,7 +211,10 @@ export default function Dashboard() {
     setDocumentEditorState({ isOpen: false, entry: null });
   };
 
-  if (loading || entriesLoading || checkingOnboarding) {
+  // Get user display name (Firebase uses displayName, not user_metadata)
+  const userName = user?.displayName || user?.email || 'User';
+
+  if (authLoading || checkingOnboarding) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
@@ -230,7 +223,7 @@ export default function Dashboard() {
       <DashboardLayout
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        userName={user?.user_metadata?.full_name || user?.email || 'User'}
+        userName={userName}
         savedEntries={savedEntries}
         onAddEntry={handleAddEntry}
         onCategorySelect={handleCategorySelect}
@@ -267,7 +260,7 @@ export default function Dashboard() {
         </>
       ) : (
         <DashboardMainContent
-          userName={user?.user_metadata?.full_name || user?.email || 'User'}
+          userName={userName}
           savedEntries={savedEntries}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -299,7 +292,7 @@ export default function Dashboard() {
           conversationData={conversationData}
         />
       )}
-      
+
       {/* Enhanced Document Viewer */}
       <EnhancedDocumentViewer
         isOpen={documentViewerState.isOpen}
@@ -315,8 +308,8 @@ export default function Dashboard() {
         entry={documentEditorState.entry}
         onSave={handleDocumentSaved}
       />
-      
-      
+
+
       <DeleteConfirmDialog
         isOpen={deleteDialog.isOpen}
         onClose={() => setDeleteDialog(prev => ({ ...prev, isOpen: false }))}

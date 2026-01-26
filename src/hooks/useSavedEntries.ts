@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -165,19 +165,19 @@ export const useSavedEntries = () => {
     }
   }, []);
 
-  // Filter entries based on search query
-  const filteredEntries = savedEntries.filter(entry => {
-    if (!searchQuery) return true;
-    
+  // Filter entries based on search query - memoized to prevent recalculation on every render
+  const filteredEntries = React.useMemo(() => {
+    if (!searchQuery) return savedEntries;
+
     const query = searchQuery.toLowerCase();
-    return (
+    return savedEntries.filter(entry =>
       entry.title.toLowerCase().includes(query) ||
       (entry.category && entry.category.toLowerCase().includes(query)) ||
-      Object.values(entry.fields).some(value => 
+      Object.values(entry.fields).some(value =>
         typeof value === 'string' && value.toLowerCase().includes(query)
       )
     );
-  });
+  }, [savedEntries, searchQuery]);
 
   // Load entries on mount
   useEffect(() => {

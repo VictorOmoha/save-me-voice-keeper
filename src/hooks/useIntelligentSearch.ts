@@ -35,39 +35,49 @@ export const useIntelligentSearch = ({
   const debounceRef = useRef<NodeJS.Timeout>();
   const searchStartTime = useRef<number>();
 
-  // Load search preferences and history
+  // Load search preferences and history - deferred to avoid blocking initial render
   useEffect(() => {
-    const loadSearchData = async () => {
-      const [preferences, history, popular] = await Promise.all([
-        searchAnalyticsService.getSearchPreferences(),
-        searchAnalyticsService.getUserSearchHistory(10),
-        searchAnalyticsService.getPopularSearches(5)
-      ]);
+    // Defer loading to after initial paint
+    const timer = setTimeout(() => {
+      const loadSearchData = async () => {
+        try {
+          const [preferences, history, popular] = await Promise.all([
+            searchAnalyticsService.getSearchPreferences(),
+            searchAnalyticsService.getUserSearchHistory(10),
+            searchAnalyticsService.getPopularSearches(5)
+          ]);
 
-      if (preferences) {
-        setSearchPreferences(prev => ({
-          ...prev,
-          enableSemanticSearch: preferences.semanticSearchEnabled,
-          enableAutoComplete: preferences.autoCompleteEnabled,
-          maxSuggestions: Math.min(preferences.recentSearchesLimit, 10),
-          userPreferences: preferences.preferredCategories
-        }));
-      }
+          if (preferences) {
+            setSearchPreferences(prev => ({
+              ...prev,
+              enableSemanticSearch: preferences.semanticSearchEnabled,
+              enableAutoComplete: preferences.autoCompleteEnabled,
+              maxSuggestions: Math.min(preferences.recentSearchesLimit, 10),
+              userPreferences: preferences.preferredCategories
+            }));
+          }
 
-      const recentQueries = history?.map(h => h.query).filter(Boolean) || [];
-      const popularQueries = popular?.map((p: any) => p.query).filter(Boolean) || [];
-      
-      setRecentSearches(recentQueries);
-      setPopularSearches(popularQueries);
-      
-      setSearchPreferences(prev => ({
-        ...prev,
-        recentSearches: recentQueries,
-        popularSearches: popularQueries
-      }));
-    };
+          const recentQueries = history?.map(h => h.query).filter(Boolean) || [];
+          const popularQueries = popular?.map((p: any) => p.query).filter(Boolean) || [];
 
-    loadSearchData();
+          setRecentSearches(recentQueries);
+          setPopularSearches(popularQueries);
+
+          setSearchPreferences(prev => ({
+            ...prev,
+            recentSearches: recentQueries,
+            popularSearches: popularQueries
+          }));
+        } catch (error) {
+          // Silently fail - search still works without preferences
+          console.log('Failed to load search preferences:', error);
+        }
+      };
+
+      loadSearchData();
+    }, 500); // Defer 500ms to let dashboard render first
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Generate suggestions with debouncing

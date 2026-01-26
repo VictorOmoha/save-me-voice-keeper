@@ -1,4 +1,5 @@
 
+import React, { useMemo } from "react";
 import { FileText, Users, Shield, Zap, Star, Table, Grid3X3, Heart, DollarSign, User, LucideIcon } from "lucide-react";
 import { EnhancedRecentEntries } from "@/components/entries";
 import { StatsCards } from "@/components/StatsCards";
@@ -49,6 +50,57 @@ const categories: { name: string; icon: LucideIcon; description: string }[] = [
   { name: 'Finance', icon: DollarSign, description: 'Bank info, investments, insurance' },
   { name: 'Personal', icon: User, description: 'Personal notes, memories, goals' },
 ];
+
+// Memoized categories grid to prevent re-renders
+const CategoriesGrid = React.memo(({
+  categories,
+  savedEntries,
+  onCategorySelect
+}: {
+  categories: typeof categories;
+  savedEntries: SavedEntry[];
+  onCategorySelect: (category: string) => void;
+}) => {
+  // Pre-compute category counts once
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const entry of savedEntries) {
+      const cat = entry.fields.category || 'Personal';
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return counts;
+  }, [savedEntries]);
+
+  return (
+    <div>
+      <h2 className="mono text-xs text-muted-foreground tracking-wider mb-4">BROWSE_BY_CATEGORY</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {categories.map((category, index) => (
+          <div
+            key={category.name}
+            className="category-card-skeletal group reveal"
+            onClick={() => onCategorySelect(category.name)}
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <div className="w-10 h-10 border border-galvanized flex items-center justify-center mb-3 group-hover:border-primary transition-colors">
+              <category.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+            <h3 className="mono text-sm font-bold text-foreground mb-1">
+              {category.name.toUpperCase()}
+            </h3>
+            <p className="mono text-xs text-muted-foreground mb-3 line-clamp-2 hidden sm:block">
+              {category.description}
+            </p>
+            <span className="badge-skeletal">
+              {categoryCounts[category.name] || 0}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+CategoriesGrid.displayName = 'CategoriesGrid';
 
 export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   userName,
@@ -192,39 +244,11 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       )}
 
       {/* Categories Grid - Skeletal */}
-      <div>
-        <h2 className="mono text-xs text-muted-foreground tracking-wider mb-4">BROWSE_BY_CATEGORY</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {categories.map((category, index) => {
-            const categoryEntries = savedEntries.filter(entry => {
-              const entryCategory = entry.fields.category || 'Personal';
-              return entryCategory === category.name;
-            });
-
-            return (
-              <div
-                key={category.name}
-                className="category-card-skeletal group reveal"
-                onClick={() => onCategorySelect(category.name)}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="w-10 h-10 border border-galvanized flex items-center justify-center mb-3 group-hover:border-primary transition-colors">
-                  <category.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <h3 className="mono text-sm font-bold text-foreground mb-1">
-                  {category.name.toUpperCase()}
-                </h3>
-                <p className="mono text-xs text-muted-foreground mb-3 line-clamp-2 hidden sm:block">
-                  {category.description}
-                </p>
-                <span className="badge-skeletal">
-                  {categoryEntries.length}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <CategoriesGrid
+        categories={categories}
+        savedEntries={savedEntries}
+        onCategorySelect={onCategorySelect}
+      />
 
       {/* Recent Entries - Enhanced Display */}
       <EnhancedRecentEntries

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ interface EnhancedRecentEntriesProps {
 
 type ViewMode = "list" | "grid" | "compact";
 
-export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = ({
+export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React.memo(({
   entries,
   onEdit,
   onFill,
@@ -47,7 +47,8 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const navigate = useNavigate();
 
-  const recentEntries = entries.slice(0, maxEntries);
+  // Memoize sliced entries to prevent recalculation on every render
+  const recentEntries = useMemo(() => entries.slice(0, maxEntries), [entries, maxEntries]);
 
   const handleEntryClick = (entry: SavedEntry) => {
     setViewingEntry(entry);
@@ -243,6 +244,8 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = ({
       />
     </>
   );
-};
+});
+
+EnhancedRecentEntries.displayName = 'EnhancedRecentEntries';
 
 export default EnhancedRecentEntries;

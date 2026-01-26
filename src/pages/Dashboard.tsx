@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { User as FirebaseUser } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
@@ -33,7 +34,7 @@ const categories = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -95,25 +96,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
         navigate('/login');
         return;
       }
-      setUser(user);
+      setUser(currentUser);
       setLoading(false);
 
       // Check if user has completed onboarding
       try {
-        const { data: preferences } = await supabase
-          .from('user_preferences')
-          .select('has_completed_onboarding')
-          .eq('user_id', user.id)
-          .single();
+        const prefsRef = doc(db, 'user_preferences', currentUser.uid);
+        const prefsSnap = await getDoc(prefsRef);
 
         // If no preferences exist or onboarding not completed, redirect to onboarding
-        const hasCompletedOnboarding = (preferences as UserPreferences | null)?.has_completed_onboarding;
-        if (!preferences || !hasCompletedOnboarding) {
+        const hasCompletedOnboarding = prefsSnap.exists() && prefsSnap.data()?.has_completed_onboarding;
+        if (!prefsSnap.exists() || !hasCompletedOnboarding) {
           navigate('/onboarding');
           return;
         }

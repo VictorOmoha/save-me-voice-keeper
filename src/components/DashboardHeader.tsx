@@ -22,7 +22,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import { VoiceInputFixed } from "@/components/VoiceInputFixed";
@@ -69,14 +70,9 @@ export const DashboardHeader = ({
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        toast.error("Failed to sign out");
-      } else {
-        toast.success("Signed out successfully");
-        window.location.href = '/login';
-      }
+      await signOut(auth);
+      toast.success("Signed out successfully");
+      window.location.href = '/login';
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error("Failed to sign out");

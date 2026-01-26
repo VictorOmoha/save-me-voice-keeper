@@ -1,4 +1,17 @@
-import { supabase } from "@/integrations/supabase/client";
+import { db, auth } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  Timestamp
+} from "firebase/firestore";
 
 export interface SearchAnalyticsData {
   query: string;
@@ -20,23 +33,19 @@ export interface SearchPreferences {
 class SearchAnalyticsService {
   async trackSearch(data: SearchAnalyticsData) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return;
 
-      const { error } = await supabase
-        .from('search_analytics')
-        .insert({
-          user_id: user.id,
-          query: data.query,
-          results_count: data.resultsCount,
-          clicked_result_id: data.clickedResultId,
-          search_type: data.searchType || 'text',
-          response_time_ms: data.responseTimeMs
-        });
-
-      if (error) {
-        console.error('Error tracking search:', error);
-      }
+      const analyticsRef = collection(db, 'search_analytics');
+      await addDoc(analyticsRef, {
+        user_id: user.uid,
+        query: data.query,
+        results_count: data.resultsCount,
+        clicked_result_id: data.clickedResultId || null,
+        search_type: data.searchType || 'text',
+        response_time_ms: data.responseTimeMs || null,
+        created_at: serverTimestamp()
+      });
     } catch (error) {
       console.error('Search analytics error:', error);
     }
@@ -44,25 +53,23 @@ class SearchAnalyticsService {
 
   async getPopularSearches(limit = 10) {
     try {
-      const { data, error } = await supabase
-        .from('search_analytics')
-        .select('query')
-        .not('query', 'eq', '')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // Last 30 days
-        .order('created_at', { ascending: false })
-        .limit(limit * 3); // Get more to account for duplicates
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-      if (error) {
-        console.error('Error fetching popular searches:', error);
-        return [];
-      }
+      const analyticsRef = collection(db, 'search_analytics');
+      const q = query(
+        analyticsRef,
+        where('created_at', '>=', Timestamp.fromDate(thirtyDaysAgo)),
+        orderBy('created_at', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
 
       // Count occurrences manually and sort by popularity
       const queryCounts = new Map<string, number>();
-      data?.forEach(item => {
-        const query = item.query?.trim();
-        if (query) {
-          queryCounts.set(query, (queryCounts.get(query) || 0) + 1);
+      querySnapshot.docs.forEach(docSnap => {
+        const searchQuery = docSnap.data().query?.trim();
+        if (searchQuery) {
+          queryCounts.set(searchQuery, (queryCounts.get(searchQuery) || 0) + 1);
         }
       });
 
@@ -78,23 +85,30 @@ class SearchAnalyticsService {
 
   async getUserSearchHistory(limit = 20) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return [];
 
-      const { data, error } = await supabase
-        .from('search_analytics')
-        .select('query, created_at')
-        .eq('user_id', user.id)
-        .not('query', 'eq', '')
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      const analyticsRef = collection(db, 'search_analytics');
+      const q = query(
+        analyticsRef,
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc')
+      );
 
-      if (error) {
-        console.error('Error fetching search history:', error);
-        return [];
-      }
+      const querySnapshot = await getDocs(q);
 
-      return data || [];
+      const results: { query: string; created_at: Date }[] = [];
+      querySnapshot.docs.slice(0, limit).forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.query) {
+          results.push({
+            query: data.query,
+            created_at: data.created_at?.toDate() || new Date()
+          });
+        }
+      });
+
+      return results;
     } catch (error) {
       console.error('Error fetching search history:', error);
       return [];
@@ -103,21 +117,13 @@ class SearchAnalyticsService {
 
   async getSearchPreferences(): Promise<SearchPreferences | null> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return null;
 
-      const { data, error } = await supabase
-        .from('search_preferences')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const prefsRef = doc(db, 'search_preferences', user.uid);
+      const prefsSnap = await getDoc(prefsRef);
 
-      if (error) {
-        console.error('Error fetching search preferences:', error);
-        return null;
-      }
-
-      if (!data) {
+      if (!prefsSnap.exists()) {
         // Return default preferences if none exist
         return {
           preferredCategories: [],
@@ -129,6 +135,7 @@ class SearchAnalyticsService {
         };
       }
 
+      const data = prefsSnap.data();
       return {
         preferredCategories: data.preferred_categories || [],
         searchSuggestionsEnabled: data.search_suggestions_enabled ?? true,
@@ -145,24 +152,20 @@ class SearchAnalyticsService {
 
   async updateSearchPreferences(preferences: Partial<SearchPreferences>) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return;
 
-      const { error } = await supabase
-        .from('search_preferences')
-        .upsert({
-          user_id: user.id,
-          preferred_categories: preferences.preferredCategories,
-          search_suggestions_enabled: preferences.searchSuggestionsEnabled,
-          voice_search_enabled: preferences.voiceSearchEnabled,
-          semantic_search_enabled: preferences.semanticSearchEnabled,
-          auto_complete_enabled: preferences.autoCompleteEnabled,
-          recent_searches_limit: preferences.recentSearchesLimit
-        });
-
-      if (error) {
-        console.error('Error updating search preferences:', error);
-      }
+      const prefsRef = doc(db, 'search_preferences', user.uid);
+      await setDoc(prefsRef, {
+        user_id: user.uid,
+        preferred_categories: preferences.preferredCategories,
+        search_suggestions_enabled: preferences.searchSuggestionsEnabled,
+        voice_search_enabled: preferences.voiceSearchEnabled,
+        semantic_search_enabled: preferences.semanticSearchEnabled,
+        auto_complete_enabled: preferences.autoCompleteEnabled,
+        recent_searches_limit: preferences.recentSearchesLimit,
+        updated_at: serverTimestamp()
+      }, { merge: true });
     } catch (error) {
       console.error('Search preferences update error:', error);
     }
@@ -170,15 +173,17 @@ class SearchAnalyticsService {
 
   async trackEntryOpened(entryId: string, query: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return;
 
-      await supabase.from('search_analytics').insert({
-        user_id: user.id,
+      const analyticsRef = collection(db, 'search_analytics');
+      await addDoc(analyticsRef, {
+        user_id: user.uid,
         query,
         result_type: 'entry',
         result_id: entryId,
-        action_type: 'entry_opened'
+        action_type: 'entry_opened',
+        created_at: serverTimestamp()
       });
     } catch (error) {
       console.error('Error tracking entry opened:', error);

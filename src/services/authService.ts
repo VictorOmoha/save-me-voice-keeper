@@ -1,79 +1,62 @@
-import { supabase } from '@/integrations/supabase/client';
+import { auth } from '@/lib/firebase';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup
+} from 'firebase/auth';
 
 export const authService = {
   login: async (email: string, password: string): Promise<{ error?: string }> => {
+    console.log('authService.login called', { email });
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('authService.login success', { uid: result.user.uid });
       return {};
-    } catch (error) {
-      return { error: 'An unexpected error occurred' };
+    } catch (error: any) {
+      console.error('authService.login error', error);
+      return { error: error.message };
     }
   },
 
   signup: async (email: string, password: string, fullName: string): Promise<{ error?: string }> => {
+    console.log('authService.signup called', { email });
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName,
-          }
-        }
-      });
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      if (error) {
-        return { error: error.message };
+      // Update profile with full name
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, {
+          displayName: fullName
+        });
       }
+      console.log('authService.signup success', { uid: userCredential.user.uid });
       return {};
-    } catch (error) {
-      return { error: 'An unexpected error occurred' };
+    } catch (error: any) {
+      console.error('authService.signup error', error);
+      return { error: error.message };
     }
   },
 
   signInWithGoogle: async (): Promise<{ error?: string }> => {
+    console.log('authService.signInWithGoogle called');
     try {
-      // Use current origin to ensure redirect works properly
-      const redirectUrl = `${window.location.origin}/dashboard`;
-      
-      console.log('Google sign-in initiated with redirect URL:', redirectUrl);
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        }
-      });
-
-      if (error) {
-        console.error('Google sign-in error:', error);
-        return { error: error.message };
-      }
-      
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      console.log('authService.signInWithGoogle success', { uid: result.user.uid });
       return {};
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google sign-in exception:', error);
-      return { error: 'An unexpected error occurred' };
+      return { error: error.message || 'An unexpected error occurred' };
     }
   },
 
   logout: async (): Promise<void> => {
     try {
-      await supabase.auth.signOut();
+      await signOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -81,17 +64,10 @@ export const authService = {
 
   resetPassword: async (email: string): Promise<{ error?: string }> => {
     try {
-      const redirectUrl = `${window.location.origin}/reset-password`;
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-
-      if (error) {
-        return { error: error.message };
-      }
+      await sendPasswordResetEmail(auth, email);
       return {};
-    } catch (error) {
-      return { error: 'An unexpected error occurred' };
+    } catch (error: any) {
+      return { error: error.message };
     }
   },
 };

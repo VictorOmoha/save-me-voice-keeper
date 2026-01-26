@@ -5,7 +5,19 @@ import { Plus } from "lucide-react";
 import { CategoryView } from "@/components/CategoryView";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SavedEntry } from "@/types/dashboard";
-import { supabase } from "@/integrations/supabase/client";
+import { db, auth } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp
+} from "firebase/firestore";
 import { toast } from "sonner";
 
 const VALID_CATEGORIES = ['Documents', 'Health', 'Contacts', 'Finance', 'Personal'];
@@ -31,27 +43,33 @@ export default function CategoryPage() {
 
   const loadEntries = async () => {
     try {
-      const { data: entries, error } = await supabase
-        .from('entries')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error loading entries:', error);
-        toast.error('Failed to load entries');
+      const user = auth.currentUser;
+      if (!user) {
+        console.error('No authenticated user');
         setEntries([]);
         return;
       }
 
-      const entriesArray = entries || [];
-      const formattedEntries: SavedEntry[] = entriesArray.map(entry => ({
-        id: entry.id,
-        title: entry.title,
-        fields: (entry.fields as Record<string, any>) || {},
-        fieldDefinitions: entry.field_definitions as any || undefined,
-        createdAt: new Date(entry.created_at),
-        updatedAt: new Date(entry.updated_at)
-      }));
+      const entriesRef = collection(db, 'entries');
+      const q = query(
+        entriesRef,
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      const formattedEntries: SavedEntry[] = querySnapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          title: data.title,
+          fields: data.fields || {},
+          fieldDefinitions: data.field_definitions || undefined,
+          createdAt: data.created_at?.toDate() || new Date(),
+          updatedAt: data.updated_at?.toDate() || new Date()
+        };
+      });
 
       setEntries(formattedEntries);
     } catch (error) {
@@ -65,36 +83,33 @@ export default function CategoryPage() {
     try {
       if (editingEntry) {
         // Update existing entry
-        const { error } = await supabase
-          .from('entries')
-          .update({
-            title: entryData.title,
-            fields: entryData.fields,
-            field_definitions: entryData.fieldDefinitions as any,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingEntry.id);
+        const entryRef = doc(db, 'entries', editingEntry.id);
+        await updateDoc(entryRef, {
+          title: entryData.title,
+          fields: entryData.fields,
+          field_definitions: entryData.fieldDefinitions || null,
+          updated_at: serverTimestamp()
+        });
 
-        if (error) throw error;
         toast.success("Entry updated successfully!");
       } else {
         // Create new entry with category pre-filled
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = auth.currentUser;
         if (!user) throw new Error('User not authenticated');
 
-        const { error } = await supabase
-          .from('entries')
-          .insert({
-            title: entryData.title,
-            fields: {
-              ...entryData.fields,
-              category: categoryName,
-            },
-            field_definitions: entryData.fieldDefinitions as any,
-            user_id: user.id
-          });
+        const entriesRef = collection(db, 'entries');
+        await addDoc(entriesRef, {
+          title: entryData.title,
+          fields: {
+            ...entryData.fields,
+            category: categoryName,
+          },
+          field_definitions: entryData.fieldDefinitions || null,
+          user_id: user.uid,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp()
+        });
 
-        if (error) throw error;
         toast.success("Entry created successfully!");
       }
 
@@ -111,13 +126,9 @@ export default function CategoryPage() {
 
   const handleDeleteEntry = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('entries')
-        .delete()
-        .eq('id', id);
+      const entryRef = doc(db, 'entries', id);
+      await deleteDoc(entryRef);
 
-      if (error) throw error;
-      
       await loadEntries(); // Reload entries from database
       toast.success("Entry deleted successfully!");
     } catch (error) {

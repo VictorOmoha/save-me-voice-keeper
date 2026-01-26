@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Shield, Key, Smartphone } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/firebase";
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { toast } from "sonner";
 
 export const SecuritySettings = () => {
@@ -33,18 +34,28 @@ export const SecuritySettings = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordForm.newPassword
-      });
+      const user = auth.currentUser;
+      if (!user || !user.email) {
+        throw new Error("No authenticated user");
+      }
 
-      if (error) throw error;
+      // Re-authenticate user before password change
+      const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, passwordForm.newPassword);
 
       toast.success("Password updated successfully");
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setIsPasswordDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating password:', error);
-      toast.error("Failed to update password");
+      if (error.code === 'auth/wrong-password') {
+        toast.error("Current password is incorrect");
+      } else {
+        toast.error("Failed to update password");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +80,7 @@ export const SecuritySettings = () => {
             Coming Soon
           </Badge>
         </div>
-        
+
         <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" className="w-full justify-start">
@@ -109,8 +120,8 @@ export const SecuritySettings = () => {
                   placeholder="Confirm new password"
                 />
               </div>
-              <Button 
-                onClick={handleChangePassword} 
+              <Button
+                onClick={handleChangePassword}
                 disabled={isLoading}
                 className="w-full"
               >
@@ -119,7 +130,7 @@ export const SecuritySettings = () => {
             </div>
           </DialogContent>
         </Dialog>
-        
+
         <Button variant="outline" className="w-full justify-start" onClick={() => toast.info("Device management coming soon")}>
           <Smartphone className="w-4 h-4 mr-2" />
           Manage Devices

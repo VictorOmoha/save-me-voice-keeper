@@ -15,7 +15,8 @@ import { SmartSearchWithBoundary as SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 import { toast } from "sonner";
 
 interface SearchHeaderProps {
@@ -52,14 +53,9 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        toast.error("Failed to sign out");
-      } else {
-        toast.success("Signed out successfully");
-        navigate('/login');
-      }
+      await signOut(auth);
+      toast.success("Signed out successfully");
+      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error("Failed to sign out");

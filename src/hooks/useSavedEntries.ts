@@ -1,7 +1,20 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { SavedEntry } from "@/types/dashboard";
-import { supabase } from "@/integrations/supabase/client";
+import { db, auth } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  Timestamp
+} from "firebase/firestore";
 import { toast } from "sonner";
 
 export const useSavedEntries = () => {
@@ -10,43 +23,41 @@ export const useSavedEntries = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch entries from Supabase
+  // Fetch entries from Firebase Firestore
   const fetchEntries = useCallback(async () => {
     try {
       setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const user = auth.currentUser;
+
       if (!user) {
         console.log('No user found');
         setIsLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+      const entriesRef = collection(db, 'entries');
+      const q = query(
+        entriesRef,
+        where('user_id', '==', user.uid),
+        orderBy('updated_at', 'desc')
+      );
 
-      if (error) {
-        console.error('Error fetching entries:', error);
-        toast.error('Failed to fetch entries');
-        return;
-      }
+      const querySnapshot = await getDocs(q);
 
       // Transform the data to match our SavedEntry type
-      const transformedEntries: SavedEntry[] = (data || []).map(entry => {
-        const fields = entry.fields as Record<string, any> || {};
-        const fieldDefinitions = entry.field_definitions as any[] || [];
-        
+      const transformedEntries: SavedEntry[] = querySnapshot.docs.map(docSnap => {
+        const data = docSnap.data();
+        const fields = data.fields || {};
+        const fieldDefinitions = data.field_definitions || [];
+
         return {
-          id: entry.id,
-          title: entry.title,
+          id: docSnap.id,
+          title: data.title,
           fields,
           fieldDefinitions,
           category: fields?.category || 'Personal',
-          createdAt: new Date(entry.created_at),
-          updatedAt: new Date(entry.updated_at),
+          createdAt: data.created_at?.toDate() || new Date(),
+          updatedAt: data.updated_at?.toDate() || new Date(),
         };
       });
 
@@ -59,7 +70,7 @@ export const useSavedEntries = () => {
     }
   }, []);
 
-  // Save entry to Supabase with debouncing and duplicate prevention
+  // Save entry to Firebase Firestore with debouncing and duplicate prevention
   const saveEntry = useCallback(async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, editingEntry?: SavedEntry | null) => {
     // Prevent concurrent saves
     if (isSaving) {
@@ -69,68 +80,57 @@ export const useSavedEntries = () => {
 
     setIsSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const user = auth.currentUser;
+
       if (!user) {
         throw new Error('No authenticated user');
       }
 
-      const entryData = {
-        title: entry.title,
-        fields: entry.fields as any, // Cast to Json-compatible type
-        field_definitions: entry.fieldDefinitions as any || null, // Cast to Json-compatible type
-        user_id: user.id,
-      };
-
-      let data, error;
-
       if (editingEntry) {
         // Update existing entry
-        const result = await supabase
-          .from('entries')
-          .update(entryData)
-          .eq('id', editingEntry.id)
-          .select()
-          .single();
-        
-        data = result.data;
-        error = result.error;
-      } else {
-        // Insert new entry
-        const result = await supabase
-          .from('entries')
-          .insert(entryData)
-          .select()
-          .single();
-        
-        data = result.data;
-        error = result.error;
-      }
+        const entryRef = doc(db, 'entries', editingEntry.id);
+        await updateDoc(entryRef, {
+          title: entry.title,
+          fields: entry.fields,
+          field_definitions: entry.fieldDefinitions || null,
+          updated_at: serverTimestamp(),
+        });
 
-      if (error) {
-        throw error;
-      }
+        // Update local state
+        const updatedEntry: SavedEntry = {
+          ...editingEntry,
+          title: entry.title,
+          fields: entry.fields,
+          fieldDefinitions: entry.fieldDefinitions || [],
+          category: entry.fields?.category || 'Personal',
+          updatedAt: new Date(),
+        };
 
-      // Transform the data
-      const fields = data.fields as Record<string, any> || {};
-      const fieldDefinitions = data.field_definitions as any[] || [];
-      
-      const savedEntry: SavedEntry = {
-        id: data.id,
-        title: data.title,
-        fields,
-        fieldDefinitions,
-        category: fields?.category || 'Personal',
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
-      };
-
-      if (editingEntry) {
-        // Update existing entry in local state
-        setSavedEntries(prev => prev.map(e => e.id === editingEntry.id ? savedEntry : e));
+        setSavedEntries(prev => prev.map(e => e.id === editingEntry.id ? updatedEntry : e));
         toast.success('Entry updated successfully!');
       } else {
-        // Add new entry to local state
+        // Insert new entry
+        const entriesRef = collection(db, 'entries');
+        const docRef = await addDoc(entriesRef, {
+          title: entry.title,
+          fields: entry.fields,
+          field_definitions: entry.fieldDefinitions || null,
+          user_id: user.uid,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        });
+
+        // Add to local state
+        const savedEntry: SavedEntry = {
+          id: docRef.id,
+          title: entry.title,
+          fields: entry.fields,
+          fieldDefinitions: entry.fieldDefinitions || [],
+          category: entry.fields?.category || 'Personal',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
         setSavedEntries(prev => [savedEntry, ...prev]);
         toast.success('Entry saved successfully!');
       }
@@ -143,17 +143,11 @@ export const useSavedEntries = () => {
     }
   }, [isSaving]);
 
-  // Delete entry from Supabase
+  // Delete entry from Firebase Firestore
   const deleteEntry = useCallback(async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('entries')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw error;
-      }
+      const entryRef = doc(db, 'entries', id);
+      await deleteDoc(entryRef);
 
       // Remove from local state
       setSavedEntries(prev => prev.filter(entry => entry.id !== id));

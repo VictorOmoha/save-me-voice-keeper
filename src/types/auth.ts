@@ -1,19 +1,18 @@
-import { User, Session } from '@supabase/supabase-js';
+import { User as FirebaseUser } from 'firebase/auth';
 
 export interface UserProfile {
-  id: string;
-  email: string;
-  full_name: string | null;
-  avatar_url: string | null;
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
   subscriptionTier: 'free' | 'basic' | 'premium' | 'enterprise';
   subscriptionActive: boolean;
 }
 
 export interface AuthContextType {
-  user: UserProfile | null;
-  session: Session | null;
+  user: FirebaseUser | null;
+  loading: boolean;
   isAuthenticated: boolean;
-  isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error?: string }>;
   signup: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;

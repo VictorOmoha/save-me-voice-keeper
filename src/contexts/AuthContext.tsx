@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { User as FirebaseUser } from 'firebase/auth';
 import { AuthContextType } from '@/types/auth';
 import { useAuthState } from '@/hooks/useAuthState';
 import { authService } from '@/services/authService';
@@ -7,11 +8,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   console.log('AuthProvider: Initializing...');
-  
-  const { user, session, isLoading, resetUserState } = useAuthState();
+
+  const { user, isLoading, resetUserState } = useAuthState();
   const [authLoading, setAuthLoading] = useState(false);
-  
-  console.log('AuthProvider: State -', { user: !!user, session: !!session, isLoading, authLoading });
+
+  console.log('AuthProvider: State -', { user: !!user, isLoading, authLoading });
 
   const login = async (email: string, password: string) => {
     setAuthLoading(true);
@@ -50,9 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{
       user,
-      session,
-      isAuthenticated: !!session,
-      isLoading: isLoading || authLoading,
+      loading: isLoading || authLoading,
+      isAuthenticated: !!user,
       login,
       signup,
       signInWithGoogle,

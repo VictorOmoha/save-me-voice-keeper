@@ -2,7 +2,16 @@
 import React from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { db, auth } from "@/lib/firebase";
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  writeBatch
+} from "firebase/firestore";
 import { zapierService } from "@/services/zapierService";
 import { webhookService } from "@/services/webhookService";
 import { useState } from "react";
@@ -24,7 +33,7 @@ const getWebhookUrl = () => {
 
 // Get user email from auth context
 const getUserEmail = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = auth.currentUser;
   return user?.email || 'omohavictor@gmail.com';
 };
 
@@ -53,15 +62,15 @@ export const useDashboardActions = ({
     setIsSaving(true);
     try {
       // Check if user is authenticated
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !user) {
-        console.error('Authentication error:', authError);
+      const user = auth.currentUser;
+
+      if (!user) {
+        console.error('Authentication error: No user logged in');
         toast.error("You must be logged in to save entries");
         return;
       }
 
-      console.log('Authenticated user:', user.id);
+      console.log('Authenticated user:', user.uid);
       console.log('Saving entry:', entry);
       console.log('Filling entry:', fillingEntry);
 
@@ -69,43 +78,28 @@ export const useDashboardActions = ({
 
       if (editingEntry) {
         // Update existing entry
-        const { data, error } = await supabase
-          .from('entries')
-          .update({
-            title: entry.title,
-            fields: entry.fields as any,
-            field_definitions: entry.fieldDefinitions as any,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingEntry.id)
-          .select()
-          .single();
-
-        if (error) {
-          const exceeded = error.message?.includes('storage_limit_exceeded') || (error as any)?.details?.includes?.('storage_limit_exceeded');
-          if (exceeded) {
-            showStorageExceededToast();
-            return;
-          }
-          console.error('Error updating entry:', error);
-          toast.error("Failed to update entry: " + error.message);
-          return;
-        }
+        const entryRef = doc(db, 'entries', editingEntry.id);
+        await updateDoc(entryRef, {
+          title: entry.title,
+          fields: entry.fields,
+          field_definitions: entry.fieldDefinitions || null,
+          updated_at: serverTimestamp()
+        });
 
         savedEntryData = {
-          id: data.id,
-          title: data.title,
-          fields: data.fields as Record<string, any>,
-          fieldDefinitions: data.field_definitions as any,
-          createdAt: new Date(data.created_at),
-          updatedAt: new Date(data.updated_at)
+          id: editingEntry.id,
+          title: entry.title,
+          fields: entry.fields,
+          fieldDefinitions: entry.fieldDefinitions,
+          createdAt: editingEntry.createdAt,
+          updatedAt: new Date()
         };
 
         // Trigger webhook for entry update
         try {
           const webhookUrl = getWebhookUrl();
           const userEmail = await getUserEmail();
-          
+
           await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
           console.log('Webhook triggered for entry update');
         } catch (webhookError) {
@@ -114,51 +108,36 @@ export const useDashboardActions = ({
         }
 
         // Update local state immediately to prevent duplication
-        setSavedEntries(prevEntries => 
+        setSavedEntries(prevEntries =>
           prevEntries.map(e => e.id === editingEntry.id ? savedEntryData! : e)
         );
-        
+
         toast.success("Entry updated successfully!");
         setEditingEntry(null);
       } else if (fillingEntry) {
         // When filling, update the template entry instead of creating a new one
-        const { data, error } = await supabase
-          .from('entries')
-          .update({
-            title: entry.title,
-            fields: entry.fields as any,
-            field_definitions: entry.fieldDefinitions as any,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', fillingEntry.id)
-          .select()
-          .single();
-
-        if (error) {
-          const exceeded = error.message?.includes('storage_limit_exceeded') || (error as any)?.details?.includes?.('storage_limit_exceeded');
-          if (exceeded) {
-            showStorageExceededToast();
-            return;
-          }
-          console.error('Error updating filled entry:', error);
-          toast.error("Failed to update entry: " + error.message);
-          return;
-        }
+        const entryRef = doc(db, 'entries', fillingEntry.id);
+        await updateDoc(entryRef, {
+          title: entry.title,
+          fields: entry.fields,
+          field_definitions: entry.fieldDefinitions || null,
+          updated_at: serverTimestamp()
+        });
 
         savedEntryData = {
-          id: data.id,
-          title: data.title,
-          fields: data.fields as Record<string, any>,
-          fieldDefinitions: data.field_definitions as any,
-          createdAt: new Date(data.created_at),
-          updatedAt: new Date(data.updated_at)
+          id: fillingEntry.id,
+          title: entry.title,
+          fields: entry.fields,
+          fieldDefinitions: entry.fieldDefinitions,
+          createdAt: fillingEntry.createdAt,
+          updatedAt: new Date()
         };
 
         // Trigger webhook for entry fill/update
         try {
           const webhookUrl = getWebhookUrl();
           const userEmail = await getUserEmail();
-          
+
           await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
           console.log('Webhook triggered for entry fill');
         } catch (webhookError) {
@@ -166,7 +145,7 @@ export const useDashboardActions = ({
         }
 
         // Update local state immediately to prevent duplication
-        setSavedEntries(prevEntries => 
+        setSavedEntries(prevEntries =>
           prevEntries.map(e => e.id === fillingEntry.id ? savedEntryData! : e)
         );
 
@@ -174,43 +153,31 @@ export const useDashboardActions = ({
         toast.success("Entry data updated successfully!");
         setFillingEntry(null);
       } else {
-        // Create new entry - explicitly set user_id and let trigger handle validation
-        const { data, error } = await supabase
-          .from('entries')
-          .insert({
-            title: entry.title,
-            fields: entry.fields as any,
-            field_definitions: entry.fieldDefinitions as any,
-            user_id: user.id,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          const exceeded = error.message?.includes('storage_limit_exceeded') || (error as any)?.details?.includes?.('storage_limit_exceeded');
-          if (exceeded) {
-            showStorageExceededToast();
-            return;
-          }
-          console.error('Error creating entry:', error);
-          toast.error("Failed to save entry: " + error.message);
-          return;
-        }
+        // Create new entry
+        const entriesRef = collection(db, 'entries');
+        const docRef = await addDoc(entriesRef, {
+          title: entry.title,
+          fields: entry.fields,
+          field_definitions: entry.fieldDefinitions || null,
+          user_id: user.uid,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp()
+        });
 
         savedEntryData = {
-          id: data.id,
-          title: data.title,
-          fields: data.fields as Record<string, any>,
-          fieldDefinitions: data.field_definitions as any,
-          createdAt: new Date(data.created_at),
-          updatedAt: new Date(data.updated_at)
+          id: docRef.id,
+          title: entry.title,
+          fields: entry.fields,
+          fieldDefinitions: entry.fieldDefinitions,
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
 
         // Trigger webhook for new entry creation
         try {
           const webhookUrl = getWebhookUrl();
           const userEmail = await getUserEmail();
-          
+
           await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
           console.log('Webhook triggered for new entry creation');
         } catch (webhookError) {
@@ -219,13 +186,12 @@ export const useDashboardActions = ({
 
         // Add new entry to local state immediately to prevent duplication
         setSavedEntries(prevEntries => [savedEntryData!, ...prevEntries]);
-        
-        console.log('Entry created successfully:', data);
+
+        console.log('Entry created successfully:', docRef.id);
         toast.success("Entry saved successfully!");
       }
-      
+
       setShowAddEntry(false);
-      // Only reload entries if it was an update (to ensure consistency), not for new entries or updates
     } catch (error) {
       const err = error as any;
       const exceeded = err?.message?.includes?.('storage_limit_exceeded') || err?.details?.includes?.('storage_limit_exceeded');
@@ -242,16 +208,8 @@ export const useDashboardActions = ({
 
   const deleteEntry = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('entries')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting entry:', error);
-        toast.error("Failed to delete entry");
-        return;
-      }
+      const entryRef = doc(db, 'entries', id);
+      await deleteDoc(entryRef);
 
       toast.success("Entry deleted successfully!");
       await loadEntries(); // Reload entries from database
@@ -263,16 +221,12 @@ export const useDashboardActions = ({
 
   const bulkDeleteEntries = async (ids: string[]) => {
     try {
-      const { error } = await supabase
-        .from('entries')
-        .delete()
-        .in('id', ids);
-
-      if (error) {
-        console.error('Error deleting entries:', error);
-        toast.error("Failed to delete entries");
-        return;
-      }
+      const batch = writeBatch(db);
+      ids.forEach(id => {
+        const entryRef = doc(db, 'entries', id);
+        batch.delete(entryRef);
+      });
+      await batch.commit();
 
       toast.success(`${ids.length} entries deleted successfully!`);
       await loadEntries(); // Reload entries from database

@@ -19,31 +19,34 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic, Database } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 const Settings = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [isAdmin, setIsAdmin] = useState(false);
-  
+
   // Load saved entries for data management
   const [savedEntries, setSavedEntries] = useState<any[]>([]);
-  
+
   // Check if user has admin role
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!user) return;
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      setIsAdmin(!!data);
+      try {
+        const roleRef = doc(db, 'user_roles', user.uid);
+        const roleSnap = await getDoc(roleRef);
+        if (roleSnap.exists()) {
+          setIsAdmin(roleSnap.data()?.role === 'admin');
+        }
+      } catch (error) {
+        console.log('Could not check admin role:', error);
+      }
     };
     checkAdminRole();
   }, [user]);
-  
+
   useEffect(() => {
     const entries = localStorage.getItem('savedEntries');
     if (entries) {

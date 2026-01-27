@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { HelpCircle, Send, ExternalLink, MessageSquare, Bug, Lightbulb, Mail } from "lucide-react";
 import { useState } from "react";
 
@@ -42,38 +43,17 @@ export const EnhancedHelpSupportSettings = () => {
 
     setIsSubmitting(true);
     try {
-      // First, save to database
-      const { error: dbError } = await supabase
-        .from('support_tickets')
-        .insert({
-          user_id: user.id,
-          subject: supportForm.subject.trim(),
-          message: supportForm.message.trim(),
-          category: supportForm.category,
-        });
-
-      if (dbError) throw dbError;
-
-      // Then, send email notification
-      try {
-        const { error: emailError } = await supabase.functions.invoke('send-support-email', {
-          body: {
-            subject: supportForm.subject.trim(),
-            message: supportForm.message.trim(),
-            category: supportForm.category,
-            userEmail: user.email,
-            userName: user.email?.split('@')[0] || 'User'
-          }
-        });
-
-        if (emailError) {
-          console.error('Email sending failed:', emailError);
-          // Don't fail the whole operation if email fails
-        }
-      } catch (emailError) {
-        console.error('Email function error:', emailError);
-        // Don't fail the whole operation if email fails
-      }
+      // Save to Firebase Firestore
+      const ticketsRef = collection(db, 'support_tickets');
+      await addDoc(ticketsRef, {
+        user_id: user.uid,
+        user_email: user.email,
+        subject: supportForm.subject.trim(),
+        message: supportForm.message.trim(),
+        category: supportForm.category,
+        status: 'open',
+        created_at: serverTimestamp(),
+      });
 
       toast({
         title: "Support ticket submitted",

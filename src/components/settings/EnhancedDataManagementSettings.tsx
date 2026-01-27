@@ -4,13 +4,14 @@ import { Progress } from "@/components/ui/progress";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { Database, Download, Trash2, Shield, Archive, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export const EnhancedDataManagementSettings = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [storageStats, setStorageStats] = useState({
     entries: 0,
     apiKeys: 0,
@@ -31,16 +32,27 @@ export const EnhancedDataManagementSettings = () => {
     if (!user) return;
 
     try {
-      const [entriesResponse, apiKeysResponse] = await Promise.all([
-        supabase.from('entries').select('id', { count: 'exact' }).eq('user_id', user.id),
-        supabase.from('api_keys').select('id', { count: 'exact' }).eq('user_id', user.id),
-      ]);
+      // Count entries
+      const entriesRef = collection(db, 'entries');
+      const entriesQuery = query(entriesRef, where('user_id', '==', user.uid));
+      const entriesSnapshot = await getDocs(entriesQuery);
+
+      // Count API keys (if collection exists)
+      let apiKeysCount = 0;
+      try {
+        const apiKeysRef = collection(db, 'api_keys');
+        const apiKeysQuery = query(apiKeysRef, where('user_id', '==', user.uid));
+        const apiKeysSnapshot = await getDocs(apiKeysQuery);
+        apiKeysCount = apiKeysSnapshot.size;
+      } catch (e) {
+        // API keys collection might not exist
+      }
 
       setStorageStats({
-        entries: entriesResponse.count || 0,
-        apiKeys: apiKeysResponse.count || 0,
-        totalSize: ((entriesResponse.count || 0) + (apiKeysResponse.count || 0)) * 1024, // Rough estimate
-        lastBackup: null, // TODO: Implement backup tracking
+        entries: entriesSnapshot.size,
+        apiKeys: apiKeysCount,
+        totalSize: (entriesSnapshot.size + apiKeysCount) * 1024, // Rough estimate
+        lastBackup: null,
       });
     } catch (error) {
       console.error('Error loading storage stats:', error);
@@ -52,25 +64,58 @@ export const EnhancedDataManagementSettings = () => {
 
     setIsExporting(true);
     try {
-      // Export all user data
-      const [entriesResponse, preferencesResponse, apiKeysResponse] = await Promise.all([
-        supabase.from('entries').select('*').eq('user_id', user.id),
-        supabase.from('user_preferences').select('*').eq('user_id', user.id),
-        supabase.from('api_keys').select('id, name, key_prefix, permissions, is_active, created_at, last_used_at').eq('user_id', user.id),
-      ]);
+      // Export all user data from Firebase
+      const entriesRef = collection(db, 'entries');
+      const entriesQuery = query(entriesRef, where('user_id', '==', user.uid));
+      const entriesSnapshot = await getDocs(entriesQuery);
+      const entries = entriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Get user preferences
+      let preferences = {};
+      try {
+        const prefsRef = doc(db, 'user_preferences', user.uid);
+        const prefsSnap = await getDoc(prefsRef);
+        if (prefsSnap.exists()) {
+          preferences = prefsSnap.data();
+        }
+      } catch (e) {
+        console.log('No preferences found');
+      }
+
+      // Get API keys (excluding sensitive data)
+      let apiKeys: any[] = [];
+      try {
+        const apiKeysRef = collection(db, 'api_keys');
+        const apiKeysQuery = query(apiKeysRef, where('user_id', '==', user.uid));
+        const apiKeysSnapshot = await getDocs(apiKeysQuery);
+        apiKeys = apiKeysSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name,
+            key_prefix: data.key_prefix,
+            permissions: data.permissions,
+            is_active: data.is_active,
+            created_at: data.created_at?.toDate?.() || data.created_at,
+            last_used_at: data.last_used_at?.toDate?.() || data.last_used_at,
+          };
+        });
+      } catch (e) {
+        console.log('No API keys found');
+      }
 
       const exportData = {
         exportDate: new Date().toISOString(),
         user: {
-          id: user.id,
+          id: user.uid,
           email: user.email,
         },
-        entries: entriesResponse.data || [],
-        preferences: preferencesResponse.data?.[0] || {},
-        apiKeys: apiKeysResponse.data || [],
+        entries,
+        preferences,
+        apiKeys,
         metadata: {
-          totalEntries: entriesResponse.data?.length || 0,
-          totalApiKeys: apiKeysResponse.data?.length || 0,
+          totalEntries: entries.length,
+          totalApiKeys: apiKeys.length,
         }
       };
 
@@ -104,10 +149,9 @@ export const EnhancedDataManagementSettings = () => {
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true);
     try {
-      // Create a backup (simplified - in real app this would be more comprehensive)
       await handleExportAllData();
       setStorageStats(prev => ({ ...prev, lastBackup: new Date() }));
-      
+
       toast({
         title: "Backup created",
         description: "Your data backup has been created and downloaded.",
@@ -128,20 +172,14 @@ export const EnhancedDataManagementSettings = () => {
 
     setIsDeletingAccount(true);
     try {
-      // Delete all user data (the foreign key constraints will handle cascade deletes)
-      const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
-      
-      if (authError) throw authError;
-
+      // Note: Full account deletion requires Firebase Admin SDK on backend
+      // For now, we'll just sign out and show a message
       toast({
-        title: "Account deleted",
-        description: "Your account and all data have been permanently deleted.",
+        title: "Account deletion requested",
+        description: "Please contact support to complete account deletion.",
       });
 
-      // Sign out user
-      await supabase.auth.signOut();
-      
-      // Redirect to home page
+      await logout();
       window.location.href = '/';
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -155,7 +193,7 @@ export const EnhancedDataManagementSettings = () => {
     }
   };
 
-  const storageUsedPercent = Math.min((storageStats.totalSize / (10 * 1024 * 1024)) * 100, 100); // Assume 10MB limit
+  const storageUsedPercent = Math.min((storageStats.totalSize / (10 * 1024 * 1024)) * 100, 100);
 
   return (
     <Card>
@@ -188,7 +226,7 @@ export const EnhancedDataManagementSettings = () => {
               <div className="text-sm text-muted-foreground">Of Limit</div>
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Storage Used</span>
@@ -210,7 +248,7 @@ export const EnhancedDataManagementSettings = () => {
               <Download className="w-4 h-4 mr-2" />
               {isExporting ? "Exporting..." : "Export All Data"}
             </Button>
-            
+
             <Button
               onClick={handleCreateBackup}
               disabled={isCreatingBackup}

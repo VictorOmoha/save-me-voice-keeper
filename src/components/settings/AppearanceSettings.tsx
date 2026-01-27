@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/components/ThemeProvider";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Palette, Sun, Moon, Globe, Monitor } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export const AppearanceSettings = () => {
   const { theme, setTheme } = useTheme();
@@ -17,20 +18,16 @@ export const AppearanceSettings = () => {
 
   const saveThemePreference = async (newTheme: string) => {
     if (!user) return;
-    
+
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('user_preferences')
-        .upsert({
-          user_id: user.id,
-          theme: newTheme,
-        }, {
-          onConflict: 'user_id'
-        });
+      const prefsRef = doc(db, 'user_preferences', user.uid);
+      await setDoc(prefsRef, {
+        user_id: user.uid,
+        theme: newTheme,
+        updated_at: serverTimestamp()
+      }, { merge: true });
 
-      if (error) throw error;
-      
       toast({
         title: "Theme updated",
         description: "Your theme preference has been saved.",

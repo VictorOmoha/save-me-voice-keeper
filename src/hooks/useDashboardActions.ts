@@ -2,7 +2,8 @@
 import React from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
-import { db, auth } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   collection,
   doc,
@@ -31,12 +32,6 @@ const getWebhookUrl = () => {
   return localStorage.getItem('zapierWebhookUrl') || 'https://hooks.zapier.com/hooks/catch/23790183/u2t2vvq/';
 };
 
-// Get user email from auth context
-const getUserEmail = async () => {
-  const user = auth.currentUser;
-  return user?.email || 'omohavictor@gmail.com';
-};
-
 const showStorageExceededToast = () => {
   toast.error("Storage limit reached for your plan. Please delete some entries/files or upgrade your plan.");
 };
@@ -50,7 +45,11 @@ export const useDashboardActions = ({
   setShowAddEntry,
   loadEntries,
 }: UseDashboardActionsProps) => {
+  const { user } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
+
+  // Get user email for webhooks
+  const getUserEmail = () => user?.email || '';
 
   const saveEntry = async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, fillingEntry?: SavedEntry | null) => {
     // Prevent concurrent saves
@@ -59,17 +58,14 @@ export const useDashboardActions = ({
       return;
     }
 
+    if (!user) {
+      console.error('Authentication error: No user logged in');
+      toast.error("You must be logged in to save entries");
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Check if user is authenticated
-      const user = auth.currentUser;
-
-      if (!user) {
-        console.error('Authentication error: No user logged in');
-        toast.error("You must be logged in to save entries");
-        return;
-      }
-
       console.log('Authenticated user:', user.uid);
       console.log('Saving entry:', entry);
       console.log('Filling entry:', fillingEntry);
@@ -98,7 +94,7 @@ export const useDashboardActions = ({
         // Trigger webhook for entry update
         try {
           const webhookUrl = getWebhookUrl();
-          const userEmail = await getUserEmail();
+          const userEmail = getUserEmail();
 
           await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
           console.log('Webhook triggered for entry update');
@@ -136,7 +132,7 @@ export const useDashboardActions = ({
         // Trigger webhook for entry fill/update
         try {
           const webhookUrl = getWebhookUrl();
-          const userEmail = await getUserEmail();
+          const userEmail = getUserEmail();
 
           await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
           console.log('Webhook triggered for entry fill');
@@ -176,7 +172,7 @@ export const useDashboardActions = ({
         // Trigger webhook for new entry creation
         try {
           const webhookUrl = getWebhookUrl();
-          const userEmail = await getUserEmail();
+          const userEmail = getUserEmail();
 
           await zapierService.sendEntryCreatedWebhook(webhookUrl, savedEntryData, userEmail);
           console.log('Webhook triggered for new entry creation');

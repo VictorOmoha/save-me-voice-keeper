@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { CategoryView } from "@/components/CategoryView";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SavedEntry } from "@/types/dashboard";
-import { db, auth } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import { db } from "@/lib/firebase";
 import {
   collection,
   query,
@@ -25,6 +26,7 @@ const VALID_CATEGORIES = ['Documents', 'Health', 'Contacts', 'Finance', 'Persona
 export default function CategoryPage() {
   const { categoryName } = useParams<{ categoryName: string }>();
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
   const [entries, setEntries] = useState<SavedEntry[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddEntry, setShowAddEntry] = useState(false);
@@ -37,18 +39,16 @@ export default function CategoryPage() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  useEffect(() => {
-    loadEntries();
-  }, []);
+  const loadEntries = useCallback(async () => {
+    if (authLoading) return;
 
-  const loadEntries = async () => {
+    if (!user) {
+      console.error('No authenticated user');
+      setEntries([]);
+      return;
+    }
+
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        console.error('No authenticated user');
-        setEntries([]);
-        return;
-      }
 
       const entriesRef = collection(db, 'entries');
       const q = query(
@@ -77,9 +77,20 @@ export default function CategoryPage() {
       toast.error("Failed to load entries");
       setEntries([]);
     }
-  };
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadEntries();
+    }
+  }, [user, authLoading, loadEntries]);
 
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) {
+      toast.error("You must be logged in to save entries");
+      return;
+    }
+
     try {
       if (editingEntry) {
         // Update existing entry
@@ -94,8 +105,6 @@ export default function CategoryPage() {
         toast.success("Entry updated successfully!");
       } else {
         // Create new entry with category pre-filled
-        const user = auth.currentUser;
-        if (!user) throw new Error('User not authenticated');
 
         const entriesRef = collection(db, 'entries');
         await addDoc(entriesRef, {

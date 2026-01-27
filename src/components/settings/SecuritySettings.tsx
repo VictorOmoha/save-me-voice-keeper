@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Shield, Key, Smartphone } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { toast } from "sonner";
 
 export const SecuritySettings = () => {
+  const { user } = useAuth();
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -32,19 +34,25 @@ export const SecuritySettings = () => {
       return;
     }
 
+    if (!user || !user.email) {
+      toast.error("No authenticated user");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const user = auth.currentUser;
-      if (!user || !user.email) {
+      // Need to get the actual Firebase User object for reauthentication
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser || !firebaseUser.email) {
         throw new Error("No authenticated user");
       }
 
       // Re-authenticate user before password change
-      const credential = EmailAuthProvider.credential(user.email, passwordForm.currentPassword);
-      await reauthenticateWithCredential(user, credential);
+      const credential = EmailAuthProvider.credential(firebaseUser.email, passwordForm.currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
 
       // Update password
-      await updatePassword(user, passwordForm.newPassword);
+      await updatePassword(firebaseUser, passwordForm.newPassword);
 
       toast.success("Password updated successfully");
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });

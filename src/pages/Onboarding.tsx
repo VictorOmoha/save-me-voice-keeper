@@ -7,7 +7,8 @@ import { EntriesStep } from "@/components/onboarding/steps/EntriesStep";
 import { VoiceStep } from "@/components/onboarding/steps/VoiceStep";
 import { CompleteStep } from "@/components/onboarding/steps/CompleteStep";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,20 +58,13 @@ export default function Onboarding() {
 
     setIsCompleting(true);
     try {
-      // Update user preferences in Supabase
-      const { error } = await supabase
-        .from("user_preferences")
-        .upsert(
-          {
-            user_id: user.id,
-            has_completed_onboarding: true,
-          },
-          { onConflict: "user_id" }
-        );
-
-      if (error) {
-        console.error("Error saving onboarding status:", error);
-      }
+      // Update user preferences in Firebase Firestore
+      const prefsRef = doc(db, 'user_preferences', user.uid);
+      await setDoc(prefsRef, {
+        user_id: user.uid,
+        has_completed_onboarding: true,
+        updated_at: serverTimestamp()
+      }, { merge: true });
     } catch (err) {
       console.error("Error completing onboarding:", err);
     } finally {

@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { User } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
 
 interface ProfileSettingsProps {
@@ -13,29 +14,28 @@ interface ProfileSettingsProps {
 
 export const ProfileSettings = ({ user }: ProfileSettingsProps) => {
   const [profile, setProfile] = useState({
-    fullName: user?.full_name || "",
+    fullName: user?.displayName || "",
     email: user?.email || "",
     phone: ""
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSaveProfile = async () => {
-    if (!user?.id) {
+    if (!user?.uid) {
       toast.error("User not found");
       return;
     }
 
     setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          full_name: profile.fullName,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
+      const profileRef = doc(db, 'profiles', user.uid);
+      await setDoc(profileRef, {
+        id: user.uid,
+        full_name: profile.fullName,
+        email: profile.email,
+        phone: profile.phone,
+        updated_at: serverTimestamp()
+      }, { merge: true });
 
       toast.success("Profile updated successfully");
     } catch (error) {

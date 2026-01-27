@@ -27,7 +27,6 @@ const categories = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
   const [documentViewerState, setDocumentViewerState] = useState<{
@@ -81,40 +80,34 @@ export default function Dashboard() {
     console.log('🎤 Dashboard: Voice input received:', text);
   };
 
-  // Check auth state and onboarding
+  // Check auth state and redirect if needed
   useEffect(() => {
-    const checkUserAndOnboarding = async () => {
-      // Wait for auth to finish loading
-      if (authLoading) return;
+    // Wait for auth to finish loading
+    if (authLoading) return;
 
-      // If not authenticated, redirect to login
-      if (!isAuthenticated || !user) {
-        navigate('/login');
-        return;
-      }
+    // If not authenticated, redirect to login
+    if (!isAuthenticated || !user) {
+      navigate('/login');
+      return;
+    }
 
-      // Check if user has completed onboarding (but be lenient - skip if error)
+    // Check onboarding in background (non-blocking)
+    const checkOnboarding = async () => {
       try {
         const prefsRef = doc(db, 'user_preferences', user.uid);
         const prefsSnap = await getDoc(prefsRef);
 
-        const hasCompletedOnboarding = prefsSnap.exists() && prefsSnap.data()?.has_completed_onboarding;
-        if (!hasCompletedOnboarding) {
-          // Only redirect to onboarding if preferences don't exist at all
-          // If they exist but has_completed_onboarding is false, still allow access
-          if (!prefsSnap.exists()) {
-            navigate('/onboarding');
-            return;
-          }
+        // Only redirect to onboarding if preferences doc doesn't exist at all
+        if (!prefsSnap.exists()) {
+          navigate('/onboarding');
         }
       } catch (error) {
-        // If error fetching preferences, just continue to dashboard
-        console.log('Could not fetch preferences, continuing to dashboard:', error);
+        // If error, just continue - don't block dashboard
+        console.log('Could not fetch preferences:', error);
       }
-      setCheckingOnboarding(false);
     };
 
-    checkUserAndOnboarding();
+    checkOnboarding();
   }, [authLoading, isAuthenticated, user, navigate]);
 
   // Listen for voice command to close entry forms
@@ -214,7 +207,7 @@ export default function Dashboard() {
   // Get user display name (Firebase uses displayName, not user_metadata)
   const userName = user?.displayName || user?.email || 'User';
 
-  if (authLoading || checkingOnboarding) {
+  if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 

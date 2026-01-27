@@ -1,9 +1,13 @@
 
 import { toast } from 'sonner';
 import { playEndOfSpeechCueIfEnabled } from '@/utils/audioCues';
+import { auth } from '@/lib/firebase';
 
-// ElevenLabs API configuration (requires Firebase Cloud Functions setup)
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
+// Firebase Cloud Functions base URL
+// This will be set after deployment. Format: https://us-central1-{project-id}.cloudfunctions.net
+const CLOUD_FUNCTIONS_BASE_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
+
+// ElevenLabs defaults
 const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
 
 // Voice settings for ElevenLabs - Optimized for speed and clarity
@@ -71,36 +75,84 @@ export const VOICE_OPTIONS = {
 export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 
 // TTS Service type
-export type TTSService = 'elevenlabs' | 'minimax' | 'google';
+export type TTSService = 'elevenlabs' | 'minimax' | 'google' | 'browser';
 
 // API keys are now managed server-side only for security.
-// These stub functions return null to prevent localStorage usage.
+// Cloud Functions handle all API key management.
 
 /**
- * Returns null - API keys require Firebase Cloud Functions setup.
- * Cloud TTS services are currently disabled until Cloud Functions are configured.
+ * Check if Cloud Functions are configured
  */
-export const getElevenLabsApiKey = (): string | null => {
-  // Cloud TTS services require Firebase Cloud Functions setup
-  return null;
+export const isCloudFunctionsConfigured = (): boolean => {
+  return !!CLOUD_FUNCTIONS_BASE_URL;
 };
 
 /**
- * Returns null - API keys require Firebase Cloud Functions setup.
- * Cloud TTS services are currently disabled until Cloud Functions are configured.
+ * Get Firebase Auth token for Cloud Functions calls
  */
-export const getMiniMaxApiKey = (): string | null => {
-  // Cloud TTS services require Firebase Cloud Functions setup
-  return null;
+const getAuthToken = async (): Promise<string | null> => {
+  const user = auth.currentUser;
+  if (!user) {
+    console.warn('TTS: No authenticated user for Cloud Functions call');
+    return null;
+  }
+  try {
+    return await user.getIdToken();
+  } catch (error) {
+    console.error('TTS: Failed to get auth token:', error);
+    return null;
+  }
+};
+
+/**
+ * Call Firebase Cloud Function for TTS
+ */
+const callCloudFunction = async (
+  functionName: string,
+  payload: Record<string, any>
+): Promise<{ audioContent: string } | null> => {
+  if (!CLOUD_FUNCTIONS_BASE_URL) {
+    console.warn('TTS: Cloud Functions URL not configured');
+    return null;
+  }
+
+  const token = await getAuthToken();
+  if (!token) {
+    toast.error('Please sign in to use cloud TTS services');
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${CLOUD_FUNCTIONS_BASE_URL}/${functionName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error(`TTS: Cloud Function ${functionName} error:`, errorData);
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error(`TTS: Cloud Function ${functionName} failed:`, error);
+    throw error;
+  }
 };
 
 // Service preference
 export const getSelectedTTSService = (): TTSService => {
   const stored = localStorage.getItem('selected_tts_service');
-  if (stored && ['elevenlabs', 'minimax', 'google'].includes(stored)) {
+  if (stored && ['elevenlabs', 'minimax', 'google', 'browser'].includes(stored)) {
     return stored as TTSService;
   }
-  return 'google';
+  // Default to browser if Cloud Functions not configured
+  return isCloudFunctionsConfigured() ? 'google' : 'browser';
 };
 
 export const setSelectedTTSService = (service: TTSService): void => {
@@ -184,7 +236,7 @@ interface SpeechOptions {
   onEnd?: () => void;
 }
 
-// Main speak function - uses browser TTS (cloud TTS requires Firebase Cloud Functions setup)
+// Main speak function - uses Cloud Functions when configured, falls back to browser TTS
 export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
     console.log('TTS: Empty text provided, skipping');
@@ -218,7 +270,56 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       console.log('TTS: Speech completed, dispatched tts-completed event');
     };
 
-    // Use browser TTS (cloud TTS services require Firebase Cloud Functions setup)
+    // Try Cloud Functions if configured
+    const selectedService = getSelectedTTSService();
+    const cloudFunctionsAvailable = isCloudFunctionsConfigured() && auth.currentUser;
+
+    if (cloudFunctionsAvailable && selectedService !== 'browser') {
+      console.log(`TTS: Using Cloud Function for ${selectedService}`);
+      try {
+        let audioContent: string | null = null;
+
+        if (selectedService === 'elevenlabs') {
+          const voiceName = getSelectedVoice();
+          const voiceId = AVAILABLE_VOICES[VOICE_OPTIONS[voiceName] as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
+          const result = await callCloudFunction('elevenlabsTts', {
+            text,
+            voiceId,
+            modelId: 'eleven_turbo_v2',
+          });
+          audioContent = result?.audioContent || null;
+        } else if (selectedService === 'google') {
+          const voiceName = getSelectedGoogleVoice();
+          const result = await callCloudFunction('googleCloudTts', {
+            text,
+            voiceName,
+            languageCode: 'en-US',
+          });
+          audioContent = result?.audioContent || null;
+        } else if (selectedService === 'minimax') {
+          const voiceId = getSelectedMiniMaxVoice();
+          const result = await callCloudFunction('minimaxTts', {
+            text,
+            voice_id: voiceId,
+            speed: 1.0,
+            vol: 1.0,
+            pitch: 0,
+          });
+          audioContent = result?.audioContent || null;
+        }
+
+        if (audioContent) {
+          await playBase64Audio(audioContent);
+          dispatchCompleted();
+          return;
+        }
+      } catch (cloudError) {
+        console.warn('TTS: Cloud Function failed, falling back to browser TTS:', cloudError);
+        toast.info('Cloud TTS unavailable, using browser voice');
+      }
+    }
+
+    // Fallback to browser TTS
     console.log('TTS: Using browser TTS');
     try {
       const speechRate = parseFloat(localStorage.getItem('speech_rate') || '0.9');
@@ -241,8 +342,35 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   }
 };
 
-// Note: Cloud TTS services (ElevenLabs, Google, MiniMax) require Firebase Cloud Functions setup.
-// Currently using browser TTS as the primary option.
+/**
+ * Play base64 encoded audio (MP3)
+ */
+const playBase64Audio = async (base64Audio: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Create audio element
+      const audio = new Audio(`data:audio/mpeg;base64,${base64Audio}`);
+
+      audio.onended = () => {
+        console.log('TTS: Cloud audio playback completed');
+        resolve();
+      };
+
+      audio.onerror = (error) => {
+        console.error('TTS: Cloud audio playback error:', error);
+        reject(new Error('Audio playback failed'));
+      };
+
+      // Apply volume setting
+      const volume = parseFloat(localStorage.getItem('speech_volume') || '0.8');
+      audio.volume = Math.max(0, Math.min(1, volume));
+
+      audio.play().catch(reject);
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
 
 const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<void> => {
   return new Promise((resolve, reject) => {

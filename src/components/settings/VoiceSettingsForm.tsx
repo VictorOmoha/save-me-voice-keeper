@@ -15,8 +15,7 @@ import {
     GOOGLE_VOICES,
     speak,
     stopCurrentSpeech,
-    getElevenLabsApiKey,
-    getMiniMaxApiKey
+    isCloudFunctionsConfigured
 } from "@/utils/textToSpeech";
 import { playEndOfSpeechCue } from "@/utils/audioCues";
 import { useUserPreferences, UserPreferences } from "@/hooks/useUserPreferences";
@@ -70,8 +69,7 @@ export const VoiceSettingsForm: React.FC<VoiceSettingsFormProps> = ({ showTitle 
         }
     };
 
-    const hasElevenLabsKey = !!getElevenLabsApiKey();
-    const hasMiniMaxKey = !!getMiniMaxApiKey();
+    const cloudFunctionsAvailable = isCloudFunctionsConfigured();
 
     return (
         <div className="space-y-6">
@@ -214,16 +212,16 @@ export const VoiceSettingsForm: React.FC<VoiceSettingsFormProps> = ({ showTitle 
                                                 <Badge variant="secondary" className="ml-2 text-xs bg-blue-100 text-blue-800 border-blue-200">Primary</Badge>
                                             </div>
                                         </SelectItem>
-                                        <SelectItem value="elevenlabs">
+                                        <SelectItem value="elevenlabs" disabled={!cloudFunctionsAvailable}>
                                             <div className="flex items-center justify-between w-full">
                                                 <span>ElevenLabs</span>
-                                                {hasElevenLabsKey && <Badge variant="secondary" className="ml-2 text-xs bg-green-100 text-green-800 border-green-200">Connected</Badge>}
+                                                {cloudFunctionsAvailable && <Badge variant="secondary" className="ml-2 text-xs bg-green-100 text-green-800 border-green-200">Available</Badge>}
                                             </div>
                                         </SelectItem>
-                                        <SelectItem value="minimax">
+                                        <SelectItem value="minimax" disabled={!cloudFunctionsAvailable}>
                                             <div className="flex items-center justify-between w-full">
                                                 <span>MiniMax</span>
-                                                {hasMiniMaxKey && <Badge variant="secondary" className="ml-2 text-xs">Connected</Badge>}
+                                                {cloudFunctionsAvailable && <Badge variant="secondary" className="ml-2 text-xs">Available</Badge>}
                                             </div>
                                         </SelectItem>
                                         <SelectItem value="browser">Browser Default</SelectItem>

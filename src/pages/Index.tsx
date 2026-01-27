@@ -5,7 +5,8 @@ import { Check, Mic, RefreshCcw, Zap, Users, Briefcase, User, Brain, Mail, Arrow
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListModal } from "@/components/WaitingListModal";
 import { VideoModal } from "@/components/VideoModal";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { CanvidVideoPlayer } from "@/components/CanvidVideoPlayer";
 
 const Index = () => {
@@ -31,33 +32,17 @@ const Index = () => {
   useEffect(() => {
     const fetchActiveVideos = async () => {
       try {
-        const { data, error } = await supabase
-          .from('public_demo_videos')
-          .select('video_url, title, video_type');
+        const videosRef = collection(db, 'public_demo_videos');
+        const querySnapshot = await getDocs(videosRef);
 
-        if (data && data.length > 0 && !error) {
-          for (const video of data) {
-            try {
-              const { data: signed, error: signErr } = await supabase.functions.invoke('get-signed-demo-video', {
-                body: { url: video.video_url, expiresIn: 600 }
-              });
-
-              const videoUrl = signErr ? video.video_url : (signed as any)?.signedUrl || video.video_url;
-
-              if (video.video_type === 'demo') {
-                setActiveDemoVideo({ url: videoUrl, title: video.title });
-              } else if (video.video_type === 'canvid_replacement') {
-                setActiveCanvidVideo({ url: videoUrl, title: video.title });
-              }
-            } catch (e) {
-              if (video.video_type === 'demo') {
-                setActiveDemoVideo({ url: video.video_url, title: video.title });
-              } else if (video.video_type === 'canvid_replacement') {
-                setActiveCanvidVideo({ url: video.video_url, title: video.title });
-              }
-            }
+        querySnapshot.forEach((docSnap) => {
+          const video = docSnap.data();
+          if (video.video_type === 'demo') {
+            setActiveDemoVideo({ url: video.video_url, title: video.title });
+          } else if (video.video_type === 'canvid_replacement') {
+            setActiveCanvidVideo({ url: video.video_url, title: video.title });
           }
-        }
+        });
       } catch (error) {
         console.error('Error fetching active videos:', error);
       }

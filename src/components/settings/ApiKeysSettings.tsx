@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Key, Plus, Copy, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Json } from "@/integrations/supabase/types";
 
 interface ApiKey {
   id: string;
@@ -37,23 +37,33 @@ export const ApiKeysSettings = () => {
   }, [user]);
 
   const fetchApiKeys = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('id, name, key_prefix, permissions, is_active, last_used_at, created_at')
-        .order('created_at', { ascending: false });
+    if (!user) return;
 
-      if (error) throw error;
-      
-      // Transform the data to match our interface
-      const transformedData = (data || []).map(item => ({
-        ...item,
-        permissions: Array.isArray(item.permissions) ? item.permissions as string[] : 
-                    typeof item.permissions === 'string' ? [item.permissions] : 
-                    ['read', 'write']
-      }));
-      
-      setApiKeys(transformedData);
+    try {
+      const apiKeysRef = collection(db, 'api_keys');
+      const q = query(
+        apiKeysRef,
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      const keys: ApiKey[] = [];
+
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        keys.push({
+          id: docSnap.id,
+          name: data.name || '',
+          key_prefix: data.key_prefix || '',
+          permissions: Array.isArray(data.permissions) ? data.permissions : ['read', 'write'],
+          is_active: data.is_active ?? true,
+          last_used_at: data.last_used_at?.toDate?.()?.toISOString() || null,
+          created_at: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+        });
+      });
+
+      setApiKeys(keys);
     } catch (error) {
       console.error('Error fetching API keys:', error);
       toast.error('Failed to load API keys');
@@ -96,17 +106,16 @@ export const ApiKeysSettings = () => {
       const keyHash = await hashApiKey(apiKey);
       const keyPrefix = apiKey.substring(0, 7) + '...';
 
-      const { error } = await supabase
-        .from('api_keys')
-        .insert({
-          user_id: user.id,
-          name: newKeyName.trim(),
-          key_hash: keyHash,
-          key_prefix: keyPrefix,
-          permissions: ['read', 'write'] as Json
-        });
-
-      if (error) throw error;
+      const apiKeysRef = collection(db, 'api_keys');
+      await addDoc(apiKeysRef, {
+        user_id: user.uid,
+        name: newKeyName.trim(),
+        key_hash: keyHash,
+        key_prefix: keyPrefix,
+        permissions: ['read', 'write'],
+        is_active: true,
+        created_at: serverTimestamp()
+      });
 
       setGeneratedKey(apiKey);
       setNewKeyName("");
@@ -122,12 +131,8 @@ export const ApiKeysSettings = () => {
 
   const handleDeleteApiKey = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('api_keys')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      const keyRef = doc(db, 'api_keys', id);
+      await deleteDoc(keyRef);
 
       fetchApiKeys();
       toast.success('API key deleted successfully');
@@ -281,7 +286,7 @@ export const ApiKeysSettings = () => {
           <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
             <li>Create an API key above</li>
             <li>In Make.com, add an HTTP module</li>
-            <li>Set the URL to: <code className="bg-background px-1 rounded">https://knblffjeqnlqcdnxgmyy.supabase.co/functions/v1/webhook</code></li>
+            <li>Set the URL to your Firebase Cloud Function endpoint (setup required)</li>
             <li>Add header: <code className="bg-background px-1 rounded">Authorization: Bearer YOUR_API_KEY</code></li>
             <li>Configure your automation triggers and actions</li>
           </ol>

@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { storage } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import { ref, getBlob } from "firebase/storage";
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 
@@ -14,6 +16,7 @@ interface UseFileDownloadReturn {
  * Consolidates duplicate download logic from multiple components
  */
 export const useFileDownload = (): UseFileDownloadReturn => {
+  const { user } = useAuth();
   const [downloadingIds, setDownloadingIds] = useState<string[]>([]);
 
   const downloadFile = useCallback(async (entry: SavedEntry) => {
@@ -26,20 +29,16 @@ export const useFileDownload = (): UseFileDownloadReturn => {
     setDownloadingIds((prev) => [...prev, entry.id]);
 
     try {
-      // First try Supabase Storage
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData?.user;
-
+      // First try Firebase Storage
       if (user) {
         const storagePath = (entry.fields as any)?.storagePath as string | undefined;
-        const filePath = storagePath || `${user.id}/${entry.id}/${fileName}`;
+        const filePath = storagePath || `documents/${user.uid}/${entry.id}/${fileName}`;
 
-        const { data, error } = await supabase.storage
-          .from("documents")
-          .download(filePath);
+        try {
+          const storageRef = ref(storage, filePath);
+          const blob = await getBlob(storageRef);
 
-        if (!error && data) {
-          const url = URL.createObjectURL(data);
+          const url = URL.createObjectURL(blob);
           const link = document.createElement("a");
           link.href = url;
           link.download = fileName;
@@ -49,6 +48,8 @@ export const useFileDownload = (): UseFileDownloadReturn => {
           URL.revokeObjectURL(url);
           toast.success(`Downloaded ${fileName}`);
           return;
+        } catch (storageError) {
+          console.warn('Firebase storage download failed, trying fallbacks:', storageError);
         }
       }
 
@@ -89,7 +90,7 @@ export const useFileDownload = (): UseFileDownloadReturn => {
     } finally {
       setDownloadingIds((prev) => prev.filter((id) => id !== entry.id));
     }
-  }, []);
+  }, [user]);
 
   const isDownloading = downloadingIds.length > 0;
 

@@ -1,4 +1,4 @@
-import { db, auth } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   collection,
   query,
@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   Timestamp
 } from "firebase/firestore";
+import type { User } from "firebase/auth";
 
 export interface SearchAnalyticsData {
   query: string;
@@ -31,9 +32,8 @@ export interface SearchPreferences {
 }
 
 class SearchAnalyticsService {
-  async trackSearch(data: SearchAnalyticsData) {
+  async trackSearch(data: SearchAnalyticsData, user: User | null) {
     try {
-      const user = auth.currentUser;
       if (!user) return;
 
       const analyticsRef = collection(db, 'search_analytics');
@@ -51,8 +51,9 @@ class SearchAnalyticsService {
     }
   }
 
-  async getPopularSearches(limit = 10) {
+  async getPopularSearches(limit = 10, user: User | null) {
     try {
+      if (!user) return [];
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       const analyticsRef = collection(db, 'search_analytics');
@@ -83,9 +84,8 @@ class SearchAnalyticsService {
     }
   }
 
-  async getUserSearchHistory(limit = 20) {
+  async getUserSearchHistory(limit = 20, user: User | null) {
     try {
-      const user = auth.currentUser;
       if (!user) return [];
 
       const analyticsRef = collection(db, 'search_analytics');
@@ -115,9 +115,8 @@ class SearchAnalyticsService {
     }
   }
 
-  async getSearchPreferences(): Promise<SearchPreferences | null> {
+  async getSearchPreferences(user: User | null): Promise<SearchPreferences | null> {
     try {
-      const user = auth.currentUser;
       if (!user) return null;
 
       const prefsRef = doc(db, 'search_preferences', user.uid);
@@ -150,9 +149,8 @@ class SearchAnalyticsService {
     }
   }
 
-  async updateSearchPreferences(preferences: Partial<SearchPreferences>) {
+  async updateSearchPreferences(preferences: Partial<SearchPreferences>, user: User | null) {
     try {
-      const user = auth.currentUser;
       if (!user) return;
 
       const prefsRef = doc(db, 'search_preferences', user.uid);
@@ -171,9 +169,8 @@ class SearchAnalyticsService {
     }
   }
 
-  async trackEntryOpened(entryId: string, query: string): Promise<void> {
+  async trackEntryOpened(entryId: string, query: string, user: User | null): Promise<void> {
     try {
-      const user = auth.currentUser;
       if (!user) return;
 
       const analyticsRef = collection(db, 'search_analytics');

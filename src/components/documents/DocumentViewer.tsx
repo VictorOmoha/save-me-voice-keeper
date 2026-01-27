@@ -3,7 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Eye, X } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
-import { supabase } from '@/integrations/supabase/client';
+import { storage } from '@/lib/firebase';
+import { ref, getBlob } from 'firebase/storage';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import DOMPurify from 'dompurify';
 
@@ -18,9 +20,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   onClose,
   entry
 }) => {
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [documentContent, setDocumentContent] = useState<string | null>(null);
-  const [documentBlob, setDocumentBlob] = useState<Blob | null>(null);
 
   if (!entry) return null;
 
@@ -40,40 +42,15 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     try {
       setIsLoading(true);
 
-      // First try to get from Supabase Storage
-      const filePath = `${entry.id}/${fileName}`;
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .download(filePath);
+      // First try to get from Firebase Storage
+      if (user) {
+        const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+        const filePath = storagePath || `documents/${user.uid}/${entry.id}/${fileName}`;
 
-      if (data) {
-        // File found in storage
-        const url = URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success('Document downloaded!');
-      } else {
-        // Fallback to localStorage (for legacy documents)
-        const localKey = Object.keys(localStorage).find(key => 
-          key.startsWith('document_') && 
-          JSON.parse(localStorage.getItem(key) || '{}').name === fileName
-        );
+        try {
+          const storageRef = ref(storage, filePath);
+          const blob = await getBlob(storageRef);
 
-        if (localKey) {
-          const fileData = JSON.parse(localStorage.getItem(localKey) || '{}');
-          const byteCharacters = atob(fileData.data.split(',')[1]);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: fileData.type });
-          
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -83,9 +60,39 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           toast.success('Document downloaded!');
-        } else {
-          toast.error('Document file not found');
+          return;
+        } catch (storageError) {
+          console.warn('Firebase storage download failed, trying fallbacks:', storageError);
         }
+      }
+
+      // Fallback to localStorage (for legacy documents)
+      const localKey = Object.keys(localStorage).find(key =>
+        key.startsWith('document_') &&
+        JSON.parse(localStorage.getItem(key) || '{}').name === fileName
+      );
+
+      if (localKey) {
+        const fileData = JSON.parse(localStorage.getItem(localKey) || '{}');
+        const byteCharacters = atob(fileData.data.split(',')[1]);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: fileData.type });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Document downloaded!');
+      } else {
+        toast.error('Document file not found');
       }
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -107,19 +114,22 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
       // For text-based documents, show the stored content
       if (storedContent) {
         setDocumentContent(storedContent);
-      } else {
-        // Try to get from storage
-        const filePath = `${entry.id}/${fileName}`;
-        const { data, error } = await supabase.storage
-          .from('documents')
-          .download(filePath);
+      } else if (user) {
+        // Try to get from Firebase Storage
+        const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+        const filePath = storagePath || `documents/${user.uid}/${entry.id}/${fileName}`;
 
-        if (data) {
-          const text = await data.text();
+        try {
+          const storageRef = ref(storage, filePath);
+          const blob = await getBlob(storageRef);
+          const text = await blob.text();
           setDocumentContent(text);
-        } else {
+        } catch (storageError) {
+          console.warn('Firebase storage preview failed:', storageError);
           setDocumentContent('No content available for preview.');
         }
+      } else {
+        setDocumentContent('No content available for preview.');
       }
     } catch (error) {
       console.error('Error previewing document:', error);
@@ -169,14 +179,14 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 <p className="text-muted-foreground">{entry.createdAt.toLocaleDateString()}</p>
               </div>
             </div>
-            
+
             {entry.fields.description && (
               <div className="mt-4">
                 <span className="font-medium">Description:</span>
                 <p className="text-muted-foreground mt-1">{entry.fields.description}</p>
               </div>
             )}
-            
+
             {entry.fields.tags && (
               <div className="mt-4">
                 <span className="font-medium">Tags:</span>
@@ -188,18 +198,18 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           {/* Document Actions */}
           {isDocumentEntry && (
             <div className="flex flex-wrap gap-3">
-              <Button 
-                onClick={handleDownload} 
+              <Button
+                onClick={handleDownload}
                 disabled={isLoading}
                 className="flex items-center space-x-2"
               >
                 <Download className="w-4 h-4" />
                 <span>Download</span>
               </Button>
-              
+
               {isTextBased && (
-                <Button 
-                  onClick={handlePreview} 
+                <Button
+                  onClick={handlePreview}
                   variant="outline"
                   disabled={isLoading}
                   className="flex items-center space-x-2"
@@ -208,7 +218,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                   <span>Preview</span>
                 </Button>
               )}
-              
+
               {(isPdf || isWordDoc) && (
                 <div className="text-sm text-muted-foreground flex items-center">
                   <FileText className="w-4 h-4 mr-2" />
@@ -226,7 +236,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
               </div>
               <div className="p-4 max-h-96 overflow-y-auto">
                 {fileName.endsWith('.html') ? (
-                  <div 
+                  <div
                     className="prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(documentContent) }}
                   />

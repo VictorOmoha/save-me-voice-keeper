@@ -3,7 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2, Save, Printer } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
-import { supabase } from '@/integrations/supabase/client';
+import { storage, db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import { ref, getBlob } from 'firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { Document, Page, pdfjs } from 'react-pdf';
 import mammoth from 'mammoth';
@@ -37,8 +40,9 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   entry,
   onEdit
 }) => {
+  const { user } = useAuth();
   // Removed early return to maintain consistent hooks usage
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [documentState, setDocumentState] = useState<DocumentState>({
     content: null,
@@ -91,30 +95,37 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   }, [isOpen, entry]);
 
   const loadDocument = async () => {
+    if (!entry) return;
+
     try {
       setIsLoading(true);
-      
-      // First try to get from Supabase Storage (prefer explicit storagePath)
-      const storagePath = (entry.fields as any)?.storagePath as string | undefined;
-      const filePath = storagePath || `${entry.id}/${fileName}`;
-      const { data } = await supabase.storage
-        .from('documents')
-        .download(filePath);
 
-      if (data) {
-        setDocumentState(prev => ({ ...prev, blob: data }));
-        
-        if (isWordDoc) {
-          await loadWordDocument(data);
-        } else if (isTextBased) {
-          const text = await data.text();
-          setDocumentState(prev => ({ ...prev, content: text }));
+      // First try to get from Firebase Storage (prefer explicit storagePath)
+      const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+      const filePath = storagePath || (user ? `documents/${user.uid}/${entry.id}/${fileName}` : `documents/${entry.id}/${fileName}`);
+
+      try {
+        const storageRef = ref(storage, filePath);
+        const data = await getBlob(storageRef);
+
+        if (data) {
+          setDocumentState(prev => ({ ...prev, blob: data }));
+
+          if (isWordDoc) {
+            await loadWordDocument(data);
+          } else if (isTextBased) {
+            const text = await data.text();
+            setDocumentState(prev => ({ ...prev, content: text }));
+          }
+          // PDF will be handled by react-pdf using the blob
+          return;
         }
-        // PDF will be handled by react-pdf using the blob
-      } else {
-        // Fallback to localStorage for legacy documents
-        await loadFromLocalStorage();
+      } catch (storageError) {
+        console.warn('Firebase storage download failed, trying fallbacks:', storageError);
       }
+
+      // Fallback to localStorage for legacy documents
+      await loadFromLocalStorage();
     } catch (error) {
       console.error('Error loading document:', error);
       toast.error('Failed to load document');
@@ -287,18 +298,14 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     }));
   };
 
-  // Save notes to Supabase (entries.fields.documentNotesHtml)
+  // Save notes to Firebase (entries.fields.documentNotesHtml)
   const handleSaveNotes = async () => {
     if (!entry) return;
     try {
       setIsSavingNotes(true);
       const updatedFields = { ...(entry.fields || {}), documentNotesHtml: notesHtml };
-      const { error } = await supabase
-        .from('entries')
-        .update({ fields: updatedFields as any })
-        .eq('id', entry.id);
-
-      if (error) throw error;
+      const entryRef = doc(db, 'entries', entry.id);
+      await updateDoc(entryRef, { fields: updatedFields });
 
       setInitialNotesHtml(notesHtml);
       toast.success('Notes saved');

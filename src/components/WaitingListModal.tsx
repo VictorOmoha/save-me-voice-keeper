@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
 
@@ -37,7 +38,7 @@ export function WaitingListModal({ open, onOpenChange }: WaitingListModalProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast.error("Please enter your email address");
       return;
@@ -46,27 +47,29 @@ export function WaitingListModal({ open, onOpenChange }: WaitingListModalProps) 
     setIsLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('waiting_list')
-        .insert([
-          {
-            email: email.toLowerCase().trim(),
-            name: name.trim() || null
-          }
-        ]);
+      const normalizedEmail = email.toLowerCase().trim();
 
-      if (error) {
-        if (error.code === '23505') {
-          toast.error("This email is already on our waiting list!");
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success("Thanks for joining! We'll notify you when Save Me launches.");
-        setEmail("");
-        setName("");
-        onOpenChange(false);
+      // Check if email already exists
+      const waitingListRef = collection(db, 'waiting_list');
+      const q = query(waitingListRef, where('email', '==', normalizedEmail));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        toast.error("This email is already on our waiting list!");
+        return;
       }
+
+      // Add to waiting list
+      await addDoc(waitingListRef, {
+        email: normalizedEmail,
+        name: name.trim() || null,
+        created_at: serverTimestamp()
+      });
+
+      toast.success("Thanks for joining! We'll notify you when Save Me launches.");
+      setEmail("");
+      setName("");
+      onOpenChange(false);
     } catch (error) {
       console.error('Error joining waiting list:', error);
       toast.error("Something went wrong. Please try again.");

@@ -1,14 +1,10 @@
 
 import { toast } from 'sonner';
 import { playEndOfSpeechCueIfEnabled } from '@/utils/audioCues';
-import { supabase } from '@/integrations/supabase/client';
 
-// ElevenLabs API configuration
+// ElevenLabs API configuration (requires Firebase Cloud Functions setup)
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam voice
-
-// MiniMax API configuration - Updated with correct endpoint
-const MINIMAX_API_URL = 'https://api.minimax.io/v1/t2a_v2';
 
 // Voice settings for ElevenLabs - Optimized for speed and clarity
 const VOICE_SETTINGS = {
@@ -81,18 +77,20 @@ export type TTSService = 'elevenlabs' | 'minimax' | 'google';
 // These stub functions return null to prevent localStorage usage.
 
 /**
- * Returns null - API keys are managed server-side via Supabase Edge Functions.
+ * Returns null - API keys require Firebase Cloud Functions setup.
+ * Cloud TTS services are currently disabled until Cloud Functions are configured.
  */
 export const getElevenLabsApiKey = (): string | null => {
-  // API keys are managed server-side only
+  // Cloud TTS services require Firebase Cloud Functions setup
   return null;
 };
 
 /**
- * Returns null - API keys are managed server-side via Supabase Edge Functions.
+ * Returns null - API keys require Firebase Cloud Functions setup.
+ * Cloud TTS services are currently disabled until Cloud Functions are configured.
  */
 export const getMiniMaxApiKey = (): string | null => {
-  // API keys are managed server-side only
+  // Cloud TTS services require Firebase Cloud Functions setup
   return null;
 };
 
@@ -186,14 +184,14 @@ interface SpeechOptions {
   onEnd?: () => void;
 }
 
-// Main speak function with service selection
+// Main speak function - uses browser TTS (cloud TTS requires Firebase Cloud Functions setup)
 export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
-    console.log('🔊 TTS: Empty text provided, skipping');
+    console.log('TTS: Empty text provided, skipping');
     return;
   }
 
-  console.log('🔊 TTS: Starting speech:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+  console.log('TTS: Starting speech:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
 
   // Add to TTS cache for speech recognition filtering
   addToTTSCache(text);
@@ -201,41 +199,15 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   // Set global flag and dispatch event BEFORE starting speech
   (window as any).__tts_is_speaking = true;
   window.dispatchEvent(new CustomEvent('tts-started'));
-  console.log('🔊 TTS: Set speaking flag and dispatched tts-started event');
+  console.log('TTS: Set speaking flag and dispatched tts-started event');
 
   try {
-    const selectedService = getSelectedTTSService();
-    const elevenLabsKey = getElevenLabsApiKey();
-    const miniMaxKey = getMiniMaxApiKey();
-    const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
-
-    console.log('🔧 TTS config:', {
-      selectedService,
-      hasElevenLabsKey: !!elevenLabsKey,
-      hasMiniMaxKey: !!miniMaxKey,
-      speechLanguage
-    });
-
-    // Determine effective service (fallback to ElevenLabs if MiniMax not configured)
-    let effectiveService: TTSService = selectedService as TTSService;
-    if (effectiveService === 'minimax' && !miniMaxKey && elevenLabsKey) {
-      console.warn('⚠️ MiniMax selected but no API key. Falling back to ElevenLabs for this session.');
-      setSelectedTTSService('elevenlabs');
-      effectiveService = 'elevenlabs';
-    }
-
-    // Determine voice and options
-    let voice: string | undefined;
+    // Determine options
     let options: SpeechOptions | undefined;
 
-    if (typeof optionsOrVoice === 'string') {
-      voice = optionsOrVoice;
-    } else if (typeof optionsOrVoice === 'object') {
+    if (typeof optionsOrVoice === 'object') {
       options = optionsOrVoice;
     }
-
-    // Try primary service first, then fallback to secondary or browser
-    let primaryFailed = false;
 
     // Helper to dispatch completion event
     const dispatchCompleted = () => {
@@ -243,269 +215,34 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       (window as any).__tts_is_speaking = false;
       (window as any).__last_tts_end_time = Date.now();
       window.dispatchEvent(new CustomEvent('tts-completed'));
-      console.log('🔊 TTS: Speech completed, dispatched tts-completed event');
+      console.log('TTS: Speech completed, dispatched tts-completed event');
     };
 
-    if (effectiveService === 'elevenlabs' && elevenLabsKey) {
-      try {
-        console.log('🎙️ TTS: Using ElevenLabs TTS (effective)');
-        await speakWithElevenLabs(text, voice);
-        dispatchCompleted();
-        return; // Success, exit early
-      } catch (error: any) {
-        console.warn('⚠️ TTS: ElevenLabs failed, trying fallback:', error?.message || error);
-        primaryFailed = true;
-      }
-    } else if (effectiveService === 'google') {
-      try {
-        console.log('🎙️ TTS: Using Google Cloud TTS (effective)');
-        await speakWithGoogle(text, voice);
-        dispatchCompleted();
-        return; // Success, exit early
-      } catch (error: any) {
-        console.warn('⚠️ TTS: Google Cloud TTS failed, trying fallback:', error?.message || error);
-        primaryFailed = true;
-      }
-    } else if (effectiveService === 'minimax' && miniMaxKey) {
-      try {
-        console.log('🎙️ TTS: Using MiniMax TTS (effective)');
-        await speakWithMiniMax(text);
-        dispatchCompleted();
-        return; // Success, exit early
-      } catch (error: any) {
-        console.warn('⚠️ TTS: MiniMax failed, trying fallback:', error?.message || error);
-        primaryFailed = true;
-      }
-    }
-
-    // Try secondary service if primary failed or no key available
-    if (primaryFailed || !(effectiveService === 'elevenlabs' ? elevenLabsKey : miniMaxKey)) {
-      const fallbackService: TTSService = effectiveService === 'elevenlabs' ? 'minimax' : 'elevenlabs';
-      const fallbackKey = fallbackService === 'elevenlabs' ? elevenLabsKey : miniMaxKey;
-
-      if (fallbackKey) {
-        try {
-          console.log(`🔄 TTS: Trying fallback service: ${fallbackService}`);
-          if (fallbackService === 'elevenlabs') {
-            await speakWithElevenLabs(text, voice);
-          } else {
-            await speakWithMiniMax(text);
-          }
-          dispatchCompleted();
-          return; // Success with fallback
-        } catch (fallbackError: any) {
-          console.warn('⚠️ TTS: Fallback service also failed:', fallbackError?.message || fallbackError);
-        }
-      }
-    }
-
-    // Final fallback to browser TTS
-    console.log('🔄 TTS: All API services failed or unavailable, falling back to browser TTS');
+    // Use browser TTS (cloud TTS services require Firebase Cloud Functions setup)
+    console.log('TTS: Using browser TTS');
     try {
       const speechRate = parseFloat(localStorage.getItem('speech_rate') || '0.9');
       const speechVolume = parseFloat(localStorage.getItem('speech_volume') || '0.8');
-      await speakWithBrowser(text, { rate: speechRate, pitch: 1, volume: speechVolume });
+      await speakWithBrowser(text, { rate: options?.rate || speechRate, pitch: options?.pitch || 1, volume: options?.volume || speechVolume, onEnd: options?.onEnd });
       dispatchCompleted();
     } catch (browserError) {
-      console.error('🚨 TTS: All services failed including browser TTS:', browserError);
-      throw new Error('All TTS services failed. Please check your API keys or browser compatibility.');
+      console.error('TTS: Browser TTS failed:', browserError);
+      throw new Error('TTS failed. Please check your browser compatibility.');
     }
   } catch (error) {
-    console.error('🚨 TTS: Error during speech:', error);
-    toast.error('TTS failed. Please check your API key and try again.');
+    console.error('TTS: Error during speech:', error);
+    toast.error('TTS failed. Please try again.');
     // Also clear TTS flag on error so recognition can restart
     try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
     (window as any).__tts_is_speaking = false;
     (window as any).__last_tts_end_time = Date.now();
     window.dispatchEvent(new CustomEvent('tts-completed'));
-    console.log('🔊 TTS: Speech error, dispatched tts-completed event');
+    console.log('TTS: Speech error, dispatched tts-completed event');
   }
 };
 
-const speakWithElevenLabs = async (text: string, voice?: string): Promise<void> => {
-  const selectedVoice = voice || getSelectedVoice();
-  // Capitalize the voice name for lookup in AVAILABLE_VOICES
-  const capitalizedVoice = selectedVoice.charAt(0).toUpperCase() + selectedVoice.slice(1);
-  const voiceId = AVAILABLE_VOICES[capitalizedVoice as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
-
-  console.log('🎙️ TTS: Using ElevenLabs voice:', selectedVoice, 'ID:', voiceId);
-
-  // Choose model based on language: English -> eleven_turbo_v2, otherwise multilingual
-  const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
-  const modelId = speechLanguage.startsWith('en') ? 'eleven_turbo_v2' : 'eleven_multilingual_v2';
-  console.log('🎛️ TTS: ElevenLabs model selected:', modelId, 'lang:', speechLanguage);
-  console.log('🔒 TTS: Using secure server-side API call via Supabase Edge Function');
-
-  try {
-    // Call the secure Supabase edge function instead of exposing API keys
-    const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
-      body: {
-        text: text,
-        voiceId: voiceId,
-        modelId: modelId
-      }
-    });
-
-    if (error) {
-      console.error('🚨 TTS: Edge function error:', error);
-
-      // Check for specific error messages that indicate fallback needed
-      if (error.message?.includes('quota') || error.message?.includes('credits')) {
-        toast.error(`ElevenLabs quota exceeded. Falling back to browser TTS.`);
-        throw new Error('ElevenLabs quota exceeded');
-      } else if (error.message?.includes('API key')) {
-        toast.error('ElevenLabs not configured. Please contact support or use browser TTS.');
-        throw new Error('ElevenLabs API key not configured');
-      } else if (error.message?.includes('rate limit')) {
-        toast.error('ElevenLabs rate limit exceeded. Falling back to browser TTS.');
-        throw new Error('ElevenLabs rate limit exceeded');
-      } else {
-        toast.error(`Voice service error. Falling back to browser TTS.`);
-        throw new Error(`ElevenLabs error: ${error.message}`);
-      }
-    }
-
-    if (!data || !data.audioContent) {
-      console.error('🚨 TTS: No audio content returned from edge function');
-      toast.error('No audio received from voice service');
-      throw new Error('No audio content received');
-    }
-
-    // Convert base64 audio back to blob
-    const binaryString = atob(data.audioContent);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-
-    return new Promise((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        console.log('🔊 TTS: ElevenLabs audio playback completed');
-        resolve();
-      };
-
-      audio.onerror = (error) => {
-        URL.revokeObjectURL(audioUrl);
-        console.error('🚨 TTS: Audio playback error:', error);
-        reject(error);
-      };
-
-      audio.play().catch(reject);
-    });
-  } catch (err) {
-    console.error('🚨 TTS: Unexpected error in speakWithElevenLabs:', err);
-    throw err;
-  }
-};
-
-const speakWithGoogle = async (text: string, voice?: string): Promise<void> => {
-  const selectedVoice = voice || getSelectedGoogleVoice();
-  const speechLanguage = localStorage.getItem('speech_language') || 'en-US';
-
-  console.log('🎙️ TTS: Using Google Cloud TTS voice:', selectedVoice);
-
-  try {
-    const { data, error } = await supabase.functions.invoke('google-cloud-tts', {
-      body: {
-        text,
-        voiceName: selectedVoice,
-        languageCode: speechLanguage
-      }
-    });
-
-    if (error) {
-      console.error('🚨 TTS: Google Edge function error:', error);
-      throw new Error(`Google TTS error: ${error.message}`);
-    }
-
-    if (!data || !data.audioContent) {
-      throw new Error('No audio content received from Google TTS');
-    }
-
-    const binaryString = atob(data.audioContent);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-
-    return new Promise((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      audio.onerror = (error) => {
-        URL.revokeObjectURL(audioUrl);
-        reject(error);
-      };
-      audio.play().catch(reject);
-    });
-  } catch (err) {
-    console.error('🚨 TTS: Unexpected error in speakWithGoogle:', err);
-    throw err;
-  }
-};
-
-const speakWithMiniMax = async (text: string): Promise<void> => {
-  try {
-    const selectedVoice = getSelectedMiniMaxVoice();
-    console.log('🎙️ TTS: Using MiniMax voice via Edge Function:', selectedVoice);
-
-    const { data, error } = await supabase.functions.invoke('minimax-tts', {
-      body: {
-        text,
-        voice_id: selectedVoice,
-        speed: 1.0,
-        vol: 1.0,
-        pitch: 0
-      },
-    });
-
-    if (error) {
-      console.error('🚨 MiniMax Edge Function error:', error);
-      throw error;
-    }
-
-    if (!data.audioContent) {
-      console.error('🚨 MiniMax Edge Function returned no audioContent');
-      throw new Error('No audio content received from MiniMax');
-    }
-
-    // Play the audio from base64 string
-    const audioBlob = new Blob(
-      [Uint8Array.from(atob(data.audioContent), (c) => c.charCodeAt(0))],
-      { type: 'audio/mpeg' }
-    );
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-
-    return new Promise((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        console.log('🔊 TTS: MiniMax audio playback completed');
-        resolve();
-      };
-
-      audio.onerror = (err) => {
-        URL.revokeObjectURL(audioUrl);
-        console.error('🚨 TTS: Audio playback error:', err);
-        reject(err);
-      };
-
-      audio.play().catch(reject);
-    });
-  } catch (err) {
-    console.error('🚨 TTS: Unexpected error in speakWithMiniMax:', err);
-    throw err;
-  }
-};
+// Note: Cloud TTS services (ElevenLabs, Google, MiniMax) require Firebase Cloud Functions setup.
+// Currently using browser TTS as the primary option.
 
 const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -538,13 +275,13 @@ const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<
 
     if (preferredVoice) {
       utterance.voice = preferredVoice;
-      console.log('🎙️ TTS: Using browser voice:', preferredVoice.name, 'lang:', preferredVoice.lang);
+      console.log('TTS: Using browser voice:', preferredVoice.name, 'lang:', preferredVoice.lang);
     } else {
-      console.log('🎙️ TTS: No preferred voice found, using default with lang:', preferredLang);
+      console.log('TTS: No preferred voice found, using default with lang:', preferredLang);
     }
 
     utterance.onend = () => {
-      console.log('🔊 TTS: Browser speech completed');
+      console.log('TTS: Browser speech completed');
       if (options?.onEnd) {
         options.onEnd();
       }
@@ -552,7 +289,7 @@ const speakWithBrowser = async (text: string, options?: SpeechOptions): Promise<
     };
 
     utterance.onerror = (error) => {
-      console.error('🚨 TTS: Browser speech error:', error);
+      console.error('TTS: Browser speech error:', error);
       reject(error);
     };
 
@@ -568,7 +305,7 @@ export const testVoice = async (voice: string): Promise<void> => {
 
 // Stop any ongoing speech - exported for compatibility
 export const stopSpeaking = (): void => {
-  console.log('🛑 TTS: Stopping all speech');
+  console.log('TTS: Stopping all speech');
 
   // Stop browser TTS
   if ('speechSynthesis' in window) {
@@ -603,7 +340,7 @@ export const validateElevenLabsApiKey = async (apiKey: string): Promise<{ valid:
   }
 
   try {
-    console.log('🔍 Validating ElevenLabs API key...');
+    console.log('Validating ElevenLabs API key...');
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       method: 'GET',
       headers: {
@@ -612,18 +349,18 @@ export const validateElevenLabsApiKey = async (apiKey: string): Promise<{ valid:
     });
 
     if (response.ok) {
-      console.log('✅ ElevenLabs API key is valid');
+      console.log('ElevenLabs API key is valid');
       return { valid: true };
     } else {
       const errorData = await response.json();
-      console.error('❌ ElevenLabs API key validation failed:', errorData);
+      console.error('ElevenLabs API key validation failed:', errorData);
       return {
         valid: false,
         error: errorData.detail?.message || `HTTP ${response.status}`
       };
     }
   } catch (error) {
-    console.error('❌ ElevenLabs API key validation error:', error);
+    console.error('ElevenLabs API key validation error:', error);
     return {
       valid: false,
       error: 'Network error during validation'
@@ -649,10 +386,10 @@ export const validateMiniMaxApiKey = async (apiKey: string): Promise<{ valid: bo
       return { valid: false, error: 'JWT missing GroupID' };
     }
 
-    console.log('✅ MiniMax JWT token format is valid');
+    console.log('MiniMax JWT token format is valid');
     return { valid: true };
   } catch (error) {
-    console.error('❌ MiniMax JWT validation error:', error);
+    console.error('MiniMax JWT validation error:', error);
     return {
       valid: false,
       error: 'Invalid JWT token format'

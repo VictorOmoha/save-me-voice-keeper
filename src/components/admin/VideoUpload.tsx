@@ -5,7 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
+import { db, storage } from "@/lib/firebase";
+import { collection, query, orderBy, getDocs, addDoc, updateDoc, deleteDoc, doc, where, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Video, Trash2, AlertCircle, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,8 +43,8 @@ const VideoCard = ({ video, onToggle, onReplace, onDelete }: VideoCardProps) => 
       )}
       <div className="flex items-center gap-4 mt-2">
         <span className={`text-xs px-2 py-1 rounded ${
-          video.is_active 
-            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+          video.is_active
+            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
             : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
         }`}>
           {video.is_active ? 'Active' : 'Inactive'}
@@ -71,22 +73,11 @@ const VideoCard = ({ video, onToggle, onReplace, onDelete }: VideoCardProps) => 
       <Button
         variant="outline"
         size="sm"
-        onClick={async () => {
-          try {
-            const { data: signed, error } = await supabase.functions.invoke('get-signed-demo-video', {
-              body: { url: video.video_url, expiresIn: 600 }
-            });
-            const signedUrl = (signed as any)?.signedUrl || video.video_url;
-            const link = document.createElement('a');
-            link.href = signedUrl;
-            link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-            link.click();
-          } catch (e) {
-            const link = document.createElement('a');
-            link.href = video.video_url;
-            link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
-            link.click();
-          }
+        onClick={() => {
+          const link = document.createElement('a');
+          link.href = video.video_url;
+          link.download = `${video.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`;
+          link.click();
         }}
         title="Download video"
       >
@@ -123,13 +114,26 @@ export const VideoUpload = () => {
 
   const fetchVideos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('demo_videos')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const videosRef = collection(db, 'demo_videos');
+      const q = query(videosRef, orderBy('created_at', 'desc'));
+      const querySnapshot = await getDocs(q);
 
-      if (error) throw error;
-      setVideos(data || []);
+      const videosList: DemoVideo[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        videosList.push({
+          id: docSnap.id,
+          title: data.title || '',
+          description: data.description || null,
+          video_url: data.video_url || '',
+          thumbnail_url: data.thumbnail_url || null,
+          is_active: data.is_active ?? false,
+          video_type: data.video_type || 'demo',
+          created_at: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+        });
+      });
+
+      setVideos(videosList);
     } catch (error) {
       console.error('Error fetching videos:', error);
       toast({
@@ -151,19 +155,11 @@ export const VideoUpload = () => {
   };
 
   const uploadFile = async (file: File, bucket: string, path: string) => {
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) throw error;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
-
+    const storageRef = ref(storage, `${bucket}/${path}`);
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type
+    });
+    const publicUrl = await getDownloadURL(snapshot.ref);
     return publicUrl;
   };
 
@@ -246,19 +242,17 @@ export const VideoUpload = () => {
       setUploadProgress(80);
 
       // Save video metadata to database
-      const { error } = await supabase
-        .from('demo_videos')
-        .insert({
-          title,
-          description: description || null,
-          video_url: videoUrl,
-          thumbnail_url: thumbnailUrl,
-          video_type: videoType,
-          is_active: isActive,
-          uploaded_by: user.id
-        });
-
-      if (error) throw error;
+      const videosRef = collection(db, 'demo_videos');
+      await addDoc(videosRef, {
+        title,
+        description: description || null,
+        video_url: videoUrl,
+        thumbnail_url: thumbnailUrl,
+        video_type: videoType,
+        is_active: isActive,
+        uploaded_by: user.uid,
+        created_at: serverTimestamp()
+      });
 
       setUploadProgress(100);
 
@@ -297,21 +291,19 @@ export const VideoUpload = () => {
     try {
       // If activating this video, first deactivate all others of the same type
       if (!currentStatus) {
-        const { error: deactivateError } = await supabase
-          .from('demo_videos')
-          .update({ is_active: false })
-          .eq('video_type', videoType)
-          .neq('id', videoId);
+        const videosRef = collection(db, 'demo_videos');
+        const q = query(videosRef, where('video_type', '==', videoType));
+        const querySnapshot = await getDocs(q);
 
-        if (deactivateError) throw deactivateError;
+        for (const docSnap of querySnapshot.docs) {
+          if (docSnap.id !== videoId) {
+            await updateDoc(doc(db, 'demo_videos', docSnap.id), { is_active: false });
+          }
+        }
       }
 
-      const { error } = await supabase
-        .from('demo_videos')
-        .update({ is_active: !currentStatus })
-        .eq('id', videoId);
-
-      if (error) throw error;
+      const videoRef = doc(db, 'demo_videos', videoId);
+      await updateDoc(videoRef, { is_active: !currentStatus });
 
       toast({
         title: "Success",
@@ -332,20 +324,17 @@ export const VideoUpload = () => {
   const replaceActiveVideo = async (videoId: string, videoType: string) => {
     try {
       // Deactivate all videos of the same type first
-      const { error: deactivateError } = await supabase
-        .from('demo_videos')
-        .update({ is_active: false })
-        .eq('video_type', videoType);
+      const videosRef = collection(db, 'demo_videos');
+      const q = query(videosRef, where('video_type', '==', videoType));
+      const querySnapshot = await getDocs(q);
 
-      if (deactivateError) throw deactivateError;
+      for (const docSnap of querySnapshot.docs) {
+        await updateDoc(doc(db, 'demo_videos', docSnap.id), { is_active: false });
+      }
 
       // Activate the selected video
-      const { error } = await supabase
-        .from('demo_videos')
-        .update({ is_active: true })
-        .eq('id', videoId);
-
-      if (error) throw error;
+      const videoRef = doc(db, 'demo_videos', videoId);
+      await updateDoc(videoRef, { is_active: true });
 
       toast({
         title: "Success",
@@ -366,20 +355,21 @@ export const VideoUpload = () => {
   const deleteVideo = async (videoId: string, videoUrl: string) => {
     try {
       // Delete from database
-      const { error } = await supabase
-        .from('demo_videos')
-        .delete()
-        .eq('id', videoId);
+      const videoRef = doc(db, 'demo_videos', videoId);
+      await deleteDoc(videoRef);
 
-      if (error) throw error;
-
-      // Extract file path from URL and delete from storage
-      const urlParts = videoUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-      
-      await supabase.storage
-        .from('demo-videos')
-        .remove([fileName]);
+      // Try to delete from storage (extract path from URL)
+      try {
+        // Firebase Storage URLs contain the path after /o/ and before ?
+        const urlMatch = videoUrl.match(/\/o\/(.+?)\?/);
+        if (urlMatch) {
+          const filePath = decodeURIComponent(urlMatch[1]);
+          const storageRef = ref(storage, filePath);
+          await deleteObject(storageRef);
+        }
+      } catch (storageError) {
+        console.warn('Could not delete file from storage:', storageError);
+      }
 
       toast({
         title: "Success",

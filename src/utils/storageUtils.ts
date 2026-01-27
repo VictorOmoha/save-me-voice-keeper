@@ -40,11 +40,11 @@ export const calculateDatabaseStorageSize = (entries: any[]): number => {
 };
 
 export const calculateLocalStorageSize = (): number => {
-  // Since we're now using Supabase, local storage should be minimal
+  // Since we're now using Firebase, local storage should be minimal
   // Only count auth tokens and app preferences
   let totalSize = 0;
-  
-  const relevantKeys = ['supabase.auth.token', 'ui-theme', 'savedEntries'];
+
+  const relevantKeys = ['firebase:authUser', 'ui-theme', 'savedEntries'];
   
   relevantKeys.forEach(key => {
     const item = localStorage.getItem(key);

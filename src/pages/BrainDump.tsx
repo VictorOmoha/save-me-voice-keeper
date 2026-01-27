@@ -11,7 +11,6 @@ import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LayoutDashboard, Sparkles, Loader2, Users, Tag } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 const processor = new BrainDumpProcessor();
 
@@ -161,37 +160,10 @@ const BrainDumpPage: React.FC = () => {
 
     setIsEnhancing(true);
     try {
-      const { data, error } = await supabase.functions.invoke('enhance-brain-dump', {
-        body: { content },
-      });
-
-      if (error) {
-        console.error('AI enhance error:', error);
-        toast.error('Failed to enhance with AI. Using local processing.');
-        handleProcess();
-        return;
-      }
-
-      if (data?.error) {
-        console.error('AI enhance API error:', data.error);
-        toast.error(data.error);
-        handleProcess();
-        return;
-      }
-
-      if (data?.enhanced) {
-        const enhanced = data.enhanced;
-        setTitle(enhanced.title || '');
-        setSummary(enhanced.summary || '');
-        setCategory(enhanced.category || 'Personal');
-        setTags(enhanced.tags || []);
-        setActionItems(enhanced.actionItems || []);
-        setKeyPoints(enhanced.keyPoints || []);
-        setNotes(enhanced.notes || []);
-        setPeople(enhanced.people || []);
-        setConfidence(0.95); // AI processing has high confidence
-        toast.success("Enhanced with AI");
-      }
+      // TODO: Implement AI enhancement with Firebase Cloud Functions when ready
+      // For now, fall back to local processing
+      toast.info('AI enhancement coming soon. Using local processing.');
+      handleProcess();
     } catch (err) {
       console.error('AI enhance exception:', err);
       toast.error('AI enhancement failed. Using local processing.');

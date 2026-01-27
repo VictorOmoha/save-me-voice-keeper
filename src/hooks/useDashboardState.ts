@@ -1,10 +1,13 @@
 
 import { useState, useEffect } from "react";
 import { SavedEntry } from "@/types/dashboard";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export const useDashboardState = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [showAddEntry, setShowAddEntry] = useState(false);
@@ -13,43 +16,48 @@ export const useDashboardState = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadEntries();
-  }, []);
+    if (!authLoading && user) {
+      loadEntries();
+    } else if (!authLoading && !user) {
+      setIsLoading(false);
+      setSavedEntries([]);
+    }
+  }, [user, authLoading]);
 
   const loadEntries = async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       console.log('Starting to load entries...');
       setIsLoading(true);
-      
-      const { data: entries, error } = await supabase
-        .from('entries')
-        .select('*')
-        .order('created_at', { ascending: false });
 
-      console.log('Supabase response - entries:', entries, 'error:', error);
+      const entriesRef = collection(db, 'entries');
+      const q = query(
+        entriesRef,
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc')
+      );
 
-      if (error) {
-        console.error('Error loading entries:', error);
-        toast.error('Failed to load entries');
-        setSavedEntries([]);
-        return;
-      }
+      const querySnapshot = await getDocs(q);
+      const entries: SavedEntry[] = [];
 
-      // Handle the case where entries is null or undefined
-      const entriesArray = entries || [];
-      console.log('Processing entries array:', entriesArray);
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        entries.push({
+          id: docSnap.id,
+          title: data.title || '',
+          fields: data.fields || {},
+          fieldDefinitions: data.field_definitions || undefined,
+          createdAt: data.created_at?.toDate?.() || new Date(),
+          updatedAt: data.updated_at?.toDate?.() || new Date()
+        });
+      });
 
-      const formattedEntries: SavedEntry[] = entriesArray.map(entry => ({
-        id: entry.id,
-        title: entry.title,
-        fields: (entry.fields as Record<string, any>) || {},
-        fieldDefinitions: entry.field_definitions as any || undefined,
-        createdAt: new Date(entry.created_at),
-        updatedAt: new Date(entry.updated_at)
-      }));
-
-      console.log('Formatted entries:', formattedEntries);
-      setSavedEntries(formattedEntries);
+      console.log('Loaded entries:', entries.length);
+      setSavedEntries(entries);
     } catch (error) {
       console.error('Error loading entries:', error);
       toast.error('Failed to load entries');

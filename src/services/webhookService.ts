@@ -1,5 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { db, auth } from '@/lib/firebase';
+import { collection, addDoc, query, where, orderBy, limit, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface WebhookEvent {
   event_type: 'entry.created' | 'entry.updated' | 'entry.deleted';
@@ -12,32 +13,27 @@ export const webhookService = {
   triggerWebhook: async (event: WebhookEvent): Promise<{ success: boolean; error?: string }> => {
     try {
       // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const user = auth.currentUser;
+
       if (!user) {
         return { success: false, error: 'User not authenticated' };
       }
 
-      // Store the webhook event in the database
-      const { error: dbError } = await supabase
-        .from('webhook_events')
-        .insert({
-          user_id: user.id,
-          event_type: event.event_type,
-          payload: event.payload,
-          webhook_url: event.webhook_url,
-          status: 'pending'
-        });
-
-      if (dbError) {
-        console.error('Failed to store webhook event:', dbError);
-        return { success: false, error: dbError.message };
-      }
+      // Store the webhook event in Firebase Firestore
+      const webhookEventsRef = collection(db, 'webhook_events');
+      await addDoc(webhookEventsRef, {
+        user_id: user.uid,
+        event_type: event.event_type,
+        payload: event.payload,
+        webhook_url: event.webhook_url || null,
+        status: 'pending',
+        created_at: serverTimestamp()
+      });
 
       // If webhook URL is provided, attempt to send the webhook
       if (event.webhook_url) {
         try {
-          const response = await fetch(event.webhook_url, {
+          await fetch(event.webhook_url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -51,37 +47,49 @@ export const webhookService = {
             }),
           });
 
-          // Update webhook status (note: with no-cors we can't check response status)
-          await supabase
-            .from('webhook_events')
-            .update({ 
+          // Update webhook status - find the most recent event and update it
+          const q = query(
+            webhookEventsRef,
+            where('user_id', '==', user.uid),
+            where('event_type', '==', event.event_type),
+            where('webhook_url', '==', event.webhook_url),
+            orderBy('created_at', 'desc'),
+            limit(1)
+          );
+
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const docRef = snapshot.docs[0].ref;
+            await updateDoc(docRef, {
               status: 'success',
               last_attempt_at: new Date().toISOString(),
               attempts: 1
-            })
-            .eq('user_id', user.id)
-            .eq('event_type', event.event_type)
-            .eq('webhook_url', event.webhook_url)
-            .order('created_at', { ascending: false })
-            .limit(1);
+            });
+          }
 
           return { success: true };
         } catch (webhookError) {
           console.error('Failed to send webhook:', webhookError);
-          
+
           // Update webhook status as failed
-          await supabase
-            .from('webhook_events')
-            .update({ 
+          const q = query(
+            webhookEventsRef,
+            where('user_id', '==', user.uid),
+            where('event_type', '==', event.event_type),
+            where('webhook_url', '==', event.webhook_url),
+            orderBy('created_at', 'desc'),
+            limit(1)
+          );
+
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            const docRef = snapshot.docs[0].ref;
+            await updateDoc(docRef, {
               status: 'failed',
               last_attempt_at: new Date().toISOString(),
               attempts: 1
-            })
-            .eq('user_id', user.id)
-            .eq('event_type', event.event_type)
-            .eq('webhook_url', event.webhook_url)
-            .order('created_at', { ascending: false })
-            .limit(1);
+            });
+          }
 
           return { success: false, error: 'Failed to send webhook' };
         }
@@ -97,18 +105,28 @@ export const webhookService = {
   // Get webhook events for the current user
   getWebhookEvents: async (): Promise<{ events: any[]; error?: string }> => {
     try {
-      const { data, error } = await supabase
-        .from('webhook_events')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        return { events: [], error: error.message };
+      const user = auth.currentUser;
+      if (!user) {
+        return { events: [], error: 'User not authenticated' };
       }
 
-      return { events: data || [] };
+      const webhookEventsRef = collection(db, 'webhook_events');
+      const q = query(
+        webhookEventsRef,
+        where('user_id', '==', user.uid),
+        orderBy('created_at', 'desc'),
+        limit(50)
+      );
+
+      const snapshot = await getDocs(q);
+      const events = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      return { events };
     } catch (error) {
+      console.error('Failed to fetch webhook events:', error);
       return { events: [], error: 'Failed to fetch webhook events' };
     }
   }

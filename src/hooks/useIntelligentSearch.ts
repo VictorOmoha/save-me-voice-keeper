@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { searchIntelligence, SearchSuggestion, IntelligentSearchOptions } from "@/utils/searchIntelligence";
 import { searchAnalyticsService } from "@/services/searchAnalytics";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UseIntelligentSearchProps {
   entries: SavedEntry[];
@@ -16,6 +17,7 @@ export const useIntelligentSearch = ({
   onSearchChange,
   debounceMs = 300
 }: UseIntelligentSearchProps) => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,14 +39,16 @@ export const useIntelligentSearch = ({
 
   // Load search preferences and history - deferred to avoid blocking initial render
   useEffect(() => {
+    if (!user) return;
+
     // Defer loading to after initial paint
     const timer = setTimeout(() => {
       const loadSearchData = async () => {
         try {
           const [preferences, history, popular] = await Promise.all([
-            searchAnalyticsService.getSearchPreferences(),
-            searchAnalyticsService.getUserSearchHistory(10),
-            searchAnalyticsService.getPopularSearches(5)
+            searchAnalyticsService.getSearchPreferences(user),
+            searchAnalyticsService.getUserSearchHistory(10, user),
+            searchAnalyticsService.getPopularSearches(5, user)
           ]);
 
           if (preferences) {
@@ -78,7 +82,7 @@ export const useIntelligentSearch = ({
     }, 500); // Defer 500ms to let dashboard render first
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   // Generate suggestions with debouncing
   const generateSuggestions = useCallback(async (query: string) => {
@@ -101,14 +105,14 @@ export const useIntelligentSearch = ({
         setSelectedIndex(-1);
 
         // Track search if query is meaningful
-        if (query.trim().length >= 2) {
+        if (query.trim().length >= 2 && user) {
           const responseTime = Date.now() - (searchStartTime.current || Date.now());
           await searchAnalyticsService.trackSearch({
             query: query.trim(),
             resultsCount: newSuggestions.length,
             searchType: 'text',
             responseTimeMs: responseTime
-          });
+          }, user);
         }
       } catch (error) {
         console.error('Error generating suggestions:', error);
@@ -117,7 +121,7 @@ export const useIntelligentSearch = ({
         setIsLoading(false);
       }
     }, debounceMs);
-  }, [entries, searchPreferences, debounceMs]);
+  }, [entries, searchPreferences, debounceMs, user]);
 
   // Handle search query changes
   const handleSearchChange = useCallback((query: string) => {
@@ -133,13 +137,13 @@ export const useIntelligentSearch = ({
     setSelectedIndex(-1);
 
     // Track the click
-    if (suggestion.entry) {
+    if (suggestion.entry && user) {
       await searchAnalyticsService.trackSearch({
         query: searchQuery,
         resultsCount: suggestions.length,
         clickedResultId: suggestion.entry.id,
         searchType: 'text'
-      });
+      }, user);
     }
 
     // Update recent searches
@@ -147,7 +151,7 @@ export const useIntelligentSearch = ({
     setRecentSearches(newRecent);
 
     onSuggestionSelect?.(suggestion);
-  }, [searchQuery, suggestions.length, recentSearches, onSuggestionSelect]);
+  }, [searchQuery, suggestions.length, recentSearches, onSuggestionSelect, user]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -185,15 +189,17 @@ export const useIntelligentSearch = ({
   const handleVoiceSearch = useCallback(async (transcript: string) => {
     if (searchPreferences.enableSemanticSearch) {
       handleSearchChange(transcript);
-      
+
       // Track voice search
-      await searchAnalyticsService.trackSearch({
-        query: transcript,
-        resultsCount: 0,
-        searchType: 'voice'
-      });
+      if (user) {
+        await searchAnalyticsService.trackSearch({
+          query: transcript,
+          resultsCount: 0,
+          searchType: 'voice'
+        }, user);
+      }
     }
-  }, [searchPreferences.enableSemanticSearch, handleSearchChange]);
+  }, [searchPreferences.enableSemanticSearch, handleSearchChange, user]);
 
   return {
     searchQuery,

@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CreditCard, Crown, Zap, Building, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export const SubscriptionSettings = () => {
   const { user } = useAuth();
@@ -67,27 +66,8 @@ export const SubscriptionSettings = () => {
     setLoadingPlan(planName);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: planName },
-      });
-
-      if (error) {
-        console.error('Checkout error:', error);
-        toast.error(`Failed to start checkout: ${error.message || 'Unknown error'}`);
-        return;
-      }
-
-      if (data?.error) {
-        console.error('Checkout API error:', data.error);
-        toast.error(`Checkout error: ${data.error}`);
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error('Failed to create checkout session. No URL returned.');
-      }
+      // TODO: Implement Firebase-based checkout when payment integration is ready
+      toast.info("Subscription upgrades are coming soon! Stay tuned.");
     } catch (err) {
       console.error('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
@@ -101,27 +81,8 @@ export const SubscriptionSettings = () => {
     setLoadingPortal(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        body: {},
-      });
-
-      if (error) {
-        console.error('Portal error:', error);
-        toast.error('Failed to open billing portal. Please try again.');
-        return;
-      }
-
-      if (data?.error) {
-        console.error('Portal API error:', data.error);
-        toast.info(data.error);
-        return;
-      }
-
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        toast.info('No billing account found. Please subscribe to a plan first.');
-      }
+      // TODO: Implement Firebase-based billing portal when payment integration is ready
+      toast.info("Billing management is coming soon! Stay tuned.");
     } catch (err) {
       console.error('Portal error:', err);
       toast.error('An error occurred. Please try again.');

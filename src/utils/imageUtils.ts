@@ -1,25 +1,18 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { storage } from "@/lib/firebase";
+import { ref, deleteObject } from "firebase/storage";
 
 export const deleteImageFromStorage = async (imageUrl: string): Promise<boolean> => {
   try {
-    // Extract file path from URL
-    const urlParts = imageUrl.split('/');
-    const bucketIndex = urlParts.findIndex(part => part === 'images');
-    
-    if (bucketIndex === -1) return false;
-    
-    const filePath = urlParts.slice(bucketIndex + 1).join('/');
-    
-    const { error } = await supabase.storage
-      .from('images')
-      .remove([filePath]);
-    
-    if (error) {
-      console.error('Error deleting image:', error);
-      return false;
-    }
-    
+    // Extract file path from Firebase Storage URL
+    // Firebase URLs contain the path after /o/ and before ?
+    const urlMatch = imageUrl.match(/\/o\/(.+?)\?/);
+    if (!urlMatch) return false;
+
+    const filePath = decodeURIComponent(urlMatch[1]);
+    const storageRef = ref(storage, filePath);
+
+    await deleteObject(storageRef);
     return true;
   } catch (error) {
     console.error('Error deleting image:', error);
@@ -49,9 +42,10 @@ export const getImageMetadata = async (file: File): Promise<{
 
 export const isImageUrl = (url: string): boolean => {
   if (!url || typeof url !== 'string') return false;
-  
+
   return (
-    url.includes('/images/') || 
+    url.includes('/images/') ||
+    url.includes('firebasestorage.googleapis.com') ||
     url.match(/\.(jpeg|jpg|gif|png|webp)$/i) !== null ||
     url.startsWith('data:image/')
   );
@@ -59,7 +53,7 @@ export const isImageUrl = (url: string): boolean => {
 
 export const extractImagesFromEntry = (entry: any): string[] => {
   const images: string[] = [];
-  
+
   // Extract from field definitions
   if (entry.fieldDefinitions) {
     entry.fieldDefinitions.forEach((fieldDef: any) => {
@@ -75,7 +69,7 @@ export const extractImagesFromEntry = (entry: any): string[] => {
       }
     });
   }
-  
+
   // Extract from regular fields
   Object.values(entry.fields).forEach(value => {
     if (isImageUrl(value as string)) {
@@ -88,6 +82,6 @@ export const extractImagesFromEntry = (entry: any): string[] => {
       });
     }
   });
-  
+
   return [...new Set(images)]; // Remove duplicates
 };

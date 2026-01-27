@@ -1,13 +1,14 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { SavedEntry } from "@/types/dashboard";
-import { 
-  calculateLocalStorageSize, 
-  calculateDatabaseStorageSize, 
+import {
+  calculateLocalStorageSize,
+  calculateDatabaseStorageSize,
   getStorageLimit,
   calculateStoragePercentage,
-  formatBytes 
+  formatBytes
 } from '@/utils/storageUtils';
-import { supabase } from '@/integrations/supabase/client';
+import { auth, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface StorageStats {
   totalUsed: number;
@@ -43,36 +44,33 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
 
     const fetchUsage = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = auth.currentUser;
         if (!user) {
           if (isMounted) setServerUsage(null);
           return;
         }
 
-        // get_current_storage_usage may not exist in generated types; cast supabase to any
-        const { data, error } = await (supabase as any).rpc('get_current_storage_usage');
-        if (error) {
-          console.warn('get_current_storage_usage error:', error.message || error);
-          if (isMounted) setServerUsage(null);
-          return;
-        }
+        // Try to get storage usage from Firebase (if stored there)
+        // This is a simplified approach - you may want to implement a Cloud Function
+        // to calculate accurate storage usage
+        const usageRef = doc(db, 'storage_usage', user.uid);
+        const usageSnap = await getDoc(usageRef);
 
-        if (data == null) {
+        if (usageSnap.exists()) {
+          const data = usageSnap.data();
+          if (isMounted) {
+            setServerUsage({
+              user_id: user.uid,
+              tier: data.tier || 'free',
+              limit_bytes: data.limit_bytes || getStorageLimit('free'),
+              db_bytes_used: data.db_bytes_used || 0,
+              file_bytes_used: data.file_bytes_used || 0,
+              total_bytes: data.total_bytes || 0,
+              updated_at: data.updated_at || new Date().toISOString(),
+            });
+          }
+        } else {
           if (isMounted) setServerUsage(null);
-          return;
-        }
-
-        const row = Array.isArray(data) ? (data[0] ?? null) : data;
-        if (isMounted && row) {
-          setServerUsage({
-            user_id: row.user_id,
-            tier: row.tier,
-            limit_bytes: row.limit_bytes,
-            db_bytes_used: row.db_bytes_used,
-            file_bytes_used: row.file_bytes_used,
-            total_bytes: row.total_bytes,
-            updated_at: row.updated_at,
-          });
         }
       } catch (e) {
         console.warn('Failed to fetch storage usage:', e);
@@ -83,7 +81,7 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
     fetchUsage();
 
     // Optionally refresh when entries change to keep UI in sync
-    // We intentionally don't run too often to avoid excessive RPC calls
+    // We intentionally don't run too often to avoid excessive calls
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries.length, userTier]);
 

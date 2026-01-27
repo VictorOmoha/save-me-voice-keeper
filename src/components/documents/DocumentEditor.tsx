@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, X, FileText, Edit3, Printer } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
-import { supabase } from '@/integrations/supabase/client';
+import { storage, db } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import { ref, uploadBytes, getBlob } from 'firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { RichTextEditor } from './RichTextEditor';
 import { printDocumentHtml } from '@/utils/printUtils';
@@ -22,6 +25,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   entry,
   onSave
 }) => {
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [documentContent, setDocumentContent] = useState<string>('');
@@ -47,33 +51,30 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }, [documentContent, originalContent]);
 
   const loadDocumentForEditing = async () => {
+    if (!entry) return;
+
     try {
       setIsLoading(true);
 
-      // Prefer Supabase Storage first to avoid stale inline content
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData?.user;
       if (!user) {
         console.warn('No authenticated user while loading document');
       }
 
       const explicitPath = (entry.fields as any)?.storagePath as string | undefined;
       const defaultFileName = fileName || 'document.txt';
-      const computedPath = user ? `${user.id}/${entry.id}/${defaultFileName}` : `${entry.id}/${defaultFileName}`;
+      const computedPath = user ? `documents/${user.uid}/${entry.id}/${defaultFileName}` : `documents/${entry.id}/${defaultFileName}`;
       const filePath = explicitPath || computedPath;
 
       if (filePath) {
-        const { data, error } = await supabase.storage
-          .from('documents')
-          .download(filePath);
-
-        if (error) {
-          console.warn('Storage download error (will try fallbacks):', error.message || error.name || error);
-        } else if (data) {
-          const text = await data.text();
+        try {
+          const storageRef = ref(storage, filePath);
+          const blob = await getBlob(storageRef);
+          const text = await blob.text();
           setDocumentContent(text);
           setOriginalContent(text);
           return;
+        } catch (error: any) {
+          console.warn('Storage download error (will try fallbacks):', error.message || error);
         }
       }
 
@@ -120,8 +121,13 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   };
 
   const handleSave = async () => {
-    if (!hasChanges) {
+    if (!hasChanges || !entry) {
       toast.info('No changes to save');
+      return;
+    }
+
+    if (!user) {
+      toast.error('User not authenticated');
       return;
     }
 
@@ -134,29 +140,15 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       // Create updated file blob
       const updatedBlob = new Blob([documentContent], { type: mime });
 
-      // Resolve storage path (prefer existing storagePath)
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData?.user;
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const existingStoragePath = (entry.fields as any)?.storagePath as string | undefined;
       const safeFileName = fileName || (isHtml ? 'document.html' : 'document.txt');
-      const filePath = existingStoragePath || `${user.id}/${entry.id}/${safeFileName}`;
+      const filePath = existingStoragePath || `documents/${user.uid}/${entry.id}/${safeFileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(filePath, updatedBlob, {
-          cacheControl: '3600',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast.error(`Storage upload failed: ${uploadError.message || uploadError.name}`);
-        throw uploadError;
-      }
+      // Upload to Firebase Storage
+      const storageRef = ref(storage, filePath);
+      await uploadBytes(storageRef, updatedBlob, {
+        contentType: mime
+      });
 
       // Update the entry in the database
       const updatedFields = {
@@ -166,19 +158,11 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         updatedAt: new Date().toISOString(),
       } as Record<string, any>;
 
-      const { error: updateError } = await supabase
-        .from('entries')
-        .update({
-          fields: updatedFields,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', entry.id);
-
-      if (updateError) {
-        console.error('Database update error:', updateError);
-        toast.error(`Database update failed: ${updateError.message || updateError.code}`);
-        throw updateError;
-      }
+      const entryRef = doc(db, 'entries', entry.id);
+      await updateDoc(entryRef, {
+        fields: updatedFields,
+        updated_at: new Date().toISOString(),
+      });
 
       // Update local state
       setOriginalContent(documentContent);

@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, TestTube, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase";
+import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
 import { SavedWebhookConfigs } from "./SavedWebhookConfigs";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -54,54 +55,52 @@ export const WebhookTesting = () => {
       setWebhookUrl(savedWebhookUrl);
     }
 
-    // Get current user email
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        setUserEmail(user.email);
-        setTestFields(prev => prev.map(field => 
-          field.key === 'userEmail' ? { ...field, value: user.email } : field
-        ));
-      }
-    };
+    // Get current user email from auth context
+    if (user?.email) {
+      setUserEmail(user.email);
+      setTestFields(prev => prev.map(field =>
+        field.key === 'userEmail' ? { ...field, value: user.email || '' } : field
+      ));
+    }
 
-    getCurrentUser();
     loadLatestEntry();
-  }, []);
+  }, [user]);
 
   // Load the latest entry from the database
   const loadLatestEntry = async () => {
+    if (!user) return;
+
     try {
-      const { data, error } = await supabase
-        .from('entries')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
+      const entriesRef = collection(db, 'entries');
+      const q = query(
+        entriesRef,
+        where('user_id', '==', user.uid),
+        orderBy('updated_at', 'desc'),
+        limit(1)
+      );
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading latest entry:', error);
-        return;
-      }
+      const querySnapshot = await getDocs(q);
 
-      if (data) {
-        // Type assertion to ensure compatibility
+      if (!querySnapshot.empty) {
+        const docSnap = querySnapshot.docs[0];
+        const data = docSnap.data();
+
         const entry: SavedEntry = {
-          id: data.id,
-          title: data.title,
+          id: docSnap.id,
+          title: data.title || '',
           fields: typeof data.fields === 'object' && data.fields !== null ? data.fields as Record<string, any> : {},
-          created_at: data.created_at,
-          updated_at: data.updated_at
+          created_at: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+          updated_at: data.updated_at?.toDate?.()?.toISOString() || new Date().toISOString()
         };
-        
+
         setLatestEntry(entry);
-        
+
         // Update test fields with latest entry data
-        const expirationDate = entry.fields?.expirationDate || 
-                              entry.fields?.['Expiration Date'] || 
+        const expirationDate = entry.fields?.expirationDate ||
+                              entry.fields?.['Expiration Date'] ||
                               entry.fields?.['expiration_date'] ||
                               new Date().toISOString().split('T')[0];
-        
+
         setTestFields(prev => prev.map(field => {
           if (field.key === 'entryTitle') {
             return { ...field, value: entry.title };

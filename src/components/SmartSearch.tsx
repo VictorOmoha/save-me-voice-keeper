@@ -6,6 +6,7 @@ import { useIntelligentSearch } from "@/hooks/useIntelligentSearch";
 import { SearchSuggestion } from "@/utils/searchIntelligence";
 import { searchAnalyticsService } from "@/services/searchAnalytics";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SmartSearchProps {
   entries: SavedEntry[];
@@ -26,6 +27,7 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
   placeholder = "🔍 Search with AI intelligence...",
   className = ""
 }) => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -68,7 +70,7 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
       const entry = entries.find(e => e.id === suggestion.entryId);
       if (entry) {
         // Track the entry opening
-        searchAnalyticsService.trackEntryOpened(entry.id, searchQuery);
+        searchAnalyticsService.trackEntryOpened(entry.id, searchQuery, user);
         onEntrySelect(entry);
         setIsOpen(false);
         return;

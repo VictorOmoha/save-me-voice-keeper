@@ -8,7 +8,6 @@ import { Navigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 const Subscription = () => {
   const { user, isAuthenticated, session } = useAuth();
@@ -72,39 +71,11 @@ const Subscription = () => {
       return;
     }
 
-    console.log('Setting loading state for:', planName);
     setLoadingPlan(planName);
 
     try {
-      console.log('Starting checkout for plan:', planName);
-      console.log('Session token available:', !!session?.access_token);
-
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: planName },
-      });
-
-      console.log('Checkout response:', { data, error });
-
-      if (error) {
-        console.error('Checkout error:', error);
-        toast.error(`Failed to start checkout: ${error.message || 'Unknown error'}`);
-        return;
-      }
-
-      if (data?.error) {
-        console.error('Checkout API error:', data.error);
-        toast.error(`Checkout error: ${data.error}`);
-        return;
-      }
-
-      if (data?.url) {
-        console.log('Redirecting to:', data.url);
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } else {
-        console.error('No URL in response:', data);
-        toast.error('Failed to create checkout session. No URL returned.');
-      }
+      // TODO: Implement Firebase-based checkout when payment integration is ready
+      toast.info("Subscription upgrades are coming soon! Stay tuned.");
     } catch (err) {
       console.error('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
@@ -117,28 +88,8 @@ const Subscription = () => {
     setLoadingPortal(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        body: {},
-      });
-
-      if (error) {
-        console.error('Portal error:', error);
-        toast.error('Failed to open billing portal. Please try again.');
-        return;
-      }
-
-      if (data?.error) {
-        console.error('Portal API error:', data.error);
-        toast.info(data.error);
-        return;
-      }
-
-      if (data?.url) {
-        // Redirect to Stripe Customer Portal
-        window.location.href = data.url;
-      } else {
-        toast.info('No billing account found. Please subscribe to a plan first.');
-      }
+      // TODO: Implement Firebase-based billing portal when payment integration is ready
+      toast.info("Billing management is coming soon! Stay tuned.");
     } catch (err) {
       console.error('Portal error:', err);
       toast.error('An error occurred. Please try again.');

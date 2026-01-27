@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { SavedEntry } from "@/types/dashboard";
-import { db, auth } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   collection,
   query,
@@ -18,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 export const useSavedEntries = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const [savedEntries, setSavedEntries] = useState<SavedEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,20 +27,22 @@ export const useSavedEntries = () => {
 
   // Fetch entries from Firebase Firestore
   const fetchEntries = useCallback(async () => {
+    // Don't fetch if auth is still loading or no user
+    if (authLoading) return;
+
+    if (!user) {
+      console.log('No user found');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const user = auth.currentUser;
-
-      if (!user) {
-        console.log('No user found');
-        setIsLoading(false);
-        return;
-      }
 
       const entriesRef = collection(db, 'entries');
       const q = query(
         entriesRef,
-        where('user_id', '==', user.uid),
+        where('user_id', '==', user!.uid),
         orderBy('updated_at', 'desc')
       );
 
@@ -68,7 +72,7 @@ export const useSavedEntries = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user, authLoading]);
 
   // Save entry to Firebase Firestore with debouncing and duplicate prevention
   const saveEntry = useCallback(async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, editingEntry?: SavedEntry | null) => {
@@ -78,13 +82,12 @@ export const useSavedEntries = () => {
       return;
     }
 
+    if (!user) {
+      throw new Error('No authenticated user');
+    }
+
     setIsSaving(true);
     try {
-      const user = auth.currentUser;
-
-      if (!user) {
-        throw new Error('No authenticated user');
-      }
 
       if (editingEntry) {
         // Update existing entry
@@ -141,7 +144,7 @@ export const useSavedEntries = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [isSaving]);
+  }, [isSaving, user]);
 
   // Delete entry from Firebase Firestore
   const deleteEntry = useCallback(async (id: string) => {
@@ -173,10 +176,12 @@ export const useSavedEntries = () => {
     );
   }, [savedEntries, searchQuery]);
 
-  // Load entries on mount
+  // Load entries when user is ready
   useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
+    if (!authLoading && user) {
+      fetchEntries();
+    }
+  }, [user, authLoading, fetchEntries]);
 
   return {
     savedEntries: filteredEntries,

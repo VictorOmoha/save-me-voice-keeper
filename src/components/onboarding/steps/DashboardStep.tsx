@@ -1,48 +1,59 @@
 import { OnboardingStep } from "../OnboardingStep";
-import { LayoutDashboard, Search, FolderOpen, Plus } from "lucide-react";
+import { Home, Search, Mic, Plus } from "lucide-react";
 
 export function DashboardStep() {
   return (
     <OnboardingStep
-      icon={<LayoutDashboard className="w-20 h-20 text-primary" />}
-      title="Your Dashboard"
-      description="Everything you need is organized in one place."
+      icon={<Home className="w-20 h-20 text-primary" />}
+      title="Your Command Center"
+      description="Everything you need, one glance away."
     >
-      <div className="space-y-6 text-left">
+      <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-            <FolderOpen className="w-6 h-6 text-primary mt-0.5" />
-            <div>
-              <h3 className="font-semibold mb-1">Categories</h3>
+          <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Search className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold mb-1">Search Everything</h3>
               <p className="text-sm text-muted-foreground">
-                Organize data into Documents, Health, Contacts, Finance, and Personal
+                Type or speak — find anything in seconds
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-            <Search className="w-6 h-6 text-primary mt-0.5" />
-            <div>
-              <h3 className="font-semibold mb-1">Quick Search</h3>
+          
+          <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Mic className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold mb-1">Voice Button</h3>
               <p className="text-sm text-muted-foreground">
-                Find any entry instantly with powerful search
+                Click to speak — your fastest way in
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-            <Plus className="w-6 h-6 text-primary mt-0.5" />
-            <div>
-              <h3 className="font-semibold mb-1">Add Entry</h3>
+          
+          <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Plus className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold mb-1">Quick Add</h3>
               <p className="text-sm text-muted-foreground">
-                Click the + button to add new data manually
+                Add entries manually when you prefer
               </p>
             </div>
           </div>
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
-            <LayoutDashboard className="w-6 h-6 text-primary mt-0.5" />
-            <div>
-              <h3 className="font-semibold mb-1">Recent Entries</h3>
+          
+          <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted/70 transition-colors">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Home className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <h3 className="font-semibold mb-1">Recent Activity</h3>
               <p className="text-sm text-muted-foreground">
-                See your most recent data at a glance
+                Your latest entries, front and center
               </p>
             </div>
           </div>

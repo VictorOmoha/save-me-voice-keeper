@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Check, Mic, RefreshCcw, Zap, Users, Briefcase, User, Brain, Mail, ArrowRight, ImageIcon, Sun, Moon } from "lucide-react";
@@ -70,7 +69,7 @@ const Index = () => {
     }
   };
 
-  const plains = [
+  const plans = [
     {
       name: "FREE",
       price: "$0",
@@ -120,7 +119,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center bg-zinc-950">
         <div className="text-center relative">
           <div className="scan-line"></div>
-          <p className="font-mono text-zinc-500 text-sm tracking-[0.2em] uppercase">INITIALIZING_ARCHIVE...</p>
+          <p className="font-mono text-zinc-500 text-sm tracking-[0.2em] uppercase">LOADING...</p>
         </div>
       </div>
     );
@@ -138,7 +137,7 @@ const Index = () => {
       <div className={`max-w-[1400px] mx-auto px-4 md:px-8 min-h-screen flex flex-col ${
         theme === 'dark' ? 'border-l border-r border-zinc-800/50' : 'border-l border-r border-zinc-200'
       }`}>
-        {/* Navigation: Modular Unit */}
+        {/* Navigation */}
         <nav className={`grid grid-cols-2 md:grid-cols-3 items-center h-20 uppercase font-mono text-[10px] tracking-[0.2em] ${
           theme === 'dark' ? 'border-b border-zinc-800/50' : 'border-b border-zinc-200'
         }`}>
@@ -152,7 +151,7 @@ const Index = () => {
           <div className={`hidden md:flex justify-center ${
             theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400'
           }`}>
-            [ ARCHIVE_VERSION_2.0 ]
+            [ YOUR PERSONAL VAULT ]
           </div>
 
           <div className={`flex items-center justify-end gap-6 ${
@@ -160,7 +159,7 @@ const Index = () => {
           }`}>
             <div className="hidden lg:flex items-center">
               <span className="status-dot"></span>
-              SYSTEM: OPTIMAL
+              ONLINE
             </div>
 
             <button
@@ -184,13 +183,13 @@ const Index = () => {
                 onClick={() => setIsWaitingListModalOpen(true)}
                 className="btn-galvanized btn-galvanized-primary px-4 py-2 text-[10px]"
               >
-                JOIN ARCHIVE
+                GET STARTED
               </button>
             )}
           </div>
         </nav>
 
-        {/* Hero: Modular Skeleton */}
+        {/* Hero Section */}
         <section className="grid lg:grid-cols-2 flex-grow">
           <div className={`p-8 md:p-16 lg:p-24 border-b lg:border-b-0 lg:border-r flex flex-col justify-center ${
             theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'
@@ -198,20 +197,21 @@ const Index = () => {
             <div className={`protocol-tag reveal stagger-1 mb-8 ${
               theme === 'dark' ? '' : 'border-zinc-300 text-zinc-600'
             }`}>
-              PROTOCOL: DATA_PRESERVATION
+              VOICE-POWERED KNOWLEDGE VAULT
             </div>
 
             <h1 className={`archive-title reveal stagger-2 mb-8 leading-[0.85] ${
               theme === 'dark' ? '' : 'text-zinc-900'
             }`}>
-              EXPORT<br />THE VOID
+              SPEAK IT.<br />SAVE IT.<br />FIND IT.
             </h1>
 
             <p className={`text-lg md:text-xl mb-12 max-w-lg leading-relaxed reveal stagger-3 ${
               theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'
             }`}>
-              A galvanized framework for personal information management.
-              Voice-powered. AI-organized. Securely archived across all your devices.
+              Capture anything with your voice. AI organizes it instantly.
+              Search everything in seconds. Your personal knowledge vault
+              that never forgets.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 reveal stagger-4">
@@ -219,7 +219,7 @@ const Index = () => {
                 className="btn-galvanized btn-galvanized-primary"
                 onClick={() => isAuthenticated ? window.location.href = '/dashboard' : setIsWaitingListModalOpen(true)}
               >
-                <span>INITIATE ARCHIVE</span>
+                <span>START FREE</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -228,12 +228,12 @@ const Index = () => {
                 onClick={() => setIsVideoModalOpen(true)}
                 disabled={!activeDemoVideo}
               >
-                {activeDemoVideo ? "VIEW_DEMO" : "DEMO_PENDING"}
+                {activeDemoVideo ? "WATCH DEMO" : "DEMO COMING SOON"}
               </button>
             </div>
           </div>
 
-          {/* Right Visual: Data Skeleton */}
+          {/* Right Visual */}
           <div
             className="p-12 md:p-24 flex items-center justify-center relative bg-radial-accent overflow-hidden"
             onMouseMove={handleMouseMove}
@@ -248,31 +248,31 @@ const Index = () => {
               className="data-skeleton w-full max-w-md aspect-square reveal stagger-3 transition-transform duration-200 ease-out"
             >
               <div className="scan-line"></div>
-              <div className="skeleton-cell" data-id="0x001">ARCHIVING_VOICE...</div>
+              <div className="skeleton-cell" data-id="0x001">🎤 "Save my meeting notes..."</div>
               <div className="skeleton-cell" data-id="0x002"></div>
-              <div className="skeleton-cell" data-id="0x003" style={{ color: 'hsl(var(--primary))' }}>[ENTRY_DETECTED]</div>
+              <div className="skeleton-cell" data-id="0x003" style={{ color: 'hsl(var(--primary))' }}>✓ SAVED TO WORK</div>
               <div className="skeleton-cell" data-id="0x004"></div>
               <div className="skeleton-cell" data-id="0x005">
                 <div className="w-full h-px bg-zinc-800 mt-4"></div>
                 <div className="w-3/5 h-px bg-zinc-800 mt-2"></div>
               </div>
               <div className="skeleton-cell" data-id="0x006"></div>
-              <div className="skeleton-cell" data-id="0x007">SYNC_NODE_ACTIVE</div>
+              <div className="skeleton-cell" data-id="0x007">📁 Auto-categorized</div>
               <div className="skeleton-cell" data-id="0x008"></div>
-              <div className="skeleton-cell" data-id="0x009">01101101</div>
+              <div className="skeleton-cell" data-id="0x009">🔍 Searchable instantly</div>
             </div>
           </div>
         </section>
 
-        {/* Features: Galvanized Grid */}
+        {/* Features Grid */}
         <section className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border-t ${
           theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'
         }`}>
           {[
-            { num: "01/", title: "VOICE EXTRACTION", desc: "Capture data using natural voice commands. Hands-free archiving through our modular voice API." },
-            { num: "02/", title: "SCHEMA MAPPING", desc: "Data is organized into clean structures, ready for retrieval. AI-powered categorization." },
-            { num: "03/", title: "SKELETAL SEARCH", desc: "Lightning fast indexing. Find any archived data in milliseconds using our galvanized search engine." },
-            { num: "04/", title: "ZERO RETENTION", desc: "Your data remains your property. End-to-end encryption. We preserve, never store." }
+            { num: "01/", title: "VOICE CAPTURE", desc: "Just speak naturally. Capture notes, ideas, contacts, and reminders without typing a single word." },
+            { num: "02/", title: "AI ORGANIZATION", desc: "Your data is automatically sorted into categories. No folders to manage, no tags to remember." },
+            { num: "03/", title: "INSTANT SEARCH", desc: "Find anything in seconds. Search by keyword, category, or just describe what you're looking for." },
+            { num: "04/", title: "YOUR DATA, PRIVATE", desc: "End-to-end encryption. Your information stays yours. We never sell or share your data." }
           ].map((feature, i) => (
             <div
               key={i}
@@ -296,23 +296,23 @@ const Index = () => {
           ))}
         </section>
 
-        {/* Visual Demo Section */}
+        {/* Demo Section */}
         <section className={`py-24 px-8 border-t ${
           theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'
         }`}>
           <div className="max-w-5xl mx-auto text-center">
             <div className={`protocol-tag justify-center mb-8 reveal ${
               theme === 'dark' ? '' : 'border-zinc-300 text-zinc-600'
-            }`}>VISUAL_DEMO</div>
+            }`}>SEE IT IN ACTION</div>
             <h2 className={`archive-title text-3xl md:text-5xl mb-8 reveal stagger-1 opacity-90 ${
               theme === 'dark' ? '' : 'text-zinc-900'
             }`}>
-              ARCHIVE IN ACTION
+              HOW IT WORKS
             </h2>
             <p className={`mb-16 max-w-2xl mx-auto text-lg reveal stagger-2 ${
               theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'
             }`}>
-              Watch how SaveMe transforms the way you capture, organize, and retrieve your important information
+              Watch how SaveMe transforms scattered information into an organized, searchable vault — all with your voice
             </p>
 
             <div className="galvanized-card p-2 reveal stagger-3 relative group">
@@ -339,30 +339,26 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Pain Points: familiar_errors */}
+        {/* Pain Points */}
         <section className={`py-24 px-8 border-t ${
           theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'
         }`}>
           <div className="max-w-5xl mx-auto">
             <div className="galvanized-card p-12 md:p-20 relative overflow-hidden">
-              <div className={`absolute top-0 right-0 p-4 font-mono text-[10px] select-none ${
-                theme === 'dark' ? 'text-zinc-800' : 'text-zinc-300'
-              }`}>ERROR_LOG_V2.0.4</div>
-
               <h2 className={`archive-title text-2xl md:text-4xl mb-16 text-center reveal ${
                 theme === 'dark' ? '' : 'text-zinc-900'
               }`}>
-                FAMILIAR_ERRORS?
+                SOUND FAMILIAR?
               </h2>
 
               <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
                 {[
-                  { title: "DATA_SCATTERED", desc: "Information in multiple apps, emails, sticky notes" },
-                  { title: "SEARCH_FAILED", desc: "Time lost searching through folders and apps" },
-                  { title: "DEVICE_MISMATCH", desc: "Information saved on wrong device" },
-                  { title: "NO_TIME_TO_ORGANIZE", desc: "Too busy to learn complex systems" },
-                  { title: "INFORMATION_OVERLOAD", desc: "Drowning in data with no structure" },
-                  { title: "MEMORY_LEAK", desc: "Missing deadlines and key information" }
+                  { title: "SCATTERED INFO", desc: "Important stuff spread across notes, emails, texts, and sticky notes" },
+                  { title: "CAN'T FIND IT", desc: "You know you saved it somewhere... but where?" },
+                  { title: "WRONG DEVICE", desc: "The info you need is always on your other phone/laptop" },
+                  { title: "NO TIME TO ORGANIZE", desc: "Life's too busy to maintain complex systems" },
+                  { title: "INFO OVERLOAD", desc: "Drowning in data with no way to make sense of it" },
+                  { title: "FORGOT AGAIN", desc: "Important details slipping through the cracks" }
                 ].map((pain, i) => (
                   <div key={i} className="flex items-start gap-4 group reveal stagger-1" style={{ animationDelay: `${0.2 + i * 0.05}s` }}>
                     <div className="status-dot mt-2 shrink-0"></div>
@@ -384,20 +380,20 @@ const Index = () => {
                 <p className={`font-mono text-xs mb-8 uppercase tracking-[0.2em] ${
                   theme === 'dark' ? 'text-zinc-500' : 'text-zinc-600'
                 }`}>
-                  IF_RECOGNIZED → SAVEME_IS_FOR_YOU
+                  IF THIS IS YOU → SAVEME CAN HELP
                 </p>
                 <button
                   className="btn-galvanized btn-galvanized-primary px-10"
                   onClick={() => setIsWaitingListModalOpen(true)}
                 >
-                  JOIN_WAITING_LIST
+                  GET EARLY ACCESS
                 </button>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Pricing Matrix */}
+        {/* Pricing */}
         <section className={`py-24 px-8 border-t ${
           theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'
         }`}>
@@ -405,21 +401,21 @@ const Index = () => {
             <div className="text-center mb-20">
               <div className={`protocol-tag justify-center mb-8 reveal ${
                 theme === 'dark' ? '' : 'border-zinc-300 text-zinc-600'
-              }`}>PRICING_MATRIX</div>
+              }`}>SIMPLE PRICING</div>
               <h2 className={`archive-title text-3xl md:text-5xl mb-8 reveal stagger-1 ${
                 theme === 'dark' ? '' : 'text-zinc-900'
               }`}>
-                PLANNED_TIERS
+                CHOOSE YOUR PLAN
               </h2>
               <p className={`font-mono text-[10px] tracking-[0.3em] uppercase reveal stagger-2 ${
                 theme === 'dark' ? 'text-zinc-500' : 'text-zinc-600'
               }`}>
-                MONTHLY_BILLING • CANCEL_ANYTIME • NO_HIDDEN_FEES • 14_DAY_TRIAL
+                START FREE • UPGRADE ANYTIME • CANCEL ANYTIME
               </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              {plains.map((plan, i) => (
+              {plans.map((plan, i) => (
                 <div
                   key={i}
                   className={`category-card-skeletal group reveal ${plan.popular ? 'border-accent/40 bg-zinc-900/30 glow-accent' : ''}`}
@@ -427,7 +423,7 @@ const Index = () => {
                 >
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <span className="badge-skeletal bg-accent text-zinc-950 font-bold border-accent px-4">RECOMMENDED</span>
+                      <span className="badge-skeletal bg-accent text-zinc-950 font-bold border-accent px-4">MOST POPULAR</span>
                     </div>
                   )}
 
@@ -440,7 +436,7 @@ const Index = () => {
                       <span className={`font-mono text-[10px] uppercase tracking-widest ${
                         theme === 'dark' ? 'text-zinc-500' : 'text-zinc-600'
                       }`}>
-                        /{plan.period === "Forever" ? "once" : "mo"}
+                        /{plan.period === "Forever" ? "free" : "mo"}
                       </span>
                     </div>
                     <p className={`text-xs font-mono uppercase tracking-[0.1em] ${
@@ -465,7 +461,7 @@ const Index = () => {
                     className={`w-full btn-galvanized ${plan.popular ? 'btn-galvanized-primary' : 'btn-galvanized-secondary'}`}
                     onClick={() => setIsWaitingListModalOpen(true)}
                   >
-                    SELECT_NODE
+                    {plan.price === "$0" ? "START FREE" : "GET STARTED"}
                   </button>
                 </div>
               ))}
@@ -473,14 +469,14 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Footer: Skeletal Archive */}
+        {/* Footer */}
         <footer className={`mt-auto border-t py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-8 font-mono text-[10px] tracking-[0.2em] ${
           theme === 'dark'
             ? 'border-zinc-800/50 text-zinc-600'
             : 'border-zinc-200 text-zinc-500'
         }`}>
           <div className="uppercase">
-            © 2024 SAVEME.SPACE // ALL_SYSTEMS_OPERATIONAL
+            © 2024 SAVEME.SPACE — YOUR VOICE-POWERED VAULT
           </div>
 
           <div className="flex items-center gap-8 uppercase">
@@ -494,7 +490,7 @@ const Index = () => {
 
           <div className="flex items-center gap-2">
             <span className="status-dot w-1.5 h-1.5 opacity-50"></span>
-            SECURE_HANDSHAKE_ESTABLISHED
+            SECURE & ENCRYPTED
           </div>
         </footer>
       </div>

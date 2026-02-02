@@ -9,7 +9,7 @@ import { useSavedEntries } from "@/hooks/useSavedEntries";
 import { EnhancedDocumentViewer } from "@/components/documents/EnhancedDocumentViewer";
 import { DocumentEditor } from "@/components/documents/DocumentEditor";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
+import { useVoiceProcessor } from "@/voice";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 export default function AllEntries() {
   const { 
@@ -125,8 +125,8 @@ export default function AllEntries() {
     }
   }, [entryId, entries, isLoading]);
 
-  // Voice: wire unified processor for global commands
-  const { processVoiceInput } = useUnifiedVoiceProcessor({
+  // Voice: wire voice processor for global commands
+  const { processVoiceInput } = useVoiceProcessor({
     savedEntries: entries,
     onCreateEntry: () => setShowAddEntry(true),
     onEditEntry: handleEditEntry as any,

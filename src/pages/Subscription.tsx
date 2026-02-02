@@ -8,10 +8,7 @@ import { Navigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { auth } from "@/lib/firebase";
-
-// Cloud Functions URL - set after deployment
-const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
+import { createCheckoutSession, createCustomerPortal, getBackendStatus } from "@/services/api";
 
 // Stripe Price IDs - these should match your Stripe dashboard
 const STRIPE_PRICES = {
@@ -81,21 +78,15 @@ const Subscription = () => {
       return;
     }
 
-    if (!CLOUD_FUNCTIONS_URL) {
+    const backendStatus = getBackendStatus();
+    if (!backendStatus.configured) {
       toast.info("Subscription upgrades are coming soon! Stay tuned.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to upgrade your plan');
       return;
     }
 
     setLoadingPlan(planName);
 
     try {
-      const token = await currentUser.getIdToken();
       const priceId = STRIPE_PRICES[planName.toLowerCase() as keyof typeof STRIPE_PRICES];
 
       if (!priceId) {
@@ -103,25 +94,12 @@ const Subscription = () => {
         return;
       }
 
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/createCheckout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          priceId,
-          successUrl: `${window.location.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/subscription`,
-        }),
+      const { url } = await createCheckoutSession({
+        priceId,
+        successUrl: `${window.location.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/subscription`,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
       if (url) {
         window.location.href = url;
       } else {
@@ -136,39 +114,17 @@ const Subscription = () => {
   };
 
   const handleManageBilling = async () => {
-    if (!CLOUD_FUNCTIONS_URL) {
+    const backendStatus = getBackendStatus();
+    if (!backendStatus.configured) {
       toast.info("Billing management is coming soon! Stay tuned.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to manage billing');
       return;
     }
 
     setLoadingPortal(true);
 
     try {
-      const token = await currentUser.getIdToken();
+      const { url } = await createCustomerPortal(`${window.location.origin}/settings`);
 
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/customerPortal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          returnUrl: `${window.location.origin}/settings`,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create portal session');
-      }
-
-      const { url } = await response.json();
       if (url) {
         window.location.href = url;
       } else {

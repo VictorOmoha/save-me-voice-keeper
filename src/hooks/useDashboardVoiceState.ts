@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { EnhancedVoiceCommand, voiceProcessor } from '@/utils/enhancedVoiceProcessor';
+import { EnhancedVoiceCommand, voiceProcessor } from '@/voice';
 import { logDashboard } from '@/utils/logger';
 
 export type ConversationStateType = 'listening' | 'confirming' | 'idle';

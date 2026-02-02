@@ -7,7 +7,7 @@ import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';
-import { voiceProcessor, EnhancedVoiceCommand } from '@/utils/enhancedVoiceProcessor';
+import { voiceProcessor, EnhancedVoiceCommand } from '@/voice';
 import { logDashboard, logVoice, logError } from '@/utils/logger';
 import { useDashboardVoiceState } from './useDashboardVoiceState';
 

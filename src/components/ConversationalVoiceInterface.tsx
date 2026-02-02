@@ -7,7 +7,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { speechRecognition } from "@/utils/speechRecognitionSingleton";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
-import { useOptimizedVoiceProcessor } from "@/hooks/useOptimizedVoiceProcessor";
+import { useVoiceProcessor } from "@/voice";
 import { useTTSEventHandler } from "@/hooks/useTTSEventHandler";
 import { errorTracker } from "@/utils/errorTracker";
 import { performanceMonitor } from "@/utils/performanceMonitor";
@@ -41,14 +41,14 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   // Get form context if available
   const formContext = useVoiceFormContext();
 
-  // Use the optimized voice processor for better performance
+  // Use the voice processor for command processing
   const {
     processVoiceInput,
     conversationState,
     pendingDeleteEntry,
     startCreateEntryConversation,
     endConversation,
-  } = useOptimizedVoiceProcessor({
+  } = useVoiceProcessor({
     savedEntries,
     onCreateEntry,
     onEditEntry,

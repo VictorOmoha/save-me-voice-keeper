@@ -1,30 +1,22 @@
 /**
  * API Service Layer
- * Consolidated API access abstraction for backend services
+ * Consolidated API access abstraction for Firebase Cloud Functions
  *
- * This layer provides a unified interface to backend functions,
- * whether they run on Firebase Cloud Functions or Supabase Edge Functions.
+ * This layer provides a unified interface to backend functions.
  *
  * Configuration:
  * - Set VITE_CLOUD_FUNCTIONS_URL for Firebase Cloud Functions
- * - Set VITE_SUPABASE_FUNCTIONS_URL for Supabase Edge Functions (fallback)
- *
- * Priority: Firebase > Supabase
  */
 
 import { auth } from '@/lib/firebase';
 
 // Backend configuration
 const FIREBASE_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
-const SUPABASE_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL || '';
 
-// Use Firebase if configured, otherwise fall back to Supabase
+// Get Firebase backend URL
 const getBackendUrl = () => {
   if (FIREBASE_FUNCTIONS_URL) {
     return { type: 'firebase' as const, url: FIREBASE_FUNCTIONS_URL };
-  }
-  if (SUPABASE_FUNCTIONS_URL) {
-    return { type: 'supabase' as const, url: SUPABASE_FUNCTIONS_URL };
   }
   return null;
 };
@@ -211,6 +203,60 @@ export interface SupportEmailRequest {
  */
 export async function sendSupportEmail(request: SupportEmailRequest): Promise<{ success: boolean }> {
   return apiRequest<{ success: boolean }>('sendSupportEmail', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+// ============================================================================
+// Voice Services
+// ============================================================================
+
+export interface VoiceToTextRequest {
+  audio: string; // Base64 encoded audio
+}
+
+export interface VoiceToTextResponse {
+  text: string;
+}
+
+/**
+ * Voice to Text (Whisper)
+ * Converts audio to text using OpenAI Whisper API
+ */
+export async function voiceToText(request: VoiceToTextRequest): Promise<VoiceToTextResponse> {
+  return apiRequest<VoiceToTextResponse>('voiceToText', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
+export interface VoiceAIRequest {
+  transcript: string;
+  context?: {
+    currentView?: string;
+    availableEntries?: Array<{ id: string; title: string; category: string }>;
+    currentEntry?: { id: string; title: string };
+    previousCommands?: string[];
+  };
+}
+
+export interface VoiceAIResponse {
+  intent: string;
+  action: string;
+  confidence: number;
+  parameters: Record<string, any>;
+  needsConfirmation: boolean;
+  conversationalResponse: string;
+  followUpQuestions?: string[];
+}
+
+/**
+ * Voice AI Processor
+ * Processes voice commands using Gemini AI
+ */
+export async function processVoiceAI(request: VoiceAIRequest): Promise<VoiceAIResponse> {
+  return apiRequest<VoiceAIResponse>('voiceAiProcessor', {
     method: 'POST',
     body: JSON.stringify(request),
   });

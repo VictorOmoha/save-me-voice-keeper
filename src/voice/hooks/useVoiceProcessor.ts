@@ -429,6 +429,9 @@ export function useVoiceProcessor({
     processHybridSelection,
     isInConversation,
     startConversation,
+    endConversation: cancelConversation, // Alias for backwards compatibility
+    startCreateEntryConversation: startConversation, // Alias for backwards compatibility
+    pendingDeleteEntry: pendingDeleteEntry.current,
 
     // Visual confirmation fallback
     showConfirmDialog,

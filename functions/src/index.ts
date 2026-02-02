@@ -587,3 +587,304 @@ export const enhanceBrainDump = functions.https.onRequest(
     }
   })
 );
+
+/**
+ * Voice to Text (Whisper) Cloud Function
+ * Converts audio to text using OpenAI Whisper API
+ */
+export const voiceToText = functions.https.onRequest(
+  withCors(async (req, res) => {
+    // Verify authentication
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const {audio} = req.body;
+
+    if (!audio) {
+      res.status(400).json({error: "Audio data is required"});
+      return;
+    }
+
+    // Get OpenAI API key from Firebase config
+    const openaiKey = functions.config().openai?.api_key;
+    if (!openaiKey) {
+      res.status(500).json({error: "OpenAI API key not configured"});
+      return;
+    }
+
+    try {
+      // Convert base64 to buffer
+      const audioBuffer = Buffer.from(audio, "base64");
+
+      // Create form data for OpenAI API
+      const FormData = (await import("form-data")).default;
+      const formData = new FormData();
+      formData.append("file", audioBuffer, {
+        filename: "audio.webm",
+        contentType: "audio/webm",
+      });
+      formData.append("model", "whisper-1");
+
+      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openaiKey}`,
+          ...formData.getHeaders(),
+        },
+        body: formData as any,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Whisper API error:", errorText);
+        res.status(response.status).json({error: "Whisper API error"});
+        return;
+      }
+
+      const data = await response.json();
+      res.json({text: data.text});
+    } catch (error) {
+      console.error("Voice to text error:", error);
+      res.status(500).json({error: "Failed to transcribe audio"});
+    }
+  })
+);
+
+/**
+ * Voice AI Processor Cloud Function
+ * Processes voice commands using Gemini AI
+ */
+export const voiceAiProcessor = functions.https.onRequest(
+  withCors(async (req, res) => {
+    // Verify authentication
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const {transcript, context} = req.body;
+
+    if (!transcript) {
+      res.status(400).json({error: "Transcript is required"});
+      return;
+    }
+
+    // Get Gemini API key from Firebase config
+    const geminiKey = functions.config().gemini?.api_key;
+    if (!geminiKey) {
+      res.status(500).json({
+        error: "Gemini API key not configured",
+        intent: "unknown",
+        action: "error",
+        confidence: 0,
+        parameters: {},
+        needsConfirmation: false,
+        conversationalResponse: "Sorry, the AI service is not configured.",
+      });
+      return;
+    }
+
+    try {
+      // Create a detailed prompt for Gemini
+      const systemPrompt = `You are an intelligent voice assistant for "Save Me", a personal information management app.
+
+AVAILABLE ACTIONS:
+1. CREATE - Create new entries
+2. DELETE - Delete entries (requires confirmation)
+3. EDIT - Open/modify existing entries
+4. SEARCH - Find entries
+5. NAVIGATE - Change views
+6. CONVERSATION - General help
+
+CONTEXT:
+- Current entries: ${JSON.stringify(context?.availableEntries || [])}
+- Current view: ${context?.currentView || "dashboard"}
+
+Return JSON with: intent, action, confidence (0-1), parameters, needsConfirmation (boolean), conversationalResponse
+
+Process: "${transcript}"`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            contents: [{parts: [{text: systemPrompt}]}],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 500,
+            },
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Gemini API error:", errorText);
+        res.status(response.status).json({error: "Gemini API error"});
+        return;
+      }
+
+      const data = await response.json();
+      const aiResponse = data.candidates[0]?.content?.parts[0]?.text;
+
+      // Parse AI response
+      let processedCommand;
+      try {
+        processedCommand = JSON.parse(aiResponse);
+      } catch {
+        processedCommand = {
+          intent: "unknown",
+          action: "unknown",
+          confidence: 0.1,
+          parameters: {},
+          needsConfirmation: false,
+          conversationalResponse: "I didn't understand that. Please try again.",
+        };
+      }
+
+      // Safety: require confirmation for destructive actions
+      if (processedCommand.intent === "delete") {
+        processedCommand.needsConfirmation = true;
+      }
+
+      res.json(processedCommand);
+    } catch (error) {
+      console.error("Voice AI processor error:", error);
+      res.status(500).json({
+        error: "Failed to process voice command",
+        intent: "unknown",
+        conversationalResponse: "Sorry, I encountered an error. Please try again.",
+      });
+    }
+  })
+);
+
+/**
+ * Send Support Email Cloud Function
+ * Sends support emails using Resend
+ */
+export const sendSupportEmail = functions.https.onRequest(
+  withCors(async (req, res) => {
+    // Verify authentication
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const {subject, message, category} = req.body;
+
+    if (!subject || !message) {
+      res.status(400).json({error: "Subject and message are required"});
+      return;
+    }
+
+    // Get Resend API key from Firebase config
+    const resendKey = functions.config().resend?.api_key;
+    if (!resendKey) {
+      res.status(500).json({error: "Resend API key not configured"});
+      return;
+    }
+
+    try {
+      const emailContent = `
+        <h2>New Support Request</h2>
+        <p><strong>From:</strong> ${user.email}</p>
+        <p><strong>Category:</strong> ${category || "General"}</p>
+        <p><strong>Subject:</strong> ${subject}</p>
+        <hr>
+        <h3>Message:</h3>
+        <p>${message.replace(/\n/g, "<br>")}</p>
+        <hr>
+        <p><em>User ID: ${user.uid}</em></p>
+        <p><em>Submitted at: ${new Date().toISOString()}</em></p>
+      `;
+
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Support <noreply@saveme.space>",
+          to: ["info@saveme.space"],
+          subject: `Support Request: ${subject}`,
+          html: emailContent,
+          reply_to: user.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Resend API error:", errorText);
+        res.status(response.status).json({error: "Failed to send email"});
+        return;
+      }
+
+      const data = await response.json();
+      res.json({success: true, emailId: data.id});
+    } catch (error) {
+      console.error("Send support email error:", error);
+      res.status(500).json({error: "Failed to send support email"});
+    }
+  })
+);
+
+/**
+ * Check Subscription Status Cloud Function
+ */
+export const checkSubscription = functions.https.onRequest(
+  withCors(async (req, res) => {
+    // Verify authentication
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const userData = userDoc.data();
+
+      const subscribed = userData?.subscriptionStatus === "active";
+      const tier = userData?.subscriptionTier || "free";
+
+      res.json({
+        subscribed,
+        tier,
+        status: userData?.subscriptionStatus || "none",
+      });
+    } catch (error) {
+      console.error("Check subscription error:", error);
+      res.status(500).json({error: "Failed to check subscription"});
+    }
+  })
+);

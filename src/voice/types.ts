@@ -125,3 +125,24 @@ export interface PendingConfirmation {
   entryTitle?: string;
   timestamp: number;
 }
+
+// ============================================================================
+// Backwards Compatibility Types
+// These types maintain compatibility with the old enhancedVoiceProcessor.ts
+// ============================================================================
+
+/**
+ * @deprecated Use VoiceCommand instead
+ * Legacy type alias for backwards compatibility with existing code
+ */
+export interface EnhancedVoiceCommand {
+  intent: VoiceIntent | 'delegate_confirmation';
+  action: string;
+  parameters: Record<string, any>;
+  confidence: number;
+  conversationalResponse?: string;
+  needsConfirmation?: boolean;
+  followUpExpected?: boolean;
+  expectsFollowUp?: boolean;
+  followUpQuestions?: string[];
+}

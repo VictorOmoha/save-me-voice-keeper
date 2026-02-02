@@ -7,7 +7,7 @@ import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { CanvidVideoPlayer } from "@/components/CanvidVideoPlayer";
-import { TryVoiceCapture } from "@/components/landing/TryVoiceCapture";
+import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoiceDemo";
 
 const Index = () => {
   const [isComponentReady, setIsComponentReady] = useState(false);
@@ -89,7 +89,7 @@ const Index = () => {
             Just speak. We organize, categorize, and remember — so you don't have to.
           </p>
           <div className="w-full max-w-lg mb-8 reveal stagger-3">
-            <TryVoiceCapture onSignupClick={() => setIsWaitingListModalOpen(true)} theme={theme} />
+            <ConversationalVoiceDemo onSignupClick={() => setIsWaitingListModalOpen(true)} theme={theme} />
           </div>
           <p className={`text-xs font-mono tracking-wider reveal stagger-4 ${theme === 'dark' ? 'text-zinc-600' : 'text-zinc-400'}`}>NO SIGNUP REQUIRED TO TRY • YOUR VOICE STAYS PRIVATE</p>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-8 reveal stagger-4">

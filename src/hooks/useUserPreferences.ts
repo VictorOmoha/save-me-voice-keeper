@@ -18,6 +18,7 @@ export interface UserPreferences {
   voice_volume: number;
   tts_service: 'elevenlabs' | 'minimax' | 'google' | 'browser';
   elevenlabs_voice_id?: string;
+  elevenlabs_api_key?: string; // User's own ElevenLabs API key
   minimax_voice_id?: string;
   google_voice_id?: string;
   voice_audio_cue_enabled?: boolean;
@@ -68,7 +69,7 @@ export const useUserPreferences = () => {
 
       if (prefsSnap.exists()) {
         const data = prefsSnap.data();
-        setPreferences({
+        const loadedPrefs: UserPreferences = {
           theme: (data.theme as 'light' | 'dark' | 'system') || 'system',
           language: data.language || 'en',
           email_notifications: data.email_notifications ?? true,
@@ -82,12 +83,19 @@ export const useUserPreferences = () => {
           voice_volume: data.voice_volume || 1.0,
           tts_service: (data.tts_service as 'elevenlabs' | 'minimax' | 'google' | 'browser') || 'google',
           elevenlabs_voice_id: data.elevenlabs_voice_id,
+          elevenlabs_api_key: data.elevenlabs_api_key, // Load user's API key
           minimax_voice_id: data.minimax_voice_id,
           google_voice_id: data.google_voice_id || 'en-US-Neural2-F',
           voice_audio_cue_enabled: data.voice_audio_cue_enabled ?? true,
           voice_audio_cue_volume: data.voice_audio_cue_volume ?? 0.4,
           has_completed_onboarding: data.has_completed_onboarding ?? false,
-        });
+        };
+        setPreferences(loadedPrefs);
+        
+        // Sync API key to localStorage for TTS utility
+        if (loadedPrefs.elevenlabs_api_key) {
+          localStorage.setItem('elevenlabs_user_api_key', loadedPrefs.elevenlabs_api_key);
+        }
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
@@ -118,6 +126,13 @@ export const useUserPreferences = () => {
         // Sync to localStorage for pure utility functions in textToSpeech.ts
         if (updates.tts_service) localStorage.setItem('selected_tts_service', updates.tts_service);
         if (updates.elevenlabs_voice_id) localStorage.setItem('selected_voice', updates.elevenlabs_voice_id);
+        if (updates.elevenlabs_api_key !== undefined) {
+          if (updates.elevenlabs_api_key) {
+            localStorage.setItem('elevenlabs_user_api_key', updates.elevenlabs_api_key);
+          } else {
+            localStorage.removeItem('elevenlabs_user_api_key');
+          }
+        }
         if (updates.minimax_voice_id) localStorage.setItem('selected_minimax_voice', updates.minimax_voice_id);
         if (updates.google_voice_id) localStorage.setItem('selected_google_voice', updates.google_voice_id);
         if (updates.voice_language) localStorage.setItem('speech_language', updates.voice_language);
@@ -142,9 +157,29 @@ export const useUserPreferences = () => {
     }
   };
 
+  const clearApiKey = async () => {
+    if (!user) return false;
+    
+    try {
+      const prefsRef = doc(db, 'user_preferences', user.uid);
+      await setDoc(prefsRef, {
+        elevenlabs_api_key: null,
+        updated_at: serverTimestamp()
+      }, { merge: true });
+      
+      setPreferences(prev => ({ ...prev, elevenlabs_api_key: undefined }));
+      localStorage.removeItem('elevenlabs_user_api_key');
+      return true;
+    } catch (error) {
+      console.error('Error clearing API key:', error);
+      return false;
+    }
+  };
+
   return {
     preferences,
     updatePreferences,
+    clearApiKey,
     isLoading,
     loadPreferences,
   };

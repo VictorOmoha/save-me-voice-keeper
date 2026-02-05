@@ -513,27 +513,12 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
  * 5. Redeploy: firebase deploy --only functions
  */
 function getPlanFromPriceId(priceId: string): string {
-  // TODO: Replace these placeholder IDs with your actual Stripe price IDs
   const priceMap: Record<string, string> = {
     // Basic Plan - $9/month
-    // "price_REPLACE_ME_basic_monthly": "basic",
-    // "price_REPLACE_ME_basic_yearly": "basic",
+    "price_1Sfp5HPX7gNO8IQ0cNGKHRKC": "basic",
 
     // Premium Plan - $19/month
-    // "price_REPLACE_ME_premium_monthly": "premium",
-    // "price_REPLACE_ME_premium_yearly": "premium",
-
-    // Enterprise Plan (if applicable)
-    // "price_REPLACE_ME_enterprise_monthly": "enterprise",
-    // "price_REPLACE_ME_enterprise_yearly": "enterprise",
-
-    // Fallback placeholders (remove after adding real IDs)
-    "price_basic_monthly": "basic",
-    "price_basic_yearly": "basic",
-    "price_premium_monthly": "premium",
-    "price_premium_yearly": "premium",
-    "price_enterprise_monthly": "enterprise",
-    "price_enterprise_yearly": "enterprise",
+    "price_1Sfp6mPX7gNO8IQ0VlrkiOVp": "premium",
   };
 
   return priceMap[priceId] || "basic";

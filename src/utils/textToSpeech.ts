@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { playEndOfSpeechCueIfEnabled } from '@/utils/audioCues';
 import { auth } from '@/lib/firebase';
@@ -77,14 +76,26 @@ export type VoiceOptionKey = keyof typeof VOICE_OPTIONS;
 // TTS Service type
 export type TTSService = 'elevenlabs' | 'minimax' | 'google' | 'browser';
 
-// API keys are now managed server-side only for security.
-// Cloud Functions handle all API key management.
-
 /**
  * Check if Cloud Functions are configured
  */
 export const isCloudFunctionsConfigured = (): boolean => {
   return !!CLOUD_FUNCTIONS_BASE_URL;
+};
+
+/**
+ * Get user's ElevenLabs API key from localStorage
+ */
+const getUserElevenLabsKey = (): string | null => {
+  return localStorage.getItem('elevenlabs_user_api_key');
+};
+
+/**
+ * Check if user has their own ElevenLabs API key
+ */
+export const hasUserElevenLabsKey = (): boolean => {
+  const key = getUserElevenLabsKey();
+  return !!key && key.startsWith('sk_');
 };
 
 /**
@@ -145,14 +156,80 @@ const callCloudFunction = async (
   }
 };
 
+/**
+ * Speak using user's own ElevenLabs API key (direct browser call)
+ */
+const speakWithUserElevenLabs = async (text: string, voiceId: string): Promise<boolean> => {
+  const apiKey = getUserElevenLabsKey();
+  if (!apiKey) return false;
+
+  try {
+    console.log('TTS: Using user ElevenLabs API key');
+    
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          model_id: 'eleven_turbo_v2_5',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.3,
+            use_speaker_boost: true,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('TTS: User ElevenLabs API error:', response.status);
+      return false;
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    
+    return new Promise((resolve) => {
+      const audio = new Audio(audioUrl);
+      
+      // Apply volume setting
+      const volume = parseFloat(localStorage.getItem('speech_volume') || '0.8');
+      audio.volume = Math.max(0, Math.min(1, volume));
+      
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        resolve(true);
+      };
+      
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        resolve(false);
+      };
+      
+      audio.play().catch(() => resolve(false));
+    });
+  } catch (error) {
+    console.error('TTS: User ElevenLabs call failed:', error);
+    return false;
+  }
+};
+
 // Service preference
 export const getSelectedTTSService = (): TTSService => {
   const stored = localStorage.getItem('selected_tts_service');
   if (stored && ['elevenlabs', 'minimax', 'google', 'browser'].includes(stored)) {
     return stored as TTSService;
   }
-  // Default to browser if Cloud Functions not configured
-  return isCloudFunctionsConfigured() ? 'google' : 'browser';
+  // Default to browser if Cloud Functions not configured and no user key
+  if (isCloudFunctionsConfigured()) return 'google';
+  if (hasUserElevenLabsKey()) return 'elevenlabs';
+  return 'browser';
 };
 
 export const setSelectedTTSService = (service: TTSService): void => {
@@ -164,7 +241,7 @@ export const getSelectedVoice = (): VoiceOptionKey => {
   if (stored && stored in VOICE_OPTIONS) {
     return stored as VoiceOptionKey;
   }
-  return 'adam';
+  return 'rachel'; // Default to Rachel for a friendly voice
 };
 
 export const setSelectedVoice = (voice: VoiceOptionKey): void => {
@@ -236,7 +313,7 @@ interface SpeechOptions {
   onEnd?: () => void;
 }
 
-// Main speak function - uses Cloud Functions when configured, falls back to browser TTS
+// Main speak function - uses user's API key, Cloud Functions, or browser TTS
 export const speak = async (text: string, optionsOrVoice?: string | SpeechOptions): Promise<void> => {
   if (!text || text.trim().length === 0) {
     console.log('TTS: Empty text provided, skipping');
@@ -270,8 +347,23 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
       console.log('TTS: Speech completed, dispatched tts-completed event');
     };
 
-    // Try Cloud Functions if configured
     const selectedService = getSelectedTTSService();
+    
+    // 1. Try user's own ElevenLabs API key first (if selected and available)
+    if (selectedService === 'elevenlabs' && hasUserElevenLabsKey()) {
+      console.log('TTS: Attempting user ElevenLabs key');
+      const voiceName = getSelectedVoice();
+      const voiceId = AVAILABLE_VOICES[VOICE_OPTIONS[voiceName] as keyof typeof AVAILABLE_VOICES] || DEFAULT_VOICE_ID;
+      
+      const success = await speakWithUserElevenLabs(text, voiceId);
+      if (success) {
+        dispatchCompleted();
+        return;
+      }
+      console.warn('TTS: User ElevenLabs failed, trying fallbacks');
+    }
+
+    // 2. Try Cloud Functions if configured
     const cloudFunctionsAvailable = isCloudFunctionsConfigured() && auth.currentUser;
 
     if (cloudFunctionsAvailable && selectedService !== 'browser') {
@@ -315,11 +407,10 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
         }
       } catch (cloudError) {
         console.warn('TTS: Cloud Function failed, falling back to browser TTS:', cloudError);
-        toast.info('Cloud TTS unavailable, using browser voice');
       }
     }
 
-    // Fallback to browser TTS
+    // 3. Fallback to browser TTS
     console.log('TTS: Using browser TTS');
     try {
       const speechRate = parseFloat(localStorage.getItem('speech_rate') || '0.9');

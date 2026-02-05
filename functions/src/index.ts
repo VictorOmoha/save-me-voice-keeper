@@ -501,11 +501,33 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
 
 /**
  * Helper to determine plan tier from Stripe price ID
+ *
+ * IMPORTANT: Update these price IDs with your actual Stripe price IDs!
+ * Get them from: https://dashboard.stripe.com/products
+ *
+ * Steps:
+ * 1. Create products in Stripe Dashboard (Basic, Premium, Enterprise)
+ * 2. Add monthly/yearly prices to each product
+ * 3. Copy the price IDs (format: price_xxxxxxxxxxxxx)
+ * 4. Replace the placeholder values below
+ * 5. Redeploy: firebase deploy --only functions
  */
 function getPlanFromPriceId(priceId: string): string {
-  // Map your Stripe price IDs to plan names
+  // TODO: Replace these placeholder IDs with your actual Stripe price IDs
   const priceMap: Record<string, string> = {
-    // Add your actual Stripe price IDs here
+    // Basic Plan - $9/month
+    // "price_REPLACE_ME_basic_monthly": "basic",
+    // "price_REPLACE_ME_basic_yearly": "basic",
+
+    // Premium Plan - $19/month
+    // "price_REPLACE_ME_premium_monthly": "premium",
+    // "price_REPLACE_ME_premium_yearly": "premium",
+
+    // Enterprise Plan (if applicable)
+    // "price_REPLACE_ME_enterprise_monthly": "enterprise",
+    // "price_REPLACE_ME_enterprise_yearly": "enterprise",
+
+    // Fallback placeholders (remove after adding real IDs)
     "price_basic_monthly": "basic",
     "price_basic_yearly": "basic",
     "price_premium_monthly": "premium",

@@ -29,6 +29,7 @@ export const getImageMetadata = async (file: File): Promise<{
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
+      URL.revokeObjectURL(img.src);
       resolve({
         width: img.naturalWidth,
         height: img.naturalHeight,

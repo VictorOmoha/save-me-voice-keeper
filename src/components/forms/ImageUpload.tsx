@@ -127,6 +127,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         canvas.height = height;
 
         ctx?.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(img.src);
 
         canvas.toBlob((blob) => {
           if (blob) {

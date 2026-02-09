@@ -1334,4 +1334,6 @@ export const printBlobDocument = (blob: Blob, fileName?: string) => {
   `;
   printWindow.document.write(html);
   printWindow.document.close();
+  printWindow.addEventListener('afterprint', () => URL.revokeObjectURL(url));
+  printWindow.addEventListener('beforeunload', () => URL.revokeObjectURL(url));
 };

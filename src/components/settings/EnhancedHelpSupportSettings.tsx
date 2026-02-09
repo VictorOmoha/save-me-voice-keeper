@@ -96,7 +96,7 @@ export const EnhancedHelpSupportSettings = () => {
       title: "Contact Support",
       description: "Get direct help from our team",
       icon: <Mail className="w-5 h-5" />,
-      action: () => window.open("mailto:support@lovable.dev", "_blank")
+      action: () => window.open("mailto:victor@omohasolutions.com", "_blank")
     }
   ];
 

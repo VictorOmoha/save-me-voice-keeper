@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Check, Mic, Mail, ArrowRight, Sun, Moon, Keyboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/components/ThemeProvider";
 import { WaitingListModal } from "@/components/WaitingListModal";
 import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
@@ -12,13 +13,17 @@ import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoic
 const Index = () => {
   const [isComponentReady, setIsComponentReady] = useState(false);
   const { isAuthenticated } = useAuth();
+  const { theme: globalTheme, setTheme: setGlobalTheme } = useTheme();
   const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [activeDemoVideo, setActiveDemoVideo] = useState<{ url: string; title: string } | null>(null);
   const [activeCanvidVideo, setActiveCanvidVideo] = useState<{ url: string; title: string } | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  const theme = globalTheme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : globalTheme;
+
+  const toggleTheme = () => setGlobalTheme(theme === 'dark' ? 'light' : 'dark');
 
   useEffect(() => { setIsComponentReady(true); }, []);
 

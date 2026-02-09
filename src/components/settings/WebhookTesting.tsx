@@ -37,15 +37,15 @@ interface SavedWebhookConfig {
 
 export const WebhookTesting = () => {
   const { user } = useAuth();
-  const [webhookUrl, setWebhookUrl] = useState("https://hooks.zapier.com/hooks/catch/23790183/u2t2vvq/");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [latestEntry, setLatestEntry] = useState<SavedEntry | null>(null);
-  const [userEmail, setUserEmail] = useState("omohavictor@gmail.com");
+  const [userEmail, setUserEmail] = useState("");
   const [currentConfigName, setCurrentConfigName] = useState("Default Configuration");
   const [testFields, setTestFields] = useState<TestField[]>([
     { key: 'entryTitle', type: 'text', value: 'Sample Car Warranty', label: 'Entry Title' },
     { key: 'expirationDate', type: 'date', value: '2026-08-01', label: 'Expiration Date' },
-    { key: 'userEmail', type: 'email', value: 'omohavictor@gmail.com', label: 'User Email' }
+    { key: 'userEmail', type: 'email', value: '', label: 'User Email' }
   ]);
 
   // Load saved webhook URL and user email on component mount

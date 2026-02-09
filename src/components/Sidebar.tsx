@@ -12,6 +12,7 @@ import {
   Plus,
   Settings,
   Brain,
+  MessageSquare,
   X
 } from "lucide-react";
 import { SavedEntry } from "@/types/dashboard";
@@ -100,6 +101,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className={navItemClass(location.pathname === "/brain-dump")}>
               <Brain className="w-4 h-4" />
               <span>BRAIN_DUMP</span>
+            </div>
+          </Link>
+
+          <Link to="/ask-vault" onClick={handleNavClick}>
+            <div className={navItemClass(location.pathname === "/ask-vault")}>
+              <MessageSquare className="w-4 h-4" />
+              <span>ASK_VAULT</span>
             </div>
           </Link>
 

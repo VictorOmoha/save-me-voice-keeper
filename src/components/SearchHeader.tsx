@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, Brain, LogOut, User, CreditCard, HelpCircle, ChevronRight } from "lucide-react";
 import { SmartSearchWithBoundary as SmartSearch } from "./SmartSearch";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -126,6 +127,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
           >
             ALL_ENTRIES
           </button>
+          <NotificationCenter entries={savedEntries} />
           <button
             onClick={onAddEntry}
             className="btn-galvanized btn-galvanized-primary"

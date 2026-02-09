@@ -14,9 +14,11 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  getCountFromServer
 } from "firebase/firestore";
 import { toast } from "sonner";
+import { TIER_LIMITS } from "@/hooks/useSubscription";
 
 export const useSavedEntries = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -112,6 +114,20 @@ export const useSavedEntries = () => {
         setSavedEntries(prev => prev.map(e => e.id === editingEntry.id ? updatedEntry : e));
         toast.success('Entry updated successfully!');
       } else {
+        // Check entry limit before creating new entry
+        const tier = user.subscriptionTier || 'free';
+        const limits = TIER_LIMITS[tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.free;
+        if (limits.entries !== -1) {
+          const entriesCountRef = collection(db, 'entries');
+          const countQuery = query(entriesCountRef, where('user_id', '==', user.uid));
+          const countSnapshot = await getCountFromServer(countQuery);
+          const currentCount = countSnapshot.data().count;
+          if (currentCount >= limits.entries) {
+            toast.error('Entry limit reached. Upgrade your plan to add more entries.');
+            return;
+          }
+        }
+
         // Insert new entry
         const entriesRef = collection(db, 'entries');
         const docRef = await addDoc(entriesRef, {

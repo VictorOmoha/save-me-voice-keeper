@@ -79,7 +79,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <Menu className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex items-center gap-2 flex-1">
-            <img src="/logo.png" alt="SAVEME" className="w-6 h-6 object-contain" />
+            <img src="/saveme-logo.svg" alt="SAVEME" className="w-6 h-6 object-contain" />
             <span className="mono text-foreground font-bold text-sm tracking-wider">
               SAVEME
             </span>

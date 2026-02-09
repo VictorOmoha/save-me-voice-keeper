@@ -86,7 +86,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         {/* Logo/Title - Skeletal */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="SAVEME" className="w-6 h-6 object-contain" />
+            <img src="/saveme-logo.svg" alt="SAVEME" className="w-6 h-6 object-contain" />
             <span className="mono text-foreground font-bold text-sm tracking-wider">
               SAVEME
             </span>

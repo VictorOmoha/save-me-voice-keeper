@@ -59,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logo - Skeletal */}
       <div className="p-6 border-b border-galvanized flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="SAVEME" className="w-6 h-6 object-contain" />
+          <img src="/saveme-logo.svg" alt="SAVEME" className="w-6 h-6 object-contain" />
           <span className="mono text-foreground font-bold text-sm tracking-wider">
             SAVEME
           </span>

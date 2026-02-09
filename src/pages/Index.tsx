@@ -62,7 +62,7 @@ const Index = () => {
         {/* Navigation */}
         <nav className={`grid grid-cols-2 md:grid-cols-3 items-center h-20 uppercase font-mono text-[10px] tracking-[0.2em] ${theme === 'dark' ? 'border-b border-zinc-800/50' : 'border-b border-zinc-200'}`}>
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
+            <img src="/saveme-logo.svg" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
             <span className={`font-bold text-sm tracking-widest hidden sm:inline ${theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900'}`}>SAVEME.SPACE</span>
           </div>
           <div className={`hidden md:flex justify-center ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400'}`}>[ THE VOICE-NATIVE VAULT ]</div>
@@ -171,7 +171,7 @@ const Index = () => {
             <div className="galvanized-card p-2 reveal stagger-3 relative group">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent/30 to-transparent"></div>
               {activeCanvidVideo ? (
-                <video src={activeCanvidVideo.url} autoPlay loop muted playsInline className="w-full h-auto opacity-90 group-hover:opacity-100 transition-opacity" poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" />
+                <video src={activeCanvidVideo.url} autoPlay loop muted playsInline className="w-full h-auto opacity-90 group-hover:opacity-100 transition-opacity" poster="/saveme-logo.svg" />
               ) : (
                 <CanvidVideoPlayer canvidUrl="https://app.canvid.com/" title="Interactive Demo" loading={false} />
               )}

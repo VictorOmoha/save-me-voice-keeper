@@ -34,7 +34,7 @@ const ResetPassword = () => {
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-1 mb-4">
             <img 
-              src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
+              src="/saveme-logo.svg" 
               alt="Save Me Logo" 
               className="w-16 h-16 object-contain"
             />

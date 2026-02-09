@@ -53,7 +53,7 @@ const Login = () => {
       <div className="hidden lg:flex lg:w-1/2 border-r border-galvanized flex-col justify-between p-12">
         <div>
           <div className="flex items-center gap-3 mb-8">
-            <img src="/logo.png" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
+            <img src="/saveme-logo.svg" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
             <span className="mono text-foreground font-bold tracking-wider">
               SAVEME.SPACE
             </span>
@@ -84,7 +84,7 @@ const Login = () => {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <img src="/logo.png" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
+            <img src="/saveme-logo.svg" alt="SAVEME.SPACE" className="w-8 h-8 object-contain" />
             <span className="mono text-foreground font-bold tracking-wider">
               SAVEME.SPACE
             </span>

@@ -9,6 +9,7 @@ import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Palette, Sun, Moon, Globe, Monitor } from "lucide-react";
 import { useState } from "react";
+import { logError } from "@/utils/logger";
 
 export const AppearanceSettings = () => {
   const { theme, setTheme } = useTheme();

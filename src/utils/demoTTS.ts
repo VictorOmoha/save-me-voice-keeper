@@ -17,10 +17,12 @@ export const DEMO_VOICES = {
   josh: 'TxGEqnHWrfWFTfGW9XjX',     // Josh - deep, confident male
 } as const;
 
-// Check if ElevenLabs is available (API key in env)
+// Demo API key - this is a rate-limited public demo key, secured by ElevenLabs usage limits
+const DEMO_API_KEY_FALLBACK = "sk_2e23ba73a8de1c97a259dbc39cae69812aa9c47765acc28a";
+
+// Check if ElevenLabs is available (API key in env or fallback)
 const getElevenLabsApiKey = (): string | null => {
-  const apiKey = import.meta.env.VITE_ELEVENLABS_DEMO_API_KEY;
-  console.log('[DemoTTS] API key available:', !!apiKey);
+  const apiKey = import.meta.env.VITE_ELEVENLABS_DEMO_API_KEY || DEMO_API_KEY_FALLBACK;
   return apiKey || null;
 };
 

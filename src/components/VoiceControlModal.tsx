@@ -7,6 +7,7 @@ import { Mic, MicOff, Settings, Volume2, VolumeX } from "lucide-react";
 import { processVoiceCommand, VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { getElevenLabsApiKey, VOICE_OPTIONS, getSelectedVoice, setSelectedVoice, stopCurrentSpeech } from "@/utils/textToSpeech";
 import { toast } from "sonner";
+import { logVoice, logError } from "@/utils/logger";
 
 interface VoiceControlModalProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
       };
       updateAudioLevel();
     } catch (error) {
-      console.error('Error setting up audio visualization:', error);
+      logError('Error setting up audio visualization:', error);
     }
   };
 
@@ -84,7 +85,7 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
       recognition.onstart = () => {
         setIsListening(true);
         setupAudioVisualization();
-        console.log('Voice recognition started');
+        logVoice('Voice recognition started');
       };
 
       recognition.onresult = (event) => {
@@ -104,11 +105,11 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
         setTranscript(currentTranscript);
 
         if (finalTranscript) {
-          console.log('Final transcript:', finalTranscript);
+          logVoice('Final transcript:', finalTranscript);
           
           // Process voice command
           const command = processVoiceCommand(finalTranscript);
-          console.log('Processed command:', command);
+          logVoice('Processed command:', command);
           setLastCommand(command);
           
           if (command.type !== 'unknown' && onVoiceCommand) {
@@ -120,7 +121,7 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
       };
 
       recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
+        logError('Speech recognition error:', event.error);
         setIsListening(false);
         
         if (event.error === 'not-allowed') {
@@ -136,11 +137,11 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
         }
-        console.log('Voice recognition ended');
+        logVoice('Voice recognition ended');
       };
     } else {
       setIsSupported(false);
-      console.log('Speech recognition not supported in this browser');
+      logVoice('Speech recognition not supported in this browser');
     }
 
     return () => {
@@ -171,7 +172,7 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
         recognitionRef.current.start();
       }
     } catch (error) {
-      console.error('Microphone access error:', error);
+      logError('Microphone access error:', error);
       toast.error('Unable to access microphone. Please check your permissions.');
     }
   };

@@ -9,6 +9,7 @@ import {
 } from '@/utils/storageUtils';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { logWarn } from '@/utils/logger';
 
 interface StorageStats {
   totalUsed: number;

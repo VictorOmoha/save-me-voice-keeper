@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
+import { logVoice, logError } from "@/utils/logger";
 
 interface WaitingListModalProps {
   open: boolean;
@@ -22,7 +23,7 @@ export function WaitingListModal({ open, onOpenChange }: WaitingListModalProps) 
   useEffect(() => {
     const handleVoiceClose = () => {
       if (open) {
-        console.log('🎙️ Voice command: closing waiting list modal');
+        logVoice('Voice command: closing waiting list modal');
         onOpenChange(false);
       }
     };
@@ -71,7 +72,7 @@ export function WaitingListModal({ open, onOpenChange }: WaitingListModalProps) 
       setName("");
       onOpenChange(false);
     } catch (error) {
-      console.error('Error joining waiting list:', error);
+      logError('Error joining waiting list:', error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);

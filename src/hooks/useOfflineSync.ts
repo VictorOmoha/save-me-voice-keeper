@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { dequeue, removeFromQueue, type QueuedOperation } from '@/utils/offlineQueue';
+import { logError } from '@/utils/logger';
 
 export function useOfflineSync() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -29,7 +30,7 @@ export function useOfflineSync() {
 
         await removeFromQueue(item.id);
       } catch (error) {
-        console.error('[OfflineSync] Failed to process queued item:', item.id, error);
+        logError('[OfflineSync] Failed to process queued item:', item.id);
         // Stop processing on error to maintain order
         break;
       }
@@ -47,7 +48,7 @@ export function useOfflineSync() {
         await processQueue(items);
       }
     } catch (error) {
-      console.error('[OfflineSync] Sync failed:', error);
+      logError('[OfflineSync] Sync failed:', error);
     }
   }, [processQueue]);
 

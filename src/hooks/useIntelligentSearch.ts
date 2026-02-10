@@ -3,6 +3,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { searchIntelligence, SearchSuggestion, IntelligentSearchOptions } from "@/utils/searchIntelligence";
 import { searchAnalyticsService } from "@/services/searchAnalytics";
 import { useAuth } from "@/contexts/AuthContext";
+import { logDebug, logError } from "@/utils/logger";
 
 interface UseIntelligentSearchProps {
   entries: SavedEntry[];

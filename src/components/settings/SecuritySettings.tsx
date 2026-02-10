@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { auth } from "@/lib/firebase";
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { toast } from "sonner";
+import { logError } from "@/utils/logger";
 
 export const SecuritySettings = () => {
   const { user } = useAuth();
@@ -58,7 +59,7 @@ export const SecuritySettings = () => {
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setIsPasswordDialogOpen(false);
     } catch (error: any) {
-      console.error('Error updating password:', error);
+      logError('Error updating password:', error);
       if (error.code === 'auth/wrong-password') {
         toast.error("Current password is incorrect");
       } else {

@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { speechRecognition } from '@/utils/speechRecognitionSingleton';
+import { logVoice } from '@/utils/logger';
 
 interface UseTTSEventHandlerProps {
   conversationState?: { isActive: boolean; currentStep?: { question: string } };
@@ -37,7 +38,7 @@ const handleTTSCompleted = async (event: CustomEvent) => {
       // CRITICAL: Clear manual stop flag so recognition can restart
       window.__manual_stop = false;
 
-      console.log('🔊 TTS Event Handler: TTS completed, will restart recognition');
+      logVoice('TTS Event Handler: TTS completed, will restart recognition');
 
       // Clear any existing restart timeout
       if (restartTimeoutRef.current) {

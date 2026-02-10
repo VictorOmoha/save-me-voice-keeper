@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ref, getBlob } from "firebase/storage";
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
+import { logWarn, logError } from "@/utils/logger";
 
 interface UseFileDownloadReturn {
   isDownloading: boolean;

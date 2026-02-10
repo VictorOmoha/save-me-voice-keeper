@@ -1,5 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
+import { logDebug, logError } from "@/utils/logger"
 
 type Theme = "dark" | "light" | "system"
 
@@ -27,15 +28,15 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  console.log('ThemeProvider: Initializing with defaultTheme:', defaultTheme);
+  logDebug('ThemeProvider: Initializing with defaultTheme:', defaultTheme);
   
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const stored = localStorage.getItem(storageKey) as Theme;
-      console.log('ThemeProvider: Stored theme:', stored);
+      logDebug('ThemeProvider: Stored theme:', stored);
       return stored || defaultTheme;
     } catch (error) {
-      console.error('ThemeProvider: Error accessing localStorage:', error);
+      logError('ThemeProvider: Error accessing localStorage:', error);
       return defaultTheme;
     }
   })
@@ -64,7 +65,7 @@ export function ThemeProvider({
         return () => media.removeEventListener("change", listener);
       }
     } catch (error) {
-      console.error("ThemeProvider: Error applying theme:", error);
+      logError("ThemeProvider: Error applying theme:", error);
     }
   }, [theme])
 

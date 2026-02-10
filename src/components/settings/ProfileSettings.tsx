@@ -7,6 +7,7 @@ import { User } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
+import { logError } from "@/utils/logger";
 
 interface ProfileSettingsProps {
   user: any;
@@ -39,7 +40,7 @@ export const ProfileSettings = ({ user }: ProfileSettingsProps) => {
 
       toast.success("Profile updated successfully");
     } catch (error) {
-      console.error('Error updating profile:', error);
+      logError('Error updating profile:', error);
       toast.error("Failed to update profile");
     } finally {
       setIsLoading(false);

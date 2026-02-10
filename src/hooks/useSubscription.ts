@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { doc, onSnapshot, collection, query, where, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
+import { logError } from '@/utils/logger';
 
 export interface SubscriptionData {
   tier: 'free' | 'basic' | 'premium' | 'enterprise';
@@ -80,7 +81,7 @@ export const useSubscription = () => {
         setIsLoading(false);
       },
       (error) => {
-        console.error('Error listening to user subscription:', error);
+        logError('Error listening to user subscription:', error);
         // Fall back to free tier on error
         setSubscription(DEFAULT_SUBSCRIPTION);
         setIsLoading(false);
@@ -109,7 +110,7 @@ export const useSubscription = () => {
         }));
       },
       (error) => {
-        console.error('Error counting entries:', error);
+        logError('Error counting entries:', error);
       }
     );
 

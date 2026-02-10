@@ -34,7 +34,7 @@ export const AppearanceSettings = () => {
         description: "Your theme preference has been saved.",
       });
     } catch (error) {
-      console.error('Error saving theme preference:', error);
+      logError('Error saving theme preference:', error);
       toast({
         title: "Error",
         description: "Failed to save theme preference.",

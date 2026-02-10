@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { logDebug, logError } from '@/utils/logger';
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';

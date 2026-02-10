@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Download } from "lucide-react";
+import { logVoice } from "@/utils/logger";
 
 interface VideoModalProps {
   open: boolean;
@@ -16,7 +17,7 @@ export const VideoModal = ({ open, onOpenChange, videoUrl, title }: VideoModalPr
   useEffect(() => {
     const handleVoiceClose = () => {
       if (open) {
-        console.log('🎙️ Voice command: closing video modal');
+        logVoice('Voice command: closing video modal');
         onOpenChange(false);
       }
     };

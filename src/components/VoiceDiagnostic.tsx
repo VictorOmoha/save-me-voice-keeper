@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mic, MicOff, Volume2, VolumeX, Trash2, Play, Pause, Activity } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { toast } from "sonner";
+import { logVoice } from "@/utils/logger";
 
 interface VoiceDiagnosticProps {
   onVoiceCommand?: (transcript: string) => void;
@@ -43,7 +44,7 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
     resetListening,
   } = useSpeechRecognition({
     onEnhancedVoiceInput: (text: string) => {
-      console.log('🎤 VoiceDiagnostic: Enhanced voice input received:', text);
+      logVoice('VoiceDiagnostic: Enhanced voice input received:', text);
       onVoiceCommand?.(text);
     },
   });
@@ -65,7 +66,7 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
         return updated;
       });
       
-      console.log('📝 VoiceDiagnostic: Command logged:', newLog);
+      logVoice('VoiceDiagnostic: Command logged:', newLog);
     };
 
     window.addEventListener('voice-command-processed', handleVoiceCommandProcessed as EventListener);
@@ -93,16 +94,16 @@ export const VoiceDiagnostic: React.FC<VoiceDiagnosticProps> = ({
 
   const handleStartStop = () => {
     if (isListening) {
-      console.log('🎤 VoiceDiagnostic: Stopping voice recognition');
+      logVoice('VoiceDiagnostic: Stopping voice recognition');
       stopListening();
     } else {
-      console.log('🎤 VoiceDiagnostic: Starting voice recognition');
+      logVoice('VoiceDiagnostic: Starting voice recognition');
       startListening();
     }
   };
 
   const handleReset = () => {
-    console.log('🎤 VoiceDiagnostic: Resetting voice system');
+    logVoice('VoiceDiagnostic: Resetting voice system');
     resetListening();
     setCommandLogs([]);
     setAudioLevel(0);

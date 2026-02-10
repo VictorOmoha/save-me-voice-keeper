@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { CreditCard, Crown, Zap, Building, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { logError } from "@/utils/logger";
 
 export const SubscriptionSettings = () => {
   const { user } = useAuth();
@@ -69,7 +70,7 @@ export const SubscriptionSettings = () => {
       // TODO: Implement Firebase-based checkout when payment integration is ready
       toast.info("Subscription upgrades are coming soon! Stay tuned.");
     } catch (err) {
-      console.error('Checkout exception:', err);
+      logError('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPlan(null);
@@ -84,7 +85,7 @@ export const SubscriptionSettings = () => {
       // TODO: Implement Firebase-based billing portal when payment integration is ready
       toast.info("Billing management is coming soon! Stay tuned.");
     } catch (err) {
-      console.error('Portal error:', err);
+      logError('Portal error:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPortal(false);

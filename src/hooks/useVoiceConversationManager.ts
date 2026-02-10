@@ -4,6 +4,7 @@ import { speak } from '@/utils/textToSpeech';
 import { SavedEntry } from '@/types/dashboard';
 import { matchCategory } from '@/utils/categoryMatcher';
 import { normalizeToDbFieldName } from '@/utils/fieldNameNormalizer';
+import { logVoice } from '@/utils/logger';
 
 interface ConversationStep {
   type: 'title' | 'category' | 'field_name' | 'field_type' | 'more_fields' | 'preview' | 'confirm';

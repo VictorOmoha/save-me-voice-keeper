@@ -21,6 +21,7 @@ import { testApiKey, speakWithUserKey, ELEVENLABS_VOICES, hasUserApiKey } from "
 import { playEndOfSpeechCue } from "@/utils/audioCues";
 import { useUserPreferences, UserPreferences } from "@/hooks/useUserPreferences";
 import { toast } from "sonner";
+import { logError } from "@/utils/logger";
 
 interface VoiceSettingsFormProps {
     showTitle?: boolean;
@@ -107,13 +108,13 @@ export const VoiceSettingsForm: React.FC<VoiceSettingsFormProps> = ({ showTitle 
                     toast.success("Voice test completed!");
                 },
                 onError: (error) => {
-                    console.error('Voice test error:', error);
+                    logError('Voice test error:', error);
                     toast.error("Voice test failed");
                     setIsTestingElevenLabs(false);
                 }
             });
         } catch (error) {
-            console.error('Voice test error:', error);
+            logError('Voice test error:', error);
             toast.error("Voice test failed");
             setIsTestingElevenLabs(false);
         }
@@ -131,7 +132,7 @@ export const VoiceSettingsForm: React.FC<VoiceSettingsFormProps> = ({ showTitle 
             });
             toast.success('Voice test completed!');
         } catch (error) {
-            console.error('🚨 Voice test failed:', error);
+            logError('Voice test failed:', error);
             toast.error('Voice test failed. Please check your settings.');
         } finally {
             setIsTestingVoice(false);

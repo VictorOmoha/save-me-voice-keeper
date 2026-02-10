@@ -11,17 +11,18 @@ import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
 import { TypewriterText } from "./TypewriterText";
 import { VoiceLiveFeedback } from "./VoiceLiveFeedback";
 import { VoiceVisualHybridInterface } from "./voice/VoiceVisualHybridInterface";
-import { 
-  Mic, 
-  MicOff, 
-  CheckCircle, 
-  ArrowRight, 
-  Plus, 
+import {
+  Mic,
+  MicOff,
+  CheckCircle,
+  ArrowRight,
+  Plus,
   Save,
   Sparkles,
   Volume2,
   Eye
 } from "lucide-react";
+import { logVoice, logDebug } from "@/utils/logger";
 
 interface VoiceStep {
   id: string;
@@ -84,8 +85,8 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   useEffect(() => {
     const handleWizardVoiceInput = (event: CustomEvent) => {
       const { text } = event.detail;
-      console.log('🧙 VoiceGuidedEntryWizard: Received voice input from Dashboard:', text);
-      console.log('🧙 VoiceGuidedEntryWizard: This should trigger the unified processor in the parent');
+      logVoice('VoiceGuidedEntryWizard: Received voice input from Dashboard:', text);
+      logVoice('VoiceGuidedEntryWizard: This should trigger the unified processor in the parent');
     };
 
     window.addEventListener('wizard-voice-input', handleWizardVoiceInput as EventListener);
@@ -99,8 +100,8 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   useEffect(() => {
     if (conversationState?.currentStep) {
       const stepType = conversationState.currentStep.type;
-      console.log('🧭 Wizard step update - Current step type:', stepType);
-      console.log('🧭 Wizard current steps state:', steps.map(s => ({ id: s.id, current: s.current, completed: s.completed })));
+      logDebug('Wizard step update - Current step type:', stepType);
+      logDebug('Wizard current steps state:', steps.map(s => ({ id: s.id, current: s.current, completed: s.completed })));
       
       setSteps(prev => prev.map(step => {
         // Map conversation step types to wizard step IDs
@@ -121,9 +122,9 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
       if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current);
       animationTimeoutRef.current = setTimeout(() => setIsAnimating(false), 1000);
       
-      console.log('🧭 Updated wizard steps after conversation state change');
+      logDebug('Updated wizard steps after conversation state change');
     } else {
-      console.log('🎤 VoiceGuidedEntryWizard: No current step in conversation state');
+      logVoice('VoiceGuidedEntryWizard: No current step in conversation state');
     }
   }, [conversationState]);
 
@@ -131,7 +132,7 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
   useEffect(() => {
     if (conversationState?.entryDraft) {
       const draft = conversationState.entryDraft;
-      console.log('🎤 VoiceGuidedEntryWizard: Updating entry data from draft:', draft);
+      logVoice('VoiceGuidedEntryWizard: Updating entry data from draft:', draft);
       
       const newEntryData = {
         ...entryData,
@@ -144,7 +145,7 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
         })) || entryData.customFields
       };
       
-      console.log('🎤 VoiceGuidedEntryWizard: Setting new entry data:', newEntryData);
+      logVoice('VoiceGuidedEntryWizard: Setting new entry data:', newEntryData);
       setEntryData(newEntryData);
 
       // Mark completed steps
@@ -471,7 +472,7 @@ export const VoiceGuidedEntryWizard: React.FC<VoiceGuidedEntryWizardProps> = ({
                 variant="outline" 
                 size="sm"
                 onClick={() => {
-                  console.log('🔧 DEBUG: Force advancing to category step');
+                  logDebug('DEBUG: Force advancing to category step');
                   // This will help us test if the UI responds to step changes
                 }}
               >

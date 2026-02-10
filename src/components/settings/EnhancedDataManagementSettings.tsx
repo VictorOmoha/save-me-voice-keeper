@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { Database, Download, Trash2, Shield, Archive, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
+import { logDebug, logError } from "@/utils/logger";
 
 export const EnhancedDataManagementSettings = () => {
   const { toast } = useToast();
@@ -55,7 +56,7 @@ export const EnhancedDataManagementSettings = () => {
         lastBackup: null,
       });
     } catch (error) {
-      console.error('Error loading storage stats:', error);
+      logError('Error loading storage stats:', error);
     }
   };
 
@@ -79,7 +80,7 @@ export const EnhancedDataManagementSettings = () => {
           preferences = prefsSnap.data();
         }
       } catch (e) {
-        console.log('No preferences found');
+        logDebug('No preferences found');
       }
 
       // Get API keys (excluding sensitive data)
@@ -101,7 +102,7 @@ export const EnhancedDataManagementSettings = () => {
           };
         });
       } catch (e) {
-        console.log('No API keys found');
+        logDebug('No API keys found');
       }
 
       const exportData = {
@@ -135,7 +136,7 @@ export const EnhancedDataManagementSettings = () => {
         description: "Your data has been exported successfully.",
       });
     } catch (error) {
-      console.error('Error exporting data:', error);
+      logError('Error exporting data:', error);
       toast({
         title: "Export failed",
         description: "Failed to export your data. Please try again.",
@@ -182,7 +183,7 @@ export const EnhancedDataManagementSettings = () => {
       await logout();
       window.location.href = '/';
     } catch (error) {
-      console.error('Error deleting account:', error);
+      logError('Error deleting account:', error);
       toast({
         title: "Deletion failed",
         description: "Failed to delete account. Please contact support.",

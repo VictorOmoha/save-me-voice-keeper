@@ -11,6 +11,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { RichTextEditor } from './RichTextEditor';
 import { printDocumentHtml } from '@/utils/printUtils';
+import { logWarn, logError } from '@/utils/logger';
 
 interface DocumentEditorProps {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       setIsLoading(true);
 
       if (!user) {
-        console.warn('No authenticated user while loading document');
+        logWarn('No authenticated user while loading document');
       }
 
       const explicitPath = (entry.fields as any)?.storagePath as string | undefined;
@@ -74,7 +75,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           setOriginalContent(text);
           return;
         } catch (error: any) {
-          console.warn('Storage download error (will try fallbacks):', error.message || error);
+          logWarn('Storage download error (will try fallbacks):', error.message || error);
         }
       }
 
@@ -105,7 +106,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           setOriginalContent(text);
           return;
         } catch (e) {
-          console.warn('Failed to parse localStorage document cache:', e);
+          logWarn('Failed to parse localStorage document cache:', e);
         }
       }
 
@@ -113,7 +114,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       setDocumentContent('');
       setOriginalContent('');
     } catch (error) {
-      console.error('Error loading document for editing:', error);
+      logError('Error loading document for editing:', error);
       toast.error('Failed to load document for editing');
     } finally {
       setIsLoading(false);
@@ -180,7 +181,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
       toast.success('Document saved successfully!');
     } catch (error: any) {
-      console.error('Error saving document:', error);
+      logError('Error saving document:', error);
       toast.error(`Failed to save document: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
@@ -203,7 +204,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       printDocumentHtml(title, body);
       toast.success('Opening print dialog...');
     } catch (e) {
-      console.error('Error printing document:', e);
+      logError('Error printing document:', e);
       toast.error('Failed to open print dialog');
     }
   };

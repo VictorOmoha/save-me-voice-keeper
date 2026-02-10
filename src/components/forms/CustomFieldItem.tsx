@@ -14,6 +14,7 @@ import { TableFieldViewer } from './table/TableFieldViewer';
 import { ShoppingListTemplate } from './table/ShoppingListTemplate';
 import { EnhancedTableFillMode } from './table/EnhancedTableFillMode';
 import { validateFieldName } from "@/utils/fieldNameNormalizer";
+import { logDebug, logWarn, logError } from "@/utils/logger";
 
 interface CustomFieldItemProps {
   field: CustomField;
@@ -49,7 +50,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   
   // If field type was normalized, update it automatically
   if (normalizedFieldType !== field.type) {
-    console.warn(`Invalid field type "${field.type}" detected for field "${field.name}". Converting to "text".`);
+    logWarn(`Invalid field type "${field.type}" detected for field "${field.name}". Converting to "text".`);
     onUpdateField(field.id, 'type', normalizedFieldType);
   }
 
@@ -90,12 +91,12 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   // Auto-convert field type if it has table data but wrong type
   useEffect(() => {
     if (needsTableConversion && field.type !== 'table') {
-      console.log('Auto-converting field to table type:', field.name);
+      logDebug('Auto-converting field to table type:', field.name);
       onUpdateField(field.id, 'type', 'table');
     }
   }, [needsTableConversion, field.type, field.id, field.name, onUpdateField]);
   
-  console.log('CustomFieldItem debug:', {
+  logDebug('CustomFieldItem debug:', {
     fieldName: field.name,
     fieldType: field.type,
     isEditMode,
@@ -105,7 +106,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
     fieldValue: field.value
   });
 
-  console.log('CustomFieldItem render:', {
+  logDebug('CustomFieldItem render:', {
     fieldName: field.name,
     fieldValue: field.value,
     fieldType: field.type,
@@ -114,14 +115,14 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   });
 
   const renderFieldInput = () => {
-    console.log('renderFieldInput called for field:', field.name, 'type:', field.type, 'value:', field.value);
+    logDebug('renderFieldInput called for field:', field.name);
     
     if (shouldShowDataInput) {
       // Show data input for filling or editing existing data
       switch (normalizedFieldType) {
         case 'table':
           // Initialize table data if not present or convert from simple value
-          console.log('Processing table field, value:', field.value);
+          logDebug('Processing table field, value:', field.value);
           let tableData: TableData;
           
           if (needsTableConversion) {
@@ -139,8 +140,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             tableData = field.value || { columns: [], rows: [] };
           }
           
-          console.log('Table data after initialization:', tableData);
-          console.log('Columns:', tableData.columns, 'Type:', typeof tableData.columns);
+          logDebug('Table data after initialization:', tableData);
           
           return (
             <div className="space-y-4">
@@ -265,11 +265,11 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             <Select 
               value={normalizedFieldType} 
               onValueChange={(value: CustomField['type']) => {
-                console.log('Field type changed to:', value);
+                logDebug('Field type changed to:', value);
                 // Validate that the value is a valid field type
                 const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
                 if (!validTypes.includes(value)) {
-                  console.error('Invalid field type:', value);
+                  logError('Invalid field type:', value);
                   return;
                 }
                 

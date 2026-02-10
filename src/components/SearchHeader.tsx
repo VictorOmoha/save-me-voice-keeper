@@ -19,6 +19,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
+import { logError } from "@/utils/logger";
 
 interface SearchHeaderProps {
   searchQuery: string;
@@ -58,7 +59,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
       toast.success("Signed out successfully");
       navigate('/login');
     } catch (error) {
-      console.error('Error signing out:', error);
+      logError('Error signing out:', error);
       toast.error("Failed to sign out");
     }
   };

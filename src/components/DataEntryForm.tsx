@@ -11,6 +11,7 @@ import { CustomFieldItem } from "./forms/CustomFieldItem";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
 import { Mic } from "lucide-react";
+import { logForm, logDebug } from "@/utils/logger";
 
 interface DataEntryFormProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -75,11 +76,11 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   // Register form setters for voice input when component mounts  
   useEffect(() => {
-    console.log('🔧 DataEntryForm: useEffect triggered');
-    console.log('🔧 DataEntryForm: registerFormSetters available:', !!registerFormSetters);
-    
+    logForm('useEffect triggered');
+    logForm('registerFormSetters available:', !!registerFormSetters);
+
     if (registerFormSetters && unregisterFormSetters) {
-      console.log('✅ DataEntryForm: Registering voice form setters');
+      logForm('Registering voice form setters');
       
       // Use a small delay to ensure component is fully mounted
       const timer = setTimeout(() => {
@@ -92,20 +93,20 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           if (fieldName) initial.name = fieldName;
           if (fieldType) initial.type = fieldType as any;
           const newId = addField(initial);
-          console.debug('🎤 DataEntryForm.voiceAddField -> added field', { newId, fieldName, fieldType });
+          logDebug('DataEntryForm.voiceAddField -> added field', { newId, fieldName, fieldType });
         };
         
         registerFormSetters(setTitle, setSelectedCategory, voiceAddField);
-        console.log('🎯 DataEntryForm: Form setters registered with delay including addField');
+        logForm('Form setters registered with delay including addField');
       }, 100);
       
       return () => {
         clearTimeout(timer);
-        console.log('🧹 DataEntryForm: Unregistering voice form setters');
+        logForm('Unregistering voice form setters');
         unregisterFormSetters();
       };
     } else {
-      console.log('❌ DataEntryForm: Voice form context not available');
+      logForm('Voice form context not available');
     }
   }, []); // Removed dependencies to prevent re-registration
 

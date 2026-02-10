@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { SavedEntry } from "@/types/dashboard";
+import { logError } from "@/utils/logger";
 
 export const useDownload = () => {
   const [downloadingFiles, setDownloadingFiles] = useState<string[]>([]);
@@ -47,7 +48,7 @@ export const useDownload = () => {
       
       toast.success(`Downloaded ${fileData.name}`);
     } catch (error) {
-      console.error('Download error:', error);
+      logError('Download error:', error);
       toast.error("Failed to download file");
     } finally {
       setDownloadingFiles(prev => prev.filter(id => id !== entry.id));

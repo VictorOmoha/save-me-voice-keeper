@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Download, Search, ShoppingCart, DollarSign, Package } from 'lucide-react';
 import { TableData } from '../types';
 import { toast } from 'sonner';
+import { logError } from '@/utils/logger';
 
 interface ShoppingListCardViewerProps {
   value: TableData;
@@ -102,7 +103,7 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
       
       toast.success('Shopping list exported to CSV');
     } catch (error) {
-      console.error('Export error:', error);
+      logError('Export error:', error);
       toast.error('Failed to export shopping list');
     }
   };

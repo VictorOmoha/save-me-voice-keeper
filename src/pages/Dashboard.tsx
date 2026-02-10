@@ -15,6 +15,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { SavedEntry } from '@/types/dashboard';
 import { toast } from 'sonner';
+import { logDashboard, logVoice } from '@/utils/logger';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -77,7 +78,7 @@ export default function Dashboard() {
 
   // Single unified voice processor - no separate processors
   const enhancedVoiceInputHandler = async (text: string) => {
-    console.log('🎤 Dashboard: Voice input received:', text);
+    logVoice('Voice input received:', text);
   };
 
   // Check auth state and redirect if needed
@@ -103,7 +104,7 @@ export default function Dashboard() {
         }
       } catch (error) {
         // If error, just continue - don't block dashboard
-        console.log('Could not fetch preferences:', error);
+        logDashboard('Could not fetch preferences:', error);
       }
     };
 
@@ -114,7 +115,7 @@ export default function Dashboard() {
   useEffect(() => {
     const handleCloseFormCommand = () => {
       if (showAddEntry || editingEntry || fillingEntry) {
-        console.log('🎤 Voice command: Closing entry form');
+        logVoice('Closing entry form');
         handleCancelEdit();
       }
     };
@@ -149,23 +150,23 @@ export default function Dashboard() {
   };
 
   const handleCreateDocument = () => {
-    console.log('📄 Dashboard: Create document triggered');
+    logDashboard('Create document triggered');
     setShowDocumentCreator(true);
   };
 
   const handleDocumentSave = (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
-    console.log('📄 Dashboard: Document save triggered');
+    logDashboard('Document save triggered');
     saveEntry(entry);
     setShowDocumentCreator(false);
   };
 
   const handleDocumentCancel = () => {
-    console.log('📄 Dashboard: Document creation cancelled');
+    logDashboard('Document creation cancelled');
     setShowDocumentCreator(false);
   };
 
   const handleViewDocument = (entry: SavedEntry) => {
-    console.log('📄 Dashboard: View document triggered for:', entry.title);
+    logDashboard('View document triggered for:', entry.title);
     const fileName = String(entry.fields.fileName || '').toLowerCase();
     const fileType = String(entry.fields.fileType || '').toLowerCase();
     const hasInline = Boolean(entry.fields?.documentContent);
@@ -189,7 +190,7 @@ export default function Dashboard() {
   };
 
   const handleEditDocument = (entry: SavedEntry) => {
-    console.log('📝 Dashboard: Edit document triggered for:', entry.title);
+    logDashboard('Edit document triggered for:', entry.title);
     setDocumentViewerState({ isOpen: false, entry: null }); // Close viewer
     setDocumentEditorState({ isOpen: true, entry });
   };

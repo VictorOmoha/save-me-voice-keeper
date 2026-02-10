@@ -13,6 +13,7 @@ import { exportEntries, getExportFormatIcon, getExportFormatName } from "@/utils
 import { printEntries, openPrintPreview } from "@/utils/printUtils";
 import { Download, FileText, Printer, Eye, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { logError } from "@/utils/logger";
 
 interface ExportButtonProps {
   entries: SavedEntry[];
@@ -50,7 +51,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({
       
       toast.success(`Successfully exported ${entriesToExport.length} entries as ${getExportFormatName(format)}`);
     } catch (error) {
-      console.error('Export error:', error);
+      logError('Export error:', error);
       toast.error('Failed to export entries');
     }
   };

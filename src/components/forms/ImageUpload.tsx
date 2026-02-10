@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { toast } from "sonner";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { logError } from "@/utils/logger";
 
 interface ImageUploadProps {
   value: string | string[];
@@ -93,7 +94,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
       toast.success(`${urls.length} image(s) uploaded successfully!`);
     } catch (error) {
-      console.error('Error uploading images:', error);
+      logError('Error uploading images:', error);
       toast.error("Failed to upload images");
     } finally {
       setUploading(false);

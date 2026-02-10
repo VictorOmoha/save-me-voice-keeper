@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Download, Search, Filter, SortAsc, SortDesc } from 'lucide-react';
 import { TableData, TableColumn } from '../types';
 import { toast } from 'sonner';
+import { logError } from '@/utils/logger';
 
 interface TableFieldViewerProps {
   value: TableData;
@@ -123,7 +124,7 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
       
       toast.success('Table exported to CSV');
     } catch (error) {
-      console.error('Export error:', error);
+      logError('Export error:', error);
       toast.error('Failed to export table');
     }
   };

@@ -9,6 +9,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
+import { logDebug, logError } from "@/utils/logger";
 
 // Cloud Functions URL - set after deployment
 const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
@@ -74,10 +75,10 @@ const Subscription = () => {
   ];
 
   const handleUpgrade = async (planName: string) => {
-    console.log('handleUpgrade called with:', planName);
+    logDebug('handleUpgrade called with:', planName);
 
     if (planName === "Free") {
-      console.log('Free plan selected, returning early');
+      logDebug('Free plan selected, returning early');
       return;
     }
 
@@ -128,7 +129,7 @@ const Subscription = () => {
         throw new Error('No checkout URL returned');
       }
     } catch (err) {
-      console.error('Checkout exception:', err);
+      logError('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPlan(null);
@@ -175,7 +176,7 @@ const Subscription = () => {
         throw new Error('No portal URL returned');
       }
     } catch (err) {
-      console.error('Portal error:', err);
+      logError('Portal error:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPortal(false);
@@ -275,7 +276,7 @@ const Subscription = () => {
                   disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
                   onClick={(e) => {
                     e.preventDefault();
-                    console.log('Button clicked for plan:', plan.name, 'current:', plan.current, 'loading:', loadingPlan);
+                    logDebug('Button clicked for plan:', plan.name);
                     handleUpgrade(plan.name);
                   }}
                 >

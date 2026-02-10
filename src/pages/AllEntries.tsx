@@ -11,6 +11,7 @@ import { DocumentEditor } from "@/components/documents/DocumentEditor";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useUnifiedVoiceProcessor } from "@/hooks/useUnifiedVoiceProcessor";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
+import { logError } from "@/utils/logger";
 export default function AllEntries() {
   const { 
     savedEntries: entries, 
@@ -40,7 +41,7 @@ export default function AllEntries() {
       setEditingEntry(null);
       setTemplateEntry(null);
     } catch (error) {
-      console.error('Error saving entry:', error);
+      logError('Error saving entry:', error);
       // Error handling is already done in the hook
     }
   };
@@ -49,7 +50,7 @@ export default function AllEntries() {
     try {
       await deleteEntry(id);
     } catch (error) {
-      console.error('Error deleting entry:', error);
+      logError('Error deleting entry:', error);
       // Error handling is already done in the hook
     }
   };
@@ -62,7 +63,7 @@ export default function AllEntries() {
       }
       toast.success(`${ids.length} entries deleted successfully!`);
     } catch (error) {
-      console.error('Error deleting entries:', error);
+      logError('Error deleting entries:', error);
       toast.error("Failed to delete entries");
     }
   };

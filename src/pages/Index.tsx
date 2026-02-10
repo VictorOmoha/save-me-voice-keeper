@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { CanvidVideoPlayer } from "@/components/CanvidVideoPlayer";
 import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoiceDemo";
+import { logError } from "@/utils/logger";
 
 const Index = () => {
   const [isComponentReady, setIsComponentReady] = useState(false);
@@ -37,7 +38,7 @@ const Index = () => {
           if (video.video_type === 'demo') setActiveDemoVideo({ url: video.video_url, title: video.title });
           else if (video.video_type === 'canvid_replacement') setActiveCanvidVideo({ url: video.video_url, title: video.title });
         });
-      } catch (error) { console.error('Error fetching videos:', error); }
+      } catch (error) { logError('Error fetching videos:', error); }
     };
     fetchActiveVideos();
   }, []);

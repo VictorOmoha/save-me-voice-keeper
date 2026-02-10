@@ -11,6 +11,7 @@ import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, LayoutDashboard, Sparkles, Loader2, Users, Tag } from "lucide-react";
+import { logDebug, logError, logVoice } from "@/utils/logger";
 
 const processor = new BrainDumpProcessor();
 
@@ -27,7 +28,7 @@ const BrainDumpPage: React.FC = () => {
     safeStop();
     const idx = (window.history?.state && (window.history.state as any).idx) as number | undefined;
     const sameOriginRef = !!document.referrer && document.referrer.startsWith(window.location.origin);
-    console.debug('[BrainDump] Back click', {
+    logDebug('Back click', {
       historyLength: window.history.length,
       idx,
       referrer: document.referrer,
@@ -42,7 +43,7 @@ const BrainDumpPage: React.FC = () => {
       navigate(-1);
       return;
     }
-    console.debug('[BrainDump] No history to go back to, redirecting to dashboard');
+    logDebug('No history to go back to, redirecting to dashboard');
     navigate('/dashboard');
   };
   const handleDashboardClick = () => {
@@ -165,7 +166,7 @@ const BrainDumpPage: React.FC = () => {
       toast.info('AI enhancement coming soon. Using local processing.');
       handleProcess();
     } catch (err) {
-      console.error('AI enhance exception:', err);
+      logError('AI enhance exception:', err);
       toast.error('AI enhancement failed. Using local processing.');
       handleProcess();
     } finally {
@@ -306,7 +307,7 @@ const BrainDumpPage: React.FC = () => {
 
     // Filter out TTS echo early - don't process anything that sounds like system feedback
     if (isTTSEcho(lower)) {
-      console.log('🔇 BrainDump: Ignoring TTS echo:', t);
+      logVoice('Ignoring TTS echo:', t);
       lastHandledRef.current = t;
       return;
     }

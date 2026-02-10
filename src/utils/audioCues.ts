@@ -46,7 +46,7 @@ export const setAudioCueSettings = (updates: Partial<AudioCueSettings>) => {
 export const playEndOfSpeechCue = async (): Promise<void> => {
   const { volume, frequency = DEFAULTS.frequency, durationMs = DEFAULTS.durationMs } = getAudioCueSettings();
   if (typeof window === 'undefined') return;
-  const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtx) return;
 
   const ctx = new AudioCtx();

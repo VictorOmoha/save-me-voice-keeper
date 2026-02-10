@@ -11,6 +11,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
 import { SavedWebhookConfigs } from "./SavedWebhookConfigs";
 import { useAuth } from "@/contexts/AuthContext";
+import { logDebug, logError } from "@/utils/logger";
 
 interface TestField {
   key: string;
@@ -112,7 +113,7 @@ export const WebhookTesting = () => {
         }));
       }
     } catch (error) {
-      console.error('Error loading latest entry:', error);
+      logError('Error loading latest entry:', error);
     }
   };
 
@@ -174,7 +175,7 @@ export const WebhookTesting = () => {
     }
 
     setIsLoading(true);
-    console.log("Sending test payload to Zapier webhook:", webhookUrl);
+    logDebug("Sending test payload to Zapier webhook:", webhookUrl);
 
     try {
       const payload = buildTestPayload();
@@ -189,9 +190,9 @@ export const WebhookTesting = () => {
       });
 
       toast.success("Test payload sent to Zapier! Check your Zap's history to confirm it was received.");
-      console.log("Test payload sent successfully", payload);
+      logDebug("Test payload sent successfully", payload);
     } catch (error) {
-      console.error("Error sending test payload:", error);
+      logError("Error sending test payload:", error);
       toast.error("Failed to send test payload. Please check the URL and try again.");
     } finally {
       setIsLoading(false);
@@ -210,7 +211,7 @@ export const WebhookTesting = () => {
     }
 
     setIsLoading(true);
-    console.log("Sending actual entry data to Zapier webhook:", webhookUrl);
+    logDebug("Sending actual entry data to Zapier webhook:", webhookUrl);
 
     try {
       const expirationDate = latestEntry.fields?.expirationDate || 
@@ -239,9 +240,9 @@ export const WebhookTesting = () => {
       });
 
       toast.success("Actual entry data sent to Zapier! Check your Zap's history to confirm it was received.");
-      console.log("Actual entry data sent successfully");
+      logDebug("Actual entry data sent successfully");
     } catch (error) {
-      console.error("Error sending actual entry data:", error);
+      logError("Error sending actual entry data:", error);
       toast.error("Failed to send actual entry data. Please check the URL and try again.");
     } finally {
       setIsLoading(false);

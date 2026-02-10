@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Sparkles, ArrowRight, Check, Loader2, User, MapPin, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logError } from "@/utils/logger";
 
 interface CapturedEntry {
   text: string;
@@ -156,7 +157,7 @@ export const TryVoiceCapture: React.FC<TryVoiceCaptureProps> = ({ onSignupClick,
     };
 
     recognitionRef.current.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
+      logError('Speech recognition error:', event.error);
       if (event.error === 'not-allowed') {
         setError('Microphone access denied. Please allow microphone access and try again.');
       }
@@ -360,7 +361,7 @@ export const TryVoiceCapture: React.FC<TryVoiceCaptureProps> = ({ onSignupClick,
     try {
       recognitionRef.current.start();
     } catch (e) {
-      console.error('Failed to start recognition:', e);
+      logError('Failed to start recognition:', e);
     }
   };
 

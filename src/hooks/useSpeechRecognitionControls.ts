@@ -47,15 +47,15 @@ export const useSpeechRecognitionControls = ({
     }
     
     // Wait for TTS to finish if speaking
-    if ((window as any).__tts_is_speaking) {
+    if (window.__tts_is_speaking) {
       console.log('Waiting for TTS to finish before starting listening...');
       toast.info('Waiting for system to finish speaking...');
 
       const waitForTTS = () => {
-        if (!(window as any).__tts_is_speaking) {
+        if (!window.__tts_is_speaking) {
           // Don't recursively call startListening - directly start recognition
           try {
-            (window as any).__manual_stop = false;
+            window.__manual_stop = false;
             setTranscript("");
             setLastProcessedTranscript("");
             recognitionRef.current?.start();
@@ -75,7 +75,7 @@ export const useSpeechRecognitionControls = ({
       console.log('Starting speech recognition...');
       
       // Clear manual stop flag and reset state
-      (window as any).__manual_stop = false;
+      window.__manual_stop = false;
       setTranscript("");
       setLastProcessedTranscript("");
       
@@ -105,7 +105,7 @@ export const useSpeechRecognitionControls = ({
     console.log('=== Stopping voice recognition ===');
     
     // Set manual stop flag to prevent auto-restart
-    (window as any).__manual_stop = true;
+    window.__manual_stop = true;
     
     if (recognitionRef.current && isListening) {
       try {
@@ -123,7 +123,7 @@ export const useSpeechRecognitionControls = ({
     }
     
     // Clean up global flags
-    (window as any).__speech_recognition_active = false;
+    window.__speech_recognition_active = false;
     setIsListening(false);
   };
 
@@ -131,7 +131,7 @@ export const useSpeechRecognitionControls = ({
     console.log('=== Resetting voice recognition ===');
     
     // Set manual stop flag and abort
-    (window as any).__manual_stop = true;
+    window.__manual_stop = true;
     
     if (recognitionRef.current) {
       try {
@@ -150,11 +150,11 @@ export const useSpeechRecognitionControls = ({
     setTranscript("");
     setLastProcessedTranscript("");
     setIsListening(false);
-    (window as any).__speech_recognition_active = false;
-    (window as any).__processed_commands = new Set();
+    window.__speech_recognition_active = false;
+    window.__processed_commands = new Set();
     
     // Clear manual stop flag immediately after reset (not delayed)
-    (window as any).__manual_stop = false;
+    window.__manual_stop = false;
     
     toast.success('🔄 Voice recognition reset - ready for commands', {
       description: 'Click "Start Voice Commands" to begin listening',

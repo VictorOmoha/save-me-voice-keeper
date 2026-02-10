@@ -59,7 +59,7 @@ export const setupSpeechRecognition = ({
   // Simplified TTS detection - rely mainly on the global flag
   const isTTSContent = (text: string): boolean => {
     // Primary check: if TTS is currently speaking
-    if ((window as any).__tts_is_speaking) {
+    if (window.__tts_is_speaking) {
       console.log('🚫 SETUP: TTS is currently speaking, ignoring input');
       return true;
     }
@@ -88,8 +88,8 @@ export const setupSpeechRecognition = ({
     }
     
     // Check recent TTS cache (shortened window)
-    if ((window as any).__recent_tts_texts) {
-      const recentTTS = (window as any).__recent_tts_texts as string[];
+    if (window.__recent_tts_texts) {
+      const recentTTS = window.__recent_tts_texts as string[];
       const isRecentTTS = recentTTS.some(ttsText => {
         const similarity = cleanText.includes(ttsText.toLowerCase().substring(0, 15)) ||
                           ttsText.toLowerCase().includes(cleanText.substring(0, 15));
@@ -108,7 +108,7 @@ export const setupSpeechRecognition = ({
     console.log('🎤 SETUP: Speech recognition started');
     setIsListening(true);
     globalRecognitionActive = true;
-    (window as any).__speech_recognition_active = true;
+    window.__speech_recognition_active = true;
     consecutiveErrors = 0;
     
     // Reset silence timeout
@@ -118,7 +118,7 @@ export const setupSpeechRecognition = ({
     
     // Set silence timeout for auto-stop
     silenceTimeout = setTimeout(() => {
-      if (!(window as any).__manual_stop && globalRecognitionActive) {
+      if (!window.__manual_stop && globalRecognitionActive) {
         console.log('🔇 SETUP: Auto-stopping due to silence timeout');
         recognition.stop();
         toast.info('Voice recognition paused due to inactivity');
@@ -197,7 +197,7 @@ export const setupSpeechRecognition = ({
 
         // Set new silence timeout after command processing
         silenceTimeout = setTimeout(() => {
-          if (!(window as any).__manual_stop && globalRecognitionActive) {
+          if (!window.__manual_stop && globalRecognitionActive) {
             console.log('🔇 SETUP: Auto-stopping due to silence timeout');
             recognition.stop();
             toast.info('Voice recognition paused - say "start listening" to resume');
@@ -252,7 +252,7 @@ export const setupSpeechRecognition = ({
     }
     
     // For continuous mode, handle aborted errors more gracefully
-    if (event.error === 'aborted' && (window as any).__manual_stop) {
+    if (event.error === 'aborted' && window.__manual_stop) {
       console.log('🛑 SETUP: Manual stop detected, not restarting');
       setIsListening(false);
       globalRecognitionActive = false;
@@ -260,10 +260,10 @@ export const setupSpeechRecognition = ({
     }
     
     // Auto-restart for recoverable errors in continuous mode
-    if (!((window as any).__manual_stop) && ['no-speech', 'aborted'].includes(event.error)) {
+    if (!(window.__manual_stop) && ['no-speech', 'aborted'].includes(event.error)) {
       console.log('🔄 SETUP: Recoverable error, attempting restart after delay');
       setTimeout(() => {
-        if (!(window as any).__manual_stop && !globalRecognitionActive) {
+        if (!window.__manual_stop && !globalRecognitionActive) {
           try {
             recognition.start();
           } catch (restartError) {
@@ -278,7 +278,7 @@ export const setupSpeechRecognition = ({
     console.log('🔚 SETUP: Speech recognition ended');
     setIsListening(false);
     globalRecognitionActive = false;
-    (window as any).__speech_recognition_active = false;
+    window.__speech_recognition_active = false;
     
     // Clear silence timeout
     if (silenceTimeout) {
@@ -286,10 +286,10 @@ export const setupSpeechRecognition = ({
     }
     
     // Only auto-restart for certain error conditions, not normal manual stops
-    if (!(window as any).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS && globalRecognitionActive) {
+    if (!window.__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS && globalRecognitionActive) {
       console.log('🔄 SETUP: Auto-restarting recognition');
       setTimeout(() => {
-        if (!(window as any).__manual_stop && !globalRecognitionActive) {
+        if (!window.__manual_stop && !globalRecognitionActive) {
           try {
             recognition.start();
             toast.info('🎤 Voice recognition resumed');
@@ -312,7 +312,7 @@ export const setupSpeechRecognition = ({
     }
     
     globalRecognitionActive = false;
-    (window as any).__manual_stop = true;
+    window.__manual_stop = true;
     
     try {
       recognition.abort();

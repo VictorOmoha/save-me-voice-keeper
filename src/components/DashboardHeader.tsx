@@ -30,6 +30,7 @@ import { VoiceInputFixed } from "@/components/VoiceInputFixed";
 import { SmartSearchWithBoundary as SmartSearch } from "@/components/SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
+import { logDashboard, logError } from "@/utils/logger";
 
 interface DashboardHeaderProps {
   searchQuery: string;
@@ -74,7 +75,7 @@ export const DashboardHeader = ({
       toast.success("Signed out successfully");
       window.location.href = '/login';
     } catch (error) {
-      console.error('Error signing out:', error);
+      logError('Error signing out:', error);
       toast.error("Failed to sign out");
     }
   };
@@ -88,7 +89,7 @@ export const DashboardHeader = ({
     : 'U';
 
   const handleSuggestionSelect = (suggestion: any) => {
-    console.log('Selected suggestion:', suggestion);
+    logDashboard('Selected suggestion:', suggestion);
     // You can add additional logic here if needed
   };
 

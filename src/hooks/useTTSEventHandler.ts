@@ -32,10 +32,10 @@ export const useTTSEventHandler = ({
   useEffect(() => {
 const handleTTSCompleted = async (event: CustomEvent) => {
       // Mark TTS finished
-      (window as any).__tts_is_speaking = false;
-      (window as any).__last_tts_end_time = Date.now();
+      window.__tts_is_speaking = false;
+      window.__last_tts_end_time = Date.now();
       // CRITICAL: Clear manual stop flag so recognition can restart
-      (window as any).__manual_stop = false;
+      window.__manual_stop = false;
 
       console.log('🔊 TTS Event Handler: TTS completed, will restart recognition');
 
@@ -50,7 +50,7 @@ const handleTTSCompleted = async (event: CustomEvent) => {
       restartTimeoutRef.current = setTimeout(() => {
         try {
           // Ensure manual_stop is still false before starting
-          (window as any).__manual_stop = false;
+          window.__manual_stop = false;
           // Reset restart attempts to allow fresh restart cycle
           speechRecognition.resetRestartAttempts();
           speechRecognition.start();
@@ -63,7 +63,7 @@ const handleTTSCompleted = async (event: CustomEvent) => {
 
 const handleTTSStarted = () => {
       console.log('🔊 TTS Event Handler: TTS started - pausing recognition');
-      (window as any).__tts_is_speaking = true;
+      window.__tts_is_speaking = true;
       try {
         speechRecognition.stop();
         console.log('🛑 TTS Event Handler: Stopped recognition due to TTS start');

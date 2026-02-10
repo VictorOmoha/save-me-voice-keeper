@@ -24,6 +24,7 @@ import { ExportFormat, exportEntries, getExportFormatIcon, getExportFormatName }
 import { printEntries, openPrintPreview, PrintOptions } from "@/utils/printUtils";
 import { Download, FileText, Printer, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { logVoice, logError } from "@/utils/logger";
 
 interface ExportModalProps {
   open: boolean;
@@ -52,7 +53,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   useEffect(() => {
     const handleVoiceClose = () => {
       if (open) {
-        console.log('🎙️ Voice command: closing export modal');
+        logVoice('Closing export modal');
         onClose();
       }
     };
@@ -88,7 +89,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       toast.success(`Successfully exported ${entriesToExport.length} entries as ${getExportFormatName(exportFormat)}`);
       onClose();
     } catch (error) {
-      console.error('Export error:', error);
+      logError('Export error:', error);
       toast.error('Failed to export entries');
     } finally {
       setIsExporting(false);

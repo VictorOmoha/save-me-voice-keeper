@@ -62,11 +62,11 @@ export class SpeechRecognitionSingleton {
     this.recognition.onresult = (event) => {
       // Skip if TTS is actively speaking
       const now = Date.now();
-      const lastTTSEnd = (window as any).__last_tts_end_time || 0;
+      const lastTTSEnd = window.__last_tts_end_time || 0;
       const gracePeriod = 300; // Short grace period to avoid echo pickup
 
       // Only block if TTS is actively speaking
-      if ((window as any).__tts_is_speaking) {
+      if (window.__tts_is_speaking) {
         console.log('🚫 Recognition Singleton: Skipping - TTS is actively speaking');
         return;
       }
@@ -83,7 +83,7 @@ export class SpeechRecognitionSingleton {
       console.log('🎤 Recognition Singleton: onresult event:', {
         resultIndex: event.resultIndex,
         resultsLength: event.results.length,
-        isTTSSpeaking: (window as any).__tts_is_speaking
+        isTTSSpeaking: window.__tts_is_speaking
       });
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -137,10 +137,10 @@ this.recognition.onerror = (event) => {
       }
       
       // Auto-restart for recoverable errors with exponential backoff
-      if (event.error === 'no-speech' && !((window as any).__manual_stop)) {
+      if (event.error === 'no-speech' && !(window.__manual_stop)) {
         this.scheduleRestart();
       }
-      if (event.error === 'aborted' && !((window as any).__manual_stop) && !((window as any).__tts_is_speaking)) {
+      if (event.error === 'aborted' && !(window.__manual_stop) && !(window.__tts_is_speaking)) {
         this.scheduleRestart();
       }
     };
@@ -151,7 +151,7 @@ this.recognition.onerror = (event) => {
       this.callbacks.onEnd?.();
       
 // Auto-restart if not manually stopped, not during TTS, and within attempt limits
-      if (!((window as any).__manual_stop) && !((window as any).__tts_is_speaking) && this.restartAttempts < this.maxRestartAttempts) {
+      if (!(window.__manual_stop) && !(window.__tts_is_speaking) && this.restartAttempts < this.maxRestartAttempts) {
         this.scheduleRestart();
       } else if (this.restartAttempts >= this.maxRestartAttempts) {
         console.log('🛑 Recognition Singleton: Max restart attempts reached, resetting counter');
@@ -181,7 +181,7 @@ this.recognition.onerror = (event) => {
   }
 
   private attemptRestart() {
-    if (!this.recognition || (window as any).__manual_stop || (window as any).__tts_is_speaking) {
+    if (!this.recognition || window.__manual_stop || window.__tts_is_speaking) {
       return;
     }
 
@@ -237,13 +237,13 @@ this.recognition.onerror = (event) => {
       return true;
     }
 
-    if ((window as any).__tts_is_speaking) {
+    if (window.__tts_is_speaking) {
       console.log('⏸️ Recognition Singleton: Waiting for TTS to finish');
       return false;
     }
 
     try {
-      (window as any).__manual_stop = false;
+      window.__manual_stop = false;
       this.restartAttempts = 0; // Reset attempts on manual start
       this.recognition.start();
       console.log('🎤 Recognition Singleton: Started');
@@ -264,7 +264,7 @@ this.recognition.onerror = (event) => {
     if (!this.recognition) return;
 
     console.log('🛑 Recognition Singleton: Stopping');
-    (window as any).__manual_stop = true;
+    window.__manual_stop = true;
     
     // Clear any pending restart
     if (this.restartTimeout) {

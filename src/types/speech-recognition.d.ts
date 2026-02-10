@@ -3,6 +3,17 @@ declare global {
   interface Window {
     SpeechRecognition: typeof SpeechRecognition;
     webkitSpeechRecognition: typeof SpeechRecognition;
+    AudioContext: typeof AudioContext;
+    webkitAudioContext: typeof AudioContext;
+    // Voice system globals
+    __manual_stop?: boolean;
+    __tts_is_speaking?: boolean;
+    __last_tts_end_time?: number;
+    __recent_tts_texts?: string[];
+    __speech_recognition_active?: boolean;
+    __stopAllVoiceRecognition?: () => void;
+    __global_recognition?: SpeechRecognition | null;
+    __processed_commands?: Set<string>;
   }
 }
 

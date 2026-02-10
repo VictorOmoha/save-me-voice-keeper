@@ -83,7 +83,7 @@ class EnhancedVoiceProcessor {
     }
     
     // Check if TTS is currently speaking
-    if ((window as any).__tts_is_speaking) {
+    if (window.__tts_is_speaking) {
       if (this.debugMode) console.log('🚫 Enhanced Processor: TTS currently speaking, blocking input');
       return true;
     }

@@ -13,6 +13,7 @@ import mammoth from 'mammoth';
 import { RichTextEditor } from '@/components/documents/RichTextEditor';
 import { printBlobDocument, printDocumentHtml } from '@/utils/printUtils';
 import DOMPurify from 'dompurify';
+import { logWarn, logError } from '@/utils/logger';
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -121,13 +122,13 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
           return;
         }
       } catch (storageError) {
-        console.warn('Firebase storage download failed, trying fallbacks:', storageError);
+        logWarn('Firebase storage download failed, trying fallbacks:', storageError);
       }
 
       // Fallback to localStorage for legacy documents
       await loadFromLocalStorage();
     } catch (error) {
-      console.error('Error loading document:', error);
+      logError('Error loading document:', error);
       toast.error('Failed to load document');
     } finally {
       setIsLoading(false);
@@ -141,10 +142,10 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       setDocumentState(prev => ({ ...prev, content: result.value }));
       
       if (result.messages.length > 0) {
-        console.warn('Word document conversion warnings:', result.messages);
+        logWarn('Word document conversion warnings:', result.messages);
       }
     } catch (error) {
-      console.error('Error converting Word document:', error);
+      logError('Error converting Word document:', error);
       toast.error('Failed to convert Word document for viewing');
     }
   };
@@ -192,7 +193,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       URL.revokeObjectURL(url);
       toast.success('Document downloaded!');
     } catch (error) {
-      console.error('Error downloading document:', error);
+      logError('Error downloading document:', error);
       toast.error('Failed to download document');
     }
   };
@@ -233,7 +234,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
             html = result.value;
             setDocumentState(prev => ({ ...prev, content: html! }));
           } catch (err) {
-            console.error('Conversion failed during print:', err);
+            logError('Conversion failed during print:', err);
             const errorMessage = err instanceof Error ? err.message : 'Unknown error';
             
             if (errorMessage.includes('zip file') || errorMessage.includes('central directory')) {
@@ -261,7 +262,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       }
       toast.error('Nothing to print');
     } catch (e) {
-      console.error('Error printing document:', e);
+      logError('Error printing document:', e);
       toast.error('Failed to open print dialog');
     }
   };
@@ -310,7 +311,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       setInitialNotesHtml(notesHtml);
       toast.success('Notes saved');
     } catch (err) {
-      console.error('Error saving notes:', err);
+      logError('Error saving notes:', err);
       toast.error('Failed to save notes');
     } finally {
       setIsSavingNotes(false);

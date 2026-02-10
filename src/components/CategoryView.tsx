@@ -9,6 +9,7 @@ import { EmptyState } from "./categoryView/EmptyState";
 import { useDownload } from "./categoryView/useDownload";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
 import { ExportButton } from "@/components/export/ExportButton";
+import { logDebug } from "@/utils/logger";
 
 interface CategoryViewProps {
   categoryName: string;
@@ -54,9 +55,9 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   const { downloadingFiles, handleDownload } = useDownload();
   const { filterEntriesByCategory } = useCategoryFilter();
 
-  console.log('DIAGNOSTIC: CategoryView rendered with:', { 
-    categoryName, 
-    showDocumentCreator, 
+  logDebug('CategoryView rendered with:', {
+    categoryName,
+    showDocumentCreator,
     showAddEntry,
     editingEntry: editingEntry?.title,
     fillingEntry: fillingEntry?.title,
@@ -64,7 +65,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   });
 
   // Enhanced diagnostic logging for entries
-  console.log('DIAGNOSTIC: All entries details:', entries.map(entry => ({
+  logDebug('All entries details:', entries.map(entry => ({
     id: entry.id,
     title: entry.title,
     category: entry.fields.category,
@@ -75,18 +76,18 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   })));
 
   const handleCreateEntry = () => {
-    console.log('DIAGNOSTIC: Create button clicked for category:', categoryName);
+    logDebug('Create button clicked for category:', categoryName);
     onCreateEntry(categoryName);
   };
 
   const categoryEntries = filterEntriesByCategory(entries, categoryName);
 
-  console.log('DIAGNOSTIC: Filtered entries for', categoryName, ':', {
+  logDebug('Filtered entries for ' + categoryName + ':', {
     totalEntries: entries.length,
     categoryEntries: categoryEntries.length,
-    categoryEntriesList: categoryEntries.map(e => ({ 
+    categoryEntriesList: categoryEntries.map(e => ({
       id: e.id,
-      title: e.title, 
+      title: e.title,
       category: e.fields.category,
       documentType: e.fields.documentType,
       fileName: e.fields.fileName

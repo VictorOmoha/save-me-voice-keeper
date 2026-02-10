@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { SavedEntry, FieldDefinition } from "@/types/dashboard";
 import { CustomField, CATEGORIES } from './types';
 import { normalizeToDbFieldName } from "@/utils/fieldNameNormalizer";
+import { logForm, logError } from "@/utils/logger";
 
 // Helper function to normalize field names for display
 const normalizeFieldName = (name: string): string => {
@@ -63,7 +64,7 @@ export const useFormLogic = ({
     JSON.stringify(fields) !== JSON.stringify(initialState.fields);
 
   useEffect(() => {
-    console.log('useFormLogic useEffect triggered:', {
+    logForm('useFormLogic useEffect triggered:', {
       editEntry: editEntry?.title,
       templateEntry: templateEntry?.title,
       mode,
@@ -75,7 +76,7 @@ export const useFormLogic = ({
     let newFields: CustomField[] = [];
 
     if (editEntry) {
-      console.log('Processing editEntry:', {
+      logForm('Processing editEntry:', {
         title: editEntry.title,
         fields: editEntry.fields,
         fieldDefinitions: editEntry.fieldDefinitions
@@ -95,7 +96,7 @@ export const useFormLogic = ({
           }));
         newFields = editFields.length > 0 ? editFields : [];
         
-        console.log('Created fields from definitions with normalized names:', newFields);
+        logForm('Created fields from definitions with normalized names:', newFields);
       } else {
         // Fallback: create fields from the fields object with normalized names
         const editFields: CustomField[] = Object.entries(editEntry.fields)
@@ -108,10 +109,10 @@ export const useFormLogic = ({
           }));
         newFields = editFields.length > 0 ? editFields : [];
         
-        console.log('Created fields from fields object with normalized names:', newFields);
+        logForm('Created fields from fields object with normalized names:', newFields);
       }
     } else if (templateEntry && mode === 'fill') {
-      console.log('Processing templateEntry for fill mode:', {
+      logForm('Processing templateEntry for fill mode:', {
         title: templateEntry.title,
         fields: templateEntry.fields,
         fieldDefinitions: templateEntry.fieldDefinitions
@@ -131,7 +132,7 @@ export const useFormLogic = ({
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
         
-        console.log('Created template fields for fill mode with normalized names and cleared values:', newFields);
+        logForm('Created template fields for fill mode with normalized names and cleared values:', newFields);
       } else {
         // Fallback: create fields from the fields object but clear values
         const templateFields: CustomField[] = Object.entries(templateEntry.fields)
@@ -144,11 +145,11 @@ export const useFormLogic = ({
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
         
-        console.log('Created template fields from fields object with normalized names and cleared values:', newFields);
+        logForm('Created template fields from fields object with normalized names and cleared values:', newFields);
       }
     }
 
-    console.log('Final form state:', {
+    logForm('Final form state:', {
       newTitle,
       newCategory,
       newFields
@@ -182,18 +183,18 @@ export const useFormLogic = ({
       type: fieldType,
       value: initial?.value ?? ''
     };
-    console.log('Adding new field:', newField);
+    logForm('Adding new field:', newField);
     setFields(prev => [...prev, newField]);
     return newField.id;
   };
   const updateField = (id: string, key: keyof CustomField, value: any) => {
-    console.log('Updating field:', { id, key, value });
+    logForm('Updating field:', { id, key, value });
     
     // Validate field type if we're updating the type
     if (key === 'type') {
       const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
       if (!validTypes.includes(value)) {
-        console.error('Invalid field type provided:', value, 'Valid types:', validTypes);
+        logError('Invalid field type provided:', value);
         return; // Don't update with invalid type
       }
     }
@@ -246,7 +247,7 @@ export const useFormLogic = ({
       }
     });
 
-    console.log('Prepared submission data:', {
+    logForm('Prepared submission data:', {
       title: title || 'Untitled Entry',
       fields: fieldData,
       fieldDefinitions: fieldDefinitions

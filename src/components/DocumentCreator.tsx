@@ -12,6 +12,7 @@ import { DocumentFormatSelector, DocumentFormat } from "@/components/documents/D
 import { RichTextEditor } from "@/components/documents/RichTextEditor";
 import { generateDocument } from "@/utils/documentGenerator";
 import { uploadDocumentToStorage } from "@/utils/documentStorage";
+import { logDebug, logError } from "@/utils/logger";
 
 interface DocumentCreatorProps {
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -99,7 +100,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       
       toast.success(`${selectedFormat.toUpperCase()} document created successfully! You can now save it to your Documents.`);
     } catch (error) {
-      console.error('Error creating document:', error);
+      logError('Error creating document:', error);
       toast.error("Failed to create document. Please try again.");
     } finally {
       setIsGenerating(false);
@@ -123,7 +124,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('DIAGNOSTIC: DocumentCreator handleSubmit called with data:', {
+    logDebug('DocumentCreator handleSubmit called with data:', {
       documentName,
       documentType,
       description,
@@ -139,7 +140,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
     // Validation - require at least a document name
     if (!documentName.trim()) {
       toast.error("Please enter a document name");
-      console.log('DIAGNOSTIC: Validation failed - no document name');
+      logDebug('Validation failed - no document name');
       return;
     }
     
@@ -177,7 +178,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       ]
     };
 
-    console.log('DIAGNOSTIC: Calling onSave with documentEntry:', {
+    logDebug('Calling onSave with documentEntry:', {
       title: documentEntry.title,
       category: documentEntry.fields.category,
       fieldsCount: Object.keys(documentEntry.fields).length,
@@ -186,7 +187,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
 
     // Upload file to Firebase Storage and save entry
     if (uploadedFile) {
-      console.log('DIAGNOSTIC: Processing file upload to Firebase Storage...');
+      logDebug('Processing file upload to Firebase Storage...');
       
       // Use a timestamp-based ID for the upload
       const entryId = `temp-${Date.now()}`;
@@ -194,7 +195,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       // Upload to Firebase Storage
       const uploadPath = await uploadDocumentToStorage(uploadedFile, entryId);
       if (uploadPath) {
-        console.log('DIAGNOSTIC: File uploaded to storage at:', uploadPath);
+        logDebug('File uploaded to storage at:', uploadPath);
         // Update the entry with the storage path
         documentEntry.fields.storagePath = uploadPath;
       }
@@ -202,7 +203,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       // Save the entry with storage path
       onSave(documentEntry);
     } else {
-      console.log('DIAGNOSTIC: No file to upload, calling onSave directly...');
+      logDebug('No file to upload, calling onSave directly...');
       onSave(documentEntry);
     }
   };

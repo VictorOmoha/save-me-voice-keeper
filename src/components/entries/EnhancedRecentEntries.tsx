@@ -17,6 +17,7 @@ import { EnhancedEntryViewDialog } from "./EnhancedEntryViewDialog";
 import { printProfessionally } from "./ProfessionalPrintView";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { logError } from "@/utils/logger";
 
 interface EnhancedRecentEntriesProps {
   entries: SavedEntry[];
@@ -95,7 +96,7 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
 
       toast.success(`Downloaded ${fileData.name}`);
     } catch (error) {
-      console.error("Download error:", error);
+      logError("Download error:", error);
       toast.error("Failed to download file");
     }
   };

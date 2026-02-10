@@ -11,6 +11,7 @@ import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logError } from "@/utils/logger";
 
 const steps = [
   { id: "welcome", component: WelcomeStep },
@@ -66,7 +67,7 @@ export default function Onboarding() {
         updated_at: serverTimestamp()
       }, { merge: true });
     } catch (err) {
-      console.error("Error completing onboarding:", err);
+      logError("Error completing onboarding:", err);
     } finally {
       setIsCompleting(false);
       navigate("/dashboard");

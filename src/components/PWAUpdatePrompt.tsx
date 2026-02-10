@@ -1,4 +1,5 @@
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { logDebug, logError } from '@/utils/logger';
 
 export function PWAUpdatePrompt() {
   const {
@@ -6,7 +7,7 @@ export function PWAUpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(swUrl, registration) {
-      console.log('[PWA] Service worker registered:', swUrl);
+      logDebug('Service worker registered:', swUrl);
       // Check for updates every hour
       if (registration) {
         setInterval(() => {
@@ -15,7 +16,7 @@ export function PWAUpdatePrompt() {
       }
     },
     onRegisterError(error) {
-      console.error('[PWA] Service worker registration error:', error);
+      logError('Service worker registration error:', error);
     },
   });
 

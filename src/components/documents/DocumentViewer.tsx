@@ -8,6 +8,7 @@ import { ref, getBlob } from 'firebase/storage';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import DOMPurify from 'dompurify';
+import { logWarn, logError } from '@/utils/logger';
 
 interface DocumentViewerProps {
   isOpen: boolean;
@@ -62,7 +63,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           toast.success('Document downloaded!');
           return;
         } catch (storageError) {
-          console.warn('Firebase storage download failed, trying fallbacks:', storageError);
+          logWarn('Firebase storage download failed, trying fallbacks:', storageError);
         }
       }
 
@@ -95,7 +96,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         toast.error('Document file not found');
       }
     } catch (error) {
-      console.error('Error downloading document:', error);
+      logError('Error downloading document:', error);
       toast.error('Failed to download document');
     } finally {
       setIsLoading(false);
@@ -125,14 +126,14 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           const text = await blob.text();
           setDocumentContent(text);
         } catch (storageError) {
-          console.warn('Firebase storage preview failed:', storageError);
+          logWarn('Firebase storage preview failed:', storageError);
           setDocumentContent('No content available for preview.');
         }
       } else {
         setDocumentContent('No content available for preview.');
       }
     } catch (error) {
-      console.error('Error previewing document:', error);
+      logError('Error previewing document:', error);
       setDocumentContent('Error loading document content.');
     } finally {
       setIsLoading(false);

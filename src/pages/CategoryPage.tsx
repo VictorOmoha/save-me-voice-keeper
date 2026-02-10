@@ -20,6 +20,7 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 import { toast } from "sonner";
+import { logDebug, logError } from "@/utils/logger";
 
 const VALID_CATEGORIES = ['Documents', 'Health', 'Contacts', 'Finance', 'Personal'];
 
@@ -43,7 +44,7 @@ export default function CategoryPage() {
     if (authLoading) return;
 
     if (!user) {
-      console.error('No authenticated user');
+      logError('No authenticated user');
       setEntries([]);
       return;
     }
@@ -73,7 +74,7 @@ export default function CategoryPage() {
 
       setEntries(formattedEntries);
     } catch (error) {
-      console.error('Error loading entries:', error);
+      logError('Error loading entries:', error);
       toast.error("Failed to load entries");
       setEntries([]);
     }
@@ -128,7 +129,7 @@ export default function CategoryPage() {
       setEditingEntry(null);
       setFillingEntry(null);
     } catch (error) {
-      console.error('Error saving entry:', error);
+      logError('Error saving entry:', error);
       toast.error("Failed to save entry");
     }
   };
@@ -141,7 +142,7 @@ export default function CategoryPage() {
       await loadEntries(); // Reload entries from database
       toast.success("Entry deleted successfully!");
     } catch (error) {
-      console.error('Error deleting entry:', error);
+      logError('Error deleting entry:', error);
       toast.error("Failed to delete entry");
     }
   };
@@ -161,7 +162,7 @@ export default function CategoryPage() {
   };
 
   const handleCreateEntry = (selectedCategory: string) => {
-    console.log('Creating entry for category:', selectedCategory);
+    logDebug('Creating entry for category:', selectedCategory);
     setEditingEntry(null);
     setFillingEntry(null);
     setShowDocumentCreator(false);

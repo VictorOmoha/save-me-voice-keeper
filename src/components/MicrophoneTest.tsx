@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mic, MicOff, Volume2 } from "lucide-react";
 import { toast } from 'sonner';
+import { logVoice, logError } from "@/utils/logger";
 
 export const MicrophoneTest: React.FC = () => {
   const [isTestingMic, setIsTestingMic] = useState(false);
@@ -14,7 +15,7 @@ export const MicrophoneTest: React.FC = () => {
 
   const startMicTest = async () => {
     try {
-      console.log('Starting microphone test...');
+      logVoice('Starting microphone test...');
       
       // Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -26,10 +27,10 @@ export const MicrophoneTest: React.FC = () => {
       });
       
       streamRef.current = stream;
-      console.log('Microphone stream obtained:', stream);
+      logVoice('Microphone stream obtained:', stream);
       
       // Create audio context
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const audioContext = audioContextRef.current;
       
       // Create analyser
@@ -41,7 +42,7 @@ export const MicrophoneTest: React.FC = () => {
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
       
-      console.log('Audio analysis setup complete');
+      logVoice('Audio analysis setup complete');
       setIsTestingMic(true);
       toast.success('🎤 Microphone test started - speak now to see levels');
       
@@ -62,13 +63,13 @@ export const MicrophoneTest: React.FC = () => {
       monitorAudio();
       
     } catch (error) {
-      console.error('Microphone test failed:', error);
+      logError('Microphone test failed:', error);
       toast.error(`Microphone test failed: ${error.message}`);
     }
   };
 
   const stopMicTest = () => {
-    console.log('Stopping microphone test...');
+    logVoice('Stopping microphone test...');
     
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
@@ -98,17 +99,17 @@ export const MicrophoneTest: React.FC = () => {
   }, []);
 
   const testSpeechRecognition = () => {
-    console.log('Testing basic speech recognition...');
-    
+    logVoice('Testing basic speech recognition...');
+
     // Stop any existing recognition first
-    if ((window as any).__global_recognition) {
-      console.log('Stopping existing recognition...');
+    if (window.__global_recognition) {
+      logVoice('Stopping existing recognition...');
       try {
-        (window as any).__global_recognition.abort();
+        window.__global_recognition.abort();
       } catch (e) {
-        console.log('Stop existing recognition failed (expected):', e);
+        logVoice('Stop existing recognition failed (expected):', e);
       }
-      (window as any).__global_recognition = null;
+      window.__global_recognition = null;
     }
     
     
@@ -120,43 +121,43 @@ export const MicrophoneTest: React.FC = () => {
     }
     
     const recognition = new SpeechRecognition();
-    (window as any).__global_recognition = recognition; // Track globally
+    window.__global_recognition = recognition; // Track globally
     
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
     
     recognition.onstart = () => {
-      console.log('Basic speech recognition started');
+      logVoice('Basic speech recognition started');
       toast.success('🎤 Basic speech test started - say something!');
     };
     
     recognition.onresult = (event) => {
-      console.log('Speech detected!', event);
+      logVoice('Speech detected!', event);
       const transcript = event.results[0][0].transcript;
       toast.success(`✅ Speech detected: "${transcript}"`);
       recognition.stop();
     };
     
     recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error, event);
+      logError('Speech recognition error:', event.error);
       if (event.error !== 'aborted') {
         toast.error(`Speech recognition error: ${event.error}`);
       } else {
-        console.log('Speech recognition was aborted (likely due to conflict)');
+        logVoice('Speech recognition was aborted (likely due to conflict)');
         toast.warning('Speech recognition was interrupted. Try again.');
       }
     };
     
     recognition.onend = () => {
-      console.log('Basic speech recognition ended');
-      (window as any).__global_recognition = null; // Clear global reference
+      logVoice('Basic speech recognition ended');
+      window.__global_recognition = null; // Clear global reference
     };
     
     try {
       recognition.start();
     } catch (error) {
-      console.error('Failed to start speech recognition:', error);
+      logError('Failed to start speech recognition:', error);
       toast.error(`Failed to start: ${error.message}`);
     }
   };

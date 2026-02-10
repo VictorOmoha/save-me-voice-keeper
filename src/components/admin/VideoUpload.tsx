@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, Video, Trash2, AlertCircle, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { logError, logWarn } from "@/utils/logger";
 
 interface DemoVideo {
   id: string;
@@ -135,7 +136,7 @@ export const VideoUpload = () => {
 
       setVideos(videosList);
     } catch (error) {
-      console.error('Error fetching videos:', error);
+      logError('Error fetching videos:', error);
       toast({
         title: "Error",
         description: "Failed to fetch videos",
@@ -274,7 +275,7 @@ export const VideoUpload = () => {
       fetchVideos();
 
     } catch (error) {
-      console.error('Error uploading video:', error);
+      logError('Error uploading video:', error);
       const errorMessage = (error as any)?.message || "Failed to upload video";
       toast({
         title: "Upload Failed",
@@ -312,7 +313,7 @@ export const VideoUpload = () => {
 
       fetchVideos();
     } catch (error) {
-      console.error('Error updating video status:', error);
+      logError('Error updating video status:', error);
       toast({
         title: "Error",
         description: "Failed to update video status",
@@ -343,7 +344,7 @@ export const VideoUpload = () => {
 
       fetchVideos();
     } catch (error) {
-      console.error('Error replacing active video:', error);
+      logError('Error replacing active video:', error);
       toast({
         title: "Error",
         description: "Failed to replace active video",
@@ -368,7 +369,7 @@ export const VideoUpload = () => {
           await deleteObject(storageRef);
         }
       } catch (storageError) {
-        console.warn('Could not delete file from storage:', storageError);
+        logWarn('Could not delete file from storage:', storageError);
       }
 
       toast({
@@ -378,7 +379,7 @@ export const VideoUpload = () => {
 
       fetchVideos();
     } catch (error) {
-      console.error('Error deleting video:', error);
+      logError('Error deleting video:', error);
       toast({
         title: "Error",
         description: "Failed to delete video",

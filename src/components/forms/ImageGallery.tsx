@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
+import { logError } from "@/utils/logger";
 
 interface ImageGalleryProps {
   images: string[];
@@ -41,7 +42,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
-      console.error('Error downloading image:', error);
+      logError('Error downloading image:', error);
     }
   };
 

@@ -10,6 +10,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { HelpCircle, Send, ExternalLink, MessageSquare, Bug, Lightbulb, Mail } from "lucide-react";
 import { useState } from "react";
+import { logError } from "@/utils/logger";
 
 export const EnhancedHelpSupportSettings = () => {
   const { toast } = useToast();
@@ -62,7 +63,7 @@ export const EnhancedHelpSupportSettings = () => {
 
       setSupportForm({ subject: '', message: '', category: 'question' });
     } catch (error) {
-      console.error('Error submitting support ticket:', error);
+      logError('Error submitting support ticket:', error);
       toast({
         title: "Error",
         description: "Failed to submit support ticket. Please try again.",

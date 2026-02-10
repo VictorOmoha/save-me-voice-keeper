@@ -5,20 +5,21 @@ import { ConversationalVoiceInterface } from "../ConversationalVoiceInterface";
 import { Sidebar, MobileSidebar } from "../Sidebar";
 import { FloatingVoiceInput } from "../FloatingVoiceInput";
 import { Menu } from "lucide-react";
+import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardLayoutProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   userName?: string;
-  savedEntries: any[];
+  savedEntries: SavedEntry[];
   onAddEntry: () => void;
   onCategorySelect: (categoryName: string) => void;
   onAllEntriesSelect: () => void;
-  onEditEntry: (entry: any) => void;
+  onEditEntry: (entry: SavedEntry) => void;
   onDeleteEntry: (id: string) => void;
-  onSaveEntry: (entry: any) => void;
+  onSaveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>, editingEntry?: SavedEntry | null) => void;
   onCancelEdit: () => void;
-  onFillEntry?: (entry: any) => void;
+  onFillEntry?: (entry: SavedEntry) => void;
   onEnhancedVoiceInput?: (transcript: string) => Promise<void> | void;
   children: React.ReactNode;
 }
@@ -114,7 +115,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   onDeleteEntry={onDeleteEntry}
                   onSaveEntry={onSaveEntry}
                   onCancelEdit={onCancelEdit}
-                  onEnhancedVoiceInput={onEnhancedVoiceInput as any}
+                  onEnhancedVoiceInput={onEnhancedVoiceInput}
                 />
               </div>
             </div>

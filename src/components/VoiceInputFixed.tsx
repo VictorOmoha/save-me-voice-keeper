@@ -7,6 +7,7 @@ import { VoiceDiagnostic } from "./VoiceDiagnostic";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
 import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
 import { toast } from "sonner";
+import { logVoice, logError } from "@/utils/logger";
 
 interface VoiceInputFixedProps {
   onEnhancedVoiceInput: (text: string) => void;
@@ -34,8 +35,8 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
 
   // Cleanup function for voice recognition
   const cleanupVoiceRecognition = useCallback(() => {
-    if ((window as any).__stopAllVoiceRecognition) {
-      (window as any).__stopAllVoiceRecognition();
+    if (window.__stopAllVoiceRecognition) {
+      window.__stopAllVoiceRecognition();
     }
     setConnectionStatus('disconnected');
     setLastProcessedCommand('');
@@ -44,7 +45,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   // Listen for voice close events and cleanup accordingly
   useEffect(() => {
     const handleVoiceCloseEvent = () => {
-      console.log('🔊 VoiceInputFixed: Received voice close event');
+      logVoice('Received voice close event');
       cleanupVoiceRecognition();
     };
 
@@ -57,60 +58,60 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
   }, [cleanupVoiceRecognition]);
 
   const handleVoiceCommand = useCallback((transcript: string) => {
-    console.log('🔊 VoiceInputFixed: Voice command received:', transcript);
-    
+    logVoice('Voice command received:', transcript);
+
     if (!transcript || transcript.trim().length === 0) {
-      console.log('🔊 Empty transcript, ignoring');
+      logVoice('Empty transcript, ignoring');
       return;
     }
-    
+
     // Remove duplicate prevention for now to ensure all commands are processed
-    console.log('🔊 Processing transcript:', transcript);
-    
+    logVoice('Processing transcript:', transcript);
+
     const command = processVoiceCommand(transcript);
-    console.log('🔊 VoiceInputFixed: Processed command:', command);
+    logVoice('Processed command:', command);
     
     setConnectionStatus('connected');
     
     if (onEnhancedVoiceInput) {
-      console.log('🔊 VoiceInputFixed: Calling onEnhancedVoiceInput with:', transcript);
+      logVoice('Calling onEnhancedVoiceInput with:', transcript);
       // Call the voice input handler immediately
       onEnhancedVoiceInput(transcript);
       
       // Show visual feedback
       toast.success(`Voice command: "${transcript}"`);
     } else {
-      console.error('🔊 VoiceInputFixed: onEnhancedVoiceInput is not available!');
+      logError('VoiceInputFixed: onEnhancedVoiceInput is not available!');
       toast.error('Voice input handler not available');
     }
   }, [onEnhancedVoiceInput]);
 
   const handleVoiceError = useCallback((error: string) => {
-    console.error('🔊 VoiceInputFixed: Voice error:', error);
+    logError('VoiceInputFixed: Voice error:', error);
     setConnectionStatus('error');
     toast.error(`Voice recognition error: ${error}`);
   }, []);
 
   const handleVoiceStart = useCallback(() => {
-    console.log('🔊 VoiceInputFixed: Voice recognition started');
+    logVoice('Voice recognition started');
     setConnectionStatus('connected');
   }, []);
 
   const handleVoiceEnd = useCallback(() => {
-    console.log('🔊 VoiceInputFixed: Voice recognition ended');
+    logVoice('Voice recognition ended');
     setTimeout(() => {
       setConnectionStatus('disconnected');
     }, 1000);
   }, []);
 
   const handleReset = useCallback(() => {
-    console.log('🔊 VoiceInputFixed: Resetting voice system');
+    logVoice('Resetting voice system');
     cleanupVoiceRecognition();
     toast.info('Voice system reset');
   }, [cleanupVoiceRecognition]);
 
   const handleCloseVoiceCommand = useCallback(() => {
-    console.log('🔊 VoiceInputFixed: Manual close voice command triggered');
+    logVoice('Manual close voice command triggered');
     
     // Stop any ongoing voice recognition
     cleanupVoiceRecognition();

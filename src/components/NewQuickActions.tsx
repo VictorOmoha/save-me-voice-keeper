@@ -6,6 +6,7 @@ import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { useState } from "react";
 import { SmartSearchWithBoundary as SmartSearch } from "@/components/SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
+import { logDashboard } from "@/utils/logger";
 
 interface NewQuickActionsProps {
   onAddEntry: () => void;

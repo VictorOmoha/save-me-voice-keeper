@@ -274,14 +274,14 @@ export const setSelectedGoogleVoice = (voice: keyof typeof GOOGLE_VOICES): void 
 
 // Improved TTS cache for speech recognition filtering
 const initializeTTSCache = () => {
-  if (!(window as any).__recent_tts_texts) {
-    (window as any).__recent_tts_texts = [];
+  if (!window.__recent_tts_texts) {
+    window.__recent_tts_texts = [];
   }
 };
 
 const addToTTSCache = (text: string) => {
   initializeTTSCache();
-  const cache = (window as any).__recent_tts_texts as string[];
+  const cache = window.__recent_tts_texts as string[];
 
   // Add to cache and keep only last 3 items
   cache.unshift(text);
@@ -300,8 +300,8 @@ const addToTTSCache = (text: string) => {
 
 // Clear speech history - for compatibility
 export const clearSpeechHistory = (): void => {
-  if ((window as any).__recent_tts_texts) {
-    (window as any).__recent_tts_texts = [];
+  if (window.__recent_tts_texts) {
+    window.__recent_tts_texts = [];
   }
 };
 
@@ -326,7 +326,7 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   addToTTSCache(text);
 
   // Set global flag and dispatch event BEFORE starting speech
-  (window as any).__tts_is_speaking = true;
+  window.__tts_is_speaking = true;
   window.dispatchEvent(new CustomEvent('tts-started'));
   console.log('TTS: Set speaking flag and dispatched tts-started event');
 
@@ -341,8 +341,8 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     // Helper to dispatch completion event
     const dispatchCompleted = () => {
       try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
-      (window as any).__tts_is_speaking = false;
-      (window as any).__last_tts_end_time = Date.now();
+      window.__tts_is_speaking = false;
+      window.__last_tts_end_time = Date.now();
       window.dispatchEvent(new CustomEvent('tts-completed'));
       console.log('TTS: Speech completed, dispatched tts-completed event');
     };
@@ -426,8 +426,8 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     toast.error('TTS failed. Please try again.');
     // Also clear TTS flag on error so recognition can restart
     try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
-    (window as any).__tts_is_speaking = false;
-    (window as any).__last_tts_end_time = Date.now();
+    window.__tts_is_speaking = false;
+    window.__last_tts_end_time = Date.now();
     window.dispatchEvent(new CustomEvent('tts-completed'));
     console.log('TTS: Speech error, dispatched tts-completed event');
   }
@@ -532,8 +532,8 @@ export const stopSpeaking = (): void => {
   }
 
   // Clear TTS flag and track end time
-  (window as any).__tts_is_speaking = false;
-  (window as any).__last_tts_end_time = Date.now();
+  window.__tts_is_speaking = false;
+  window.__last_tts_end_time = Date.now();
 
   // Dispatch completion event
   window.dispatchEvent(new CustomEvent('tts-completed'));
@@ -544,7 +544,7 @@ export const stopCurrentSpeech = stopSpeaking;
 
 // Check if TTS is currently speaking
 export const isSpeaking = (): boolean => {
-  return !!(window as any).__tts_is_speaking;
+  return !!window.__tts_is_speaking;
 };
 
 // API Key validation functions

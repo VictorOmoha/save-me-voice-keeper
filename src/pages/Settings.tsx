@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { logDebug } from "@/utils/logger";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -38,7 +39,7 @@ const Settings = () => {
           setIsAdmin(roleSnap.data()?.role === 'admin');
         }
       } catch (error) {
-        console.log('Could not check admin role:', error);
+        logDebug('Could not check admin role:', error);
       }
     };
     checkAdminRole();

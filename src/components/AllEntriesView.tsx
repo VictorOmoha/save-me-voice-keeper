@@ -9,6 +9,7 @@ import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { ExportButton } from "@/components/export/ExportButton";
 import { toast } from "sonner";
 import { useState } from "react";
+import { logError } from "@/utils/logger";
 
 interface AllEntriesViewProps {
   entries: SavedEntry[];
@@ -84,7 +85,7 @@ export const AllEntriesView: React.FC<AllEntriesViewProps> = ({
       
       toast.success(`Downloaded ${fileData.name}`);
     } catch (error) {
-      console.error('Download error:', error);
+      logError('Download error:', error);
       toast.error("Failed to download file");
     } finally {
       setDownloadingFiles(prev => prev.filter(id => id !== entry.id));

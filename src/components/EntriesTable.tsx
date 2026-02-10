@@ -17,6 +17,7 @@ import { ExportButton } from "@/components/export/ExportButton";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
+import { logError } from "@/utils/logger";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -102,7 +103,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
       
       toast.success(`Downloaded ${fileData.name}`);
     } catch (error) {
-      console.error('Download error:', error);
+      logError('Download error:', error);
       toast.error("Failed to download file");
     } finally {
       setDownloadingFiles(prev => prev.filter(id => id !== entry.id));

@@ -146,7 +146,10 @@ const speakWithElevenLabs = async (
   apiKey: string
 ): Promise<void> => {
   console.log('[DemoTTS] ElevenLabs request starting...');
-  
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
   const response = await fetch(`${ELEVENLABS_API_URL}/${voiceId}/stream`, {
     method: 'POST',
     headers: {
@@ -156,7 +159,7 @@ const speakWithElevenLabs = async (
     },
     body: JSON.stringify({
       text,
-      model_id: 'eleven_turbo_v2_5',
+      model_id: 'eleven_multilingual_v2',
       voice_settings: {
         stability: 0.5,
         similarity_boost: 0.8,
@@ -164,7 +167,10 @@ const speakWithElevenLabs = async (
         use_speaker_boost: true,
       },
     }),
+    signal: controller.signal,
   });
+
+  clearTimeout(timeout);
 
   if (!response.ok) {
     const errorText = await response.text();

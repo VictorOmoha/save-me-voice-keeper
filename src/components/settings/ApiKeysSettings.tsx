@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
+import { logError } from "@/utils/logger";
 
 interface ApiKey {
   id: string;
@@ -65,7 +66,7 @@ export const ApiKeysSettings = () => {
 
       setApiKeys(keys);
     } catch (error) {
-      console.error('Error fetching API keys:', error);
+      logError('Error fetching API keys:', error);
       toast.error('Failed to load API keys');
     }
   };
@@ -122,7 +123,7 @@ export const ApiKeysSettings = () => {
       fetchApiKeys();
       toast.success('API key created successfully');
     } catch (error) {
-      console.error('Error creating API key:', error);
+      logError('Error creating API key:', error);
       toast.error('Failed to create API key');
     } finally {
       setIsLoading(false);
@@ -137,7 +138,7 @@ export const ApiKeysSettings = () => {
       fetchApiKeys();
       toast.success('API key deleted successfully');
     } catch (error) {
-      console.error('Error deleting API key:', error);
+      logError('Error deleting API key:', error);
       toast.error('Failed to delete API key');
     }
   };

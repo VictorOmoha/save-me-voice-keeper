@@ -54,7 +54,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <Button
             onClick={() => {
-              console.log('Add Entry button clicked');
+              logDashboard('Add Entry button clicked');
               onAddEntry();
             }}
             className="flex items-center space-x-2 flex-1 sm:flex-none min-w-[120px]"
@@ -66,7 +66,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
 
           <Button
             onClick={() => {
-              console.log('Create Document button clicked');
+              logDashboard('Create Document button clicked');
               onCreateDocument();
             }}
             variant="outline"
@@ -79,7 +79,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
 
           <Button
             onClick={() => {
-              console.log('Voice Input button clicked');
+              logDashboard('Voice Input button clicked');
               setShowVoiceInput(!showVoiceInput);
             }}
             variant={showVoiceInput ? "default" : "outline"}
@@ -105,7 +105,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
         {/* Voice button - hidden on mobile (shown above), visible on desktop */}
         <Button
           onClick={() => {
-            console.log('Voice Input button clicked');
+            logDashboard('Voice Input button clicked');
             setShowVoiceInput(!showVoiceInput);
           }}
           variant={showVoiceInput ? "default" : "outline"}

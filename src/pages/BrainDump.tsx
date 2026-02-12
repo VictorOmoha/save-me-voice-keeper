@@ -10,7 +10,10 @@ import { BrainDumpProcessor, ActionItem, actionItemsToStrings } from "@/utils/br
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, LayoutDashboard, Sparkles, Loader2, Users, Tag, Zap } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Sparkles, Loader2, Users, Tag, Zap, Keyboard } from "lucide-react";
+import { ShareButtons } from "@/components/braindump/ShareButtons";
+import { KeyboardShortcuts } from "@/components/braindump/KeyboardShortcuts";
+import { openEmailClient, generateLinkedInPost, exportToClipboard, downloadAsText } from "@/utils/shareUtils";
 
 const processor = new BrainDumpProcessor();
 
@@ -94,6 +97,7 @@ const BrainDumpPage: React.FC = () => {
   
   // TAP-TO-FIX: Track which field is being edited
   const [editingField, setEditingField] = useState<string | null>(null);
+const [showShortcuts, setShowShortcuts] = useState(false);
 
   const hasStructured = useMemo(() => !!title || actionItems.length || keyPoints.length || notes.length, [title, actionItems, keyPoints, notes]);
 

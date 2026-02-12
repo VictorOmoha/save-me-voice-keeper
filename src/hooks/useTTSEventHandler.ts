@@ -1,9 +1,11 @@
-
 import React, { useEffect, useRef } from 'react';
 import { speechRecognition } from '@/utils/speechRecognitionSingleton';
 
 interface UseTTSEventHandlerProps {
-  conversationState?: { isActive: boolean; currentStep?: { question: string } };
+  conversationState?: {
+    isActive: boolean;
+    currentStep?: { question: string };
+  };
   isListening: boolean;
   recognitionRef: React.MutableRefObject<SpeechRecognition | null>;
   setIsListening?: (value: boolean) => void;
@@ -16,9 +18,15 @@ export const useTTSEventHandler = ({
   setIsListening = () => {},
 }: UseTTSEventHandlerProps) => {
   const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Use refs to always have current values in event handlers
   const isListeningRef = useRef(isListening);
   const conversationActiveRef = useRef(conversationState?.isActive || false);
+  
+  // FIX: Local refs to replace window globals
+  const ttsSpeakingRef = useRef(false);
+  const lastTTSEndTimeRef = useRef(0);
+  const manualStopRef = useRef(false);
 
   // Keep refs updated with latest values
   useEffect(() => {
@@ -30,13 +38,14 @@ export const useTTSEventHandler = ({
   }, [conversationState?.isActive]);
 
   useEffect(() => {
-const handleTTSCompleted = async (event: CustomEvent) => {
-      // Mark TTS finished
-      (window as any).__tts_is_speaking = false;
-      (window as any).__last_tts_end_time = Date.now();
+    const handleTTSCompleted = async (event: CustomEvent) => {
+      // Mark TTS finished - using local ref instead of window global
+      ttsSpeakingRef.current = false;
+      lastTTSEndTimeRef.current = Date.now();
+      
       // CRITICAL: Clear manual stop flag so recognition can restart
-      (window as any).__manual_stop = false;
-
+      manualStopRef.current = false;
+      
       console.log('🔊 TTS Event Handler: TTS completed, will restart recognition');
 
       // Clear any existing restart timeout
@@ -50,7 +59,8 @@ const handleTTSCompleted = async (event: CustomEvent) => {
       restartTimeoutRef.current = setTimeout(() => {
         try {
           // Ensure manual_stop is still false before starting
-          (window as any).__manual_stop = false;
+          manualStopRef.current = false;
+          
           // Reset restart attempts to allow fresh restart cycle
           speechRecognition.resetRestartAttempts();
           speechRecognition.start();
@@ -61,9 +71,11 @@ const handleTTSCompleted = async (event: CustomEvent) => {
       }, 500);
     };
 
-const handleTTSStarted = () => {
+    const handleTTSStarted = () => {
       console.log('🔊 TTS Event Handler: TTS started - pausing recognition');
-      (window as any).__tts_is_speaking = true;
+      // FIX: Using local ref instead of window global
+      ttsSpeakingRef.current = true;
+      
       try {
         speechRecognition.stop();
         console.log('🛑 TTS Event Handler: Stopped recognition due to TTS start');
@@ -78,12 +90,19 @@ const handleTTSStarted = () => {
     return () => {
       window.removeEventListener('tts-completed', handleTTSCompleted as EventListener);
       window.removeEventListener('tts-started', handleTTSStarted as EventListener);
-
       if (restartTimeoutRef.current) {
         clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount - we use refs for current values
+  
+  // Return refs so other functions can check state
+  return {
+    isSpeaking: () => ttsSpeakingRef.current,
+    getLastEndTime: () => lastTTSEndTimeRef.current,
+    isManualStop: () => manualStopRef.current,
+    setManualStop: (value: boolean) => { manualStopRef.current = value; },
+  };
 };

@@ -25,6 +25,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
 import BrainDump from "./pages/BrainDump";
+import Insights from "./pages/Insights";
 import Onboarding from "./pages/Onboarding";
  
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
                     <Route path="/all-entries" element={<AllEntries />} />
                     <Route path="/all-entries/:entryId" element={<AllEntries />} />
                     <Route path="/category/:categoryName" element={<CategoryPage />} />
+                    <Route path="/insights" element={<Insights />} />
                     <Route path="/subscription" element={<Subscription />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/user-guide" element={<UserGuide />} />

@@ -70,18 +70,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Header - Skeletal */}
-        <div className="md:hidden flex items-center p-3 border-b border-galvanized bg-background sticky top-0 z-30">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center p-4 border-b bg-background sticky top-0 z-30">
           <button
             onClick={() => setIsMobileSidebarOpen(true)}
-            className="mr-3 w-9 h-9 border border-galvanized flex items-center justify-center hover:border-primary transition-colors"
+            className="mr-3 w-10 h-10 rounded-lg border flex items-center justify-center hover:bg-muted transition-colors"
           >
             <Menu className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex items-center gap-2 flex-1">
-            <img src="/logo.png" alt="SAVEME" className="w-6 h-6 object-contain" />
-            <span className="mono text-foreground font-bold text-sm tracking-wider">
-              SAVEME
+            <img src="/logo.png" alt="SaveMe" className="w-7 h-7 object-contain" />
+            <span className="text-foreground font-semibold">
+              SaveMe
             </span>
           </div>
         </div>
@@ -101,9 +101,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           />
         </div>
 
-        {/* Content with Voice Interface - Skeletal Grid */}
+        {/* Content with Voice Interface */}
         <div className="flex-1 container mx-auto px-3 md:px-4 py-4 md:py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 galvanized-card p-4 md:p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6 rounded-2xl border bg-card/50">
             {/* Voice Interface - Always visible on the left on desktop */}
             <div className="hidden lg:block lg:col-span-1">
               <div className="sticky top-6">

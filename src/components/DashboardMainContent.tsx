@@ -73,26 +73,26 @@ const CategoriesGrid = React.memo(({
 
   return (
     <div>
-      <h2 className="mono text-xs text-muted-foreground tracking-wider mb-4">BROWSE_BY_CATEGORY</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-6">Browse by Category</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {categories.map((category, index) => (
           <div
             key={category.name}
-            className="category-card-skeletal group reveal"
+            className="p-6 rounded-xl border cursor-pointer group reveal transition-all hover:shadow-lg"
             onClick={() => onCategorySelect(category.name)}
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            <div className="w-10 h-10 border border-galvanized flex items-center justify-center mb-3 group-hover:border-primary transition-colors">
-              <category.icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+              <category.icon className="w-6 h-6 text-primary" />
             </div>
-            <h3 className="mono text-sm font-bold text-foreground mb-1">
-              {category.name.toUpperCase()}
+            <h3 className="text-sm font-semibold text-foreground mb-1">
+              {category.name}
             </h3>
-            <p className="mono text-xs text-muted-foreground mb-3 line-clamp-2 hidden sm:block">
+            <p className="text-xs text-muted-foreground mb-3 line-clamp-2 hidden sm:block">
               {category.description}
             </p>
-            <span className="badge-skeletal">
-              {categoryCounts[category.name] || 0}
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground">
+              {categoryCounts[category.name] || 0} {(categoryCounts[category.name] || 0) === 1 ? 'item' : 'items'}
             </span>
           </div>
         ))}
@@ -159,19 +159,18 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
 
   return (
     <div className="space-y-8">
-      {/* Welcome Section - Skeletal */}
+      {/* Welcome Section */}
       <div className="text-center reveal">
-        <div className="protocol-tag mb-4">PROTOCOL: DATA_MANAGEMENT</div>
-        <h1 className="archive-title text-2xl md:text-3xl mb-3">
-          WELCOME_BACK{userName ? `::${userName.split(' ')[0].toUpperCase()}` : ''}
+        <h1 className="text-3xl md:text-4xl font-bold mb-3">
+          Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}
         </h1>
         {userTier && (
-          <span className="badge-skeletal">
-            TIER::{userTier.toUpperCase()}
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+            {userTier} Plan
           </span>
         )}
-        <p className="mono text-sm text-muted-foreground mt-3">
-          SECURE ARCHIVE SYSTEM :: ALL TRANSMISSIONS ENCRYPTED
+        <p className="text-sm text-muted-foreground mt-3">
+          Your secure knowledge vault — all data encrypted
         </p>
       </div>
 
@@ -200,44 +199,44 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         userTier={userTier}
       />
 
-      {/* View All Entries - Skeletal */}
+      {/* View All Entries */}
       {savedEntries.length > 0 && (
-        <div className="skeleton-cell" data-id="0x100">
+        <div className="p-6 rounded-xl border bg-card">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 border border-galvanized flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Table className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="mono text-lg font-bold text-foreground">VIEW_ALL_ENTRIES</h3>
-                <p className="mono text-xs text-muted-foreground">BROWSE AND MANAGE YOUR SAVED DATA</p>
+                <h3 className="text-lg font-semibold text-foreground">View All Entries</h3>
+                <p className="text-sm text-muted-foreground">Browse and manage your saved data</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="badge-skeletal">
-                {savedEntries.length} RECORDS
+              <span className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                {savedEntries.length} {savedEntries.length === 1 ? 'record' : 'records'}
               </span>
               <button
                 onClick={onViewAllEntries}
-                className="btn-galvanized btn-galvanized-primary"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Table className="w-4 h-4" />
-                OPEN_TABLE_VIEW
+                Open Table View
               </button>
             </div>
           </div>
-          <div className="hidden sm:flex items-center gap-6 mt-4 pt-4 border-t border-galvanized mono text-xs text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-6 mt-4 pt-4 border-t text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <Grid3X3 className="w-4 h-4" />
-              <span>SORTABLE</span>
+              <span>Sortable</span>
             </div>
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              <span>BULK_ACTIONS</span>
+              <span>Bulk Actions</span>
             </div>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              <span>EXPORT</span>
+              <span>Export</span>
             </div>
           </div>
         </div>
@@ -263,35 +262,35 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         showViewToggle={true}
       />
 
-      {/* Features Preview - Skeletal */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-8 border-t border-galvanized">
-        <div className="skeleton-cell text-center reveal" data-id="F001">
-          <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4">
+      {/* Features Preview */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-t">
+        <div className="p-6 rounded-xl border bg-card text-center reveal transition-all hover:shadow-lg">
+          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Shield className="w-6 h-6 text-primary" />
           </div>
-          <h3 className="mono text-sm font-bold text-foreground mb-2">SECURE_STORAGE</h3>
-          <p className="mono text-xs text-muted-foreground">
-            YOUR DATA IS ENCRYPTED AND STORED SECURELY
+          <h3 className="text-sm font-semibold text-foreground mb-2">Secure Storage</h3>
+          <p className="text-xs text-muted-foreground">
+            Your data is encrypted and stored securely
           </p>
         </div>
 
-        <div className="skeleton-cell text-center reveal" data-id="F002" style={{ animationDelay: '100ms' }}>
-          <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4">
+        <div className="p-6 rounded-xl border bg-card text-center reveal transition-all hover:shadow-lg" style={{ animationDelay: '100ms' }}>
+          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Zap className="w-6 h-6 text-primary" />
           </div>
-          <h3 className="mono text-sm font-bold text-foreground mb-2">QUICK_ACCESS</h3>
-          <p className="mono text-xs text-muted-foreground">
-            FIND WHAT YOU NEED INSTANTLY WITH POWERFUL SEARCH
+          <h3 className="text-sm font-semibold text-foreground mb-2">Quick Access</h3>
+          <p className="text-xs text-muted-foreground">
+            Find what you need instantly with powerful search
           </p>
         </div>
 
-        <div className="skeleton-cell text-center reveal" data-id="F003" style={{ animationDelay: '200ms' }}>
-          <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4">
+        <div className="p-6 rounded-xl border bg-card text-center reveal transition-all hover:shadow-lg" style={{ animationDelay: '200ms' }}>
+          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <Star className="w-6 h-6 text-primary" />
           </div>
-          <h3 className="mono text-sm font-bold text-foreground mb-2">SMART_FEATURES</h3>
-          <p className="mono text-xs text-muted-foreground">
-            VOICE COMMANDS, TEMPLATES, AND AUTO ORGANIZATION
+          <h3 className="text-sm font-semibold text-foreground mb-2">Smart Features</h3>
+          <p className="text-xs text-muted-foreground">
+            Voice commands, templates, and auto organization
           </p>
         </div>
       </div>

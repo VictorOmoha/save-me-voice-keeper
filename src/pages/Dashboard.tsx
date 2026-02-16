@@ -75,10 +75,7 @@ export default function Dashboard() {
     refreshEntries,
   } = useDashboard();
 
-  // Single unified voice processor - no separate processors
-  const enhancedVoiceInputHandler = async (text: string) => {
-    console.log('🎤 Dashboard: Voice input received:', text);
-  };
+  // Voice input handler is provided by useDashboard hook (handleEnhancedVoiceInput)
 
   // Check auth state and redirect if needed
   useEffect(() => {
@@ -226,7 +223,7 @@ export default function Dashboard() {
         onSaveEntry={saveEntry}
         onCancelEdit={handleCancelEdit}
         onFillEntry={fillEntry}
-        onEnhancedVoiceInput={enhancedVoiceInputHandler}
+        onEnhancedVoiceInput={handleEnhancedVoiceInput}
       >
       {(showAddEntry || editingEntry || fillingEntry || showDocumentCreator) ? (
         <>
@@ -270,7 +267,7 @@ export default function Dashboard() {
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={handleCreateDocument}
-          onEnhancedVoiceInput={enhancedVoiceInputHandler}
+          onEnhancedVoiceInput={handleEnhancedVoiceInput}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}

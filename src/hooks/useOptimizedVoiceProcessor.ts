@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { SavedEntry } from '@/types/dashboard';
 import { useVoiceConversationManager } from './useVoiceConversationManager';
 import { speak } from '@/utils/textToSpeech';
+import { logVoice, logDebug } from '@/utils/logger';
 
 interface OptimizedVoiceProcessorProps {
   savedEntries: SavedEntry[];
@@ -58,17 +59,17 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       // IMPORTANT: Use getConversationState() to get current state, not stale closure value
       const currentConversationState = getConversationState();
 
-      console.log('🎯 Voice Processor: Checking conversation state:', {
+      logDebug('Checking conversation state', {
         isInConversation: currentConversationState.isInConversation,
         currentStep: currentConversationState.currentStep?.type,
         staleState: conversationState.isInConversation,
         transcript
-      });
+      }, { emoji: '🎯', context: 'Voice Processor' });
 
       if (currentConversationState.isInConversation) {
-        console.log('🎯 Voice Processor: In conversation, processing step for:', currentConversationState.currentStep?.type);
+        logDebug('In conversation, processing step', currentConversationState.currentStep?.type, { emoji: '🎯', context: 'Voice Processor' });
         const handled = processConversationStep(transcript);
-        console.log('🎯 Voice Processor: Conversation step result:', handled);
+        logDebug('Conversation step result', handled, { emoji: '🎯', context: 'Voice Processor' });
         if (handled) {
           return true;
         }
@@ -77,7 +78,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       // Process simple commands
       const lowerTranscript = transcript.toLowerCase().trim();
 
-      console.log('🎯 Voice Processor: Processing command:', lowerTranscript);
+      logVoice('Processing command', lowerTranscript);
 
       // Close/cancel entry form command
       if (lowerTranscript.includes('close entry') || lowerTranscript.includes('close form') ||
@@ -94,7 +95,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
 
       // Create entry command
       if (lowerTranscript.includes('create') && (lowerTranscript.includes('entry') || lowerTranscript.includes('new'))) {
-        console.log('🎯 Voice Processor: Starting create entry conversation');
+        logVoice('Starting create entry conversation');
         startCreateEntryConversation();
         return true;
       }
@@ -103,7 +104,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       const openMatch = lowerTranscript.match(/open\s+(.+)/);
       if (openMatch) {
         const titleToOpen = openMatch[1].replace(/[.,!?]$/g, '').trim();
-        console.log('🎯 Voice Processor: Looking for entry:', titleToOpen);
+        logVoice('Looking for entry', titleToOpen);
         const entry = props.savedEntries.find(e =>
           e.title.toLowerCase().includes(titleToOpen.toLowerCase())
         );
@@ -125,7 +126,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       const editMatch = lowerTranscript.match(/edit\s+(.+)/);
       if (editMatch) {
         const titleToEdit = editMatch[1].replace(/[.,!?]$/g, '').trim();
-        console.log('🎯 Voice Processor: Looking for entry to edit:', titleToEdit);
+        logVoice('Looking for entry to edit', titleToEdit);
         const entry = props.savedEntries.find(e =>
           e.title.toLowerCase().includes(titleToEdit.toLowerCase())
         );
@@ -146,7 +147,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       // Confirm delete - check this BEFORE delete command to avoid matching "confirm delete X" as "delete X"
       // Use ref to get current value and avoid stale closure
       const currentPendingDelete = pendingDeleteEntryRef.current;
-      console.log('🎯 Voice Processor: Checking confirm delete, pendingEntry:', currentPendingDelete?.title);
+      logVoice('Checking confirm delete, pendingEntry', currentPendingDelete?.title);
       if (lowerTranscript.includes('confirm delete') && currentPendingDelete) {
         props.onDeleteEntry(currentPendingDelete.id);
         const deletedMsg = `Deleted ${currentPendingDelete.title}`;
@@ -161,7 +162,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
       const deleteMatch = lowerTranscript.match(/delete\s+(.+)/);
       if (deleteMatch) {
         const titleToDelete = deleteMatch[1].replace(/[.,!?]$/g, '').trim();
-        console.log('🎯 Voice Processor: Looking for entry to delete:', titleToDelete);
+        logVoice('Looking for entry to delete', titleToDelete);
         const entry = props.savedEntries.find(e =>
           e.title.toLowerCase().includes(titleToDelete.toLowerCase())
         );
@@ -174,7 +175,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
           return true;
         } else {
           const notFoundMsg = `Entry "${titleToDelete}" not found`;
-          console.log('🎯 Voice Processor:', notFoundMsg);
+          logVoice('Entry not found', titleToDelete);
           toast.error(notFoundMsg);
           speak(notFoundMsg);
           return false;
@@ -197,7 +198,7 @@ export const useOptimizedVoiceProcessor = (props: OptimizedVoiceProcessorProps) 
         }
       }
 
-      console.log('🎯 Voice Processor: No command matched');
+      logVoice('No command matched');
       return false;
 
     } finally {

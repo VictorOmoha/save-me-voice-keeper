@@ -11,6 +11,7 @@ import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
 import { TypewriterText } from "./TypewriterText";
 import { VoiceLiveFeedback } from "./VoiceLiveFeedback";
 import { VoiceVisualHybridInterface } from "./voice/VoiceVisualHybridInterface";
+import { logDebug } from "@/utils/logger";
 import { 
   Mic, 
   MicOff, 

@@ -2,6 +2,7 @@
 import React, { useEffect, useRef } from "react";
 import { ConversationalVoiceInterface } from "./ConversationalVoiceInterface";
 import { SavedEntry } from "@/types/dashboard";
+import { logVoice, logWarn } from "@/utils/logger";
 
 interface FloatingVoiceInputProps {
   onEnhancedVoiceInput?: (text: string) => void;
@@ -35,15 +36,15 @@ export const FloatingVoiceInput: React.FC<FloatingVoiceInputProps> = ({
     // Auto-initialize voice input only once
     if (!hasInitialized.current) {
       hasInitialized.current = true;
-      console.log('🎤 FloatingVoiceInput: Connected to Dashboard voice system');
+      logVoice('FloatingVoiceInput connected to Dashboard voice system');
     }
   }, []);
 
   // Direct voice handler that bypasses the conversation interface routing
   const handleVoiceInput = async (transcript: string) => {
-    console.log('🎯 FloatingVoiceInput: Direct voice input to dashboard:', transcript);
+    logVoice('Direct voice input to dashboard', transcript);
     if (!onEnhancedVoiceInput) {
-      console.warn('⚠️ FloatingVoiceInput: No onEnhancedVoiceInput handler provided. Ignoring transcript.');
+      logWarn('No onEnhancedVoiceInput handler provided. Ignoring transcript.');
       return;
     }
     await onEnhancedVoiceInput(transcript);

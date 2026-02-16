@@ -47,17 +47,26 @@ export const VoiceStatusIndicator: React.FC<VoiceStatusIndicatorProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <div className={`w-2 h-2 rounded-full ${getStatusColor()} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`} />
-      <Volume2 className="h-4 w-4 text-muted-foreground" />
+    <div 
+      className="flex items-center gap-2" 
+      role="status" 
+      aria-live="polite" 
+      aria-atomic="true"
+      aria-label={`Voice recognition status: ${getStatusText()}`}
+    >
+      <div 
+        className={`w-2 h-2 rounded-full ${getStatusColor()} ${connectionStatus === 'connected' ? 'animate-pulse' : ''}`}
+        aria-hidden="true"
+      />
+      <Volume2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       <span className="text-sm font-medium">Voice</span>
       <Badge variant={getBadgeVariant()} className="text-xs">
         {getStatusText()}
       </Badge>
       
       {hasPendingConfirmation && (
-        <div className="flex items-center gap-1">
-          <AlertCircle className="h-3 w-3 text-blue-500" />
+        <div className="flex items-center gap-1" role="alert" aria-label="Waiting for confirmation">
+          <AlertCircle className="h-3 w-3 text-blue-500" aria-hidden="true" />
           <Badge variant="outline" className="text-xs">
             Waiting
           </Badge>
@@ -65,7 +74,7 @@ export const VoiceStatusIndicator: React.FC<VoiceStatusIndicatorProps> = ({
       )}
       
       {conversationState === 'listening' && !hasPendingConfirmation && (
-        <Badge variant="default" className="text-xs animate-pulse">
+        <Badge variant="default" className="text-xs animate-pulse" aria-label="Voice conversation active">
           Active
         </Badge>
       )}

@@ -14,8 +14,8 @@ export const useTableFillMode = ({ value, onChange, onFocusField }: UseTableFill
   const inputRefs = useRef<Record<string, HTMLInputElement>>({});
 
   // Add single row with smart defaults
-  const addRow = useCallback((template?: Record<string, any>) => {
-    const newRow: Record<string, any> = {};
+  const addRow = useCallback((template?: Record<string, unknown>) => {
+    const newRow: Record<string, unknown> = {};
     
     value.columns.forEach(col => {
       if (template && template[col.id] !== undefined) {
@@ -64,15 +64,15 @@ export const useTableFillMode = ({ value, onChange, onFocusField }: UseTableFill
   }, [value, onChange, onFocusField]);
 
   // Add multiple rows at once
-  const addBulkRows = useCallback((count: number = bulkAddCount, template?: Record<string, any>) => {
+  const addBulkRows = useCallback((count: number = bulkAddCount, template?: Record<string, unknown>) => {
     if (count <= 0 || count > 50) {
       toast.error('Please enter a valid number between 1 and 50');
       return;
     }
 
-    const newRows: Record<string, any>[] = [];
+    const newRows: Record<string, unknown>[] = [];
     for (let i = 0; i < count; i++) {
-      const newRow: Record<string, any> = {};
+      const newRow: Record<string, unknown> = {};
       value.columns.forEach(col => {
         if (template && template[col.id] !== undefined) {
           newRow[col.id] = template[col.id];
@@ -153,36 +153,39 @@ export const useTableFillMode = ({ value, onChange, onFocusField }: UseTableFill
   }, [value, onChange]);
 
   // Generate row template based on existing data patterns
-  const generateRowTemplate = useCallback((): Record<string, any> | null => {
+  const generateRowTemplate = useCallback((): Record<string, unknown> | null => {
     if (value.rows.length === 0) return null;
 
-    const template: Record<string, any> = {};
+    const template: Record<string, unknown> = {};
     
     value.columns.forEach(col => {
       const columnValues = value.rows.map(row => row[col.id]).filter(val => val !== '' && val != null);
       
       if (columnValues.length > 0) {
         switch (col.type) {
-          case 'checkbox':
+          case 'checkbox': {
             // Most common boolean value
             const trueCount = columnValues.filter(val => !!val).length;
             template[col.id] = trueCount > columnValues.length / 2;
             break;
-          case 'number':
+          }
+          case 'number': {
             // Average of existing numbers
             const numbers = columnValues.map(val => parseFloat(String(val))).filter(n => !isNaN(n));
             if (numbers.length > 0) {
               template[col.id] = Math.round(numbers.reduce((a, b) => a + b, 0) / numbers.length);
             }
             break;
-          case 'date':
+          }
+          case 'date': {
             // Most recent date
             const dates = columnValues.map(val => new Date(String(val))).filter(d => !isNaN(d.getTime()));
             if (dates.length > 0) {
               template[col.id] = dates.sort((a, b) => b.getTime() - a.getTime())[0].toISOString().split('T')[0];
             }
             break;
-          default:
+          }
+          default: {
             // Most common text value
             const textValues = columnValues.map(val => String(val).trim()).filter(val => val !== '');
             if (textValues.length > 0) {
@@ -195,6 +198,7 @@ export const useTableFillMode = ({ value, onChange, onFocusField }: UseTableFill
                 template[col.id] = mostCommon[0];
               }
             }
+          }
         }
       }
     });

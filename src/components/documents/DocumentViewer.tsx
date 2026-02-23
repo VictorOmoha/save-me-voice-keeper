@@ -44,7 +44,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
       // First try to get from Firebase Storage
       if (user) {
-        const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+        const storagePath = (entry.fields as Record<string, unknown>)?.storagePath as string | undefined;
         const filePath = storagePath || `documents/${user.uid}/${entry.id}/${fileName}`;
 
         try {
@@ -116,7 +116,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         setDocumentContent(storedContent);
       } else if (user) {
         // Try to get from Firebase Storage
-        const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+        const storagePath = (entry.fields as Record<string, unknown>)?.storagePath as string | undefined;
         const filePath = storagePath || `documents/${user.uid}/${entry.id}/${fileName}`;
 
         try {

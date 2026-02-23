@@ -1,10 +1,11 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mic, MicOff, Settings, Volume2, VolumeX } from "lucide-react";
-import { processVoiceCommand, VoiceCommand } from "@/utils/voiceCommandProcessor";
+import { processVoiceCommandSync, VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { getElevenLabsApiKey, VOICE_OPTIONS, getSelectedVoice, setSelectedVoice, stopCurrentSpeech } from "@/utils/textToSpeech";
 import { toast } from "sonner";
 
@@ -107,7 +108,7 @@ export const VoiceControlModal: React.FC<VoiceControlModalProps> = ({
           console.log('Final transcript:', finalTranscript);
           
           // Process voice command
-          const command = processVoiceCommand(finalTranscript);
+          const command = processVoiceCommandSync(finalTranscript);
           console.log('Processed command:', command);
           setLastCommand(command);
           

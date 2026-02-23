@@ -11,7 +11,7 @@ export interface SequencedCommand {
 
 export interface ExecutionResult {
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   executionTime: number;
 }
@@ -31,7 +31,7 @@ export class CommandSequencer {
   private isExecuting = false;
   
   constructor(
-    private executeCommand: (intent: ParsedIntent) => Promise<any>
+    private executeCommand: (intent: ParsedIntent) => Promise<unknown>
   ) {}
 
   sequenceCommands(intents: ParsedIntent[]): SequencedCommand[] {

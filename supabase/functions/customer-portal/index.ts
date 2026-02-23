@@ -50,7 +50,7 @@ serve(async (req) => {
 
     // Get origin from header or referer, fallback to production URL
     const origin = req.headers.get("origin")
-      || req.headers.get("referer")?.replace(/\/[^\/]*$/, '')
+      || req.headers.get("referer")?.replace(/\/[^/]*$/, '')
       || "https://saveme.space";
 
     console.log("Creating customer portal session for:", user.email, "origin:", origin);

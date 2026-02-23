@@ -4,7 +4,7 @@ import { collection, addDoc, query, where, orderBy, limit, getDocs, updateDoc, s
 
 interface WebhookEvent {
   event_type: 'entry.created' | 'entry.updated' | 'entry.deleted';
-  payload: any;
+  payload: unknown;
   webhook_url?: string;
 }
 
@@ -103,7 +103,7 @@ export const webhookService = {
   },
 
   // Get webhook events for the current user
-  getWebhookEvents: async (): Promise<{ events: any[]; error?: string }> => {
+  getWebhookEvents: async (): Promise<{ events: Array<Record<string, unknown>>; error?: string }> => {
     try {
       const user = auth.currentUser;
       if (!user) {

@@ -11,7 +11,7 @@ describe('CommandRouter', () => {
     router = new CommandRouter();
   });
 
-  const createMockIntent = (name: string, params: Record<string, any> = {}): Intent => ({
+  const createMockIntent = (name: string, params: Record<string, unknown> = {}): Intent => ({
     name,
     confidence: 0.8,
     parameters: params,
@@ -19,7 +19,7 @@ describe('CommandRouter', () => {
     optionalParameters: []
   });
 
-  const createMockValidation = (isValid: boolean = true, params: Record<string, any> = {}): ValidationResult => ({
+  const createMockValidation = (isValid: boolean = true, params: Record<string, unknown> = {}): ValidationResult => ({
     isValid,
     errors: isValid ? [] : ['Validation error'],
     validatedParameters: params

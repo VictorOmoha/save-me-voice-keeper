@@ -4,7 +4,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import PatternInsightsPanel from '@/components/insights/PatternInsightsPanel';
-import { analyzePatterns, getInsightsForPeriod, PatternAnalysis } from '@/utils/patternRecognition';
+import { getInsightsForPeriod, PatternAnalysis } from '@/utils/patternRecognition';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useToast } from '@/hooks/use-toast';
 
@@ -64,7 +64,7 @@ const InsightsPage: React.FC = () => {
     navigate('/dashboard');
   };
 
-  const handleInsightClick = (insight: any) => {
+  const handleInsightClick = (insight: { pattern: string }) => {
     // Could navigate to filtered view of entries matching this insight
     const query = `insight=${insight.pattern}`;
     navigate(`/dashboard?${query}`);

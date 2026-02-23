@@ -37,7 +37,7 @@ interface DashboardHeaderProps {
   userName?: string;
   onEnhancedVoiceInput?: (text: string) => void;
   isVoiceProcessing?: boolean;
-  lastVoiceCommand?: any;
+  lastVoiceCommand?: unknown;
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
@@ -87,7 +87,7 @@ export const DashboardHeader = ({
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'U';
 
-  const handleSuggestionSelect = (suggestion: any) => {
+  const handleSuggestionSelect = (suggestion: unknown) => {
     console.log('Selected suggestion:', suggestion);
     // You can add additional logic here if needed
   };

@@ -5,7 +5,7 @@
 /**
  * Format a field value for display based on the field key
  */
-export const formatFieldValue = (key: string, value: any): string => {
+export const formatFieldValue = (key: string, value: unknown): string => {
   if (value === null || value === undefined || value === "") return "—";
 
   const keyLower = key.toLowerCase();
@@ -154,7 +154,7 @@ export const metadataFields = [
 /**
  * Check if a field should be displayed
  */
-export const shouldDisplayField = (key: string, value: any): boolean => {
+export const shouldDisplayField = (key: string, value: unknown): boolean => {
   if (metadataFields.includes(key)) return false;
   if (value === null || value === undefined || value === "") return false;
   return true;

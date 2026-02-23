@@ -1,3 +1,4 @@
+import { voiceAgent } from "./voiceAgent";
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import cors from "cors";
@@ -456,7 +457,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
   // Handle the event
   switch (event.type) {
   case "checkout.session.completed": {
-    const session = event.data.object as any;
+    const session = event.data.object as { metadata?: { firebaseUserId?: string }; subscription?: string | null };
     const userId = session.metadata?.firebaseUserId;
 
     if (userId) {
@@ -471,7 +472,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
 
   case "customer.subscription.updated":
   case "customer.subscription.deleted": {
-    const subscription = event.data.object as any;
+    const subscription = event.data.object as { customer?: string; status?: string; items?: { data?: Array<{ price?: { id?: string } }> } };
     const customerId = subscription.customer;
 
     // Find user by customer ID
@@ -485,7 +486,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
       await userDoc.ref.set({
         subscriptionStatus: subscription.status,
         subscriptionTier: subscription.status === "active" ?
-          getPlanFromPriceId(subscription.items.data[0]?.price?.id) : "free",
+          getPlanFromPriceId(subscription.items?.data?.[0]?.price?.id || "") : "free",
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, {merge: true});
     }
@@ -587,3 +588,4 @@ export const enhanceBrainDump = functions.https.onRequest(
     }
   })
 );
+export { voiceAgent };

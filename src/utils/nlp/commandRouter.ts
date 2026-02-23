@@ -4,7 +4,7 @@ import { ValidationResult } from './parameterValidator';
 
 export interface CommandAction {
   intent: string;
-  handler: (parameters: Record<string, any>) => Promise<any> | any;
+  handler: (parameters: Record<string, unknown>) => Promise<unknown> | unknown;
   description: string;
   examples: string[];
 }
@@ -18,7 +18,7 @@ export interface RoutingContext {
 
 export interface RoutingResult {
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
   needsConfirmation?: boolean;
   confirmationMessage?: string;

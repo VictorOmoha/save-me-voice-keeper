@@ -9,7 +9,7 @@ const corsHeaders = {
 
 interface WebhookPayload {
   action: 'create_entry' | 'get_entries' | 'update_entry' | 'delete_entry';
-  data?: any;
+  data?: Record<string, unknown>;
   entry_id?: string;
 }
 
@@ -79,7 +79,7 @@ serve(async (req) => {
 
     // Handle different webhook actions
     switch (payload.action) {
-      case 'create_entry':
+      case 'create_entry': {
         if (!permissions.includes('write')) {
           return new Response(
             JSON.stringify({ error: 'Insufficient permissions for write operation' }),
@@ -109,8 +109,9 @@ serve(async (req) => {
           JSON.stringify({ success: true, entry: newEntry }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
 
-      case 'get_entries':
+      case 'get_entries': {
         if (!permissions.includes('read')) {
           return new Response(
             JSON.stringify({ error: 'Insufficient permissions for read operation' }),
@@ -135,8 +136,9 @@ serve(async (req) => {
           JSON.stringify({ success: true, entries }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
 
-      case 'update_entry':
+      case 'update_entry': {
         if (!permissions.includes('write')) {
           return new Response(
             JSON.stringify({ error: 'Insufficient permissions for write operation' }),
@@ -174,8 +176,9 @@ serve(async (req) => {
           JSON.stringify({ success: true, entry: updatedEntry }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
 
-      case 'delete_entry':
+      case 'delete_entry': {
         if (!permissions.includes('write')) {
           return new Response(
             JSON.stringify({ error: 'Insufficient permissions for write operation' }),
@@ -207,6 +210,7 @@ serve(async (req) => {
           JSON.stringify({ success: true, message: 'Entry deleted successfully' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
 
       default:
         return new Response(

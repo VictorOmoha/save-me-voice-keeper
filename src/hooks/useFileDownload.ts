@@ -31,7 +31,8 @@ export const useFileDownload = (): UseFileDownloadReturn => {
     try {
       // First try Firebase Storage
       if (user) {
-        const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+        const fields = entry.fields as Record<string, unknown>;
+        const storagePath = typeof fields.storagePath === "string" ? fields.storagePath : undefined;
         const filePath = storagePath || `documents/${user.uid}/${entry.id}/${fileName}`;
 
         try {

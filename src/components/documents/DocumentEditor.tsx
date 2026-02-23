@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,21 +36,11 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   const fileName = entry?.fields?.fileName || '';
   const fileType = entry?.fields?.fileType || '';
-  const hasInline = Boolean((entry?.fields as any)?.documentContent);
+  const hasInline = Boolean((entry?.fields as Record<string, unknown> | undefined)?.documentContent);
   const isTextBased = hasInline || fileType.includes('text') || fileType.includes('html') || fileName.endsWith('.txt') || fileName.endsWith('.html');
   const isHtml = fileName.endsWith('.html') || fileType.includes('html');
 
-  useEffect(() => {
-    if (isOpen && entry) {
-      loadDocumentForEditing();
-    }
-  }, [isOpen, entry]);
-
-  useEffect(() => {
-    setHasChanges(documentContent !== originalContent);
-  }, [documentContent, originalContent]);
-
-  const loadDocumentForEditing = async () => {
+  const loadDocumentForEditing = useCallback(async () => {
     if (!entry) return;
 
     try {
@@ -60,7 +50,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         console.warn('No authenticated user while loading document');
       }
 
-      const explicitPath = (entry.fields as any)?.storagePath as string | undefined;
+      const explicitPath = (entry.fields as Record<string, unknown>)?.storagePath as string | undefined;
       const defaultFileName = fileName || 'document.txt';
       const computedPath = user ? `documents/${user.uid}/${entry.id}/${defaultFileName}` : `documents/${entry.id}/${defaultFileName}`;
       const filePath = explicitPath || computedPath;
@@ -73,14 +63,15 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
           setDocumentContent(text);
           setOriginalContent(text);
           return;
-        } catch (error: any) {
-          console.warn('Storage download error (will try fallbacks):', error.message || error);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn('Storage download error (will try fallbacks):', message);
         }
       }
 
       // Fallback 2: inline stored content
-      if ((entry.fields as any)?.documentContent) {
-        const content = (entry.fields as any).documentContent as string;
+      if ((entry.fields as Record<string, unknown>)?.documentContent) {
+        const content = (entry.fields as Record<string, unknown>).documentContent as string;
         setDocumentContent(content);
         setOriginalContent(content);
         return;
@@ -118,7 +109,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [entry, fileName, user]);
+
+  useEffect(() => {
+    if (isOpen && entry) {
+      loadDocumentForEditing();
+    }
+  }, [isOpen, entry, loadDocumentForEditing]);
+
+  useEffect(() => {
+    setHasChanges(documentContent !== originalContent);
+  }, [documentContent, originalContent]);
 
   const handleSave = async () => {
     if (!hasChanges || !entry) {
@@ -140,7 +141,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       // Create updated file blob
       const updatedBlob = new Blob([documentContent], { type: mime });
 
-      const existingStoragePath = (entry.fields as any)?.storagePath as string | undefined;
+      const existingStoragePath = (entry.fields as Record<string, unknown>)?.storagePath as string | undefined;
       const safeFileName = fileName || (isHtml ? 'document.html' : 'document.txt');
       const filePath = existingStoragePath || `documents/${user.uid}/${entry.id}/${safeFileName}`;
 
@@ -156,7 +157,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         documentContent: documentContent, // Store content for quick access
         storagePath: filePath, // Persist the storage path for faster future loads
         updatedAt: new Date().toISOString(),
-      } as Record<string, any>;
+      } as Record<string, unknown>;
 
       const entryRef = doc(db, 'entries', entry.id);
       await updateDoc(entryRef, {
@@ -179,9 +180,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       }
 
       toast.success('Document saved successfully!');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving document:', error);
-      toast.error(`Failed to save document: ${error?.message || 'Unknown error'}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to save document: ${message}`);
     } finally {
       setIsSaving(false);
     }

@@ -7,7 +7,7 @@ import { logVoice, logWarn } from "@/utils/logger";
 interface FloatingVoiceInputProps {
   onEnhancedVoiceInput?: (text: string) => void;
   isVoiceProcessing?: boolean;
-  lastVoiceCommand?: any;
+  lastVoiceCommand?: unknown;
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;

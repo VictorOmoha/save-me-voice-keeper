@@ -95,8 +95,7 @@ export const useTTSEventHandler = ({
         restartTimeoutRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount - we use refs for current values
+      }, []); // Only run once on mount - we use refs for current values
   
   // Return refs so other functions can check state
   return {

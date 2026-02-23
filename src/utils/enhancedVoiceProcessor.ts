@@ -5,7 +5,7 @@ import { speak } from '@/utils/textToSpeech';
 export interface EnhancedVoiceCommand {
   intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'close' | 'cancel' | 'clarification' | 'unknown' | 'delegate_confirmation';
   action: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   confidence: number;
   conversationalResponse?: string;
   needsConfirmation?: boolean;
@@ -83,7 +83,7 @@ class EnhancedVoiceProcessor {
     }
     
     // Check if TTS is currently speaking
-    if ((window as any).__tts_is_speaking) {
+    if ((window as Window & { __tts_is_speaking?: boolean }).__tts_is_speaking) {
       if (this.debugMode) console.log('🚫 Enhanced Processor: TTS currently speaking, blocking input');
       return true;
     }

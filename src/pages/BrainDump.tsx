@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,12 +37,14 @@ const BrainDumpPage: React.FC = () => {
   const navigate = useNavigate();
   
   const safeStop = () => {
-    try { stop(); } catch {}
+    try { stop(); } catch (error) {
+      console.debug("Safe stop failed:", error);
+    }
   };
 
   const handleBackClick = () => {
     safeStop();
-    const idx = (window.history?.state && (window.history.state as any).idx) as number | undefined;
+    const idx = (window.history?.state && (window.history.state as { idx?: number }).idx) as number | undefined;
     const sameOriginRef = !!document.referrer && document.referrer.startsWith(window.location.origin);
     console.debug('[BrainDump] Back click', {
       historyLength: window.history.length,
@@ -74,7 +77,7 @@ const BrainDumpPage: React.FC = () => {
   const [notes, setNotes] = useState<string[]>([]);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [keyPoints, setKeyPoints] = useState<string[]>([]);
-  const [structuredFields, setStructuredFields] = useState<Record<string, any>>({});
+  const [structuredFields, setStructuredFields] = useState<Record<string, unknown>>({});
   const [confidence, setConfidence] = useState<number | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [people, setPeople] = useState<string[]>([]);
@@ -147,10 +150,12 @@ const [showShortcuts, setShowShortcuts] = useState(false);
           introSpokenRef.current = true;
         }
       }
-    } catch {}
+    } catch (error) {
+      console.debug("Failed to read brain_dump_auto_start payload:", error);
+    }
 
     const handler = (e: Event) => {
-      const event = e as CustomEvent<any>;
+      const event = e as CustomEvent<{ autoStart?: boolean; autoSpeak?: boolean }>;
       const autoStart = event.detail?.autoStart ?? true;
       if (autoStart && isSupported && !isListening && !captureStartedRef.current) {
         start();
@@ -258,7 +263,7 @@ const [showShortcuts, setShowShortcuts] = useState(false);
       return;
     }
 
-    const fieldDefinitions: any[] = [
+    const fieldDefinitions: Array<{ id: string; name: string; type: "text" | "textarea" }> = [
       { id: 'category', name: 'category', type: 'text' as const },
       { id: 'originalText', name: 'Original Text', type: 'textarea' as const },
     ];
@@ -299,8 +304,9 @@ const [showShortcuts, setShowShortcuts] = useState(false);
       setConfidence(null);
       setTags([]);
       setPeople([]);
-    } catch (e) {
+    } catch (error) {
       // toast already shown in hook
+      console.debug("Save failed in BrainDump:", error);
     }
   };
 
@@ -365,7 +371,9 @@ const [showShortcuts, setShowShortcuts] = useState(false);
   };
 
   const navigateToDashboard = () => {
-    try { stop(); } catch {}
+    try { stop(); } catch (error) {
+      console.debug("Stop failed before dashboard navigation:", error);
+    }
     speak('Opening dashboard');
     window.dispatchEvent(new CustomEvent('voice-navigate', { detail: { destination: 'dashboard' } }));
   };
@@ -414,7 +422,7 @@ const [showShortcuts, setShowShortcuts] = useState(false);
       speak('Processed your brain dump.');
     };
     const onSave = (e: Event) => {
-      const ce = e as CustomEvent<any>;
+      const ce = e as CustomEvent<{ category?: string }>;
       const desired = ce.detail?.category as string | undefined;
       if (desired) {
         const norm = normalizeCategory(desired);

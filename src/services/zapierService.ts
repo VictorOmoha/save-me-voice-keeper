@@ -3,7 +3,13 @@ interface ZapierPayload {
   entryTitle: string;
   expirationDate: string;
   userEmail: string;
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+interface EntryLike {
+  title?: string;
+  fields?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export const zapierService = {
@@ -32,7 +38,7 @@ export const zapierService = {
     }
   },
 
-  sendEntryCreatedWebhook: async (webhookUrl: string, entry: any, userEmail: string) => {
+  sendEntryCreatedWebhook: async (webhookUrl: string, entry: EntryLike, userEmail: string) => {
     // Extract expiration date from various possible field names
     const expirationDate = entry.fields?.expirationDate || 
                           entry.fields?.['Expiration Date'] || 

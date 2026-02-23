@@ -129,7 +129,7 @@ export default function AllEntries() {
   const { processVoiceInput } = useUnifiedVoiceProcessor({
     savedEntries: entries,
     onCreateEntry: () => setShowAddEntry(true),
-    onEditEntry: handleEditEntry as any,
+    onEditEntry: handleEditEntry,
     onDeleteEntry: handleDeleteEntry,
     onSaveEntry: handleSaveEntry,
     onCancelEdit: handleCancelEdit,
@@ -147,11 +147,11 @@ export default function AllEntries() {
         onAddEntry={() => setShowAddEntry(true)}
         onCategorySelect={handleCategorySelectNav}
         onAllEntriesSelect={handleAllEntriesSelectNav}
-        onEditEntry={handleEditEntry as any}
+        onEditEntry={handleEditEntry}
         onDeleteEntry={handleDeleteEntry}
         onSaveEntry={() => {}}
         onCancelEdit={handleCancelEdit}
-        onFillEntry={handleFillEntry as any}
+        onFillEntry={handleFillEntry}
         onEnhancedVoiceInput={processVoiceInput}
       >
         <div className="flex items-center justify-center h-64">
@@ -176,11 +176,11 @@ export default function AllEntries() {
       onAddEntry={() => setShowAddEntry(true)}
       onCategorySelect={(name) => navigate(`/category/${encodeURIComponent(name)}`)}
       onAllEntriesSelect={() => navigate(`/all-entries`)}
-      onEditEntry={handleEditEntry as any}
+      onEditEntry={handleEditEntry}
       onDeleteEntry={handleDeleteEntry}
       onSaveEntry={() => {}}
       onCancelEdit={handleCancelEdit}
-      onFillEntry={handleFillEntry as any}
+      onFillEntry={handleFillEntry}
       onEnhancedVoiceInput={processVoiceInput}
     >
       {/* Page Header - Skeletal */}

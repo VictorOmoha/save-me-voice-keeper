@@ -27,7 +27,8 @@ export const getAudioCueSettings = (): AudioCueSettings => {
       frequency: DEFAULTS.frequency,
       durationMs: DEFAULTS.durationMs,
     };
-  } catch {
+  } catch (error) {
+    console.debug("Failed to read audio cue settings:", error);
     return { ...DEFAULTS };
   }
 };
@@ -38,7 +39,9 @@ export const setAudioCueSettings = (updates: Partial<AudioCueSettings>) => {
   try {
     localStorage.setItem(LS_ENABLED, String(next.enabled));
     localStorage.setItem(LS_VOLUME, String(next.volume));
-  } catch {}
+  } catch (error) {
+    console.debug("Failed to persist audio cue settings:", error);
+  }
   return next;
 };
 
@@ -46,7 +49,8 @@ export const setAudioCueSettings = (updates: Partial<AudioCueSettings>) => {
 export const playEndOfSpeechCue = async (): Promise<void> => {
   const { volume, frequency = DEFAULTS.frequency, durationMs = DEFAULTS.durationMs } = getAudioCueSettings();
   if (typeof window === 'undefined') return;
-  const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+  const w = window as Window & { AudioContext?: typeof AudioContext; webkitAudioContext?: typeof AudioContext };
+  const AudioCtx = w.AudioContext || w.webkitAudioContext;
   if (!AudioCtx) return;
 
   const ctx = new AudioCtx();
@@ -81,7 +85,9 @@ export const playEndOfSpeechCue = async (): Promise<void> => {
 
   await new Promise<void>((resolve) => {
     osc.onended = () => {
-      try { ctx.close(); } catch {}
+      try { ctx.close(); } catch (error) {
+        console.debug("Failed to close audio context:", error);
+      }
       resolve();
     };
   });

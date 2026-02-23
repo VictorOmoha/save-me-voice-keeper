@@ -2,7 +2,6 @@ import { SavedEntry } from "@/types/dashboard";
 import { exportToCSV } from "./csvExport";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 
 export type ExportFormat = 'csv' | 'json' | 'pdf' | 'excel' | 'html';
 
@@ -46,7 +45,7 @@ export const exportEntries = async (
 
 const exportToJSON = (entries: SavedEntry[], filename: string, includeMetadata: boolean) => {
   const exportData = entries.map(entry => {
-    const data: any = { ...entry.fields };
+    const data: Record<string, unknown> & { _metadata?: { id: string; title: string; createdAt: string; updatedAt: string } } = { ...entry.fields };
     
     if (includeMetadata) {
       data._metadata = {
@@ -123,9 +122,9 @@ const exportToPDF = (entries: SavedEntry[], filename: string, includeMetadata: b
 };
 
 const exportToExcel = (entries: SavedEntry[], filename: string, includeMetadata: boolean) => {
-  const workbook = XLSX.utils.book_new();
-  
-  // Get all unique field names
+  // Security hardening: XLSX dependency removed due unresolved high-severity advisories.
+  // Export Excel-compatible SpreadsheetML XML instead (opens in Excel).
+
   const allFieldNames = new Set<string>();
   entries.forEach(entry => {
     Object.keys(entry.fields).forEach(field => {
@@ -133,37 +132,59 @@ const exportToExcel = (entries: SavedEntry[], filename: string, includeMetadata:
     });
   });
 
-  // Prepare data for Excel
-  const excelData = entries.map(entry => {
-    const row: any = {};
-    
+  const headers: string[] = [];
+  if (includeMetadata) {
+    headers.push('Title', 'Created Date', 'Updated Date');
+  }
+  headers.push(...Array.from(allFieldNames).sort());
+
+  const rows = entries.map(entry => {
+    const cells: string[] = [];
     if (includeMetadata) {
-      row['Title'] = entry.title;
-      row['Created Date'] = new Date(entry.createdAt).toLocaleDateString();
-      row['Updated Date'] = new Date(entry.updatedAt).toLocaleDateString();
+      cells.push(
+        entry.title,
+        new Date(entry.createdAt).toLocaleDateString(),
+        new Date(entry.updatedAt).toLocaleDateString()
+      );
     }
-    
+
     Array.from(allFieldNames).sort().forEach(fieldName => {
-      row[fieldName] = entry.fields[fieldName] || '';
+      const value = entry.fields[fieldName];
+      cells.push(value ? String(value) : '');
     });
-    
-    return row;
+
+    return cells;
   });
 
-  // Create worksheet
-  const worksheet = XLSX.utils.json_to_sheet(excelData);
-  
-  // Auto-size columns
-  const columnWidths = Object.keys(excelData[0] || {}).map(key => ({
-    wch: Math.max(key.length, 15)
-  }));
-  worksheet['!cols'] = columnWidths;
+  const escapeXml = (value: string) => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 
-  // Add worksheet to workbook
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Exported Data');
+  const xmlRows = [headers, ...rows]
+    .map(row => `      <Row>${row.map(cell => `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`).join('')}</Row>`)
+    .join('\n');
 
-  // Save file
-  XLSX.writeFile(workbook, `${filename}-${getDateString()}.xlsx`);
+  const spreadsheetXml = `<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+  <Worksheet ss:Name="Exported Data">
+    <Table>
+${xmlRows}
+    </Table>
+  </Worksheet>
+</Workbook>`;
+
+  downloadFile(
+    spreadsheetXml,
+    `${filename}-${getDateString()}.xls`,
+    'application/vnd.ms-excel'
+  );
 };
 
 const exportToHTML = (entries: SavedEntry[], filename: string, includeMetadata: boolean) => {

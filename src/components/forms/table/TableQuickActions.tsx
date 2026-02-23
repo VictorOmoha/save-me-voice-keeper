@@ -10,10 +10,10 @@ interface TableQuickActionsProps {
   onAddRow: () => void;
   onAddBulkRows: (count: number) => void;
   onDuplicateLastRow: () => void;
-  onAddWithTemplate: (template: Record<string, any>) => void;
+  onAddWithTemplate: (template: Record<string, unknown>) => void;
   bulkAddCount: number;
   setBulkAddCount: (count: number) => void;
-  template?: Record<string, any> | null;
+  template?: Record<string, unknown> | null;
 }
 
 export const TableQuickActions: React.FC<TableQuickActionsProps> = ({

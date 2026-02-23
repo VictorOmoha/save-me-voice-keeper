@@ -10,7 +10,8 @@ export const MicrophoneTest: React.FC = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
+  const isTestingMicRef = useRef(false);
 
   const startMicTest = async () => {
     try {
@@ -29,7 +30,7 @@ export const MicrophoneTest: React.FC = () => {
       console.log('Microphone stream obtained:', stream);
       
       // Create audio context
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
       const audioContext = audioContextRef.current;
       
       // Create analyser
@@ -43,6 +44,7 @@ export const MicrophoneTest: React.FC = () => {
       
       console.log('Audio analysis setup complete');
       setIsTestingMic(true);
+      isTestingMicRef.current = true;
       toast.success('🎤 Microphone test started - speak now to see levels');
       
       // Start monitoring audio levels
@@ -54,7 +56,7 @@ export const MicrophoneTest: React.FC = () => {
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         setAudioLevel(average);
         
-        if (isTestingMic) {
+        if (isTestingMicRef.current) {
           animationRef.current = requestAnimationFrame(monitorAudio);
         }
       };
@@ -63,7 +65,8 @@ export const MicrophoneTest: React.FC = () => {
       
     } catch (error) {
       console.error('Microphone test failed:', error);
-      toast.error(`Microphone test failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Microphone test failed: ${message}`);
     }
   };
 
@@ -85,13 +88,14 @@ export const MicrophoneTest: React.FC = () => {
     }
     
     setIsTestingMic(false);
+    isTestingMicRef.current = false;
     setAudioLevel(0);
     toast.info('Microphone test stopped');
   };
 
   useEffect(() => {
     return () => {
-      if (isTestingMic) {
+      if (isTestingMicRef.current) {
         stopMicTest();
       }
     };
@@ -101,14 +105,15 @@ export const MicrophoneTest: React.FC = () => {
     console.log('Testing basic speech recognition...');
     
     // Stop any existing recognition first
-    if ((window as any).__global_recognition) {
+    const globalWindow = window as Window & { __global_recognition?: SpeechRecognition | null };
+    if (globalWindow.__global_recognition) {
       console.log('Stopping existing recognition...');
       try {
-        (window as any).__global_recognition.abort();
+        globalWindow.__global_recognition.abort();
       } catch (e) {
         console.log('Stop existing recognition failed (expected):', e);
       }
-      (window as any).__global_recognition = null;
+      globalWindow.__global_recognition = null;
     }
     
     
@@ -120,7 +125,7 @@ export const MicrophoneTest: React.FC = () => {
     }
     
     const recognition = new SpeechRecognition();
-    (window as any).__global_recognition = recognition; // Track globally
+    globalWindow.__global_recognition = recognition; // Track globally
     
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -150,14 +155,15 @@ export const MicrophoneTest: React.FC = () => {
     
     recognition.onend = () => {
       console.log('Basic speech recognition ended');
-      (window as any).__global_recognition = null; // Clear global reference
+      globalWindow.__global_recognition = null; // Clear global reference
     };
     
     try {
       recognition.start();
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
-      toast.error(`Failed to start: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Failed to start: ${message}`);
     }
   };
 

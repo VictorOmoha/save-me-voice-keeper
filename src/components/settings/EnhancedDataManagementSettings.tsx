@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { Database, Download, Trash2, Shield, Archive, RefreshCw } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 export const EnhancedDataManagementSettings = () => {
   const { toast } = useToast();
@@ -26,9 +26,9 @@ export const EnhancedDataManagementSettings = () => {
     if (user) {
       loadStorageStats();
     }
-  }, [user]);
+  }, [user, loadStorageStats]);
 
-  const loadStorageStats = async () => {
+  const loadStorageStats = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -44,7 +44,7 @@ export const EnhancedDataManagementSettings = () => {
         const apiKeysQuery = query(apiKeysRef, where('user_id', '==', user.uid));
         const apiKeysSnapshot = await getDocs(apiKeysQuery);
         apiKeysCount = apiKeysSnapshot.size;
-      } catch (e) {
+      } catch (error) {
         // API keys collection might not exist
       }
 
@@ -57,7 +57,7 @@ export const EnhancedDataManagementSettings = () => {
     } catch (error) {
       console.error('Error loading storage stats:', error);
     }
-  };
+  }, [user]);
 
   const handleExportAllData = async () => {
     if (!user) return;
@@ -78,12 +78,12 @@ export const EnhancedDataManagementSettings = () => {
         if (prefsSnap.exists()) {
           preferences = prefsSnap.data();
         }
-      } catch (e) {
+      } catch (error) {
         console.log('No preferences found');
       }
 
       // Get API keys (excluding sensitive data)
-      let apiKeys: any[] = [];
+      let apiKeys: Array<Record<string, unknown>> = [];
       try {
         const apiKeysRef = collection(db, 'api_keys');
         const apiKeysQuery = query(apiKeysRef, where('user_id', '==', user.uid));
@@ -100,7 +100,7 @@ export const EnhancedDataManagementSettings = () => {
             last_used_at: data.last_used_at?.toDate?.() || data.last_used_at,
           };
         });
-      } catch (e) {
+      } catch (error) {
         console.log('No API keys found');
       }
 

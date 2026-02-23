@@ -20,7 +20,7 @@ export interface VoiceCommand {
 // Enhanced command processor with multi-intent support
 const multiIntentParser = new MultiIntentParser();
 
-export const processVoiceCommand = (transcript: string): VoiceCommand => {
+export const processVoiceCommandSync = (transcript: string): VoiceCommand => {
   console.log('🎯 Processing voice command:', transcript);
   
   if (!transcript || transcript.trim().length === 0) {
@@ -132,7 +132,7 @@ const processLegacySingleCommand = (transcript: string): VoiceCommand => {
   const lowerTranscript = transcript.toLowerCase().trim();
   
   // Handle common speech recognition errors and misinterpretations
-  let correctedTranscript = lowerTranscript
+  const correctedTranscript = lowerTranscript
     .replace(/\bopen\s+([^.]+?)\s+policy\b/g, 'close $1 policy')
     .replace(/\bopening\s+([^.]+?)\s+policy\b/g, 'close $1 policy')
     .replace(/\bcall\s+it\b/g, 'cancel')
@@ -353,4 +353,59 @@ const extractDeleteTarget = (transcript: string): string => {
   }
   
   return '';
+};
+
+import { sendToVoiceAgent } from './agentClient';
+import { toast } from 'sonner';
+import { playText } from './textToSpeech';
+
+/**
+ * NEW: The asynchronous, agentic voice command processor.
+ * Routes the transcript to the Firebase AI Agent for autonomous processing.
+ */
+export const processVoiceCommand = async (transcript: string): Promise<VoiceCommand> => {
+  console.log('🤖 Agentic Processor: Sending command to Firebase:', transcript);
+  
+  if (!transcript || transcript.trim().length === 0) {
+    return { type: 'unknown' };
+  }
+
+  try {
+    // 1. Send to Agent
+    const agentResponse = await sendToVoiceAgent(transcript);
+    
+    // 2. Play the AI's response out loud
+    if (agentResponse.agentReply) {
+      toast.success(agentResponse.agentReply);
+      speak(agentResponse.agentReply).catch(console.error);
+    }
+    
+    // 3. Map Agent action back to legacy frontend state to update the UI
+    if (agentResponse.status === 'success' && agentResponse.actionTaken === 'created_entry') {
+      // Return a sequenced_command so the frontend knows it was handled
+      return {
+        type: 'sequenced_command',
+        params: {
+          originalText: transcript,
+          intent: {
+            type: 'create_entry',
+            confidence: 1.0,
+            text: transcript,
+            parameters: {
+              entryTitle: "Agent Managed Entry",
+              entryCategory: "Auto"
+            }
+          }
+        }
+      };
+    }
+    
+    // If it was just a conversation or needs clarification, return 'unknown' so the local parser skips it
+    return { type: 'unknown' };
+
+  } catch (error) {
+    console.error("Agentic processing failed, falling back to local intent parser:", error);
+    toast.error("Agent offline. Using local parsing.");
+    return processVoiceCommandSync(transcript);
+  }
 };

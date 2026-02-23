@@ -82,7 +82,9 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
 
     // Optionally refresh when entries change to keep UI in sync
     // We intentionally don't run too often to avoid excessive calls
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      isMounted = false;
+    };
   }, [entries.length, userTier]);
 
   return useMemo(() => {

@@ -12,7 +12,7 @@ import { EnhancedTableFillMode } from './table/EnhancedTableFillMode';
 
 interface OptimizedCustomFieldItemProps {
   field: CustomField;
-  onUpdateField: (id: string, key: keyof CustomField, value: any) => void;
+  onUpdateField: (id: string, key: keyof CustomField, value: unknown) => void;
   onRemoveField: (id: string) => void;
   isEditMode: boolean;
   isFillMode: boolean;
@@ -48,8 +48,8 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
     }`;
 
     switch (field.type) {
-      case 'table':
-        const tableData: TableData = field.value || { columns: [], rows: [] };
+      case 'table': {
+        const tableData: TableData = (field.value as TableData) || { columns: [], rows: [] };
         return (
           <div className="space-y-4">
             {tableData.columns.length === 0 ? (
@@ -71,6 +71,7 @@ export const OptimizedCustomFieldItem = memo<OptimizedCustomFieldItemProps>(({
             )}
           </div>
         );
+      }
       case 'textarea':
         return (
           <Textarea

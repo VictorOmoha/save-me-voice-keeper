@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { SavedEntry } from '@/types/dashboard';

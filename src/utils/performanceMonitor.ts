@@ -3,7 +3,7 @@ interface PerformanceMetric {
   duration: number;
   timestamp: number;
   type: 'voice' | 'form' | 'api' | 'render';
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 class PerformanceMonitor {
@@ -16,7 +16,7 @@ class PerformanceMonitor {
     this.isEnabled = enabled;
   }
 
-  startTimer(name: string, type: PerformanceMetric['type'], context?: Record<string, any>) {
+  startTimer(name: string, type: PerformanceMetric['type'], context?: Record<string, unknown>) {
     if (!this.isEnabled) return;
 
     const startTime = performance.now();
@@ -27,12 +27,12 @@ class PerformanceMonitor {
     }
   }
 
-  endTimer(name: string, type: PerformanceMetric['type'], context?: Record<string, any>) {
+  endTimer(name: string, type: PerformanceMetric['type'], context?: Record<string, unknown>) {
     if (!this.isEnabled) return;
 
     const startTime = this.activeTimers.get(name);
     if (!startTime) {
-      console.warn(`Performance timer \"${name}\" not found`);
+      console.warn(`Performance timer "${name}" not found`);
       return;
     }
 

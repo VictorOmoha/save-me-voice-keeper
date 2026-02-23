@@ -5,13 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Settings, Volume2, AlertCircle, RefreshCw, Minimize2, Maximize2, X } from "lucide-react";
 import { VoiceDiagnostic } from "./VoiceDiagnostic";
 import { VoiceSettingsModal } from "./VoiceSettingsModal";
-import { processVoiceCommand } from "@/utils/voiceCommandProcessor";
+import { processVoiceCommandSync } from "@/utils/voiceCommandProcessor";
 import { toast } from "sonner";
 
 interface VoiceInputFixedProps {
   onEnhancedVoiceInput: (text: string) => void;
   isVoiceProcessing?: boolean;
-  lastVoiceCommand?: any;
+  lastVoiceCommand?: unknown;
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;
@@ -34,8 +34,9 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
 
   // Cleanup function for voice recognition
   const cleanupVoiceRecognition = useCallback(() => {
-    if ((window as any).__stopAllVoiceRecognition) {
-      (window as any).__stopAllVoiceRecognition();
+    const globalWindow = window as Window & { __stopAllVoiceRecognition?: () => void };
+    if (globalWindow.__stopAllVoiceRecognition) {
+      globalWindow.__stopAllVoiceRecognition();
     }
     setConnectionStatus('disconnected');
     setLastProcessedCommand('');
@@ -67,7 +68,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
     // Remove duplicate prevention for now to ensure all commands are processed
     console.log('🔊 Processing transcript:', transcript);
     
-    const command = processVoiceCommand(transcript);
+    const command = processVoiceCommandSync(transcript);
     console.log('🔊 VoiceInputFixed: Processed command:', command);
     
     setConnectionStatus('connected');
@@ -245,7 +246,7 @@ export const VoiceInputFixed: React.FC<VoiceInputFixedProps> = ({
               <div className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
                 <span className="text-muted-foreground">Last:</span>
                 <Badge variant="outline" className="text-xs">
-                  {lastVoiceCommand.intent || lastVoiceCommand.type || 'Command'}
+                  {(lastVoiceCommand as { intent?: string; type?: string }).intent || (lastVoiceCommand as { intent?: string; type?: string }).type || 'Command'}
                 </Badge>
               </div>
             )}

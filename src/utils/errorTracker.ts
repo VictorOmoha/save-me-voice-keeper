@@ -3,7 +3,7 @@ interface ErrorLog {
   type: 'voice' | 'form' | 'api' | 'ui';
   level: 'error' | 'warning' | 'info';
   message: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   stack?: string;
 }
 
@@ -16,7 +16,7 @@ class ErrorTracker {
     this.isEnabled = enabled;
   }
 
-  logError(type: ErrorLog['type'], message: string, context?: Record<string, any>, error?: Error) {
+  logError(type: ErrorLog['type'], message: string, context?: Record<string, unknown>, error?: Error) {
     if (!this.isEnabled) return;
 
     const errorLog: ErrorLog = {
@@ -36,7 +36,7 @@ class ErrorTracker {
     }
   }
 
-  logWarning(type: ErrorLog['type'], message: string, context?: Record<string, any>) {
+  logWarning(type: ErrorLog['type'], message: string, context?: Record<string, unknown>) {
     if (!this.isEnabled) return;
 
     const warningLog: ErrorLog = {
@@ -54,7 +54,7 @@ class ErrorTracker {
     }
   }
 
-  logInfo(type: ErrorLog['type'], message: string, context?: Record<string, any>) {
+  logInfo(type: ErrorLog['type'], message: string, context?: Record<string, unknown>) {
     if (!this.isEnabled) return;
 
     const infoLog: ErrorLog = {

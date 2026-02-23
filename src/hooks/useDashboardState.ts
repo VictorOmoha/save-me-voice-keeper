@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
@@ -15,16 +14,7 @@ export const useDashboardState = () => {
   const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!authLoading && user) {
-      loadEntries();
-    } else if (!authLoading && !user) {
-      setIsLoading(false);
-      setSavedEntries([]);
-    }
-  }, [user, authLoading]);
-
-  const loadEntries = async () => {
+  const loadEntries = useCallback(async () => {
     if (!user) {
       setIsLoading(false);
       return;
@@ -66,7 +56,16 @@ export const useDashboardState = () => {
       console.log('Setting isLoading to false');
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      loadEntries();
+    } else if (!authLoading && !user) {
+      setIsLoading(false);
+      setSavedEntries([]);
+    }
+  }, [user, authLoading, loadEntries]);
 
   const filteredEntries = savedEntries.filter(entry =>
     entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -20,7 +20,7 @@ export interface AuthContextType {
   loading: boolean;
   isLoading: boolean; // Alias for loading
   isAuthenticated: boolean;
-  session: any; // For compatibility - represents the auth session
+  session: unknown; // For compatibility - represents the auth session
   login: (email: string, password: string) => Promise<{ error?: string }>;
   signup: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
   signInWithGoogle: () => Promise<{ error?: string }>;

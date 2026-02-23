@@ -13,7 +13,7 @@ interface NewQuickActionsProps {
   onEnhancedVoiceInput: (text: string) => void;
   onCreateDocument: () => void;
   isVoiceProcessing?: boolean;
-  lastVoiceCommand?: any;
+  lastVoiceCommand?: unknown;
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;

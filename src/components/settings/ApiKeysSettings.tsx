@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +34,9 @@ export const ApiKeysSettings = () => {
     if (user) {
       fetchApiKeys();
     }
-  }, [user]);
+  }, [user, fetchApiKeys]);
 
-  const fetchApiKeys = async () => {
+  const fetchApiKeys = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -68,7 +68,7 @@ export const ApiKeysSettings = () => {
       console.error('Error fetching API keys:', error);
       toast.error('Failed to load API keys');
     }
-  };
+  }, [user]);
 
   const generateApiKey = () => {
     // Generate a secure API key

@@ -28,7 +28,7 @@ const Settings = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Load saved entries for data management
-  const [savedEntries, setSavedEntries] = useState<any[]>([]);
+  const [savedEntries, setSavedEntries] = useState<unknown[]>([]);
 
   // Check if user has admin role
   useEffect(() => {

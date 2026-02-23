@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 import { VoiceStatus } from "./voice/VoiceStatus";
 import { VoiceControls } from "./voice/VoiceControls";
@@ -7,7 +7,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { speechRecognition } from "@/utils/speechRecognitionSingleton";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
-import { useOptimizedVoiceProcessor } from "@/hooks/useOptimizedVoiceProcessor";
+// import { useOptimizedVoiceProcessor } from "@/hooks/useOptimizedVoiceProcessor";
 import { useTTSEventHandler } from "@/hooks/useTTSEventHandler";
 import { errorTracker } from "@/utils/errorTracker";
 import { performanceMonitor } from "@/utils/performanceMonitor";
@@ -42,23 +42,14 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   const formContext = useVoiceFormContext();
 
   // Use the optimized voice processor for better performance
-  const {
-    processVoiceInput,
-    conversationState,
-    pendingDeleteEntry,
-    startCreateEntryConversation,
-    endConversation,
-  } = useOptimizedVoiceProcessor({
-    savedEntries,
-    onCreateEntry,
-    onEditEntry,
-    onDeleteEntry,
-    onSaveEntry,
-    onCancelEdit,
-    formTitleSetter: formContext?.formTitleSetter || undefined,
-    formCategorySetter: formContext?.formCategorySetter || undefined,
-    formAddFieldFunction: formContext?.formAddFieldFunction || undefined
-  });
+  
+  // Disabled legacy processor in favor of Global VoiceCommandProvider Architecture
+  const processVoiceInput = async () => {};
+  const conversationState = { isInConversation: false, currentStep: undefined };
+  const pendingDeleteEntry = null;
+  const startCreateEntryConversation = () => {};
+  const endConversation = () => {};
+
 
   // Use TTS event handler to restart recognition after TTS completes
   useTTSEventHandler({
@@ -69,7 +60,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
   });
 
   // Handle voice input with optimized processor or dashboard handler
-  const handleVoiceInput = async (transcript: string) => {
+  const handleVoiceInput = useCallback(async (transcript: string) => {
     performanceMonitor.startTimer('voice-input-processing', 'voice');
     
     try {
@@ -97,7 +88,9 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
         // Persist auto-start intent for the destination page
         try {
           sessionStorage.setItem('brain_dump_auto_start', JSON.stringify({ autoStart: true, autoSpeak: true }));
-        } catch {}
+        } catch (storageError) {
+          errorTracker.logInfo('voice', 'Failed to persist brain-dump auto-start intent', { storageError });
+        }
         window.dispatchEvent(new CustomEvent('voice-navigate', {
           detail: { destination: 'brain-dump', params: { autoStart: true, autoSpeak: true } }
         }));
@@ -137,7 +130,7 @@ export const ConversationalVoiceInterface: React.FC<ConversationalVoiceInterface
     } finally {
       performanceMonitor.endTimer('voice-input-processing', 'voice');
     }
-  };
+  }, [conversationState.isInConversation, endConversation, processVoiceInput]);
 
   // Initialize speech recognition - only set callbacks, don't start automatically
   useEffect(() => {
@@ -180,7 +173,7 @@ onEnd: () => {
         speechRecognition.stop();
       }
     };
-  }, []);
+  }, [handleVoiceInput, isActive]);
 
   const activateConversation = () => {
     setIsActive(true);

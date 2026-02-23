@@ -7,9 +7,9 @@ export const VoiceNavigationListener: React.FC = () => {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const event = e as CustomEvent<{ destination: string; params?: any }>;
+      const event = e as CustomEvent<{ destination: string; params?: Record<string, unknown> }>;
       const dest = event.detail?.destination;
-      const params = event.detail?.params || {};
+      const params = event.detail?.params ?? {};
       if (!dest) return;
 
       if (dest === 'dashboard') {
@@ -22,7 +22,9 @@ export const VoiceNavigationListener: React.FC = () => {
         if (location.pathname !== '/brain-dump') {
           try {
             sessionStorage.setItem('brain_dump_auto_start', JSON.stringify(params));
-          } catch {}
+          } catch (error) {
+            console.debug('Unable to persist brain dump auto-start params:', error);
+          }
           navigate('/brain-dump');
           // Also fire a capture event shortly after navigation to support already-mounted listeners
           setTimeout(() => {

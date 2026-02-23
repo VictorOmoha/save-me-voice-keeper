@@ -1,12 +1,16 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useSavedEntries } from "./useSavedEntries";
 import { SavedEntry } from "@/types/dashboard";
 import { toast } from "sonner";
 import { speak } from "@/utils/textToSpeech";
 import { voiceProcessor, EnhancedVoiceCommand } from "@/utils/enhancedVoiceProcessor";
+import { useVoiceCommand } from "@/contexts/VoiceCommandContext";
+import { VoiceCommand } from "@/utils/voiceCommandProcessor";
 import { logDashboard, logVoice, logError } from "@/utils/logger";
 
 export const useDashboard = () => {
+  const { registerExecutor } = useVoiceCommand();
   const {
     savedEntries,
     isLoading,
@@ -52,24 +56,7 @@ export const useDashboard = () => {
       logVoice('Processing enhanced voice input', text);
       logDashboard('Voice handler state', { showAddEntry });
 
-      // CRITICAL: Check if we're in conversation mode first
-      // If the VoiceGuidedEntryWizard is active (showAddEntry is true), 
-      // we should route voice input to the unified processor instead of command processing
-      const isInWizardConversation = showAddEntry && text !== 'Create a new entry.' && text !== 'create a new entry';
-      
-      if (isInWizardConversation) {
-        logDashboard('In wizard conversation mode - routing to unified processor');
-        logVoice('Voice input should be processed as conversation step', text);
-        return;
-      }
-
-      // Handle structured entry creation from brain dumps
-      if (text.startsWith('CREATE_STRUCTURED_ENTRY:')) {
-        await handleStructuredEntryCreation(text);
-        return;
-      }
-
-      // Process voice command with context
+      // Process voice command with context first to catch global commands
       const context = {
         currentView: 'dashboard',
         availableEntries: savedEntries.map(entry => ({
@@ -87,6 +74,25 @@ export const useDashboard = () => {
 
       const command = await voiceProcessor.processVoiceCommand(text, context);
       logDashboard('Processed command', command);
+      
+      // CRITICAL: Check if we're in conversation mode AND the command wasn't an explicit cancellation
+      // If the VoiceGuidedEntryWizard is active (showAddEntry is true), 
+      // we should route voice input to the unified processor instead of command processing,
+      // UNLESS the user explicitly said "cancel", "close", "stop", etc.
+      const isInWizardConversation = showAddEntry && text !== 'Create a new entry.' && text !== 'create a new entry';
+      
+      if (isInWizardConversation && command.action !== 'cancel_operation') {
+        logDashboard('In wizard conversation mode - routing to unified processor');
+        logVoice('Voice input should be processed as conversation step', text);
+        
+        // Dispatch event for the wizard to pick up the text
+        window.dispatchEvent(new CustomEvent('wizard-voice-input', { detail: { text } }));
+        setIsVoiceProcessing(false);
+        processingRef.current = false;
+        return;
+      }
+
+      // Handle structured entry creation from brain dumps
 
       setLastVoiceCommand(command);
 
@@ -249,20 +255,24 @@ export const useDashboard = () => {
   }, [showAddEntry, editingEntry, fillingEntry]);
 
   // Handle creating entry with content
-  const handleCreateEntryWithContent = useCallback(async (params: any) => {
+  const handleCreateEntryWithContent = useCallback(async (params: Record<string, unknown>) => {
     try {
+      const titleParam = typeof params.title === "string" ? params.title : undefined;
+      const categoryParam = typeof params.category === "string" ? params.category : undefined;
+      const descriptionParam = typeof params.description === "string" ? params.description : undefined;
+      const additionalFields = (params.additionalFields && typeof params.additionalFields === "object" && !Array.isArray(params.additionalFields)) ? params.additionalFields as Record<string, unknown> : {};
       const newEntry = {
-        title: params.title || `New Entry - ${new Date().toLocaleDateString()}`,
+        title: titleParam || `New Entry - ${new Date().toLocaleDateString()}`,
         fields: {
-          category: params.category || 'Personal',
-          ...(params.description && params.description.trim() ? { description: params.description } : {}),
-          ...params.additionalFields,
+          category: categoryParam || 'Personal',
+          ...(descriptionParam && descriptionParam.trim() ? { description: descriptionParam } : {}),
+          ...additionalFields,
         },
         fieldDefinitions: [
           { id: 'category', name: 'category', type: 'text' as const },
-          ...(params.description && params.description.trim() ? [{ id: 'description', name: 'Description', type: 'textarea' as const }] : []),
+          ...(descriptionParam && descriptionParam.trim() ? [{ id: 'description', name: 'Description', type: 'textarea' as const }] : []),
         ],
-        category: params.category || 'Personal',
+        category: categoryParam || 'Personal',
       };
 
       await saveEntry(newEntry);
@@ -274,8 +284,9 @@ export const useDashboard = () => {
   }, []);
 
   // Handle opening entry
-  const handleOpenEntry = useCallback(async (params: any) => {
-    const { entryTitle, searchTerm } = params;
+  const handleOpenEntry = useCallback(async (params: Record<string, unknown>) => {
+    const entryTitle = typeof params.entryTitle === "string" ? params.entryTitle : undefined;
+    const searchTerm = typeof params.searchTerm === "string" ? params.searchTerm : undefined;
     
     if (entryTitle === 'all_entries' || entryTitle === 'all') {
       // Navigate to all entries view
@@ -310,10 +321,14 @@ export const useDashboard = () => {
   }, [savedEntries]);
 
   // Handle deleting entry with improved state management
-  const handleDeleteEntry = useCallback(async (params: any) => {
+  const handleDeleteEntry = useCallback(async (params: Record<string, unknown>) => {
     logDashboard('handleDeleteEntry called', { params, hasPendingConfirmation, conversationState });
     
-    const { entryId, entryTitle, title, searchTerm, confirmed } = params;
+    const entryId = typeof params.entryId === "string" ? params.entryId : undefined;
+    const entryTitle = typeof params.entryTitle === "string" ? params.entryTitle : undefined;
+    const title = typeof params.title === "string" ? params.title : undefined;
+    const searchTerm = typeof params.searchTerm === "string" ? params.searchTerm : undefined;
+    const confirmed = typeof params.confirmed === "boolean" ? params.confirmed : undefined;
     
     // Handle confirmed deletion
     if (confirmed === true) {
@@ -506,6 +521,59 @@ export const useDashboard = () => {
     setEditingEntry(null);
     setFillingEntry(null);
   }, []);
+
+
+  useEffect(() => {
+    const cleanup = registerExecutor((command: VoiceCommand) => {
+      console.log('useDashboard intercepted command:', command);
+      
+      switch (command.type) {
+        case 'create_entry':
+        case 'sequenced_command': // Handle as intent
+          setShowAddEntry(true);
+          setEditingEntry(null);
+          setFillingEntry(null);
+          speak('Opening entry creator.');
+          return true; // Command handled
+          
+        case 'open_entry':
+          if (command.params?.entryTitle) {
+            const entryToOpen = savedEntries.find(e => 
+              e.title.toLowerCase().includes(command.params!.entryTitle!.toLowerCase())
+            );
+            if (entryToOpen) {
+              setFillingEntry(entryToOpen);
+              speak(`Opening ${entryToOpen.title}.`);
+              return true;
+            }
+          }
+          return false;
+          
+        case 'delete_entry':
+          if (command.params?.entryTitle) {
+            const entryToDelete = savedEntries.find(e => 
+              e.title.toLowerCase().includes(command.params!.entryTitle!.toLowerCase())
+            );
+            if (entryToDelete) {
+              baseDeleteEntry(entryToDelete.id);
+              speak(`Deleted ${entryToDelete.title}.`);
+              return true;
+            }
+          }
+          return false;
+          
+        case 'cancel':
+          setShowAddEntry(false);
+          setEditingEntry(null);
+          setFillingEntry(null);
+          speak('Action cancelled.');
+          return true;
+      }
+      return false; // Not handled here
+    });
+    
+    return cleanup;
+  }, [savedEntries, baseDeleteEntry, registerExecutor]);
 
   return {
     savedEntries,

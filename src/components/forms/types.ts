@@ -8,14 +8,14 @@ export interface TableColumn {
 
 export interface TableData {
   columns: TableColumn[];
-  rows: Record<string, any>[];
+  rows: Record<string, unknown>[];
 }
 
 export interface CustomField {
   id: string;
   name: string;
   type: 'text' | 'number' | 'date' | 'textarea' | 'image' | 'gallery' | 'table';
-  value: any;
+  value: unknown;
   index?: number;
 }
 

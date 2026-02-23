@@ -205,7 +205,7 @@ const speakWithElevenLabs = async (
  * Optimized browser TTS fallback
  */
 const speakWithBrowser = async (text: string): Promise<void> => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       console.error('[DemoTTS] Speech synthesis not supported');
       reject(new Error('Speech synthesis not supported'));
@@ -218,10 +218,10 @@ const speakWithBrowser = async (text: string): Promise<void> => {
     synth.cancel();
 
     // Wait for voices to load
-    const voices = await loadBrowserVoices();
-    console.log('[DemoTTS] Browser voices available:', voices.length);
+    loadBrowserVoices().then((voices) => {
+      console.log('[DemoTTS] Browser voices available:', voices.length);
 
-    const utterance = new SpeechSynthesisUtterance(text);
+      const utterance = new SpeechSynthesisUtterance(text);
 
     // Optimized settings
     utterance.rate = 1.0;
@@ -282,6 +282,7 @@ const speakWithBrowser = async (text: string): Promise<void> => {
         console.log('[DemoTTS] Browser TTS may have failed silently');
       }
     }, 100);
+    }).catch(reject);
   });
 };
 

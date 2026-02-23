@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, Edit, Check, X } from 'lucide-react';
+import { Plus, Trash2, Edit, Check } from 'lucide-react';
 import { TableData, TableColumn } from '../types';
 import { toast } from 'sonner';
 
@@ -73,7 +73,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
   };
 
   const addRow = () => {
-    const newRow: Record<string, any> = {};
+    const newRow: Record<string, unknown> = {};
     value.columns.forEach(col => {
       newRow[col.id] = col.type === 'checkbox' ? false : '';
     });
@@ -85,7 +85,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
     onChange(updatedValue);
   };
 
-  const updateRowValue = (rowIndex: number, columnId: string, newValue: any) => {
+  const updateRowValue = (rowIndex: number, columnId: string, newValue: unknown) => {
     const updatedValue = {
       ...value,
       rows: value.rows.map((row, index) => 
@@ -103,7 +103,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
     onChange(updatedValue);
   };
 
-  const renderCellInput = (row: Record<string, any>, column: TableColumn, rowIndex: number) => {
+  const renderCellInput = (row: Record<string, unknown>, column: TableColumn, rowIndex: number) => {
     const cellValue = row[column.id] || '';
 
     switch (column.type) {

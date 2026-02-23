@@ -2,7 +2,7 @@
 export interface Intent {
   name: string;
   confidence: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   requiredParameters: string[];
   optionalParameters: string[];
 }
@@ -122,8 +122,8 @@ export class IntentRecognizer {
     };
   }
 
-  private extractParameters(text: string, pattern: IntentPattern): Record<string, any> {
-    const parameters: Record<string, any> = {};
+  private extractParameters(text: string, pattern: IntentPattern): Record<string, unknown> {
+    const parameters: Record<string, unknown> = {};
     
     switch (pattern.intent) {
       case 'create_entry':

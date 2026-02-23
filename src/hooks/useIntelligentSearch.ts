@@ -62,7 +62,7 @@ export const useIntelligentSearch = ({
           }
 
           const recentQueries = history?.map(h => h.query).filter(Boolean) || [];
-          const popularQueries = popular?.map((p: any) => p.query).filter(Boolean) || [];
+          const popularQueries = popular?.map((p: { query?: string }) => p.query).filter(Boolean) || [];
 
           setRecentSearches(recentQueries);
           setPopularSearches(popularQueries);

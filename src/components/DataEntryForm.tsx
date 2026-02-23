@@ -24,7 +24,7 @@ interface DataEntryFormProps {
   voiceConversationState?: {
     isInConversation: boolean;
     currentStep?: { type: string; question: string };
-    entryDraft?: any;
+    entryDraft?: Record<string, unknown>;
   };
 }
 
@@ -88,9 +88,9 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           setLastVoiceUpdate(`Adding field: ${fieldName || 'Custom Field'}`);
           setHighlightedField('field_name');
 
-          const initial: any = {};
+          const initial: { name?: string; type?: string } = {};
           if (fieldName) initial.name = fieldName;
-          if (fieldType) initial.type = fieldType as any;
+          if (fieldType) initial.type = fieldType;
           const newId = addField(initial);
           console.debug('🎤 DataEntryForm.voiceAddField -> added field', { newId, fieldName, fieldType });
         };
@@ -107,7 +107,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     } else {
       console.log('❌ DataEntryForm: Voice form context not available');
     }
-  }, []); // Removed dependencies to prevent re-registration
+  }, [addField, registerFormSetters, setSelectedCategory, setTitle, unregisterFormSetters]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

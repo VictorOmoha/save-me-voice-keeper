@@ -46,11 +46,11 @@ serve(async (req) => {
 
     // Find or create customer by email
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string | undefined = customers.data[0]?.id;
+    const customerId: string | undefined = customers.data[0]?.id;
 
     // Get origin from header or referer, fallback to production URL
     const origin = req.headers.get("origin")
-      || req.headers.get("referer")?.replace(/\/[^\/]*$/, '')
+      || req.headers.get("referer")?.replace(/\/[^/]*$/, '')
       || "https://saveme.space";
 
     console.log("Creating checkout session with origin:", origin);

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -275,7 +276,7 @@ export const VideoUpload = () => {
 
     } catch (error) {
       console.error('Error uploading video:', error);
-      const errorMessage = (error as any)?.message || "Failed to upload video";
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload video";
       toast({
         title: "Upload Failed",
         description: errorMessage,

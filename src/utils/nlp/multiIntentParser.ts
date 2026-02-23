@@ -1,7 +1,7 @@
 export interface ParsedIntent {
   type: string;
   confidence: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   rawText: string;
   position: { start: number; end: number };
 }
@@ -123,8 +123,8 @@ export class MultiIntentParser {
     return this.inferIntentFromKeywords(trimmedSegment, position);
   }
 
-  private extractParameters(text: string, intentType: string, match: RegExpExecArray): Record<string, any> {
-    const params: Record<string, any> = {};
+  private extractParameters(text: string, intentType: string, match: RegExpExecArray): Record<string, unknown> {
+    const params: Record<string, unknown> = {};
 
     switch (intentType) {
       case 'create_entry':

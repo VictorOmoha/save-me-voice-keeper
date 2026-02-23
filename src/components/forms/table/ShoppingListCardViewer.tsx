@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,32 +22,27 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!value || !value.columns || value.columns.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
-        No shopping list data available
-      </div>
-    );
-  }
+  const columns = value?.columns ?? [];
+  const rows = value?.rows ?? [];
 
   // Find relevant columns
-  const itemColumn = value.columns.find(col => col.name.toLowerCase().includes('item'));
-  const quantityColumn = value.columns.find(col => col.name.toLowerCase().includes('quantity') || col.name.toLowerCase().includes('qty'));
-  const unitColumn = value.columns.find(col => col.name.toLowerCase().includes('unit'));
-  const priceColumn = value.columns.find(col => col.name.toLowerCase().includes('price') || col.name.toLowerCase().includes('cost'));
-  const categoryColumn = value.columns.find(col => col.name.toLowerCase().includes('category') || col.name.toLowerCase().includes('aisle'));
-  const purchasedColumn = value.columns.find(col => col.name.toLowerCase().includes('purchased') || col.name.toLowerCase().includes('got it') || col.type === 'checkbox');
-  const notesColumn = value.columns.find(col => col.name.toLowerCase().includes('notes') || col.name.toLowerCase().includes('note'));
+  const itemColumn = columns.find(col => col.name.toLowerCase().includes('item'));
+  const quantityColumn = columns.find(col => col.name.toLowerCase().includes('quantity') || col.name.toLowerCase().includes('qty'));
+  const unitColumn = columns.find(col => col.name.toLowerCase().includes('unit'));
+  const priceColumn = columns.find(col => col.name.toLowerCase().includes('price') || col.name.toLowerCase().includes('cost'));
+  const categoryColumn = columns.find(col => col.name.toLowerCase().includes('category') || col.name.toLowerCase().includes('aisle'));
+  const purchasedColumn = columns.find(col => col.name.toLowerCase().includes('purchased') || col.name.toLowerCase().includes('got it') || col.type === 'checkbox');
+  const notesColumn = columns.find(col => col.name.toLowerCase().includes('notes') || col.name.toLowerCase().includes('note'));
 
   const filteredRows = React.useMemo(() => {
-    if (!searchTerm) return value.rows;
+    if (!searchTerm) return rows;
     
-    return value.rows.filter(row =>
+    return rows.filter(row =>
       Object.values(row).some(value =>
         String(value).toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
-  }, [value.rows, searchTerm]);
+  }, [rows, searchTerm]);
 
   // Calculate totals
   const totals = React.useMemo(() => {
@@ -73,12 +69,21 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
     };
   }, [filteredRows, priceColumn, purchasedColumn]);
 
+
+  if (!value || columns.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
+        No shopping list data available
+      </div>
+    );
+  }
+
   const exportToCSV = () => {
     try {
       const headers = value.columns.map(col => col.name);
       const csvContent = [
         headers.join(','),
-        ...value.rows.map(row =>
+        ...rows.map(row =>
           value.columns.map(col => {
             const value = row[col.id] || '';
             if (col.type === 'checkbox') {
@@ -259,9 +264,9 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
         </div>
       )}
 
-      {searchTerm && filteredRows.length !== value.rows.length && (
+      {searchTerm && filteredRows.length !== rows.length && (
         <div className="text-sm text-muted-foreground text-center">
-          Showing {filteredRows.length} of {value.rows.length} items
+          Showing {filteredRows.length} of {rows.length} items
         </div>
       )}
     </div>

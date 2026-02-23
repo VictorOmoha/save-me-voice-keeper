@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
+import { DashboardVoiceListener } from '@/components/DashboardVoiceListener';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';

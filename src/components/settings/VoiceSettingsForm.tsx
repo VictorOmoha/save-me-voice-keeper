@@ -273,7 +273,7 @@ export const VoiceSettingsForm: React.FC<VoiceSettingsFormProps> = ({ showTitle 
                                 <Label>Preferred TTS Service</Label>
                                 <Select
                                     value={preferences.tts_service}
-                                    onValueChange={(value) => handleUpdatePreference({ tts_service: value as any })}
+                                    onValueChange={(value: UserPreferences['tts_service']) => handleUpdatePreference({ tts_service: value })}
                                     disabled={isLoading}
                                 >
                                     <SelectTrigger>

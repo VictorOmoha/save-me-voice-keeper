@@ -131,7 +131,7 @@ export const useVoiceConversationManager = ({
     }
 
     switch (currentStep.type) {
-      case 'title':
+      case 'title': {
         if (cleanedText.length < 2) return false;
 
         const newEntryDraft = { ...entryDraft, title: cleanedText };
@@ -152,8 +152,9 @@ export const useVoiceConversationManager = ({
           toast.success(`✅ Title set: "${cleanedText}"`);
         }, 300);
         break;
+      }
 
-      case 'category':
+      case 'category': {
         const matchedCategory = matchCategory(cleanedText);
 
         if (!matchedCategory) {
@@ -182,8 +183,9 @@ export const useVoiceConversationManager = ({
           toast.success(`✅ Category set: ${matchedCategory}`);
         }, 300);
         break;
+      }
 
-      case 'more_fields':
+      case 'more_fields': {
         if (lowerTranscript.includes('yes') || lowerTranscript.includes('add')) {
           const addFieldState = {
             ...currentState,
@@ -232,8 +234,9 @@ export const useVoiceConversationManager = ({
           }, 300);
         }
         break;
+      }
 
-      case 'field_name':
+      case 'field_name': {
         const fieldNameState = {
           ...currentState,
           currentStep: CONVERSATION_STEPS.FIELD_TYPE,
@@ -248,8 +251,9 @@ export const useVoiceConversationManager = ({
           toast.success(`📝 Field name: "${cleanedText}"`);
         }, 300);
         break;
+      }
 
-      case 'field_type':
+      case 'field_type': {
         const fieldTypes = ['text', 'number', 'date', 'textarea'];
         const matchedType = fieldTypes.find(type =>
           lowerTranscript.includes(type)
@@ -284,6 +288,7 @@ export const useVoiceConversationManager = ({
           toast.success(`✅ Added field: ${newField.name}`);
         }, 300);
         break;
+      }
     }
 
     return true;

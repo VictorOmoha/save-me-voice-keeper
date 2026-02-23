@@ -163,7 +163,7 @@ export class NLPEngine {
   }
 
   // Method to add custom intents and actions
-  registerCustomAction(action: any) {
+  registerCustomAction(action: { intent: string; handler: (parameters: Record<string, unknown>) => Promise<unknown> | unknown; description: string; examples: string[] }) {
     this.commandRouter.registerAction(action);
   }
 

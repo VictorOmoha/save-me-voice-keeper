@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+type SupabaseLike = {
+  auth: { admin: { listUsers: () => Promise<{ data: { users: Array<{ id: string; email?: string | null }> }; error: unknown }> } };
+  from: (table: string) => { upsert: (data: Record<string, unknown>, opts: { onConflict: string }) => Promise<{ error: unknown }>; update: (data: Record<string, unknown>) => { eq: (col: string, value: string) => Promise<{ error: unknown }> } };
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
@@ -119,18 +124,18 @@ serve(async (req) => {
 });
 
 // Helper function to get user by Stripe customer email
-async function getUserByEmail(supabase: any, email: string) {
+async function getUserByEmail(supabase: SupabaseLike, email: string) {
   const { data: users, error } = await supabase.auth.admin.listUsers();
   if (error) {
     console.error("Error listing users:", error);
     return null;
   }
-  return users.users.find((u: any) => u.email === email);
+  return users.users.find((u) => u.email === email);
 }
 
 // Handle successful checkout
 async function handleCheckoutCompleted(
-  supabase: any,
+  supabase: SupabaseLike,
   stripe: Stripe,
   session: Stripe.Checkout.Session
 ) {
@@ -190,7 +195,7 @@ async function handleCheckoutCompleted(
 
 // Handle subscription updates
 async function handleSubscriptionUpdated(
-  supabase: any,
+  supabase: SupabaseLike,
   stripe: Stripe,
   subscription: Stripe.Subscription
 ) {
@@ -231,7 +236,7 @@ async function handleSubscriptionUpdated(
 
 // Handle subscription cancellation
 async function handleSubscriptionDeleted(
-  supabase: any,
+  supabase: SupabaseLike,
   stripe: Stripe,
   subscription: Stripe.Subscription
 ) {
@@ -264,14 +269,14 @@ async function handleSubscriptionDeleted(
 }
 
 // Handle successful payment
-async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
+async function handlePaymentSucceeded(supabase: SupabaseLike, invoice: Stripe.Invoice) {
   console.log(`Payment succeeded for invoice: ${invoice.id}`);
   // Could log to a payments table or send confirmation email
 }
 
 // Handle failed payment
 async function handlePaymentFailed(
-  supabase: any,
+  supabase: SupabaseLike,
   stripe: Stripe,
   invoice: Stripe.Invoice
 ) {

@@ -617,7 +617,7 @@ const renderGenericTable = (tableData: TableData, title: string): string => {
 };
 
 // Enhanced helper function to render field values based on their type and content
-const renderFieldValue = (key: string, value: any, fieldDefinitions?: any[], template: string = 'auto'): string => {
+const renderFieldValue = (key: string, value: unknown, fieldDefinitions?: Array<Record<string, unknown>>, template: string = 'auto'): string => {
   if (value === null || value === undefined || value === '') {
     return '<span class="text-muted">No data</span>';
   }
@@ -724,7 +724,7 @@ const renderFieldValue = (key: string, value: any, fieldDefinitions?: any[], tem
   return `<span class="text-value">${String(value)}</span>`;
 };
 
-const renderTableCellValue = (value: any, columnType: string): string => {
+const renderTableCellValue = (value: unknown, columnType: string): string => {
   if (value === null || value === undefined || value === '') {
     return '—';
   }
@@ -745,7 +745,7 @@ const extractFileName = (url: string): string => {
   if (url.includes('blob:')) {
     return 'Uploaded image';
   }
-  const match = url.match(/\/([^\/]+\.[^\/]+)$/);
+  const match = url.match(/\/([^/]+\.[^/]+)$/);
   return match ? match[1] : 'Image file';
 };
 
@@ -1222,7 +1222,9 @@ const openPrintWindow = (content: string) => {
         try {
           printFrame.contentWindow?.focus();
           printFrame.contentWindow?.print();
-        } catch {}
+        } catch (error) {
+      console.debug("Print cleanup failed:", error);
+    }
       };
       if (printFrame.contentWindow?.document.readyState === 'complete') {
         setTimeout(tryIframePrint, 400);
@@ -1233,7 +1235,9 @@ const openPrintWindow = (content: string) => {
     }
 
     setTimeout(() => {
-      try { document.body.removeChild(printFrame); } catch {}
+      try { document.body.removeChild(printFrame); } catch (error) {
+      console.debug("Print cleanup failed:", error);
+    }
     }, 4000);
   }
 };

@@ -7,9 +7,10 @@ import { User } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { toast } from "sonner";
+import { User as FirebaseUser } from "firebase/auth";
 
 interface ProfileSettingsProps {
-  user: any;
+  user: FirebaseUser | null;
 }
 
 export const ProfileSettings = ({ user }: ProfileSettingsProps) => {

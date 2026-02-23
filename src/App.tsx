@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { VoiceFormProvider } from "./contexts/VoiceFormContext";
+import { VoiceCommandProvider } from "./contexts/VoiceCommandContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ThemeBootstrapper } from "./components/ThemeBootstrapper";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -24,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
+import { VoiceCommandGlobalListener } from "./components/VoiceCommandGlobalListener";
 import BrainDump from "./pages/BrainDump";
 import Insights from "./pages/Insights";
 import Onboarding from "./pages/Onboarding";
@@ -40,9 +42,10 @@ const App = () => (
           <ErrorBoundary>
             <AuthProvider>
               <ThemeBootstrapper />
-              <VoiceFormProvider>
+              <VoiceCommandProvider><VoiceFormProvider>
                 <HashRouter>
                   <VoiceNavigationListener />
+                  <VoiceCommandGlobalListener />
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/login" element={<Login />} />
@@ -63,7 +66,7 @@ const App = () => (
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </HashRouter>
-              </VoiceFormProvider>
+              </VoiceFormProvider></VoiceCommandProvider>
             </AuthProvider>
           </ErrorBoundary>
         </TooltipProvider>

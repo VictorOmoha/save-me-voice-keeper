@@ -28,7 +28,7 @@ export const SecuritySettings = () => {
     }
 
     // Strong password validation: minimum 8 characters with complexity
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{}|;':",.<>\/\\`~])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{}|;':",.<>\/\\`~]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
     if (!passwordRegex.test(passwordForm.newPassword)) {
       toast.error("Password must be at least 8 characters with uppercase, lowercase, number, and special character");
       return;
@@ -57,9 +57,10 @@ export const SecuritySettings = () => {
       toast.success("Password updated successfully");
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       setIsPasswordDialogOpen(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating password:', error);
-      if (error.code === 'auth/wrong-password') {
+      const errorCode = error instanceof Error && "code" in error ? (error as { code?: string }).code : undefined;
+      if (errorCode === 'auth/wrong-password') {
         toast.error("Current password is incorrect");
       } else {
         toast.error("Failed to update password");

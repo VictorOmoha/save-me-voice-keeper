@@ -16,7 +16,7 @@ const normalizeFieldName = (name: string): string => {
 };
 
 // Helper function to detect field type from value
-const detectFieldType = (value: any): CustomField['type'] => {
+const detectFieldType = (value: unknown): CustomField['type'] => {
   if (typeof value === 'number') return 'number';
   if (Array.isArray(value)) return 'gallery';
   if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) return 'table';
@@ -186,13 +186,13 @@ export const useFormLogic = ({
     setFields(prev => [...prev, newField]);
     return newField.id;
   };
-  const updateField = (id: string, key: keyof CustomField, value: any) => {
+  const updateField = (id: string, key: keyof CustomField, value: unknown) => {
     console.log('Updating field:', { id, key, value });
     
     // Validate field type if we're updating the type
     if (key === 'type') {
       const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
-      if (!validTypes.includes(value)) {
+      if (typeof value !== "string" || !validTypes.includes(value as CustomField['type'])) {
         console.error('Invalid field type provided:', value, 'Valid types:', validTypes);
         return; // Don't update with invalid type
       }
@@ -220,7 +220,7 @@ export const useFormLogic = ({
   };
 
   const prepareSubmissionData = () => {
-    const fieldData: Record<string, any> = {
+    const fieldData: Record<string, unknown> = {
       category: selectedCategory
     };
     const fieldDefinitions: FieldDefinition[] = [

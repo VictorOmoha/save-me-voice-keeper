@@ -9,6 +9,15 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 
+
+const getAuthErrorInfo = (error: unknown): { code?: string; message: string } => {
+  if (error instanceof Error) {
+    const code = 'code' in error ? (error as { code?: string }).code : undefined;
+    return { code, message: error.message };
+  }
+  return { message: String(error) };
+};
+
 export const authService = {
   login: async (email: string, password: string): Promise<{ error?: string }> => {
     console.log('authService.login called', { email });
@@ -16,23 +25,24 @@ export const authService = {
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log('authService.login success', { uid: result.user.uid, email: result.user.email });
       return {};
-    } catch (error: any) {
+    } catch (error) {
+      const { code, message } = getAuthErrorInfo(error);
       console.error('authService.login error', error);
-      console.error('Error code:', error.code);
+      console.error('Error code:', code);
 
       // Provide user-friendly error messages
-      let errorMessage = error.message;
-      if (error.code === 'auth/user-not-found') {
+      let errorMessage = message;
+      if (code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email address.';
-      } else if (error.code === 'auth/wrong-password') {
+      } else if (code === 'auth/wrong-password') {
         errorMessage = 'Incorrect password. Please try again.';
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address format.';
-      } else if (error.code === 'auth/user-disabled') {
+      } else if (code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled.';
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed attempts. Please try again later.';
-      } else if (error.code === 'auth/invalid-credential') {
+      } else if (code === 'auth/invalid-credential') {
         errorMessage = 'Invalid email or password. Please check your credentials.';
       }
 
@@ -53,9 +63,10 @@ export const authService = {
       }
       console.log('authService.signup success', { uid: userCredential.user.uid });
       return {};
-    } catch (error: any) {
+    } catch (error) {
+      const { message } = getAuthErrorInfo(error);
       console.error('authService.signup error', error);
-      return { error: error.message };
+      return { error: message };
     }
   },
 
@@ -70,21 +81,22 @@ export const authService = {
       const result = await signInWithPopup(auth, provider);
       console.log('authService.signInWithGoogle success', { uid: result.user.uid, email: result.user.email });
       return {};
-    } catch (error: any) {
+    } catch (error) {
+      const { code, message } = getAuthErrorInfo(error);
       console.error('Google sign-in exception:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
+      console.error('Error code:', code);
+      console.error('Error message:', message);
 
       // Provide user-friendly error messages
       let errorMessage = 'An unexpected error occurred';
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (code === 'auth/popup-closed-by-user') {
         errorMessage = 'Sign-in was cancelled';
-      } else if (error.code === 'auth/popup-blocked') {
+      } else if (code === 'auth/popup-blocked') {
         errorMessage = 'Popup was blocked. Please allow popups for this site.';
-      } else if (error.code === 'auth/unauthorized-domain') {
+      } else if (code === 'auth/unauthorized-domain') {
         errorMessage = 'This domain is not authorized for sign-in. Please contact support.';
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if (message) {
+        errorMessage = message;
       }
 
       return { error: errorMessage };
@@ -103,8 +115,9 @@ export const authService = {
     try {
       await sendPasswordResetEmail(auth, email);
       return {};
-    } catch (error: any) {
-      return { error: error.message };
+    } catch (error) {
+      const { message } = getAuthErrorInfo(error);
+      return { error: message };
     }
   },
 };

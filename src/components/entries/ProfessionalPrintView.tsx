@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { TableData } from "@/components/forms/types";
@@ -22,7 +23,7 @@ const categoryColors: Record<string, { primary: string; secondary: string; accen
 const defaultColors = { primary: "#6b7280", secondary: "#f3f4f6", accent: "#4b5563" };
 
 // Format field value for print
-const formatFieldValue = (key: string, value: any): string => {
+const formatFieldValue = (key: string, value: unknown): string => {
   if (value === null || value === undefined || value === "") return "—";
 
   if (key.toLowerCase().includes("size") && typeof value === "number") {

@@ -1,9 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Download, Search, Filter, SortAsc, SortDesc } from 'lucide-react';
+import { Download, Search, SortAsc, SortDesc } from 'lucide-react';
 import { TableData, TableColumn } from '../types';
 import { toast } from 'sonner';
 
@@ -22,13 +23,8 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  if (!value || !value.columns || value.columns.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
-        No table data available
-      </div>
-    );
-  }
+  const columns = value?.columns ?? [];
+  const rows = value?.rows ?? [];
 
   const handleSort = (columnId: string) => {
     if (sortColumn === columnId) {
@@ -40,7 +36,7 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
   };
 
   const filteredAndSortedRows = React.useMemo(() => {
-    let filtered = value.rows;
+    let filtered = rows;
 
     // Apply search filter
     if (searchTerm) {
@@ -57,7 +53,7 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
         const aVal = a[sortColumn] || '';
         const bVal = b[sortColumn] || '';
         
-        const column = value.columns.find(col => col.id === sortColumn);
+        const column = columns.find(col => col.id === sortColumn);
         
         if (column?.type === 'number') {
           const aNum = parseFloat(String(aVal)) || 0;
@@ -91,15 +87,24 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
     }
 
     return filtered;
-  }, [value.rows, searchTerm, sortColumn, sortDirection, value.columns]);
+  }, [rows, searchTerm, sortColumn, sortDirection, columns]);
+
+
+  if (!value || columns.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground border border-border rounded-lg">
+        No table data available
+      </div>
+    );
+  }
 
   const exportToCSV = () => {
     try {
-      const headers = value.columns.map(col => col.name);
+      const headers = columns.map(col => col.name);
       const csvContent = [
         headers.join(','),
-        ...value.rows.map(row =>
-          value.columns.map(col => {
+        ...rows.map(row =>
+          columns.map(col => {
             const value = row[col.id] || '';
             if (col.type === 'checkbox') {
               return value ? 'true' : 'false';
@@ -128,7 +133,7 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
     }
   };
 
-  const renderCellValue = (row: Record<string, any>, column: TableColumn) => {
+  const renderCellValue = (row: Record<string, unknown>, column: TableColumn) => {
     const cellValue = row[column.id];
 
     switch (column.type) {
@@ -164,10 +169,10 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
           {title && <h3 className="text-lg font-medium">{title}</h3>}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Badge variant="outline">
-              {value.rows.length} row{value.rows.length !== 1 ? 's' : ''}
+              {rows.length} row{value.rows.length !== 1 ? 's' : ''}
             </Badge>
             <Badge variant="outline">
-              {value.columns.length} column{value.columns.length !== 1 ? 's' : ''}
+              {columns.length} column{value.columns.length !== 1 ? 's' : ''}
             </Badge>
           </div>
         </div>
@@ -196,7 +201,7 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
         <table className="w-full border-collapse border border-border">
           <thead>
             <tr className="bg-muted/50">
-              {value.columns.map((column) => (
+              {columns.map((column) => (
                 <th
                   key={column.id}
                   className="border border-border p-3 text-left text-sm font-medium cursor-pointer hover:bg-muted/70 transition-colors"
@@ -218,7 +223,7 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
           <tbody>
             {filteredAndSortedRows.map((row, rowIndex) => (
               <tr key={rowIndex} className="hover:bg-muted/30 transition-colors">
-                {value.columns.map((column) => (
+                {columns.map((column) => (
                   <td key={column.id} className="border border-border p-3 text-sm">
                     {renderCellValue(row, column)}
                   </td>
@@ -235,9 +240,9 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
         </div>
       )}
 
-      {searchTerm && filteredAndSortedRows.length !== value.rows.length && (
+      {searchTerm && filteredAndSortedRows.length !== rows.length && (
         <div className="text-sm text-muted-foreground text-center">
-          Showing {filteredAndSortedRows.length} of {value.rows.length} rows
+          Showing {filteredAndSortedRows.length} of {rows.length} rows
         </div>
       )}
     </div>

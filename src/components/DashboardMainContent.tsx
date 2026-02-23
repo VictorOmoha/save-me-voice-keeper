@@ -21,7 +21,7 @@ interface DashboardMainContentProps {
   fillingEntry: SavedEntry | null;
   getFormTitle: () => string;
   getFormMode: () => 'create' | 'edit' | 'fill';
-  onDocumentSave: (document: any) => void;
+  onDocumentSave: (document: unknown) => void;
   onDocumentCancel: () => void;
   onSaveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancelEdit: () => void;
@@ -35,7 +35,7 @@ interface DashboardMainContentProps {
   onViewAllEntries: () => void;
   isVoiceProcessing?: boolean;
   isSaving?: boolean;
-  lastVoiceCommand?: any;
+  lastVoiceCommand?: unknown;
   conversationState?: 'listening' | 'confirming' | 'idle';
   hasPendingConfirmation?: boolean;
   onCancelVoice?: () => void;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2, Save, Printer } from 'lucide-react';
@@ -71,12 +71,6 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   const isWordDoc = fileName.endsWith('.docx') || fileType.includes('wordprocessingml.document') || fileType.toLowerCase().includes('docx');
   const isRtf = fileType.includes('rtf') || fileName.endsWith('.rtf');
 
-  useEffect(() => {
-    if (isOpen && entry && isDocumentEntry) {
-      loadDocument();
-    }
-  }, [isOpen, entry, isDocumentEntry]);
-
   const textToHtml = (text: string) => {
     const esc = text
       .replace(/&/g, '&amp;')
@@ -94,14 +88,14 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     setInitialNotesHtml(existingHtml);
   }, [isOpen, entry]);
 
-  const loadDocument = async () => {
+  const loadDocument = useCallback(async () => {
     if (!entry) return;
 
     try {
       setIsLoading(true);
 
       // First try to get from Firebase Storage (prefer explicit storagePath)
-      const storagePath = (entry.fields as any)?.storagePath as string | undefined;
+      const storagePath = (entry.fields as Record<string, unknown>)?.storagePath as string | undefined;
       const filePath = storagePath || (user ? `documents/${user.uid}/${entry.id}/${fileName}` : `documents/${entry.id}/${fileName}`);
 
       try {
@@ -132,7 +126,15 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  // loadFromLocalStorage is defined later in module scope and stable for this render cycle
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entry, fileName, isTextBased, isWordDoc, storedContent, user]);
+
+  useEffect(() => {
+    if (isOpen && entry && isDocumentEntry) {
+      loadDocument();
+    }
+  }, [isOpen, entry, isDocumentEntry, loadDocument]);
 
   const loadWordDocument = async (blob: Blob) => {
     try {
@@ -149,7 +151,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     }
   };
 
-  const loadFromLocalStorage = async () => {
+  const loadFromLocalStorage = useCallback(async () => {
     const localKey = Object.keys(localStorage).find(key => 
       key.startsWith('document_') && 
       JSON.parse(localStorage.getItem(key) || '{}').name === fileName
@@ -176,7 +178,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     } else if (storedContent && isTextBased) {
       setDocumentState(prev => ({ ...prev, content: storedContent }));
     }
-  };
+  }, [fileName, isTextBased, isWordDoc, storedContent]);
 
   const handleDownload = async () => {
     if (!isDocumentEntry || !documentState.blob) return;

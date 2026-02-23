@@ -120,7 +120,7 @@ const getAuthToken = async (): Promise<string | null> => {
  */
 const callCloudFunction = async (
   functionName: string,
-  payload: Record<string, any>
+  payload: Record<string, unknown>
 ): Promise<{ audioContent: string } | null> => {
   if (!CLOUD_FUNCTIONS_BASE_URL) {
     console.warn('TTS: Cloud Functions URL not configured');
@@ -274,14 +274,14 @@ export const setSelectedGoogleVoice = (voice: keyof typeof GOOGLE_VOICES): void 
 
 // Improved TTS cache for speech recognition filtering
 const initializeTTSCache = () => {
-  if (!(window as any).__recent_tts_texts) {
-    (window as any).__recent_tts_texts = [];
+  if (!(window as Window & { __recent_tts_texts?: string[] }).__recent_tts_texts) {
+    (window as Window & { __recent_tts_texts?: string[] }).__recent_tts_texts = [];
   }
 };
 
 const addToTTSCache = (text: string) => {
   initializeTTSCache();
-  const cache = (window as any).__recent_tts_texts as string[];
+  const cache = (window as Window & { __recent_tts_texts?: string[] }).__recent_tts_texts as string[];
 
   // Add to cache and keep only last 3 items
   cache.unshift(text);
@@ -300,8 +300,8 @@ const addToTTSCache = (text: string) => {
 
 // Clear speech history - for compatibility
 export const clearSpeechHistory = (): void => {
-  if ((window as any).__recent_tts_texts) {
-    (window as any).__recent_tts_texts = [];
+  if ((window as Window & { __recent_tts_texts?: string[] }).__recent_tts_texts) {
+    (window as Window & { __recent_tts_texts?: string[] }).__recent_tts_texts = [];
   }
 };
 
@@ -326,7 +326,7 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
   addToTTSCache(text);
 
   // Set global flag and dispatch event BEFORE starting speech
-  (window as any).__tts_is_speaking = true;
+  (window as Window & { __tts_is_speaking?: boolean }).__tts_is_speaking = true;
   window.dispatchEvent(new CustomEvent('tts-started'));
   console.log('TTS: Set speaking flag and dispatched tts-started event');
 
@@ -340,9 +340,9 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
 
     // Helper to dispatch completion event
     const dispatchCompleted = () => {
-      try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
-      (window as any).__tts_is_speaking = false;
-      (window as any).__last_tts_end_time = Date.now();
+      try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e instanceof Error ? e.message : String(e))); }
+      (window as Window & { __tts_is_speaking?: boolean }).__tts_is_speaking = false;
+      (window as Window & { __last_tts_end_time?: number }).__last_tts_end_time = Date.now();
       window.dispatchEvent(new CustomEvent('tts-completed'));
       console.log('TTS: Speech completed, dispatched tts-completed event');
     };
@@ -425,9 +425,9 @@ export const speak = async (text: string, optionsOrVoice?: string | SpeechOption
     console.error('TTS: Error during speech:', error);
     toast.error('TTS failed. Please try again.');
     // Also clear TTS flag on error so recognition can restart
-    try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e as any)?.message || e); }
-    (window as any).__tts_is_speaking = false;
-    (window as any).__last_tts_end_time = Date.now();
+    try { playEndOfSpeechCueIfEnabled(); } catch (e) { console.warn('Audio cue failed:', (e instanceof Error ? e.message : String(e))); }
+    (window as Window & { __tts_is_speaking?: boolean }).__tts_is_speaking = false;
+    (window as Window & { __last_tts_end_time?: number }).__last_tts_end_time = Date.now();
     window.dispatchEvent(new CustomEvent('tts-completed'));
     console.log('TTS: Speech error, dispatched tts-completed event');
   }
@@ -532,8 +532,8 @@ export const stopSpeaking = (): void => {
   }
 
   // Clear TTS flag and track end time
-  (window as any).__tts_is_speaking = false;
-  (window as any).__last_tts_end_time = Date.now();
+  (window as Window & { __tts_is_speaking?: boolean }).__tts_is_speaking = false;
+  (window as Window & { __last_tts_end_time?: number }).__last_tts_end_time = Date.now();
 
   // Dispatch completion event
   window.dispatchEvent(new CustomEvent('tts-completed'));
@@ -544,7 +544,7 @@ export const stopCurrentSpeech = stopSpeaking;
 
 // Check if TTS is currently speaking
 export const isSpeaking = (): boolean => {
-  return !!(window as any).__tts_is_speaking;
+  return !!(window as Window & { __tts_is_speaking?: boolean }).__tts_is_speaking;
 };
 
 // API Key validation functions

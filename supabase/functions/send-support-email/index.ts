@@ -88,12 +88,13 @@ const handler = async (req: Request): Promise<Response> => {
         },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in send-support-email function:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       {
-        status: error.message === "Unauthorized" ? 401 : 500,
+        status: message === "Unauthorized" ? 401 : 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );

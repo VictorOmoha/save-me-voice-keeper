@@ -50,7 +50,7 @@ export const EnhancedTableFillMode: React.FC<EnhancedTableFillModeProps> = ({
     }
   });
 
-  const updateRowValue = useCallback((rowIndex: number, columnId: string, newValue: any) => {
+  const updateRowValue = useCallback((rowIndex: number, columnId: string, newValue: unknown) => {
     const updatedValue = {
       ...value,
       rows: value.rows.map((row, index) => 
@@ -105,7 +105,7 @@ export const EnhancedTableFillMode: React.FC<EnhancedTableFillModeProps> = ({
     }
   }, [handleCellNavigation]);
 
-  const renderCellInput = useCallback((row: Record<string, any>, column: TableColumn, rowIndex: number) => {
+  const renderCellInput = useCallback((row: Record<string, unknown>, column: TableColumn, rowIndex: number) => {
     const cellValue = row[column.id] || '';
     const isFocused = focusedCell?.rowIndex === rowIndex && focusedCell?.columnId === column.id;
     const isHighlighted = highlightedCell?.rowIndex === rowIndex && highlightedCell?.columnId === column.id;

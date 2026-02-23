@@ -45,7 +45,7 @@ interface EnhancedEntryViewDialogProps {
 
 
 // Format field value for display
-const formatFieldValue = (key: string, value: any): { formatted: string; type: "text" | "date" | "currency" | "phone" | "masked" | "email" | "url" } => {
+const formatFieldValue = (key: string, value: unknown): { formatted: string; type: "text" | "date" | "currency" | "phone" | "masked" | "email" | "url" } => {
   if (value === null || value === undefined || value === "") {
     return { formatted: "—", type: "text" };
   }

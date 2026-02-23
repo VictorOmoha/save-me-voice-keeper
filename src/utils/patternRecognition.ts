@@ -59,7 +59,7 @@ const TOPICS = {
  * Analyze entries for patterns within a time range
  */
 export function analyzePatterns(
-  entries: Array<{ id: string; title: string; notes: string; people: string[]; tags: string[]; createdAt: Date; fields?: Record<string, any> }>,
+  entries: Array<{ id: string; title: string; notes: string; people: string[]; tags: string[]; createdAt: Date; fields?: Record<string, unknown> }>,
   daysBack: number = 7
 ): PatternAnalysis {
   const now = new Date();
@@ -207,7 +207,7 @@ function findKeywordMatches(
 
     // Find which entries contain this keyword
     for (const entry of entries) {
-      const entryText = (entry as any).title + ' ' + (entry as any).notes;
+      const entryText = (entry as { title?: string; notes?: string }).title + ' ' + (entry as { title?: string; notes?: string }).notes;
       if (entryText.toLowerCase().includes(keyword)) {
         matchedEntries.add(entry.id);
         if (!firstDate || entry.createdAt < firstDate) firstDate = entry.createdAt;

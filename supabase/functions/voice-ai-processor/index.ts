@@ -21,7 +21,7 @@ interface ProcessedCommand {
   intent: 'create' | 'delete' | 'edit' | 'search' | 'navigate' | 'export' | 'bulk_operation' | 'form_fill' | 'conversation' | 'unknown';
   action: string;
   confidence: number;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   needsConfirmation: boolean;
   conversationalResponse: string;
   followUpQuestions?: string[];

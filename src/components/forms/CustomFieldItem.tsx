@@ -21,7 +21,7 @@ interface CustomFieldItemProps {
   fieldsLength: number;
   isEditMode: boolean;
   isFillMode: boolean;
-  onUpdateField: (id: string, key: keyof CustomField, value: any) => void;
+  onUpdateField: (id: string, key: keyof CustomField, value: unknown) => void;
   onRemoveField: (id: string) => void;
   onMoveField?: (id: string, direction: 'up' | 'down') => void;
   highlightedField?: string | null;
@@ -119,7 +119,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
     if (shouldShowDataInput) {
       // Show data input for filling or editing existing data
       switch (normalizedFieldType) {
-        case 'table':
+        case 'table': {
           // Initialize table data if not present or convert from simple value
           console.log('Processing table field, value:', field.value);
           let tableData: TableData;
@@ -162,6 +162,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               )}
             </div>
           );
+        }
         case 'image':
           return (
             <div className="space-y-4">

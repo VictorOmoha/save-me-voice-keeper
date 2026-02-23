@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState } from 'react';
 import { AuthContextType, ExtendedUser } from '@/types/auth';
 import { useAuthState } from '@/hooks/useAuthState';

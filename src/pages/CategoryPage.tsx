@@ -34,10 +34,7 @@ export default function CategoryPage() {
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
   const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
 
-  // Validate category name
-  if (!categoryName || !VALID_CATEGORIES.includes(categoryName)) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const isValidCategory = !!categoryName && VALID_CATEGORIES.includes(categoryName);
 
   const loadEntries = useCallback(async () => {
     if (authLoading) return;
@@ -194,6 +191,11 @@ export default function CategoryPage() {
     )
   );
 
+
+  if (!isValidCategory || !categoryName) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <DashboardLayout
       searchQuery={searchQuery}
@@ -202,11 +204,11 @@ export default function CategoryPage() {
       onAddEntry={() => handleCreateEntry(categoryName)}
       onCategorySelect={(name) => navigate(`/category/${encodeURIComponent(name)}`)}
       onAllEntriesSelect={() => navigate(`/all-entries`)}
-      onEditEntry={handleEditEntry as any}
+      onEditEntry={handleEditEntry}
       onDeleteEntry={handleDeleteEntry}
-      onSaveEntry={handleSaveEntry as any}
+      onSaveEntry={handleSaveEntry}
       onCancelEdit={handleCancelEdit}
-      onFillEntry={handleFillEntry as any}
+      onFillEntry={handleFillEntry}
     >
       <div className="flex items-center justify-between mb-6">
         <div>

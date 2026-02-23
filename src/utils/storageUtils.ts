@@ -8,7 +8,7 @@ export const formatBytes = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
-export const calculateDatabaseStorageSize = (entries: any[]): number => {
+export const calculateDatabaseStorageSize = (entries: Array<Record<string, unknown>>): number => {
   let totalSize = 0;
   
   entries.forEach(entry => {
@@ -28,7 +28,7 @@ export const calculateDatabaseStorageSize = (entries: any[]): number => {
     
     // Add extra calculation for field data
     if (entry.fields) {
-      Object.values(entry.fields).forEach((value: any) => {
+      Object.values(entry.fields as Record<string, unknown>).forEach((value) => {
         if (typeof value === 'string') {
           totalSize += value.length * 2;
         }
@@ -72,7 +72,7 @@ export const calculateStoragePercentage = (used: number, limit: number): number 
   return Math.round((used / limit) * 100);
 };
 
-export const getRecentActivityCount = (entries: any[]): number => {
+export const getRecentActivityCount = (entries: Array<Record<string, unknown>>): number => {
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   

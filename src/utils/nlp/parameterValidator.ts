@@ -5,8 +5,8 @@ export interface ValidationRule {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  allowedValues?: any[];
-  customValidator?: (value: any) => boolean;
+  allowedValues?: unknown[];
+  customValidator?: (value: unknown) => boolean;
 }
 
 export interface ValidationSchema {
@@ -16,7 +16,7 @@ export interface ValidationSchema {
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
-  validatedParameters: Record<string, any>;
+  validatedParameters: Record<string, unknown>;
 }
 
 export class ParameterValidator {
@@ -110,7 +110,7 @@ export class ParameterValidator {
     });
   }
 
-  validate(intent: string, parameters: Record<string, any>): ValidationResult {
+  validate(intent: string, parameters: Record<string, unknown>): ValidationResult {
     const schema = this.schemas.get(intent);
     
     if (!schema) {
@@ -122,7 +122,7 @@ export class ParameterValidator {
     }
 
     const errors: string[] = [];
-    const validatedParameters: Record<string, any> = {};
+    const validatedParameters: Record<string, unknown> = {};
 
     // Validate each parameter in the schema
     for (const [paramName, rule] of Object.entries(schema)) {
@@ -150,10 +150,10 @@ export class ParameterValidator {
     };
   }
 
-  private validateParameter(name: string, value: any, rule: ValidationRule): {
+  private validateParameter(name: string, value: unknown, rule: ValidationRule): {
     isValid: boolean;
     errors: string[];
-    value: any;
+    value: unknown;
   } {
     const errors: string[] = [];
     let processedValue = value;
@@ -198,7 +198,7 @@ export class ParameterValidator {
     };
   }
 
-  private validateType(value: any, expectedType: string): boolean {
+  private validateType(value: unknown, expectedType: string): boolean {
     switch (expectedType) {
       case 'string':
         return typeof value === 'string';

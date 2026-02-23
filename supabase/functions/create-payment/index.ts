@@ -35,7 +35,9 @@ serve(async (req) => {
         const { data } = await supabaseClient.auth.getUser(token);
         customerEmail = data.user?.email ?? undefined;
       }
-    } catch (_) {}
+    } catch (error) {
+      console.debug("Could not resolve authenticated user for payment session:", error);
+    }
 
     const session = await stripe.checkout.sessions.create({
       customer_email: customerEmail ?? "guest@example.com",

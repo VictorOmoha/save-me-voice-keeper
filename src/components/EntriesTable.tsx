@@ -124,7 +124,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   };
 
   const sortedEntries = [...entries].sort((a, b) => {
-    let aValue: any, bValue: any;
+    let aValue: string | number | Date, bValue: string | number | Date;
     
     switch (sortField) {
       case 'title':
@@ -232,10 +232,11 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
     }
 
     // If it's a document entry that can be edited as text, open the document editor directly
-    const category = (entry.fields as any)?.category as string || '';
-    const fileName = (entry.fields as any)?.fileName as string || '';
-    const fileType = (entry.fields as any)?.fileType as string || '';
-    const hasInline = Boolean((entry.fields as any)?.documentContent);
+    const fields = entry.fields as Record<string, unknown>;
+    const category = typeof fields.category === 'string' ? fields.category : '';
+    const fileName = typeof fields.fileName === 'string' ? fields.fileName : '';
+    const fileType = typeof fields.fileType === 'string' ? fields.fileType : '';
+    const hasInline = Boolean(fields.documentContent);
     const isTextBased =
       hasInline ||
       fileType.includes('text') ||

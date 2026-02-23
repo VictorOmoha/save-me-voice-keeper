@@ -44,7 +44,7 @@ global.SpeechRecognition = class MockSpeechRecognition implements SpeechRecognit
   onsoundend = null;
   onspeechstart = null;
   onspeechend = null;
-} as any;
+} as unknown as typeof globalThis.SpeechRecognition;
 
 global.webkitSpeechRecognition = global.SpeechRecognition;
 

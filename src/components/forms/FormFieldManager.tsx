@@ -7,7 +7,7 @@ import { Table, Plus } from 'lucide-react';
 interface FormFieldManagerProps {
   fields: CustomField[];
   onAddField: () => void;
-  onUpdateField: (id: string, key: keyof CustomField, value: any) => void;
+  onUpdateField: (id: string, key: keyof CustomField, value: unknown) => void;
   onRemoveField: (id: string) => void;
   isEditMode: boolean;
   isFillMode: boolean;

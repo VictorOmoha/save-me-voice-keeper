@@ -2,6 +2,12 @@
 import { storage } from "@/lib/firebase";
 import { ref, deleteObject } from "firebase/storage";
 
+interface EntryLike {
+  fields: Record<string, unknown>;
+  fieldDefinitions?: Array<{ name: string; type: string }>;
+}
+
+
 export const deleteImageFromStorage = async (imageUrl: string): Promise<boolean> => {
   try {
     // Extract file path from Firebase Storage URL
@@ -51,17 +57,17 @@ export const isImageUrl = (url: string): boolean => {
   );
 };
 
-export const extractImagesFromEntry = (entry: any): string[] => {
+export const extractImagesFromEntry = (entry: EntryLike): string[] => {
   const images: string[] = [];
 
   // Extract from field definitions
   if (entry.fieldDefinitions) {
-    entry.fieldDefinitions.forEach((fieldDef: any) => {
+    entry.fieldDefinitions.forEach((fieldDef) => {
       const fieldValue = entry.fields[fieldDef.name];
       if (fieldDef.type === 'image' && isImageUrl(fieldValue)) {
         images.push(fieldValue);
       } else if (fieldDef.type === 'gallery' && Array.isArray(fieldValue)) {
-        fieldValue.forEach(url => {
+        fieldValue.forEach((url) => {
           if (isImageUrl(url)) {
             images.push(url);
           }

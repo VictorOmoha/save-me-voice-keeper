@@ -189,7 +189,7 @@ export const useDashboardActions = ({
 
       setShowAddEntry(false);
     } catch (error) {
-      const err = error as any;
+      const err = error as { message?: string; details?: string };
       const exceeded = err?.message?.includes?.('storage_limit_exceeded') || err?.details?.includes?.('storage_limit_exceeded');
       if (exceeded) {
         showStorageExceededToast();

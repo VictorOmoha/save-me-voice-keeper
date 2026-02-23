@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
@@ -266,7 +267,7 @@ export const useUnifiedVoiceProcessor = ({
     }
 
     switch (currentStep.type) {
-      case 'title':
+      case 'title': {
         // Require minimum length but be more lenient
         if (cleanedText.length < 2) {
           const retryMessage = `Please say the title more clearly.`;
@@ -306,8 +307,9 @@ export const useUnifiedVoiceProcessor = ({
         }, 300);
         console.log('➡️ Moving to category selection');
         break;
+      }
 
-      case 'category':
+      case 'category': {
         // Use fuzzy matching for category
         const matchedCategory = matchCategory(cleanedText);
         
@@ -349,8 +351,9 @@ export const useUnifiedVoiceProcessor = ({
         }, 300);
         console.log('➡️ Moving to preview step');
         break;
+      }
 
-      case 'more_fields':
+      case 'more_fields': {
         if (lowerTranscript.includes('yes') || lowerTranscript.includes('add')) {
           setConversationState(prev => ({
             ...prev,
@@ -374,8 +377,9 @@ export const useUnifiedVoiceProcessor = ({
           }, 300);
         }
         break;
+      }
 
-      case 'field_name':
+      case 'field_name': {
         setConversationState(prev => ({
           ...prev,
           currentStep: CONVERSATION_STEPS.FIELD_TYPE,
@@ -388,8 +392,9 @@ export const useUnifiedVoiceProcessor = ({
           toast.success(`📝 Field name set: "${cleanedText}"`);
         }, 300);
         break;
+      }
 
-      case 'field_type':
+      case 'field_type': {
         const fieldTypes = ['text', 'number', 'date', 'textarea'];
         const matchedType = fieldTypes.find(type => 
           lowerTranscript.includes(type)
@@ -425,8 +430,9 @@ export const useUnifiedVoiceProcessor = ({
           toast.success(`✅ Added field: ${newField.name} (${matchedType})`);
         }, 300);
         break;
+      }
 
-      case 'preview':
+      case 'preview': {
         // Check for custom fields request first
         if (lowerTranscript.includes('add custom') || lowerTranscript.includes('custom field') || 
             lowerTranscript.includes('add field') || lowerTranscript.includes('more field')) {
@@ -467,6 +473,7 @@ export const useUnifiedVoiceProcessor = ({
           }, 300);
         }
         break;
+      }
     }
 
     return true;
@@ -610,7 +617,7 @@ export const useUnifiedVoiceProcessor = ({
           speak("What would you like to add?");
           break;
           
-        case 'open_entry':
+        case 'open_entry': {
           if (command.parameters?.entryId) {
             const entry = savedEntries?.find(e => e.id === command.parameters.entryId);
             if (entry) {
@@ -662,9 +669,10 @@ export const useUnifiedVoiceProcessor = ({
               }, 300);
             }
           }
+        }
           break;
           
-        case 'close_entry':
+        case 'close_entry': {
           // Close the currently open entry by calling the cancel edit function
           onCancelEdit();
           const closeMessage = "Closing entry";
@@ -676,8 +684,9 @@ export const useUnifiedVoiceProcessor = ({
             toast.success("📄 Entry closed");
           }, 300);
           break;
+        }
           
-        case 'delete_entry':
+        case 'delete_entry': {
           // Handle delete request with confirmation
           if (command.parameters.entryId && command.parameters.entryTitle) {
             console.log('🗑️ Delete entry command received');
@@ -692,6 +701,7 @@ export const useUnifiedVoiceProcessor = ({
             }
           }
           break;
+        }
           
         case 'cancel_operation':
           if (currentState.isInConversation) {

@@ -10,7 +10,7 @@ export interface SearchSuggestion {
   completionText?: string;
   entryId?: string;
   category?: string;
-  relevantData?: any;
+  relevantData?: unknown;
 }
 
 export interface IntelligentSearchOptions {

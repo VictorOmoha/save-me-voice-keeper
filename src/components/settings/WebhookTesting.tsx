@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ interface TestField {
 interface SavedEntry {
   id: string;
   title: string;
-  fields: Record<string, any>;
+  fields: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -64,10 +64,10 @@ export const WebhookTesting = () => {
     }
 
     loadLatestEntry();
-  }, [user]);
+  }, [user, loadLatestEntry]);
 
   // Load the latest entry from the database
-  const loadLatestEntry = async () => {
+  const loadLatestEntry = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -88,7 +88,7 @@ export const WebhookTesting = () => {
         const entry: SavedEntry = {
           id: docSnap.id,
           title: data.title || '',
-          fields: typeof data.fields === 'object' && data.fields !== null ? data.fields as Record<string, any> : {},
+          fields: typeof data.fields === 'object' && data.fields !== null ? data.fields as Record<string, unknown> : {},
           created_at: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
           updated_at: data.updated_at?.toDate?.()?.toISOString() || new Date().toISOString()
         };
@@ -114,7 +114,7 @@ export const WebhookTesting = () => {
     } catch (error) {
       console.error('Error loading latest entry:', error);
     }
-  };
+  }, [user]);
 
   // Save webhook URL to localStorage
   const handleSaveWebhookUrl = () => {
@@ -154,7 +154,7 @@ export const WebhookTesting = () => {
 
   // Build test payload from fields
   const buildTestPayload = () => {
-    const payload: Record<string, any> = {};
+    const payload: Record<string, unknown> = {};
     testFields.forEach(field => {
       payload[field.key] = field.value;
     });

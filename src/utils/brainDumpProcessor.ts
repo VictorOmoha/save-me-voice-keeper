@@ -14,7 +14,7 @@ export interface BrainDumpResult {
   notes: string[];
   keyPoints: string[];
   people: string[];
-  structuredFields: Record<string, any>;
+  structuredFields: Record<string, unknown>;
   confidence: number;
 }
 
@@ -287,8 +287,8 @@ export class BrainDumpProcessor {
     return `Brain Dump - ${new Date().toLocaleDateString()}`;
   }
 
-  private extractStructuredFields(content: string): Record<string, any> {
-    const fields: Record<string, any> = {};
+  private extractStructuredFields(content: string): Record<string, unknown> {
+    const fields: Record<string, unknown> = {};
 
     // Extract dates
     const dateMatches = content.match(/\b\d{1,2}\/\d{1,2}\/\d{4}\b|\b\d{4}-\d{2}-\d{2}\b/g);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SavedEntry, FieldDefinition } from "@/types/dashboard";
 import { CustomField, CATEGORIES } from './types';
 import { normalizeToDbFieldName } from "@/utils/fieldNameNormalizer";
@@ -167,7 +167,7 @@ export const useFormLogic = ({
     });
   }, [editEntry, templateEntry, mode, preselectedCategory]);
 
-  const addField = (initial?: Partial<CustomField>): string => {
+  const addField = useCallback((initial?: Partial<CustomField>): string => {
     // Ensure we only use valid field types
     const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
     let fieldType: CustomField['type'] = 'text';
@@ -185,7 +185,7 @@ export const useFormLogic = ({
     console.log('Adding new field:', newField);
     setFields(prev => [...prev, newField]);
     return newField.id;
-  };
+  }, []);
   const updateField = (id: string, key: keyof CustomField, value: unknown) => {
     console.log('Updating field:', { id, key, value });
     

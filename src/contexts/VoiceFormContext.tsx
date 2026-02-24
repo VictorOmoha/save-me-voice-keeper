@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 
 interface VoiceFormContextType {
   // Form field setters that can be called from voice conversation
@@ -39,7 +39,7 @@ export const VoiceFormProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [formCategorySetter, setFormCategorySetter] = useState<((category: string) => void) | null>(null);
   const [formAddFieldFunction, setFormAddFieldFunction] = useState<((fieldName?: string, fieldType?: string) => void) | null>(null);
 
-  const registerFormSetters = (
+  const registerFormSetters = useCallback((
     titleSetter: (title: string) => void, 
     categorySetter: (category: string) => void,
     addFieldFunction?: (fieldName?: string, fieldType?: string) => void
@@ -48,14 +48,14 @@ export const VoiceFormProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setFormTitleSetter(() => titleSetter);
     setFormCategorySetter(() => categorySetter);
     setFormAddFieldFunction(() => addFieldFunction);
-  };
+  }, []);
 
-  const unregisterFormSetters = () => {
+  const unregisterFormSetters = useCallback(() => {
     console.log('Unregistering form setters');
     setFormTitleSetter(null);
     setFormCategorySetter(null);
     setFormAddFieldFunction(null);
-  };
+  }, []);
 
   return (
     <VoiceFormContext.Provider

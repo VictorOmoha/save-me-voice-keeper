@@ -20,8 +20,10 @@ export const DEMO_VOICES = {
 // Check if ElevenLabs is available (API key in env)
 const getElevenLabsApiKey = (): string | null => {
   const apiKey = import.meta.env.VITE_ELEVENLABS_DEMO_API_KEY;
-  console.log('[DemoTTS] API key available:', !!apiKey);
-  return apiKey || null;
+  // Basic validation: ensure it exists and isn't a short placeholder or "undefined" string
+  const isValid = apiKey && apiKey.length > 10 && apiKey !== 'your_api_key_here' && apiKey !== 'undefined';
+  console.log('[DemoTTS] API key available:', !!isValid);
+  return isValid ? apiKey : null;
 };
 
 // State tracking

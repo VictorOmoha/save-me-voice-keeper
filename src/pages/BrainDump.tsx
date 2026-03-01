@@ -11,6 +11,7 @@ import { BrainDumpProcessor, ActionItem, actionItemsToStrings } from "@/utils/br
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
+import { auth } from "@/lib/firebase";
 import { ArrowLeft, LayoutDashboard, Sparkles, Loader2, Users, Tag, Zap, Keyboard } from "lucide-react";
 import { ShareButtons } from "@/components/braindump/ShareButtons";
 import { KeyboardShortcuts } from "@/components/braindump/KeyboardShortcuts";
@@ -246,8 +247,38 @@ const [showShortcuts, setShowShortcuts] = useState(false);
 
     setIsEnhancing(true);
     try {
-      toast.info('AI enhancement coming soon. Using local processing.');
-      handleProcess();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const cloudFunctionsUrl = import.meta.env.VITE_CLOUD_FUNCTIONS_URL;
+      const res = await fetch(`${cloudFunctionsUrl}/enhanceBrainDump`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: content, mode: "organize" }),
+      });
+
+      if (!res.ok) throw new Error("Enhancement failed");
+
+      const data = await res.json();
+      if (data.enhancedText) {
+        setRawText(data.enhancedText);
+        // Process the enhanced text into structured fields
+        const result = processor.processBrainDump(data.enhancedText);
+        setTitle(result.title);
+        setCategory(result.category);
+        setActionItems(result.actionItems || []);
+        setKeyPoints(result.keyPoints || []);
+        setNotes(result.notes || []);
+        setStructuredFields(result.structuredFields || {});
+        setConfidence(result.confidence || null);
+        setTags(result.tags || []);
+        setPeople(result.people || []);
+        setLivePreview(null);
+        toast.success("AI enhanced and structured your brain dump");
+      }
     } catch (err) {
       console.error('AI enhance exception:', err);
       toast.error('AI enhancement failed. Using local processing.');

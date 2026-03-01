@@ -2,9 +2,7 @@
 import React, { useState } from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { SearchHeader } from "../SearchHeader";
-import { ConversationalVoiceInterface } from "../ConversationalVoiceInterface";
 import { Sidebar, MobileSidebar } from "../Sidebar";
-import { FloatingVoiceInput } from "../FloatingVoiceInput";
 import { Menu } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -102,40 +100,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           />
         </div>
 
-        {/* Content with Voice Interface */}
+        {/* Main Content */}
         <div className="flex-1 container mx-auto px-3 md:px-4 py-4 md:py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6 rounded-2xl border bg-card/50">
-            {/* Voice Interface - Always visible on the left on desktop */}
-            <div className="hidden lg:block lg:col-span-1">
-              <div className="sticky top-6">
-                <ConversationalVoiceInterface
-                  savedEntries={savedEntries}
-                  onCreateEntry={onAddEntry}
-                  onEditEntry={onEditEntry}
-                  onDeleteEntry={onDeleteEntry}
-                  onSaveEntry={onSaveEntry}
-                  onCancelEdit={onCancelEdit}
-                  onEnhancedVoiceInput={onEnhancedVoiceInput}
-                />
-              </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="lg:col-span-3">
-              {children}
-            </div>
-          </div>
-          {/* Floating mic for small screens */}
-          <div className="lg:hidden">
-            <FloatingVoiceInput
-              savedEntries={savedEntries}
-              onCreateEntry={onAddEntry}
-              onEditEntry={onEditEntry}
-              onDeleteEntry={onDeleteEntry}
-              onSaveEntry={onSaveEntry}
-              onCancelEdit={onCancelEdit}
-              onEnhancedVoiceInput={(text) => onEnhancedVoiceInput?.(text)}
-            />
+          <div className="p-6 rounded-2xl border bg-card/50">
+            {children}
           </div>
         </div>
       </div>

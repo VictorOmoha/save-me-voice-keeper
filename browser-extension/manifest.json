@@ -10,6 +10,7 @@
     "contextMenus"
   ],
   "host_permissions": [
+    "*://saveme.space/*",
     "*://saveme-f5af0.web.app/*",
     "*://localhost/*"
   ],
@@ -19,6 +20,7 @@
   "content_scripts": [
     {
       "matches": [
+        "*://saveme.space/*",
         "*://saveme-f5af0.web.app/*",
         "*://localhost/*"
       ],

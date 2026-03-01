@@ -26,6 +26,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
 import { VoiceCommandGlobalListener } from "./components/VoiceCommandGlobalListener";
+import { NovaFloat } from "./components/NovaFloat";
 import BrainDump from "./pages/BrainDump";
 import Insights from "./pages/Insights";
 import Onboarding from "./pages/Onboarding";
@@ -46,6 +47,7 @@ const App = () => (
                 <HashRouter>
                   <VoiceNavigationListener />
                   <VoiceCommandGlobalListener />
+                  <NovaFloat />
                   <Routes>
                     <Route path="/" element={<Index />} />
                     <Route path="/login" element={<Login />} />

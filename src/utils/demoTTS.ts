@@ -1,13 +1,13 @@
 /**
  * Demo TTS - High-quality text-to-speech for landing page demo
- * Uses ElevenLabs when available, falls back to optimized browser TTS
+ * Uses server-side ElevenLabs proxy (secure, no API key exposed)
+ * Falls back to browser TTS if cloud function unavailable
  */
 
-// ElevenLabs API endpoint
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-
-// Default voice - Rachel (clear, friendly female voice)
-const DEFAULT_VOICE_ID = 'pqHfZKP75CvOlQylNhV4';
+// Cloud function URL for demo TTS
+const DEMO_TTS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL
+  ? `${import.meta.env.VITE_CLOUD_FUNCTIONS_URL}/demoTts`
+  : null;
 
 // Voice options for demo
 export const DEMO_VOICES = {
@@ -17,18 +17,10 @@ export const DEMO_VOICES = {
   josh: 'TxGEqnHWrfWFTfGW9XjX',     // Josh - deep, confident male
 } as const;
 
-// Check if ElevenLabs is available (API key in env)
-const getElevenLabsApiKey = (): string | null => {
-  const apiKey = import.meta.env.VITE_ELEVENLABS_DEMO_API_KEY;
-  // Basic validation: ensure it exists and isn't a short placeholder or "undefined" string
-  const isValid = apiKey && apiKey.length > 10 && apiKey !== 'your_api_key_here' && apiKey !== 'undefined';
-  console.log('[DemoTTS] API key available:', !!isValid);
-  return isValid ? apiKey : null;
-};
-
 // State tracking
 let isSpeakingFlag = false;
 let currentAudio: HTMLAudioElement | null = null;
+let elevenLabsAvailable: boolean | null = null;
 
 // Preload browser voices
 let browserVoicesLoaded = false;
@@ -42,46 +34,37 @@ const loadBrowserVoices = (): Promise<SpeechSynthesisVoice[]> => {
     }
 
     const synth = window.speechSynthesis;
-    
-    // Try immediate
     browserVoices = synth.getVoices();
     if (browserVoices.length > 0) {
       browserVoicesLoaded = true;
-      console.log('[DemoTTS] Voices loaded immediately:', browserVoices.length);
       resolve(browserVoices);
       return;
     }
 
-    // Wait for voiceschanged event
     const onVoicesChanged = () => {
       browserVoices = synth.getVoices();
       browserVoicesLoaded = true;
-      console.log('[DemoTTS] Voices loaded via event:', browserVoices.length);
       synth.removeEventListener('voiceschanged', onVoicesChanged);
       resolve(browserVoices);
     };
 
     synth.addEventListener('voiceschanged', onVoicesChanged);
-
-    // Timeout fallback
     setTimeout(() => {
       if (!browserVoicesLoaded) {
         browserVoices = synth.getVoices();
         browserVoicesLoaded = true;
-        console.log('[DemoTTS] Voices loaded via timeout:', browserVoices.length);
         resolve(browserVoices);
       }
     }, 1000);
   });
 };
 
-// Initialize voices on module load
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
   loadBrowserVoices();
 }
 
 /**
- * Speak text using ElevenLabs or browser TTS
+ * Speak text using server-side ElevenLabs proxy or browser TTS
  */
 export const demoSpeak = async (
   text: string,
@@ -92,36 +75,30 @@ export const demoSpeak = async (
   }
 ): Promise<void> => {
   if (!text || text.trim().length === 0) {
-    console.log('[DemoTTS] Empty text, skipping');
     options?.onEnd?.();
     return;
   }
 
-  console.log('[DemoTTS] Speaking:', text.substring(0, 50) + '...');
+  const voiceId = options?.voice ? DEMO_VOICES[options.voice] : DEMO_VOICES.rachel;
 
-  const voiceId = options?.voice ? DEMO_VOICES[options.voice] : DEFAULT_VOICE_ID;
-  const apiKey = getElevenLabsApiKey();
-
-  // Set speaking state
   isSpeakingFlag = true;
   options?.onStart?.();
-
-  // Dispatch start event
   window.dispatchEvent(new CustomEvent('demo-tts-started'));
 
   try {
-    if (apiKey) {
-      console.log('[DemoTTS] Using ElevenLabs');
-      await speakWithElevenLabs(text, voiceId, apiKey);
+    if (DEMO_TTS_URL) {
+      console.log('[DemoTTS] Using server-side ElevenLabs proxy');
+      await speakWithCloudFunction(text, voiceId);
+      elevenLabsAvailable = true;
     } else {
-      console.log('[DemoTTS] Using browser TTS (no API key)');
+      console.log('[DemoTTS] No cloud function URL, using browser TTS');
       await speakWithBrowser(text);
     }
-    console.log('[DemoTTS] Speech completed successfully');
   } catch (error) {
     console.error('[DemoTTS] Error:', error);
-    // Try browser fallback if ElevenLabs fails
-    if (apiKey) {
+    elevenLabsAvailable = false;
+    // Fallback to browser TTS
+    if (DEMO_TTS_URL) {
       console.log('[DemoTTS] Falling back to browser TTS');
       try {
         await speakWithBrowser(text);
@@ -138,68 +115,42 @@ export const demoSpeak = async (
 };
 
 /**
- * Speak using ElevenLabs API (streaming)
+ * Speak using server-side cloud function (ElevenLabs proxy)
  */
-const speakWithElevenLabs = async (
-  text: string,
-  voiceId: string,
-  apiKey: string
-): Promise<void> => {
-  console.log('[DemoTTS] ElevenLabs request starting...');
-  
-  const response = await fetch(`${ELEVENLABS_API_URL}/${voiceId}/stream`, {
+const speakWithCloudFunction = async (text: string, voiceId: string): Promise<void> => {
+  const response = await fetch(DEMO_TTS_URL!, {
     method: 'POST',
-    headers: {
-      'Accept': 'audio/mpeg',
-      'Content-Type': 'application/json',
-      'xi-api-key': apiKey,
-    },
-    body: JSON.stringify({
-      text,
-      model_id: 'eleven_turbo_v2_5',
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.8,
-        style: 0.2,
-        use_speaker_boost: true,
-      },
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text: text.substring(0, 500), voiceId }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('[DemoTTS] ElevenLabs API error:', response.status, errorText);
-    throw new Error(`ElevenLabs API error: ${response.status}`);
+    console.error('[DemoTTS] Cloud function error:', response.status, errorText);
+    throw new Error(`Cloud function error: ${response.status}`);
   }
 
-  console.log('[DemoTTS] ElevenLabs response received, playing audio...');
-  
-  const audioBlob = await response.blob();
+  const data = await response.json();
+  const audioBytes = Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0));
+  const audioBlob = new Blob([audioBytes], { type: 'audio/mpeg' });
   const audioUrl = URL.createObjectURL(audioBlob);
-  
+
   return new Promise((resolve, reject) => {
     const audio = new Audio(audioUrl);
     currentAudio = audio;
-    
+
     audio.onended = () => {
-      console.log('[DemoTTS] ElevenLabs audio playback ended');
       URL.revokeObjectURL(audioUrl);
       resolve();
     };
-    
+
     audio.onerror = (error) => {
-      console.error('[DemoTTS] Audio playback error:', error);
       URL.revokeObjectURL(audioUrl);
       reject(error);
     };
 
     audio.volume = 0.9;
-    audio.play()
-      .then(() => console.log('[DemoTTS] Audio playback started'))
-      .catch((e) => {
-        console.error('[DemoTTS] Audio play() failed:', e);
-        reject(e);
-      });
+    audio.play().catch(reject);
   });
 };
 
@@ -207,31 +158,23 @@ const speakWithElevenLabs = async (
  * Optimized browser TTS fallback
  */
 const speakWithBrowser = async (text: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!('speechSynthesis' in window)) {
-      console.error('[DemoTTS] Speech synthesis not supported');
       reject(new Error('Speech synthesis not supported'));
       return;
     }
 
     const synth = window.speechSynthesis;
-
-    // Cancel any ongoing speech
     synth.cancel();
 
-    // Wait for voices to load
-    loadBrowserVoices().then((voices) => {
-      console.log('[DemoTTS] Browser voices available:', voices.length);
+    const voices = await loadBrowserVoices();
+    const utterance = new SpeechSynthesisUtterance(text);
 
-      const utterance = new SpeechSynthesisUtterance(text);
-
-    // Optimized settings
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
     utterance.volume = 0.9;
     utterance.lang = 'en-US';
 
-    // Priority order for natural-sounding voices
     const voicePreferences = [
       'Google US English',
       'Google UK English Female',
@@ -248,71 +191,41 @@ const speakWithBrowser = async (text: string): Promise<void> => {
       if (selectedVoice) break;
     }
 
-    // Fallback to any English voice
     if (!selectedVoice) {
       selectedVoice = voices.find(v => v.lang.startsWith('en')) || null;
     }
 
     if (selectedVoice) {
       utterance.voice = selectedVoice;
-      console.log('[DemoTTS] Using browser voice:', selectedVoice.name);
-    } else {
-      console.log('[DemoTTS] No preferred voice found, using default');
     }
 
-    utterance.onstart = () => {
-      console.log('[DemoTTS] Browser TTS started');
-    };
-
-    utterance.onend = () => {
-      console.log('[DemoTTS] Browser TTS ended');
-      resolve();
-    };
-
-    utterance.onerror = (event) => {
-      console.error('[DemoTTS] Browser TTS error:', event);
-      reject(event);
-    };
+    utterance.onend = () => resolve();
+    utterance.onerror = (event) => reject(event);
 
     synth.speak(utterance);
-    
-    // Chrome bug workaround - sometimes speech doesn't start
-    setTimeout(() => {
-      if (synth.speaking) {
-        console.log('[DemoTTS] Browser TTS is speaking');
-      } else {
-        console.log('[DemoTTS] Browser TTS may have failed silently');
-      }
-    }, 100);
-    }).catch(reject);
   });
 };
 
-/**
- * Stop any ongoing speech
- */
+/** Stop any ongoing speech */
 export const demoStopSpeaking = (): void => {
-  console.log('[DemoTTS] Stopping speech');
-  
   if (currentAudio) {
     currentAudio.pause();
     currentAudio = null;
   }
-
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
-
   isSpeakingFlag = false;
   window.dispatchEvent(new CustomEvent('demo-tts-completed'));
 };
 
-/**
- * Check if currently speaking
- */
+/** Check if currently speaking */
 export const demoIsSpeaking = (): boolean => isSpeakingFlag;
 
-/**
- * Check if ElevenLabs is available for demo
- */
-export const isElevenLabsAvailable = (): boolean => !!getElevenLabsApiKey();
+/** Check if ElevenLabs is available (via cloud function) */
+export const isElevenLabsAvailable = (): boolean => {
+  // If we've tested it, return cached result
+  if (elevenLabsAvailable !== null) return elevenLabsAvailable;
+  // Optimistically return true if cloud function URL is configured
+  return !!DEMO_TTS_URL;
+};

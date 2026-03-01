@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
@@ -27,6 +27,7 @@ const categories = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
@@ -107,6 +108,13 @@ export default function Dashboard() {
 
     checkOnboarding();
   }, [authLoading, isAuthenticated, user, navigate]);
+
+  // Open entry form when Nova navigates with ?action=create
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      handleAddEntry();
+    }
+  }, [searchParams]);
 
   // Listen for voice command to close entry forms
   useEffect(() => {

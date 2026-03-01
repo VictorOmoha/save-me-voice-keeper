@@ -6,7 +6,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
-import { FloatingVoiceInput } from "@/components/FloatingVoiceInput";
+// Old FloatingVoiceInput replaced by NovaFloat (global in App.tsx)
 import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardMainContentProps {
@@ -295,22 +295,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         </div>
       </div>
 
-      {/* Floating Voice Input - Always Available */}
-      <FloatingVoiceInput
-        savedEntries={savedEntries}
-        onCreateEntry={onAddEntry}
-        onEditEntry={onEditEntry}
-        onDeleteEntry={onDeleteEntry}
-        onSaveEntry={onSaveEntry}
-        onCancelEdit={onCancelEdit}
-        onEnhancedVoiceInput={onEnhancedVoiceInput}
-        isVoiceProcessing={isVoiceProcessing}
-        lastVoiceCommand={lastVoiceCommand}
-        conversationState={conversationState}
-        hasPendingConfirmation={hasPendingConfirmation}
-        onCancelVoice={onCancelVoice}
-        conversationData={conversationData}
-      />
+      {/* Nova AI handles voice — see NovaFloat in App.tsx */}
     </div>
   );
 };

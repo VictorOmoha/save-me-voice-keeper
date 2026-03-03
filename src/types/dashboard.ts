@@ -46,12 +46,27 @@ export type FieldValue =
 // Type-safe field record
 export type FieldRecord = Record<string, FieldValue>;
 
+export interface ActionItem {
+  text: string;
+  priority?: 'high' | 'medium' | 'low';
+  due_date?: string | null;
+  status?: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  assignee?: string | null;
+}
+
 export interface SavedEntry {
   id: string;
   title: string;
   fields: FieldRecord;
   fieldDefinitions?: FieldDefinition[];
   category?: string;
+  // Agentic enrichment fields (populated by processEntryDeep)
+  tags?: string[];
+  action_items?: ActionItem[];
+  entities?: string[];
+  linked_entries?: string[];
+  summary?: string;
+  processed?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

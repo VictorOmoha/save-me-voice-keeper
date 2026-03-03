@@ -92,6 +92,13 @@ const toolLabel = (name: string, args: Record<string, any>): string => {
     case "rememberFact":     return "Remembering that...";
     case "recallMemories":   return `Recalling memories about "${args.query}"...`;
     case "forgetMemory":     return "Forgetting...";
+    case "getEntityGraph":   return `Looking up "${args.query}"...`;
+    case "getRelatedEntries": return `Finding related entries...`;
+    case "prepareBriefing":  return `Preparing briefing on "${args.subject}"...`;
+    case "getActivitySummary": return `Reviewing ${args.timeframe} activity...`;
+    case "getUpcomingDeadlines": return "Checking deadlines...";
+    case "updateActionItem": return `Updating task "${args.query}"...`;
+    case "setReminder":      return `Setting reminder: "${args.text}"...`;
     default:                 return `${name}...`;
   }
 };
@@ -104,6 +111,9 @@ const ACTION_TOAST_ICON: Record<string, string> = {
   updateTheme: "🎨", updateProfile: "👤", toggleNotification: "🔔",
   updateVoiceSettings: "🎙️", exportUserData: "📦",
   rememberFact: "🧠", recallMemories: "💭", forgetMemory: "🗑️",
+  getEntityGraph: "🕸️", getRelatedEntries: "🔗", prepareBriefing: "📊",
+  getActivitySummary: "📈", getUpcomingDeadlines: "⏰", updateActionItem: "✅",
+  setReminder: "🔔",
 };
 
 export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgentReturn => {

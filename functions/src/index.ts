@@ -933,6 +933,91 @@ Examples:
           required: ["query"],
         },
       },
+      // ── Agentic Intelligence Tools ──────────────────────────────────────────
+      {
+        name: "getEntityGraph",
+        description: "Look up people, projects, organizations, or topics in the user's knowledge graph. Returns entities and their connected entries. Use when user asks 'who is involved in X', 'what do I know about X', 'tell me about X'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: {type: "STRING", description: "Entity name or topic to look up"},
+            type: {type: "STRING", enum: ["person", "project", "organization", "topic", "location", "event"], description: "Filter by entity type (optional)"},
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "getRelatedEntries",
+        description: "Get entries related to a specific entry or topic. Shows connections, shared entities, and recent updates. Use proactively when user mentions a known person or project to provide context.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            entryId: {type: "STRING", description: "Entry ID to find relations for (optional)"},
+            topic: {type: "STRING", description: "Topic to find related entries for (optional)"},
+            limit: {type: "NUMBER", description: "Max results (default 5)"},
+          },
+        },
+      },
+      {
+        name: "prepareBriefing",
+        description: "Synthesize a briefing about a person, project, or topic. Gathers all related entries, action items, and memories into a concise summary. Use when user says 'prepare me for my meeting with X', 'what's the status of Y', 'brief me on Z', 'catch me up on X'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            subject: {type: "STRING", description: "Who/what to brief about"},
+            type: {type: "STRING", enum: ["meeting_prep", "project_status", "person_summary", "topic_review"], description: "Type of briefing (optional)"},
+            timeframe: {type: "STRING", description: "Time window, e.g. 'last week', 'last month' (optional)"},
+          },
+          required: ["subject"],
+        },
+      },
+      {
+        name: "getActivitySummary",
+        description: "Get a summary of what the user has been working on. Use when user asks 'what was I working on', 'what happened last week', 'summary of my activity', 'what have I saved recently'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            timeframe: {type: "STRING", enum: ["today", "yesterday", "this_week", "last_week", "this_month"], description: "Time period"},
+          },
+          required: ["timeframe"],
+        },
+      },
+      {
+        name: "getUpcomingDeadlines",
+        description: "Get upcoming deadlines and action items. Use when user asks 'what's due', 'any deadlines', 'what do I need to do', 'my tasks', 'what's pending'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            timeframe: {type: "STRING", enum: ["today", "tomorrow", "this_week", "next_week"], description: "Time window (default: this_week)"},
+            status: {type: "STRING", enum: ["open", "in_progress", "all"], description: "Filter by status (default: open)"},
+          },
+        },
+      },
+      {
+        name: "updateActionItem",
+        description: "Update the status of an action item. Use when user says 'mark X as done', 'I completed X', 'I finished X', 'cancel the task about X'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: {type: "STRING", description: "Description of the action item to update"},
+            status: {type: "STRING", enum: ["open", "in_progress", "completed", "cancelled"], description: "New status"},
+          },
+          required: ["query", "status"],
+        },
+      },
+      {
+        name: "setReminder",
+        description: "Set a reminder for the user. Use when user says 'remind me to X', 'set a reminder for X', 'don't let me forget X'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            text: {type: "STRING", description: "What to remind about"},
+            when: {type: "STRING", description: "When to remind: 'tomorrow', 'in 2 hours', 'next Monday', 'Friday at 3pm'"},
+            entryId: {type: "STRING", description: "Link to an entry (optional)"},
+          },
+          required: ["text", "when"],
+        },
+      },
     ],
   },
 ];
@@ -940,7 +1025,8 @@ Examples:
 const buildVoiceAgentSystemPrompt = (
   displayName: string,
   memorySummary?: string | null,
-  lastConversationSummary?: string | null
+  lastConversationSummary?: string | null,
+  activePatterns?: string[] | null
 ) => `
 You are Nova — the conversational AI built into SaveMe.Space, a personal knowledge vault.
 You are talking to ${displayName}. Be warm, sharp, and concise.
@@ -981,6 +1067,21 @@ Examples:
 - User says "change language to Spanish", "set speech rate to 1.5" → call updateVoiceSettings NOW
 - User says "export my data", "download my entries", "backup" → call exportUserData NOW
 
+## Agentic Intelligence — Proactive Context
+You have access to a knowledge graph and entry connections. Use them proactively:
+- When the user mentions a person or project by name, call getRelatedEntries BEFORE responding to gather context.
+- When asked "prepare me for X", "brief me on X", "what's the status of X" → call prepareBriefing NOW.
+- When asked "what was I working on", "my activity", "what did I do" → call getActivitySummary NOW.
+- When asked "who's involved in X", "what do I know about X" → call getEntityGraph NOW.
+- After saving an entry, if you know the topic has related entries, mention the connection naturally.
+- Chain tools when needed. E.g., "prepare for meeting with James" → prepareBriefing("James", "meeting_prep").
+
+## Temporal Intelligence — Deadlines & Reminders
+- When asked "what's due", "my tasks", "what do I need to do" → call getUpcomingDeadlines NOW.
+- When user says "I finished X", "mark X as done" → call updateActionItem NOW.
+- When user says "remind me to X" → call setReminder NOW.
+- When user mentions a deadline ("by Friday", "due next week"), save the entry normally — the system auto-extracts action items.
+
 ## Memory
 You have persistent memory. You remember things about ${displayName} across conversations.
 ${memorySummary ? `
@@ -996,7 +1097,10 @@ ${lastConversationSummary ? `### Last conversation:\n${lastConversationSummary}\
 - When the user says "forget" something, call forgetMemory.
 - Write memories in third person: "${displayName} prefers..." not "You prefer..."
 - Do NOT tell the user you're storing a memory unless they explicitly asked you to. Just do it silently.
-
+${activePatterns?.length ? `
+### Learned Patterns (apply silently when relevant):
+${activePatterns.join("\n")}
+` : ""}
 ## After calling tools
 Confirm briefly: "Done — opening Books." / "Got it, saved." / "Found 3 entries about that."
 Keep responses short. This is voice — no lists, no markdown.
@@ -1044,32 +1148,57 @@ async function extractAndStoreMemories(
   userId: string,
   db: admin.firestore.Firestore
 ) {
-  const extractionPatterns = [
-    {regex: /my (?:wife|husband|spouse|partner)(?:'s name)?\s+(?:is\s+)?(\w+)/i, template: (m: string[]) => `User's partner's name is ${m[1]}`, category: "personal"},
-    {regex: /my (?:son|daughter|child|kid)(?:'s name)?\s+(?:is\s+)?(\w+)/i, template: (m: string[]) => `User's child's name is ${m[1]}`, category: "personal"},
-    {regex: /my (?:mom|mother|dad|father)(?:'s name)?\s+(?:is\s+)?(\w+)/i, template: (m: string[]) => `User's parent's name is ${m[1]}`, category: "personal"},
-    {regex: /i (?:prefer|like|love|always use|always go with)\s+(.{3,40})/i, template: (m: string[]) => `User prefers ${m[1].trim()}`, category: "preferences"},
-    {regex: /my (?:birthday|anniversary)\s+is\s+(.{3,30})/i, template: (m: string[]) => `User's birthday/anniversary is ${m[1].trim()}`, category: "personal"},
-    {regex: /i (?:work at|work for)\s+(.{2,40})/i, template: (m: string[]) => `User works at ${m[1].trim()}`, category: "work"},
-    {regex: /i (?:live in|live at|am from)\s+(.{2,40})/i, template: (m: string[]) => `User lives in ${m[1].trim()}`, category: "personal"},
-    {regex: /i have (?:an? )?(.{3,20}?)(?:appointment|meeting|session)\s+(?:every|on|at)\s+(.{3,30})/i, template: (m: string[]) => `User has ${m[1].trim()} appointments ${m[2].trim()}`, category: "schedule"},
-    {regex: /(?:i'm|i am) (?:a |an )?(.{3,30}?)(?:\s+by profession|\s+by trade|\.|,|$)/i, template: (m: string[]) => `User is a ${m[1].trim()}`, category: "work"},
-    {regex: /my (?:favorite|favourite)\s+(.{2,20})\s+is\s+(.{2,30})/i, template: (m: string[]) => `User's favorite ${m[1].trim()} is ${m[2].trim()}`, category: "preferences"},
-  ];
+  // Skip very short inputs
+  if (!userText || userText.trim().length < 10) return;
 
-  const memoriesRef = db.collection("nova_memories");
-  let memoryAdded = false;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return;
 
-  for (const pattern of extractionPatterns) {
-    const match = userText.match(pattern.regex);
-    if (match) {
-      const content = pattern.template(match);
+  try {
+    // Use Gemini to intelligently detect personal facts worth remembering
+    const res = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        contents: [{role: "user", parts: [{text: `Analyze this user statement and extract personal facts worth remembering long-term.
+
+Statement: "${userText}"
+
+Rules:
+- Only extract DURABLE facts (names, preferences, habits, important dates, relationships, job info)
+- Skip transient info (what they're doing right now, commands, questions)
+- Write each fact in third person: "User's wife is Sarah" not "My wife is Sarah"
+- Return JSON array: [{"content": "string", "category": "personal|health|finance|work|contacts|preferences|schedule"}]
+- Return empty array [] if nothing worth remembering
+- Be selective — only genuinely useful long-term facts`}]}],
+        generationConfig: {maxOutputTokens: 256, temperature: 0.1, responseMimeType: "application/json"},
+      }),
+    });
+
+    if (!res.ok) return;
+    const data = await res.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+
+    let facts: any[];
+    try {
+      facts = JSON.parse(rawText);
+    } catch {
+      return;
+    }
+
+    if (!Array.isArray(facts) || facts.length === 0) return;
+
+    const memoriesRef = db.collection("nova_memories");
+    let memoryAdded = false;
+
+    for (const fact of facts) {
+      if (!fact.content) continue;
 
       // Check for duplicates
       const existing = await memoriesRef
         .where("user_id", "==", userId)
         .where("active", "==", true)
-        .where("content", "==", content)
+        .where("content", "==", fact.content)
         .limit(1)
         .get();
 
@@ -1077,10 +1206,10 @@ async function extractAndStoreMemories(
         await memoriesRef.add({
           user_id: userId,
           type: "fact",
-          content,
-          category: pattern.category,
+          content: fact.content,
+          category: fact.category || null,
           source: "inferred",
-          confidence: 0.7,
+          confidence: 0.75,
           access_count: 0,
           last_accessed: null,
           created_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -1091,10 +1220,12 @@ async function extractAndStoreMemories(
         memoryAdded = true;
       }
     }
-  }
 
-  if (memoryAdded) {
-    await rebuildMemoryProfile(userId, db);
+    if (memoryAdded) {
+      await rebuildMemoryProfile(userId, db);
+    }
+  } catch (err) {
+    console.warn("[extractAndStoreMemories] AI extraction failed:", err);
   }
 }
 
@@ -1171,6 +1302,7 @@ async function executeVoiceTool(
       field_definitions,
       category: args.category || "Personal",
       user_id: userId,
+      processed: false,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -1395,6 +1527,370 @@ async function executeVoiceTool(
     return {success: true, deactivated};
   }
 
+  }
+
+  // ── Agentic intelligence operations ───────────────────────────────────
+  const geminiKey = process.env.GEMINI_API_KEY;
+
+  switch (toolName) {
+  case "getEntityGraph": {
+    const entitySnap = await db.collection("entity_graph")
+      .where("user_id", "==", userId)
+      .limit(100)
+      .get();
+
+    const query = (args.query as string).toLowerCase();
+    const typeFilter = args.type as string | undefined;
+    const matches = entitySnap.docs
+      .map((d) => ({id: d.id, ...(d.data() as any)}))
+      .filter((e: any) => {
+        const nameMatch = e.name.toLowerCase().includes(query) ||
+          (e.aliases || []).some((a: string) => a.toLowerCase().includes(query));
+        const typeMatch = !typeFilter || e.type === typeFilter;
+        return nameMatch && typeMatch;
+      })
+      .slice(0, 10);
+
+    // For each matched entity, get linked entries
+    for (const entity of matches) {
+      const links = await db.collection("entry_entities")
+        .where("user_id", "==", userId)
+        .where("entity_id", "==", entity.id)
+        .limit(10)
+        .get();
+      const entryIds = links.docs.map((d) => d.data().entry_id);
+      const entries: any[] = [];
+      for (const eid of entryIds.slice(0, 5)) {
+        const entryDoc = await entriesRef.doc(eid).get();
+        if (entryDoc.exists) {
+          const data = entryDoc.data() as any;
+          entries.push({id: eid, title: data.title, category: data.category || data.fields?.category, summary: data.summary});
+        }
+      }
+      entity.entries = entries;
+    }
+
+    return {success: true, entities: matches, count: matches.length};
+  }
+
+  case "getRelatedEntries": {
+    const limit = (args.limit as number) || 5;
+    const relatedIds: Set<string> = new Set();
+
+    if (args.entryId) {
+      const links = await db.collection("entry_links")
+        .where("user_id", "==", userId)
+        .where("source_entry_id", "==", args.entryId)
+        .orderBy("strength", "desc")
+        .limit(limit)
+        .get();
+      links.docs.forEach((d) => relatedIds.add(d.data().target_entry_id));
+
+      // Also check reverse links
+      const reverseLinks = await db.collection("entry_links")
+        .where("user_id", "==", userId)
+        .where("target_entry_id", "==", args.entryId)
+        .orderBy("strength", "desc")
+        .limit(limit)
+        .get();
+      reverseLinks.docs.forEach((d) => relatedIds.add(d.data().source_entry_id));
+    }
+
+    if (args.topic) {
+      const entitySnap = await db.collection("entity_graph")
+        .where("user_id", "==", userId)
+        .limit(50)
+        .get();
+      const topicLower = (args.topic as string).toLowerCase();
+      const matchedEntityIds = entitySnap.docs
+        .filter((d) => {
+          const data = d.data();
+          return data.name.toLowerCase().includes(topicLower) ||
+            (data.aliases || []).some((a: string) => a.toLowerCase().includes(topicLower));
+        })
+        .map((d) => d.id);
+
+      for (const entityId of matchedEntityIds.slice(0, 10)) {
+        const entityEntries = await db.collection("entry_entities")
+          .where("user_id", "==", userId)
+          .where("entity_id", "==", entityId)
+          .limit(limit * 2)
+          .get();
+        entityEntries.docs.forEach((d) => relatedIds.add(d.data().entry_id));
+      }
+    }
+
+    // Fetch full entry data
+    const entries: any[] = [];
+    for (const id of Array.from(relatedIds).slice(0, limit)) {
+      const entryDoc = await entriesRef.doc(id).get();
+      if (entryDoc.exists) {
+        const data = entryDoc.data() as any;
+        entries.push({
+          id,
+          title: data.title,
+          summary: data.summary || null,
+          category: data.category || data.fields?.category,
+          action_items: data.action_items || [],
+          tags: data.tags || [],
+          updated_at: data.updated_at,
+        });
+      }
+    }
+
+    return {success: true, entries, count: entries.length};
+  }
+
+  case "prepareBriefing": {
+    if (!geminiKey) return {success: false, error: "AI not configured"};
+
+    // 1. Gather context from multiple sources
+    const searchResult = await executeVoiceTool("searchEntries", {query: args.subject, limit: 10}, userId);
+    const relatedResult = await executeVoiceTool("getRelatedEntries", {topic: args.subject, limit: 10}, userId);
+    const memoryResult = await executeVoiceTool("recallMemories", {query: args.subject}, userId);
+
+    // 2. Combine and deduplicate entries
+    const allEntries = [...(searchResult.results || []), ...(relatedResult.entries || [])];
+    const seen = new Set<string>();
+    const uniqueEntries = allEntries.filter((e: any) => {
+      if (seen.has(e.id)) return false;
+      seen.add(e.id);
+      return true;
+    });
+    const memories = memoryResult.memories || [];
+
+    // 3. Collect open action items
+    const actionItemsSnap = await db.collection("action_items")
+      .where("user_id", "==", userId)
+      .where("status", "in", ["open", "in_progress"])
+      .orderBy("created_at", "desc")
+      .limit(20)
+      .get();
+    const subjectLower = (args.subject as string).toLowerCase();
+    const relevantActions = actionItemsSnap.docs
+      .map((d) => d.data())
+      .filter((a: any) => (a.text || "").toLowerCase().includes(subjectLower));
+
+    // 4. Synthesize with Gemini
+    const synthesisPrompt = `Synthesize a ${args.type || "general"} briefing about "${args.subject}".
+
+Entries found (${uniqueEntries.length}):
+${uniqueEntries.map((e: any) => `- ${e.title}: ${e.summary || e.content || "(no summary)"}`).join("\n")}
+
+Memories about this:
+${memories.length ? memories.map((m: any) => `- ${m.content}`).join("\n") : "None"}
+
+Open action items:
+${relevantActions.length ? relevantActions.map((a: any) => `- ${a.text} [${a.priority || "medium"}]${a.due_date ? " due: " + a.due_date : ""}`).join("\n") : "None"}
+
+Write a concise briefing (2-4 sentences) suitable for voice. Mention key facts, open tasks, and anything time-sensitive.`;
+
+    const briefingRes = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        contents: [{role: "user", parts: [{text: synthesisPrompt}]}],
+        generationConfig: {maxOutputTokens: 512, temperature: 0.3},
+      }),
+    });
+
+    let briefingText = "I couldn't generate a briefing right now.";
+    if (briefingRes.ok) {
+      const briefingData = await briefingRes.json();
+      briefingText = briefingData.candidates?.[0]?.content?.parts?.[0]?.text || briefingText;
+    }
+
+    return {
+      success: true,
+      briefing: briefingText,
+      entriesUsed: uniqueEntries.length,
+      memoriesUsed: memories.length,
+      openActionItems: relevantActions.length,
+    };
+  }
+
+  case "getActivitySummary": {
+    const timeframeMap: Record<string, number> = {
+      today: 1, yesterday: 2, this_week: 7, last_week: 14, this_month: 30,
+    };
+    const daysBack = timeframeMap[args.timeframe as string] || 7;
+    const since = new Date(Date.now() - daysBack * 86400000);
+
+    const snap = await entriesRef
+      .where("user_id", "==", userId)
+      .where("created_at", ">=", admin.firestore.Timestamp.fromDate(since))
+      .orderBy("created_at", "desc")
+      .limit(30)
+      .get();
+
+    const entries = snap.docs.map((d) => ({id: d.id, ...(d.data() as any)}));
+    const categoryCounts: Record<string, number> = {};
+    const allActionItems: any[] = [];
+
+    entries.forEach((e: any) => {
+      const cat = e.category || e.fields?.category || "Uncategorized";
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      if (e.action_items) allActionItems.push(...e.action_items);
+    });
+
+    return {
+      success: true,
+      totalEntries: entries.length,
+      categoryCounts,
+      recentTitles: entries.slice(0, 7).map((e: any) => e.title),
+      openActionItems: allActionItems.filter((a: any) => a.status !== "completed").length,
+      timeframe: args.timeframe,
+    };
+  }
+
+  case "getUpcomingDeadlines": {
+    const tfMap: Record<string, number> = {
+      today: 1, tomorrow: 2, this_week: 7, next_week: 14,
+    };
+    const daysAhead = tfMap[args.timeframe as string] || 7;
+    const until = new Date(Date.now() + daysAhead * 86400000);
+    const statusFilter = (args.status as string) || "open";
+
+    let q: admin.firestore.Query = db.collection("action_items")
+      .where("user_id", "==", userId);
+
+    if (statusFilter !== "all") {
+      q = q.where("status", "==", statusFilter);
+    }
+
+    const snap = await q.orderBy("created_at", "desc").limit(30).get();
+
+    const items = snap.docs
+      .map((d) => ({id: d.id, ...(d.data() as any)}))
+      .filter((item: any) => {
+        if (!item.due_date) return true; // Include items without due dates
+        const dueDate = item.due_date.toDate ? item.due_date.toDate() : new Date(item.due_date);
+        return dueDate <= until;
+      })
+      .slice(0, 10);
+
+    return {
+      success: true,
+      items: items.map((i: any) => ({
+        id: i.id,
+        text: i.text,
+        priority: i.priority,
+        status: i.status,
+        due_date: i.due_date ? (i.due_date.toDate ? i.due_date.toDate().toISOString() : i.due_date) : null,
+        entry_id: i.entry_id,
+      })),
+      count: items.length,
+      timeframe: args.timeframe,
+    };
+  }
+
+  case "updateActionItem": {
+    const snap = await db.collection("action_items")
+      .where("user_id", "==", userId)
+      .where("status", "in", ["open", "in_progress"])
+      .orderBy("created_at", "desc")
+      .limit(30)
+      .get();
+
+    const query = (args.query as string).toLowerCase();
+    const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
+
+    // Find best match
+    let bestMatch: any = null;
+    let bestScore = 0;
+    for (const d of snap.docs) {
+      const text = (d.data().text || "").toLowerCase();
+      let score = 0;
+      if (text.includes(query)) score = 1.0;
+      else {
+        const matchedWords = queryWords.filter((w) => text.includes(w));
+        score = queryWords.length > 0 ? matchedWords.length / queryWords.length : 0;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = {id: d.id, ref: d.ref, ...d.data()};
+      }
+    }
+
+    if (!bestMatch || bestScore < 0.3) {
+      return {success: false, error: "No matching action item found"};
+    }
+
+    const updateData: Record<string, any> = {
+      status: args.status,
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    if (args.status === "completed") {
+      updateData.completed_at = admin.firestore.FieldValue.serverTimestamp();
+    }
+    await bestMatch.ref.update(updateData);
+
+    return {success: true, id: bestMatch.id, text: bestMatch.text, newStatus: args.status};
+  }
+
+  case "setReminder": {
+    // Parse the "when" field into a timestamp
+    const whenStr = (args.when as string).toLowerCase();
+    let triggerAt = new Date();
+
+    if (whenStr.includes("tomorrow")) {
+      triggerAt.setDate(triggerAt.getDate() + 1);
+      triggerAt.setHours(9, 0, 0, 0); // Default 9am
+    } else if (whenStr.includes("next week") || whenStr.includes("next monday")) {
+      const daysUntilMonday = (8 - triggerAt.getDay()) % 7 || 7;
+      triggerAt.setDate(triggerAt.getDate() + daysUntilMonday);
+      triggerAt.setHours(9, 0, 0, 0);
+    } else if (whenStr.match(/in (\d+) hour/)) {
+      const hours = parseInt(whenStr.match(/in (\d+) hour/)![1]);
+      triggerAt.setTime(triggerAt.getTime() + hours * 3600000);
+    } else if (whenStr.match(/in (\d+) minute/)) {
+      const mins = parseInt(whenStr.match(/in (\d+) minute/)![1]);
+      triggerAt.setTime(triggerAt.getTime() + mins * 60000);
+    } else if (whenStr.match(/in (\d+) day/)) {
+      const days = parseInt(whenStr.match(/in (\d+) day/)![1]);
+      triggerAt.setDate(triggerAt.getDate() + days);
+      triggerAt.setHours(9, 0, 0, 0);
+    } else if (whenStr.includes("friday")) {
+      const daysUntilFri = (5 - triggerAt.getDay() + 7) % 7 || 7;
+      triggerAt.setDate(triggerAt.getDate() + daysUntilFri);
+      triggerAt.setHours(9, 0, 0, 0);
+    } else if (whenStr.includes("monday")) {
+      const daysUntilMon = (1 - triggerAt.getDay() + 7) % 7 || 7;
+      triggerAt.setDate(triggerAt.getDate() + daysUntilMon);
+      triggerAt.setHours(9, 0, 0, 0);
+    } else if (whenStr.includes("wednesday")) {
+      const daysUntilWed = (3 - triggerAt.getDay() + 7) % 7 || 7;
+      triggerAt.setDate(triggerAt.getDate() + daysUntilWed);
+      triggerAt.setHours(9, 0, 0, 0);
+    } else {
+      // Default: tomorrow 9am
+      triggerAt.setDate(triggerAt.getDate() + 1);
+      triggerAt.setHours(9, 0, 0, 0);
+    }
+
+    // Parse time if specified (e.g., "at 3pm", "at 9am")
+    const timeMatch = whenStr.match(/at (\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1]);
+      const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      if (timeMatch[3]?.toLowerCase() === "pm" && hours < 12) hours += 12;
+      if (timeMatch[3]?.toLowerCase() === "am" && hours === 12) hours = 0;
+      triggerAt.setHours(hours, minutes, 0, 0);
+    }
+
+    const reminderDoc = await db.collection("reminders").add({
+      user_id: userId,
+      text: args.text,
+      trigger_at: admin.firestore.Timestamp.fromDate(triggerAt),
+      entry_id: args.entryId || null,
+      action_item_id: null,
+      status: "pending",
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {success: true, reminderId: reminderDoc.id, triggerAt: triggerAt.toISOString(), text: args.text};
+  }
+
   default:
     return {success: false, error: `Unknown tool: ${toolName}`};
   }
@@ -1426,6 +1922,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
       return;
     }
 
+    const db = admin.firestore();
+    const displayName = user.name || user.email?.split("@")[0] || "there";
+
     // Load conversation from session if client didn't send history (e.g. page refresh)
     let conversationHistory = clientHistory;
     let currentSessionId: string | null = incomingSessionId || null;
@@ -1440,9 +1939,6 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         console.warn("[VoiceAgent] Could not load session:", sessionErr);
       }
     }
-
-    const displayName = user.name || user.email?.split("@")[0] || "there";
-    const db = admin.firestore();
 
     // Load Nova's memory profile for this user (single Firestore read)
     let memorySummary: string | null = null;
@@ -1478,19 +1974,32 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
       let responseText = "";
       const actionsExecuted: any[] = [];
 
-      // ── Gemini function calling loop (max 4 iterations) ──────────────────
+      // ── Load active user patterns for agentic behavior ───────────────────
+      let activePatterns: string[] = [];
+      try {
+        const patternsSnap = await db.collection("user_patterns")
+          .where("user_id", "==", user.uid)
+          .where("active", "==", true)
+          .where("confidence", ">=", 0.7)
+          .orderBy("confidence", "desc")
+          .limit(5)
+          .get();
+        activePatterns = patternsSnap.docs.map((d) => `- ${d.data().description}: ${d.data().suggested_action}`);
+      } catch { /* non-critical — collection may not exist yet */ }
+
+      // ── Gemini function calling loop (max 6 iterations for agentic chaining) ──
       let keepLooping = true;
       let loopCount = 0;
-      while (keepLooping && loopCount < 4) {
+      while (keepLooping && loopCount < 6) {
         loopCount++;
         const geminiRes = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            systemInstruction: {parts: [{text: buildVoiceAgentSystemPrompt(displayName, memorySummary, lastConversationSummary)}]},
+            systemInstruction: {parts: [{text: buildVoiceAgentSystemPrompt(displayName, memorySummary, lastConversationSummary, activePatterns)}]},
             tools: VOICE_AGENT_TOOLS,
             contents,
-            generationConfig: {maxOutputTokens: 256, temperature: 0.7},
+            generationConfig: {maxOutputTokens: 384, temperature: 0.7},
           }),
         });
 
@@ -1726,3 +2235,474 @@ export const enhanceBrainDump = functions.https.onRequest(
     }
   })
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ── AGENTIC INTELLIGENCE LAYER ──────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EXTRACTION_SYSTEM_PROMPT = `You are an entity and relationship extraction engine for a personal knowledge vault.
+Given an entry's title and content, extract structured information.
+
+Return a JSON object with:
+{
+  "entities": [{"name": "string", "type": "person|project|organization|topic|location|event", "aliases": ["string"]}],
+  "tags": ["string"],  // 3-7 topical tags
+  "action_items": [{"text": "string", "priority": "high|medium|low", "due_date": "string or null", "assignee": "string or null"}],
+  "summary": "one sentence summary",
+  "category_suggestion": "string"
+}
+
+Rules:
+- Extract REAL entities only — names of people, projects, companies, places, events mentioned.
+- Tags should be topical keywords, not entity names.
+- Action items are things that need to be DONE — look for "need to", "must", "should", "have to", "by Friday", deadlines.
+- Due dates should be relative descriptions like "Friday", "next week", "end of month".
+- If no entities/action items found, return empty arrays.
+- Always return valid JSON.`;
+
+/**
+ * Deep Entry Processing — Firestore Trigger
+ * Fires when any entry is created or updated.
+ * Enriches the entry with entities, tags, action items, summary, and cross-links.
+ */
+export const processEntryDeep = functions.firestore
+  .document("entries/{entryId}")
+  .onWrite(async (change, context) => {
+    const entryId = context.params.entryId;
+    const entry = change.after.exists ? change.after.data() : null;
+
+    // Skip if deleted, already processed, or no data
+    if (!entry || entry.processed === true) return;
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      console.warn("[processEntryDeep] No GEMINI_API_KEY — skipping");
+      return;
+    }
+
+    const db = admin.firestore();
+    const userId = entry.user_id;
+    if (!userId) return;
+
+    try {
+      // Build content string from entry
+      const contentParts: string[] = [entry.title || ""];
+      if (entry.fields) {
+        for (const [key, value] of Object.entries(entry.fields)) {
+          if (typeof value === "string" && value.trim()) {
+            contentParts.push(`${key}: ${value}`);
+          }
+        }
+      }
+      const fullContent = contentParts.join("\n");
+
+      if (fullContent.trim().length < 10) {
+        // Too short to process meaningfully
+        await change.after.ref.update({processed: true});
+        return;
+      }
+
+      // Call Gemini for extraction
+      const geminiRes = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          systemInstruction: {parts: [{text: EXTRACTION_SYSTEM_PROMPT}]},
+          contents: [{role: "user", parts: [{text: `Entry title: "${entry.title}"\n\nContent:\n${fullContent}`}]}],
+          generationConfig: {
+            maxOutputTokens: 1024,
+            temperature: 0.1,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
+
+      if (!geminiRes.ok) {
+        console.error("[processEntryDeep] Gemini error:", await geminiRes.text());
+        return;
+      }
+
+      const geminiData = await geminiRes.json();
+      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+
+      let extracted: any;
+      try {
+        extracted = JSON.parse(rawText);
+      } catch {
+        console.warn("[processEntryDeep] Failed to parse Gemini JSON:", rawText.substring(0, 200));
+        await change.after.ref.update({processed: true});
+        return;
+      }
+
+      const entities = extracted.entities || [];
+      const tags = extracted.tags || [];
+      const actionItems = extracted.action_items || [];
+      const summary = extracted.summary || "";
+
+      // ── Upsert entities into entity_graph ─────────────────────────────────
+      const entityIds: string[] = [];
+
+      for (const entity of entities) {
+        if (!entity.name) continue;
+        const entityName = entity.name.trim();
+        const entityType = entity.type || "topic";
+
+        // Check if entity already exists
+        const existingSnap = await db.collection("entity_graph")
+          .where("user_id", "==", userId)
+          .where("name", "==", entityName)
+          .limit(1)
+          .get();
+
+        let entityId: string;
+        if (existingSnap.empty) {
+          const newEntity = await db.collection("entity_graph").add({
+            user_id: userId,
+            name: entityName,
+            type: entityType,
+            aliases: entity.aliases || [],
+            metadata: {},
+            mention_count: 1,
+            last_mentioned: admin.firestore.FieldValue.serverTimestamp(),
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          entityId = newEntity.id;
+        } else {
+          entityId = existingSnap.docs[0].id;
+          await existingSnap.docs[0].ref.update({
+            mention_count: admin.firestore.FieldValue.increment(1),
+            last_mentioned: admin.firestore.FieldValue.serverTimestamp(),
+            aliases: admin.firestore.FieldValue.arrayUnion(...(entity.aliases || [])),
+          });
+        }
+
+        entityIds.push(entityId);
+
+        // Create junction record
+        await db.collection("entry_entities").add({
+          user_id: userId,
+          entry_id: entryId,
+          entity_id: entityId,
+          entity_name: entityName,
+          entity_type: entityType,
+          context_snippet: fullContent.substring(0, 200),
+          created_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      // ── Find related entries by shared entities ───────────────────────────
+      const linkedEntryIds: Set<string> = new Set();
+
+      for (const entityId of entityIds) {
+        const relatedSnap = await db.collection("entry_entities")
+          .where("user_id", "==", userId)
+          .where("entity_id", "==", entityId)
+          .limit(20)
+          .get();
+
+        for (const d of relatedSnap.docs) {
+          const relEntryId = d.data().entry_id;
+          if (relEntryId !== entryId) {
+            linkedEntryIds.add(relEntryId);
+          }
+        }
+      }
+
+      // Create entry_links for related entries
+      for (const targetId of Array.from(linkedEntryIds).slice(0, 10)) {
+        // Check if link already exists
+        const existingLink = await db.collection("entry_links")
+          .where("user_id", "==", userId)
+          .where("source_entry_id", "==", entryId)
+          .where("target_entry_id", "==", targetId)
+          .limit(1)
+          .get();
+
+        if (existingLink.empty) {
+          // Count shared entities for strength
+          const sharedEntities = await db.collection("entry_entities")
+            .where("user_id", "==", userId)
+            .where("entry_id", "==", targetId)
+            .get();
+          const targetEntityIds = sharedEntities.docs.map((d) => d.data().entity_id);
+          const shared = entityIds.filter((id) => targetEntityIds.includes(id));
+          const strength = Math.min(shared.length / Math.max(entityIds.length, 1), 1.0);
+
+          await db.collection("entry_links").add({
+            user_id: userId,
+            source_entry_id: entryId,
+            target_entry_id: targetId,
+            link_type: "related",
+            strength,
+            reason: `Shared entities: ${shared.length}`,
+            auto_generated: true,
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      // ── Write action items to dedicated collection ────────────────────────
+      for (const item of actionItems) {
+        if (!item.text) continue;
+
+        let dueDate: admin.firestore.Timestamp | null = null;
+        if (item.due_date) {
+          const parsed = parseFuzzyDate(item.due_date);
+          if (parsed) dueDate = admin.firestore.Timestamp.fromDate(parsed);
+        }
+
+        await db.collection("action_items").add({
+          user_id: userId,
+          entry_id: entryId,
+          text: item.text,
+          priority: item.priority || "medium",
+          status: "open",
+          due_date: dueDate,
+          assignee: item.assignee || null,
+          completed_at: null,
+          follow_up_date: null,
+          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+
+      // ── Update the entry with enrichment data ─────────────────────────────
+      await change.after.ref.update({
+        tags,
+        action_items: actionItems,
+        entities: entityIds,
+        linked_entries: Array.from(linkedEntryIds).slice(0, 10),
+        summary,
+        processed: true,
+      });
+
+      console.log(`[processEntryDeep] Enriched entry ${entryId}: ${entities.length} entities, ${tags.length} tags, ${actionItems.length} action items, ${linkedEntryIds.size} links`);
+    } catch (error) {
+      console.error("[processEntryDeep] Error:", error);
+      // Mark as processed to avoid infinite retries
+      try {
+        await change.after.ref.update({processed: true});
+      } catch { /* ignore */ }
+    }
+  });
+
+/**
+ * Parse fuzzy date strings like "Friday", "next week", "end of month" into Date objects.
+ */
+function parseFuzzyDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const lower = dateStr.toLowerCase().trim();
+  const now = new Date();
+
+  const dayMap: Record<string, number> = {
+    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+    thursday: 4, friday: 5, saturday: 6,
+  };
+
+  // Day of week
+  for (const [day, num] of Object.entries(dayMap)) {
+    if (lower.includes(day)) {
+      const daysAhead = (num - now.getDay() + 7) % 7 || 7;
+      const result = new Date(now);
+      result.setDate(result.getDate() + daysAhead);
+      result.setHours(17, 0, 0, 0); // Default EOD
+      return result;
+    }
+  }
+
+  if (lower.includes("tomorrow")) {
+    const result = new Date(now);
+    result.setDate(result.getDate() + 1);
+    result.setHours(17, 0, 0, 0);
+    return result;
+  }
+  if (lower.includes("today") || lower.includes("eod") || lower.includes("end of day")) {
+    const result = new Date(now);
+    result.setHours(17, 0, 0, 0);
+    return result;
+  }
+  if (lower.includes("next week")) {
+    const result = new Date(now);
+    result.setDate(result.getDate() + 7);
+    result.setHours(17, 0, 0, 0);
+    return result;
+  }
+  if (lower.includes("end of month") || lower.includes("eom")) {
+    const result = new Date(now.getFullYear(), now.getMonth() + 1, 0, 17, 0, 0);
+    return result;
+  }
+  if (lower.includes("end of week") || lower.includes("eow")) {
+    const daysToFri = (5 - now.getDay() + 7) % 7 || 7;
+    const result = new Date(now);
+    result.setDate(result.getDate() + daysToFri);
+    result.setHours(17, 0, 0, 0);
+    return result;
+  }
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Check Reminders — Scheduled Function
+ * Runs every 15 minutes. Finds due reminders and writes notifications.
+ */
+export const checkReminders = functions.pubsub
+  .schedule("every 15 minutes")
+  .onRun(async () => {
+    const db = admin.firestore();
+    const now = admin.firestore.Timestamp.now();
+
+    try {
+      const dueReminders = await db.collection("reminders")
+        .where("status", "==", "pending")
+        .where("trigger_at", "<=", now)
+        .limit(50)
+        .get();
+
+      if (dueReminders.empty) return;
+
+      const batch = db.batch();
+      for (const doc of dueReminders.docs) {
+        const reminder = doc.data();
+
+        // Create notification for the user
+        const notifRef = db.collection("pending_notifications").doc();
+        batch.set(notifRef, {
+          user_id: reminder.user_id,
+          type: "reminder",
+          text: reminder.text,
+          entry_id: reminder.entry_id || null,
+          reminder_id: doc.id,
+          status: "pending",
+          created_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        // Mark reminder as sent
+        batch.update(doc.ref, {status: "sent"});
+      }
+
+      await batch.commit();
+      console.log(`[checkReminders] Processed ${dueReminders.size} due reminders`);
+    } catch (error) {
+      console.error("[checkReminders] Error:", error);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Analyze Patterns — Scheduled Function
+ * Runs daily. Detects behavioral patterns from recent entries.
+ */
+export const analyzePatterns = functions.pubsub
+  .schedule("every 24 hours")
+  .onRun(async () => {
+    const db = admin.firestore();
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      console.warn("[analyzePatterns] No GEMINI_API_KEY");
+      return;
+    }
+
+    try {
+      // Get users who have entries
+      const recentEntries = await db.collection("entries")
+        .where("created_at", ">=", admin.firestore.Timestamp.fromDate(new Date(Date.now() - 30 * 86400000)))
+        .orderBy("created_at", "desc")
+        .limit(500)
+        .get();
+
+      // Group by user
+      const userEntries: Record<string, any[]> = {};
+      for (const doc of recentEntries.docs) {
+        const data = doc.data();
+        const uid = data.user_id;
+        if (!userEntries[uid]) userEntries[uid] = [];
+        if (userEntries[uid].length < 50) {
+          userEntries[uid].push({title: data.title, category: data.category || data.fields?.category, tags: data.tags, created_at: data.created_at});
+        }
+      }
+
+      for (const [userId, entries] of Object.entries(userEntries)) {
+        if (entries.length < 5) continue; // Need minimum data
+
+        const analysisPrompt = `Analyze these ${entries.length} entries from the last 30 days and detect behavioral patterns.
+
+Entries:
+${entries.map((e: any) => `- "${e.title}" [${e.category || "uncategorized"}] tags: ${(e.tags || []).join(", ") || "none"}`).join("\n")}
+
+Detect patterns like:
+- Category preferences (e.g., "80% of entries about meetings are categorized as Work")
+- Tagging habits (e.g., "User always tags health entries with specific keywords")
+- Time patterns (e.g., "Most entries created in the morning")
+- Content patterns (e.g., "User frequently saves contact information")
+
+Return JSON array of patterns:
+[{"description": "string", "trigger_conditions": "string", "suggested_action": "string", "confidence": 0.0-1.0}]
+
+Only include patterns with confidence >= 0.6. Return empty array if no clear patterns.`;
+
+        const res = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            contents: [{role: "user", parts: [{text: analysisPrompt}]}],
+            generationConfig: {maxOutputTokens: 512, temperature: 0.2, responseMimeType: "application/json"},
+          }),
+        });
+
+        if (!res.ok) continue;
+        const resData = await res.json();
+        const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+
+        let patterns: any[];
+        try {
+          patterns = JSON.parse(rawText);
+        } catch {
+          continue;
+        }
+
+        if (!Array.isArray(patterns)) continue;
+
+        for (const pattern of patterns) {
+          if (!pattern.description || pattern.confidence < 0.6) continue;
+
+          // Check if this pattern already exists
+          const existingSnap = await db.collection("user_patterns")
+            .where("user_id", "==", userId)
+            .where("description", "==", pattern.description)
+            .limit(1)
+            .get();
+
+          if (existingSnap.empty) {
+            await db.collection("user_patterns").add({
+              user_id: userId,
+              pattern_type: "behavioral",
+              description: pattern.description,
+              trigger_conditions: pattern.trigger_conditions || "",
+              suggested_action: pattern.suggested_action || "",
+              confidence: pattern.confidence,
+              occurrence_count: 1,
+              last_occurred: admin.firestore.FieldValue.serverTimestamp(),
+              active: pattern.confidence >= 0.7,
+              created_at: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          } else {
+            // Update confidence and occurrence count
+            await existingSnap.docs[0].ref.update({
+              confidence: Math.min(pattern.confidence + 0.05, 1.0),
+              occurrence_count: admin.firestore.FieldValue.increment(1),
+              last_occurred: admin.firestore.FieldValue.serverTimestamp(),
+              active: true,
+            });
+          }
+        }
+
+        console.log(`[analyzePatterns] User ${userId}: detected ${patterns.length} patterns from ${entries.length} entries`);
+      }
+    } catch (error) {
+      console.error("[analyzePatterns] Error:", error);
+    }
+  });

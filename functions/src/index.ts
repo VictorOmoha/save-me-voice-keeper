@@ -1306,7 +1306,18 @@ async function executeVoiceTool(
       created_at: admin.firestore.FieldValue.serverTimestamp(),
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
-    return {success: true, id: docRef.id, title: args.title};
+    return {
+      success: true,
+      id: docRef.id,
+      title: args.title,
+      appCommand: "liveCreateEntry",
+      entryData: {
+        title: args.title,
+        category: args.category || "Personal",
+        content: args.content || null,
+        fields: args.fields || null,
+      },
+    };
   }
 
   case "searchEntries": {

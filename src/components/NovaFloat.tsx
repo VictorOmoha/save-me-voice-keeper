@@ -12,11 +12,13 @@
 import React, { useState, useCallback } from "react";
 import { Sparkles, X, Mic, ChevronDown, ChevronUp } from "lucide-react";
 import { NovaVoiceAgent } from "@/components/NovaVoiceAgent";
+import { LiveEntryExecution } from "@/components/LiveEntryExecution";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { LiveEntryData } from "@/hooks/useVoiceAgent";
 
 type PanelState = "closed" | "minimized" | "open";
 
@@ -25,6 +27,7 @@ export const NovaFloat: React.FC = () => {
   const navigate = useNavigate();
   const { setTheme } = useTheme();
   const [panelState, setPanelState] = useState<PanelState>("closed");
+  const [liveEntry, setLiveEntry] = useState<LiveEntryData | null>(null);
 
   const handleNavigate = useCallback((route: string) => {
     navigate(route);
@@ -88,6 +91,10 @@ export const NovaFloat: React.FC = () => {
       window.dispatchEvent(new CustomEvent("nova:export-data", { detail: { format } }));
     }, 500);
   }, [navigate]);
+
+  const handleLiveCreateEntry = useCallback((data: LiveEntryData) => {
+    setLiveEntry(data);
+  }, []);
 
   // Early return AFTER all hooks
   if (!user) return null;
@@ -176,9 +183,18 @@ export const NovaFloat: React.FC = () => {
             onUpdateTheme={handleUpdateTheme}
             onSettingsUpdated={handleSettingsUpdated}
             onExportData={handleExportData}
+            onLiveCreateEntry={handleLiveCreateEntry}
           />
         </div>
       </div>
+
+      {/* Live entry creation overlay */}
+      {liveEntry && (
+        <LiveEntryExecution
+          data={liveEntry}
+          onComplete={() => setLiveEntry(null)}
+        />
+      )}
 
       {/* Floating trigger button */}
       <button

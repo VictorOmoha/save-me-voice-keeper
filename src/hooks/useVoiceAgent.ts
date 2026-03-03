@@ -26,8 +26,15 @@ export interface ConversationTurn {
   parts: { text?: string }[];
 }
 
+export interface LiveEntryData {
+  title: string;
+  category?: string;
+  content?: string | null;
+  fields?: Array<{ key: string; value: string }> | null;
+}
+
 export interface AppCommand {
-  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData";
+  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData" | "liveCreateEntry";
   route?: string;
   category?: string | null;
   id?: string | null;
@@ -37,6 +44,7 @@ export interface AppCommand {
   value?: any;
   updates?: Record<string, any>;
   format?: string;
+  entryData?: LiveEntryData;
 }
 
 export interface UseVoiceAgentOptions {
@@ -50,6 +58,7 @@ export interface UseVoiceAgentOptions {
   onUpdateTheme?: (theme: string) => void;
   onSettingsUpdated?: (setting: string, value?: any, updates?: Record<string, any>) => void;
   onExportData?: (format: string) => void;
+  onLiveCreateEntry?: (data: LiveEntryData) => void;
   continuous?: boolean;
 }
 
@@ -117,7 +126,7 @@ const ACTION_TOAST_ICON: Record<string, string> = {
 };
 
 export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgentReturn => {
-  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onStartBrainDump, onProcessBrainDump, onSaveBrainDump, onUpdateTheme, onSettingsUpdated, onExportData } = options;
+  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onStartBrainDump, onProcessBrainDump, onSaveBrainDump, onUpdateTheme, onSettingsUpdated, onExportData, onLiveCreateEntry } = options;
 
   const [status, setStatus] = useState<AgentStatus>("idle");
   const [transcript, setTranscript] = useState("");
@@ -149,6 +158,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const onUpdateThemeRef = useRef(onUpdateTheme);
   const onSettingsUpdatedRef = useRef(onSettingsUpdated);
   const onExportDataRef = useRef(onExportData);
+  const onLiveCreateEntryRef = useRef(onLiveCreateEntry);
   useEffect(() => { onNavigateRef.current = onNavigate; }, [onNavigate]);
   useEffect(() => { onOpenEntryFormRef.current = onOpenEntryForm; }, [onOpenEntryForm]);
   useEffect(() => { onOpenEntryRef.current = onOpenEntry; }, [onOpenEntry]);
@@ -159,6 +169,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   useEffect(() => { onUpdateThemeRef.current = onUpdateTheme; }, [onUpdateTheme]);
   useEffect(() => { onSettingsUpdatedRef.current = onSettingsUpdated; }, [onSettingsUpdated]);
   useEffect(() => { onExportDataRef.current = onExportData; }, [onExportData]);
+  useEffect(() => { onLiveCreateEntryRef.current = onLiveCreateEntry; }, [onLiveCreateEntry]);
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
 
   // ── Execute app commands via React Router callbacks ──────────────────────
@@ -198,6 +209,9 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
       } else if (cmd.appCommand === "exportData") {
         onExportDataRef.current?.(cmd.format || "json");
+
+      } else if (cmd.appCommand === "liveCreateEntry" && cmd.entryData) {
+        onLiveCreateEntryRef.current?.(cmd.entryData);
       }
     }
     setPendingCommands([]);

@@ -1,0 +1,20 @@
+{
+  "name": "SaveMe Voice Keeper",
+  "short_name": "SaveMe",
+  "description": "Voice-powered personal archive system. Preserve your important data with voice commands.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "en-US"
+}

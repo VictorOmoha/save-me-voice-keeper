@@ -7,6 +7,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { auth } from "@/lib/firebase";
+import { toast } from "sonner";
 
 const VOICE_AGENT_URL = `${import.meta.env.VITE_CLOUD_FUNCTIONS_URL}/voiceAgent`;
 
@@ -26,11 +27,16 @@ export interface ConversationTurn {
 }
 
 export interface AppCommand {
-  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "startBrainDump" | "processBrainDump" | "saveBrainDump";
+  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData";
   route?: string;
   category?: string | null;
   id?: string | null;
   title?: string | null;
+  theme?: string;
+  setting?: string;
+  value?: any;
+  updates?: Record<string, any>;
+  format?: string;
 }
 
 export interface UseVoiceAgentOptions {
@@ -41,6 +47,9 @@ export interface UseVoiceAgentOptions {
   onStartBrainDump?: () => void;
   onProcessBrainDump?: () => void;
   onSaveBrainDump?: (category?: string | null) => void;
+  onUpdateTheme?: (theme: string) => void;
+  onSettingsUpdated?: (setting: string, value?: any, updates?: Record<string, any>) => void;
+  onExportData?: (format: string) => void;
   continuous?: boolean;
 }
 
@@ -75,12 +84,30 @@ const toolLabel = (name: string, args: Record<string, any>): string => {
     case "navigateToCategory": return `Opening ${args.category}...`;
     case "openEntryForm":    return "Opening entry form...";
     case "openEntry":        return `Opening "${args.title || args.id}"...`;
+    case "updateTheme":      return `Switching to ${args.theme} theme...`;
+    case "updateProfile":    return "Updating profile...";
+    case "toggleNotification": return `${args.enabled ? "Enabling" : "Disabling"} ${args.type}...`;
+    case "updateVoiceSettings": return "Updating voice settings...";
+    case "exportUserData":   return "Exporting data...";
+    case "rememberFact":     return "Remembering that...";
+    case "recallMemories":   return `Recalling memories about "${args.query}"...`;
+    case "forgetMemory":     return "Forgetting...";
     default:                 return `${name}...`;
   }
 };
 
+// Toast icons per tool
+const ACTION_TOAST_ICON: Record<string, string> = {
+  saveEntry: "💾", searchEntries: "🔍", getRecentEntries: "📋",
+  updateEntry: "✏️", deleteEntry: "🗑️", navigateApp: "🧭",
+  navigateToCategory: "📂", openEntryForm: "➕", openEntry: "📄",
+  updateTheme: "🎨", updateProfile: "👤", toggleNotification: "🔔",
+  updateVoiceSettings: "🎙️", exportUserData: "📦",
+  rememberFact: "🧠", recallMemories: "💭", forgetMemory: "🗑️",
+};
+
 export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgentReturn => {
-  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onStartBrainDump, onProcessBrainDump, onSaveBrainDump } = options;
+  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onStartBrainDump, onProcessBrainDump, onSaveBrainDump, onUpdateTheme, onSettingsUpdated, onExportData } = options;
 
   const [status, setStatus] = useState<AgentStatus>("idle");
   const [transcript, setTranscript] = useState("");
@@ -90,6 +117,9 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const [error, setError] = useState<string | null>(null);
   const [continuous, setContinuous] = useState(options.continuous ?? true);
   const [pendingCommands, setPendingCommands] = useState<AppCommand[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(() =>
+    localStorage.getItem("nova_session_id")
+  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -106,6 +136,9 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const onStartBrainDumpRef = useRef(onStartBrainDump);
   const onProcessBrainDumpRef = useRef(onProcessBrainDump);
   const onSaveBrainDumpRef = useRef(onSaveBrainDump);
+  const onUpdateThemeRef = useRef(onUpdateTheme);
+  const onSettingsUpdatedRef = useRef(onSettingsUpdated);
+  const onExportDataRef = useRef(onExportData);
   useEffect(() => { onNavigateRef.current = onNavigate; }, [onNavigate]);
   useEffect(() => { onOpenEntryFormRef.current = onOpenEntryForm; }, [onOpenEntryForm]);
   useEffect(() => { onOpenEntryRef.current = onOpenEntry; }, [onOpenEntry]);
@@ -113,6 +146,9 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   useEffect(() => { onStartBrainDumpRef.current = onStartBrainDump; }, [onStartBrainDump]);
   useEffect(() => { onProcessBrainDumpRef.current = onProcessBrainDump; }, [onProcessBrainDump]);
   useEffect(() => { onSaveBrainDumpRef.current = onSaveBrainDump; }, [onSaveBrainDump]);
+  useEffect(() => { onUpdateThemeRef.current = onUpdateTheme; }, [onUpdateTheme]);
+  useEffect(() => { onSettingsUpdatedRef.current = onSettingsUpdated; }, [onSettingsUpdated]);
+  useEffect(() => { onExportDataRef.current = onExportData; }, [onExportData]);
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
 
   // ── Execute app commands via React Router callbacks ──────────────────────
@@ -143,6 +179,15 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
       } else if (cmd.appCommand === "saveBrainDump") {
         onSaveBrainDumpRef.current?.(cmd.category);
+
+      } else if (cmd.appCommand === "updateTheme") {
+        onUpdateThemeRef.current?.(cmd.theme || "system");
+
+      } else if (cmd.appCommand === "settingsUpdated") {
+        onSettingsUpdatedRef.current?.(cmd.setting || "", cmd.value, cmd.updates);
+
+      } else if (cmd.appCommand === "exportData") {
+        onExportDataRef.current?.(cmd.format || "json");
       }
     }
     setPendingCommands([]);
@@ -231,9 +276,10 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       const token = await auth.currentUser?.getIdToken();
       if (!token) throw new Error("Not authenticated");
 
+      const base = { conversationHistory, sessionId };
       const body = "text" in input && input.text
-        ? { transcript: input.text, conversationHistory }
-        : { audioData: input.audioData, audioMimeType: input.audioMimeType, conversationHistory };
+        ? { ...base, transcript: input.text }
+        : { ...base, audioData: input.audioData, audioMimeType: input.audioMimeType };
 
       const res = await fetch(VOICE_AGENT_URL, {
         method: "POST",
@@ -254,21 +300,41 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       // Show transcript returned from backend
       if (data.transcript) setTranscript(data.transcript);
 
-      // ── Show actions immediately (no stagger delay) ───────────────────────
+      // ── Stagger actions for real-time feel ──────────────────────────────────
       if (data.actionsExecuted?.length) {
         setStatus("acting");
-        const actionEvents: ActionEvent[] = data.actionsExecuted.map((a: any) => ({
-          tool: a.tool,
-          args: a.args,
-          result: a.result,
-          label: toolLabel(a.tool, a.args),
-          status: a.result?.success ? "done" : "error",
-        }));
-        setActions(actionEvents);
+
+        for (let i = 0; i < data.actionsExecuted.length; i++) {
+          const a = data.actionsExecuted[i];
+          const label = toolLabel(a.tool, a.args);
+
+          // Show action as "running"
+          setActions((prev) => [
+            ...prev,
+            { tool: a.tool, args: a.args, result: a.result, label, status: "running" },
+          ]);
+          toast(label.replace("...", ""), { icon: ACTION_TOAST_ICON[a.tool] || "⚡" });
+
+          // Brief pause so each action is visible
+          await new Promise((r) => setTimeout(r, 500));
+
+          // Mark as done/error
+          setActions((prev) =>
+            prev.map((act, idx) =>
+              idx === i ? { ...act, status: a.result?.success ? "done" : "error" } : act
+            )
+          );
+        }
       }
 
       setResponseText(data.responseText);
       setConversationHistory(data.conversationHistory || []);
+
+      // Persist session ID for conversation continuity across page refreshes
+      if (data.sessionId) {
+        setSessionId(data.sessionId);
+        localStorage.setItem("nova_session_id", data.sessionId);
+      }
 
       // ── Queue app commands ────────────────────────────────────────────────
       console.log("[useVoiceAgent] Response data:", { appCommands: data.appCommands, actionsExecuted: data.actionsExecuted });
@@ -290,7 +356,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       setError(err.message);
       setStatus("idle");
     }
-  }, [conversationHistory]);
+  }, [conversationHistory, sessionId]);
 
   // ── Audio playback + auto-restart ─────────────────────────────────────────
   const playAudio = useCallback(async (base64Audio: string, mimeType = "audio/pcm") => {
@@ -339,6 +405,8 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     setStatus("idle");
     setError(null);
     audioRef.current?.pause();
+    setSessionId(null);
+    localStorage.removeItem("nova_session_id");
   }, []);
 
   return {

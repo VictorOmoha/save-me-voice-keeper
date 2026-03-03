@@ -36,6 +36,14 @@ const ACTION_ICON: Record<string, string> = {
   navigateToCategory: "📂",
   openEntryForm: "➕",
   openEntry: "📄",
+  updateTheme: "🎨",
+  updateProfile: "👤",
+  toggleNotification: "🔔",
+  updateVoiceSettings: "🎙️",
+  exportUserData: "📦",
+  rememberFact: "🧠",
+  recallMemories: "💭",
+  forgetMemory: "🗑️",
 };
 
 type NovaVoiceAgentProps = UseVoiceAgentOptions;

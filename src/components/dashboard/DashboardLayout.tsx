@@ -18,7 +18,6 @@ interface DashboardLayoutProps {
   onSaveEntry: (entry: Omit<SavedEntry, "id" | "createdAt" | "updatedAt">) => void;
   onCancelEdit: () => void;
   onFillEntry?: (entry: SavedEntry) => void;
-  onEnhancedVoiceInput?: (transcript: string) => Promise<void> | void;
   children: React.ReactNode;
 }
 
@@ -35,7 +34,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSaveEntry,
   onCancelEdit,
   onFillEntry,
-  onEnhancedVoiceInput,
   children,
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);

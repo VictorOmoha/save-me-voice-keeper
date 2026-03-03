@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Mic,
   Bell,
   Sun,
   Moon,
@@ -26,7 +25,6 @@ import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
-import { VoiceInputFixed } from "@/components/VoiceInputFixed";
 import { SmartSearchWithBoundary as SmartSearch } from "@/components/SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
@@ -35,13 +33,6 @@ interface DashboardHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   userName?: string;
-  onEnhancedVoiceInput?: (text: string) => void;
-  isVoiceProcessing?: boolean;
-  lastVoiceCommand?: unknown;
-  conversationState?: 'listening' | 'confirming' | 'idle';
-  hasPendingConfirmation?: boolean;
-  onCancelVoice?: () => void;
-  conversationData?: { isActive: boolean; currentStep?: { question: string } };
   savedEntries?: SavedEntry[];
   onEditEntry?: (entry: SavedEntry) => void;
   onFillEntry?: (entry: SavedEntry) => void;
@@ -51,13 +42,6 @@ export const DashboardHeader = ({
   searchQuery,
   onSearchChange,
   userName,
-  onEnhancedVoiceInput,
-  isVoiceProcessing,
-  lastVoiceCommand,
-  conversationState,
-  hasPendingConfirmation,
-  onCancelVoice,
-  conversationData,
   savedEntries = [],
   onEditEntry,
   onFillEntry,
@@ -65,7 +49,6 @@ export const DashboardHeader = ({
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showVoiceInput, setShowVoiceInput] = useState(false);
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
 
   const handleSignOut = async () => {
@@ -115,17 +98,7 @@ export const DashboardHeader = ({
 
           {/* Right Side Icons */}
           <div className="flex items-center space-x-2">
-            {/* Mic Icon */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setShowVoiceInput(!showVoiceInput)}
-            >
-              <Mic className="w-5 h-5" />
-            </Button>
-
-            {/* Settings Icon - More Prominent */}
+            {/* Settings Icon */}
             <Link to="/settings">
               <Button 
                 variant="ghost" 
@@ -201,33 +174,6 @@ export const DashboardHeader = ({
           </div>
         </div>
       </header>
-
-      {/* Voice Input Modal/Panel */}
-      {showVoiceInput && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Voice Commands</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowVoiceInput(false)}
-              >
-                ✕
-              </Button>
-            </div>
-            <VoiceInputFixed 
-              onEnhancedVoiceInput={onEnhancedVoiceInput || (() => {})}
-              isVoiceProcessing={isVoiceProcessing || false}
-              lastVoiceCommand={lastVoiceCommand}
-              conversationState={conversationState || 'idle'}
-              hasPendingConfirmation={hasPendingConfirmation || false}
-              onCancelVoice={onCancelVoice || (() => {})}
-              conversationData={{ isActive: false }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Entry View Dialog */}
       <EntryViewDialog

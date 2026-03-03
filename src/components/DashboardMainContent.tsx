@@ -6,7 +6,6 @@ import { StatsCards } from "@/components/StatsCards";
 import { DataEntryForm } from "@/components/DataEntryForm";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
-// Old FloatingVoiceInput replaced by NovaFloat (global in App.tsx)
 import { SavedEntry } from "@/types/dashboard";
 
 interface DashboardMainContentProps {
@@ -28,18 +27,11 @@ interface DashboardMainContentProps {
   onCategorySelect: (category: string) => void;
   onAddEntry: () => void;
   onCreateDocument: () => void;
-  onEnhancedVoiceInput: (text: string) => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
   onDeleteEntry: (id: string) => void;
   onViewAllEntries: () => void;
-  isVoiceProcessing?: boolean;
   isSaving?: boolean;
-  lastVoiceCommand?: unknown;
-  conversationState?: 'listening' | 'confirming' | 'idle';
-  hasPendingConfirmation?: boolean;
-  onCancelVoice?: () => void;
-  conversationData?: { isActive: boolean; currentStep?: { question: string } };
   onViewDocument?: (entry: SavedEntry) => void;
 }
 
@@ -121,18 +113,11 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onCategorySelect,
   onAddEntry,
   onCreateDocument,
-  onEnhancedVoiceInput,
   onEditEntry,
   onFillEntry,
   onDeleteEntry,
   onViewAllEntries,
-  isVoiceProcessing,
   isSaving,
-  lastVoiceCommand,
-  conversationState,
-  hasPendingConfirmation,
-  onCancelVoice,
-  conversationData,
   onViewDocument,
 }) => {
   if (showDocumentCreator) {
@@ -177,15 +162,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       {/* Quick Actions */}
       <NewQuickActions
         onAddEntry={onAddEntry}
-        onVoiceInput={() => {}}
-        onEnhancedVoiceInput={onEnhancedVoiceInput}
         onCreateDocument={onCreateDocument}
-        isVoiceProcessing={isVoiceProcessing}
-        lastVoiceCommand={lastVoiceCommand}
-        conversationState={conversationState}
-        hasPendingConfirmation={hasPendingConfirmation}
-        onCancelVoice={onCancelVoice}
-        conversationData={conversationData}
         entries={savedEntries}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}

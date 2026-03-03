@@ -48,11 +48,8 @@ export function ThemeProvider({
 
       const applyTheme = (t: Theme) => {
         const isDark = t === "dark" || (t === "system" && media.matches);
-        if (isDark) {
-          root.classList.add("dark");
-        } else {
-          root.classList.remove("dark");
-        }
+        root.classList.remove("light", "dark");
+        root.classList.add(isDark ? "dark" : "light");
       };
 
       applyTheme(theme);

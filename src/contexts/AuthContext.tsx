@@ -7,12 +7,8 @@ import { authService } from '@/services/authService';
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log('AuthProvider: Initializing...');
-
-  const { user, isLoading, resetUserState } = useAuthState();
+  const { user, isLoading, subscriptionTier, subscriptionActive, resetUserState } = useAuthState();
   const [authLoading, setAuthLoading] = useState(false);
-
-  console.log('AuthProvider: State -', { user: !!user, isLoading, authLoading });
 
   const login = async (email: string, password: string) => {
     setAuthLoading(true);
@@ -50,20 +46,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const combinedLoading = isLoading || authLoading;
 
-  // Create extended user with subscription info (default to free tier)
+  // Create extended user with subscription info from Firestore
   const extendedUser: ExtendedUser | null = user ? {
     ...user,
-    subscriptionTier: 'free',
-    subscriptionActive: true
+    subscriptionTier,
+    subscriptionActive
   } as ExtendedUser : null;
 
   return (
     <AuthContext.Provider value={{
       user: extendedUser,
       loading: combinedLoading,
-      isLoading: combinedLoading, // Alias for compatibility
+      isLoading: combinedLoading,
       isAuthenticated: !!user,
-      session: user, // For compatibility - the user object acts as the session
+      session: user,
       login,
       signup,
       signInWithGoogle,

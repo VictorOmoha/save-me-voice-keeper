@@ -1,4 +1,3 @@
-import { voiceAgent } from "./voiceAgent";
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import cors from "cors";
@@ -816,11 +815,133 @@ Examples:
           required: ["id"],
         },
       },
+      // ── Settings Operations ───────────────────────────────────────────────
+      {
+        name: "updateTheme",
+        description: "Change the app's color theme. Use when user says 'dark mode', 'light mode', 'switch theme', etc.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            theme: {type: "STRING", enum: ["light", "dark", "system"], description: "The theme to set"},
+          },
+          required: ["theme"],
+        },
+      },
+      {
+        name: "updateProfile",
+        description: "Update the user's profile info (display name or phone). Use when user says 'change my name', 'update my profile', etc.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            fullName: {type: "STRING", description: "New display name"},
+            phone: {type: "STRING", description: "New phone number"},
+          },
+        },
+      },
+      {
+        name: "toggleNotification",
+        description: "Enable or disable a notification type. Use when user says 'turn on/off notifications', 'disable email alerts', etc.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            type: {type: "STRING", enum: ["email_notifications", "push_notifications", "reminder_notifications", "automation_notifications"], description: "Which notification type"},
+            enabled: {type: "BOOLEAN", description: "true to enable, false to disable"},
+          },
+          required: ["type", "enabled"],
+        },
+      },
+      {
+        name: "updateVoiceSettings",
+        description: "Change voice/speech settings. Use when user says 'change language', 'set speech rate', 'switch to Google voice', etc.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            voice_language: {type: "STRING", enum: ["en-US", "en-GB", "es-ES", "fr-FR", "de-DE", "it-IT", "pt-PT", "ja-JP", "ko-KR", "zh-CN"], description: "Speech recognition language"},
+            tts_service: {type: "STRING", enum: ["elevenlabs", "google", "minimax", "browser"], description: "Text-to-speech provider"},
+            voice_speech_rate: {type: "NUMBER", description: "Speech rate (0.5 to 2.0)"},
+            voice_volume: {type: "NUMBER", description: "TTS volume (0 to 1)"},
+            voice_continuous_listening: {type: "BOOLEAN", description: "Whether to keep listening after responses"},
+            voice_auto_speak: {type: "BOOLEAN", description: "Whether to auto-speak responses"},
+            voice_audio_cue_enabled: {type: "BOOLEAN", description: "Whether to play end-of-speech tone"},
+          },
+        },
+      },
+      {
+        name: "exportUserData",
+        description: "Export all of the user's data as a downloadable file. Use when user says 'export my data', 'download my entries', 'backup my data'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            format: {type: "STRING", enum: ["json", "csv"], description: "Export format (default json)"},
+          },
+        },
+      },
+      // ── Memory Operations ─────────────────────────────────────────────────
+      {
+        name: "rememberFact",
+        description: "Store a personal fact or preference about the user for future reference. Use when user says 'remember that...', 'keep in mind...', 'note that I...', 'my X is Y'. Also use proactively when the user reveals personal information worth remembering (names of family members, preferences, important dates, recurring habits).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            content: {
+              type: "STRING",
+              description: "The fact to remember, written in third person. E.g., 'Victor\\'s wife is named Sarah', 'Victor prefers dark mode', 'Victor has a dentist appointment every 6 months'",
+            },
+            category: {
+              type: "STRING",
+              enum: ["personal", "health", "finance", "work", "contacts", "preferences", "schedule"],
+              description: "Category of the fact",
+            },
+            overrides: {
+              type: "STRING",
+              description: "If this corrects a previous fact, describe what it replaces. E.g., 'wife name was Sarah'",
+            },
+          },
+          required: ["content"],
+        },
+      },
+      {
+        name: "recallMemories",
+        description: "Search Nova's memory for relevant facts about the user. Use BEFORE answering questions about the user's preferences, history, or personal details. Use when the user asks 'do you remember...', 'what do you know about me', 'what\\'s my...'. Also use proactively when context would improve your response.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: {
+              type: "STRING",
+              description: "What to search for in memory. E.g., 'wife name', 'health preferences', 'work schedule'",
+            },
+            category: {
+              type: "STRING",
+              enum: ["personal", "health", "finance", "work", "contacts", "preferences", "schedule"],
+              description: "Optional category filter",
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "forgetMemory",
+        description: "Remove a specific memory about the user. Use when user says 'forget that...', 'delete that memory', 'that\\'s no longer true', 'remove what you know about...'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: {
+              type: "STRING",
+              description: "Description of what to forget. E.g., 'my wife\\'s name', 'my old address'",
+            },
+          },
+          required: ["query"],
+        },
+      },
     ],
   },
 ];
 
-const buildVoiceAgentSystemPrompt = (displayName: string) => `
+const buildVoiceAgentSystemPrompt = (
+  displayName: string,
+  memorySummary?: string | null,
+  lastConversationSummary?: string | null
+) => `
 You are Nova — the conversational AI built into SaveMe.Space, a personal knowledge vault.
 You are talking to ${displayName}. Be warm, sharp, and concise.
 
@@ -853,10 +974,129 @@ Examples:
 - "Log my weight: 185 lbs" → fields: [{key:"Weight",value:"185 lbs"}], category: Health
 - "Note: finish the proposal by EOD" → content, category: Work
 
+## Settings
+- User says "dark mode", "light mode", "switch theme" → call updateTheme NOW
+- User says "change my name to X", "update my profile" → call updateProfile NOW
+- User says "turn on/off [email/push/reminder/automation] notifications" → call toggleNotification NOW
+- User says "change language to Spanish", "set speech rate to 1.5" → call updateVoiceSettings NOW
+- User says "export my data", "download my entries", "backup" → call exportUserData NOW
+
+## Memory
+You have persistent memory. You remember things about ${displayName} across conversations.
+${memorySummary ? `
+### What you know about ${displayName}:
+${memorySummary}
+` : `You don't know much about ${displayName} yet. Pay attention to personal details they share and use rememberFact to store them.`}
+${lastConversationSummary ? `### Last conversation:\n${lastConversationSummary}\n` : ""}
+### Memory rules:
+- When the user shares personal info (names of family, preferences, habits, dates), call rememberFact silently.
+- When the user says "remember that..." or "keep in mind...", call rememberFact.
+- When you need context about the user to answer well, call recallMemories first.
+- When the user corrects a fact ("actually it's X, not Y"), call rememberFact with the overrides field.
+- When the user says "forget" something, call forgetMemory.
+- Write memories in third person: "${displayName} prefers..." not "You prefer..."
+- Do NOT tell the user you're storing a memory unless they explicitly asked you to. Just do it silently.
+
 ## After calling tools
 Confirm briefly: "Done — opening Books." / "Got it, saved." / "Found 3 entries about that."
 Keep responses short. This is voice — no lists, no markdown.
 `.trim();
+
+// ── Memory helpers ───────────────────────────────────────────────────────────
+
+async function rebuildMemoryProfile(userId: string, db: admin.firestore.Firestore) {
+  const memoriesRef = db.collection("nova_memories");
+  const snap = await memoriesRef
+    .where("user_id", "==", userId)
+    .where("active", "==", true)
+    .orderBy("confidence", "desc")
+    .limit(20)
+    .get();
+
+  const facts: string[] = [];
+  const patterns: string[] = [];
+
+  for (const doc of snap.docs) {
+    const data = doc.data();
+    if (data.type === "pattern") patterns.push(data.content);
+    else facts.push(data.content);
+  }
+
+  const topFacts = facts.slice(0, 15);
+  const topPatterns = patterns.slice(0, 5);
+  const memorySummary = [
+    ...topFacts.map((f) => `- ${f}`),
+    ...(topPatterns.length ? ["\nPatterns:", ...topPatterns.map((p) => `- ${p}`)] : []),
+  ].join("\n");
+
+  await db.collection("nova_user_profile").doc(userId).set({
+    user_id: userId,
+    memory_summary: memorySummary || "",
+    top_facts: topFacts,
+    patterns: topPatterns,
+    memory_count: snap.size,
+    last_updated: admin.firestore.FieldValue.serverTimestamp(),
+  }, {merge: true});
+}
+
+async function extractAndStoreMemories(
+  userText: string,
+  userId: string,
+  db: admin.firestore.Firestore
+) {
+  const extractionPatterns = [
+    {regex: /my (?:wife|husband|spouse|partner)(?:'s name)?\s+(?:is\s+)?(\w+)/i, template: (m: string[]) => `User's partner's name is ${m[1]}`, category: "personal"},
+    {regex: /my (?:son|daughter|child|kid)(?:'s name)?\s+(?:is\s+)?(\w+)/i, template: (m: string[]) => `User's child's name is ${m[1]}`, category: "personal"},
+    {regex: /my (?:mom|mother|dad|father)(?:'s name)?\s+(?:is\s+)?(\w+)/i, template: (m: string[]) => `User's parent's name is ${m[1]}`, category: "personal"},
+    {regex: /i (?:prefer|like|love|always use|always go with)\s+(.{3,40})/i, template: (m: string[]) => `User prefers ${m[1].trim()}`, category: "preferences"},
+    {regex: /my (?:birthday|anniversary)\s+is\s+(.{3,30})/i, template: (m: string[]) => `User's birthday/anniversary is ${m[1].trim()}`, category: "personal"},
+    {regex: /i (?:work at|work for)\s+(.{2,40})/i, template: (m: string[]) => `User works at ${m[1].trim()}`, category: "work"},
+    {regex: /i (?:live in|live at|am from)\s+(.{2,40})/i, template: (m: string[]) => `User lives in ${m[1].trim()}`, category: "personal"},
+    {regex: /i have (?:an? )?(.{3,20}?)(?:appointment|meeting|session)\s+(?:every|on|at)\s+(.{3,30})/i, template: (m: string[]) => `User has ${m[1].trim()} appointments ${m[2].trim()}`, category: "schedule"},
+    {regex: /(?:i'm|i am) (?:a |an )?(.{3,30}?)(?:\s+by profession|\s+by trade|\.|,|$)/i, template: (m: string[]) => `User is a ${m[1].trim()}`, category: "work"},
+    {regex: /my (?:favorite|favourite)\s+(.{2,20})\s+is\s+(.{2,30})/i, template: (m: string[]) => `User's favorite ${m[1].trim()} is ${m[2].trim()}`, category: "preferences"},
+  ];
+
+  const memoriesRef = db.collection("nova_memories");
+  let memoryAdded = false;
+
+  for (const pattern of extractionPatterns) {
+    const match = userText.match(pattern.regex);
+    if (match) {
+      const content = pattern.template(match);
+
+      // Check for duplicates
+      const existing = await memoriesRef
+        .where("user_id", "==", userId)
+        .where("active", "==", true)
+        .where("content", "==", content)
+        .limit(1)
+        .get();
+
+      if (existing.empty) {
+        await memoriesRef.add({
+          user_id: userId,
+          type: "fact",
+          content,
+          category: pattern.category,
+          source: "inferred",
+          confidence: 0.7,
+          access_count: 0,
+          last_accessed: null,
+          created_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          superseded_by: null,
+          active: true,
+        });
+        memoryAdded = true;
+      }
+    }
+  }
+
+  if (memoryAdded) {
+    await rebuildMemoryProfile(userId, db);
+  }
+}
 
 // ── Tool executor ─────────────────────────────────────────────────────────────
 async function executeVoiceTool(
@@ -998,6 +1238,162 @@ async function executeVoiceTool(
     await entriesRef.doc(args.id).delete();
     return {success: true, id: args.id};
   }
+  }
+
+  // ── Settings operations ──────────────────────────────────────────────────
+  const prefsRef = db.collection("user_preferences").doc(userId);
+
+  switch (toolName) {
+  case "updateTheme": {
+    await prefsRef.set({theme: args.theme}, {merge: true});
+    return {appCommand: "updateTheme", theme: args.theme, success: true};
+  }
+
+  case "updateProfile": {
+    const profileRef = db.collection("profiles").doc(userId);
+    const updates: Record<string, any> = {};
+    if (args.fullName) updates.fullName = args.fullName;
+    if (args.phone) updates.phone = args.phone;
+    await profileRef.set(updates, {merge: true});
+    // Also update Firebase Auth display name if provided
+    if (args.fullName) {
+      await admin.auth().updateUser(userId, {displayName: args.fullName});
+    }
+    return {appCommand: "settingsUpdated", setting: "profile", success: true};
+  }
+
+  case "toggleNotification": {
+    await prefsRef.set({[args.type]: args.enabled}, {merge: true});
+    return {appCommand: "settingsUpdated", setting: args.type, value: args.enabled, success: true};
+  }
+
+  case "updateVoiceSettings": {
+    const voiceUpdates: Record<string, any> = {};
+    for (const [key, value] of Object.entries(args)) {
+      if (value !== undefined && value !== null) {
+        voiceUpdates[key] = value;
+      }
+    }
+    await prefsRef.set(voiceUpdates, {merge: true});
+    return {appCommand: "settingsUpdated", setting: "voice", updates: voiceUpdates, success: true};
+  }
+
+  case "exportUserData": {
+    // Trigger export on the frontend — backend collects the data
+    return {appCommand: "exportData", format: args.format || "json", success: true};
+  }
+  }
+
+  // ── Memory operations ──────────────────────────────────────────────────
+  const memoriesRef = db.collection("nova_memories");
+
+  switch (toolName) {
+  case "rememberFact": {
+    // If this overrides an existing fact, deactivate the old one
+    if (args.overrides) {
+      const existingSnap = await memoriesRef
+        .where("user_id", "==", userId)
+        .where("active", "==", true)
+        .orderBy("updated_at", "desc")
+        .limit(30)
+        .get();
+
+      const overrideText = (args.overrides as string).toLowerCase();
+      for (const d of existingSnap.docs) {
+        const content = (d.data().content || "").toLowerCase();
+        if (content.includes(overrideText.substring(0, Math.min(20, overrideText.length)))) {
+          await d.ref.update({active: false, superseded_by: "pending", updated_at: admin.firestore.FieldValue.serverTimestamp()});
+          break;
+        }
+      }
+    }
+
+    const memDoc = await memoriesRef.add({
+      user_id: userId,
+      type: "fact",
+      content: args.content,
+      category: args.category || null,
+      source: "explicit",
+      confidence: 0.9,
+      access_count: 0,
+      last_accessed: null,
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      superseded_by: null,
+      active: true,
+    });
+
+    await rebuildMemoryProfile(userId, db);
+    return {success: true, memoryId: memDoc.id};
+  }
+
+  case "recallMemories": {
+    let q: admin.firestore.Query = memoriesRef
+      .where("user_id", "==", userId)
+      .where("active", "==", true);
+
+    if (args.category) {
+      q = q.where("category", "==", args.category);
+    }
+
+    const snap = await q.orderBy("updated_at", "desc").limit(30).get();
+    const query = ((args.query as string) || "").toLowerCase();
+    const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
+
+    const scored = snap.docs
+      .map((d) => ({id: d.id, ...(d.data() as any)}))
+      .map((mem: any) => {
+        const content = (mem.content || "").toLowerCase();
+        let score = 0.1;
+        if (content.includes(query)) score = 1.0;
+        else if (queryWords.some((w: string) => content.includes(w))) score = 0.5;
+        return {...mem, score};
+      })
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 5);
+
+    // Update access counts for relevant matches (fire-and-forget)
+    for (const mem of scored) {
+      if (mem.score > 0.3) {
+        memoriesRef.doc(mem.id).update({
+          access_count: admin.firestore.FieldValue.increment(1),
+          last_accessed: admin.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {/* non-critical */});
+      }
+    }
+
+    return {
+      success: true,
+      memories: scored.map((m: any) => ({content: m.content, category: m.category, type: m.type})),
+      count: scored.length,
+    };
+  }
+
+  case "forgetMemory": {
+    const snap = await memoriesRef
+      .where("user_id", "==", userId)
+      .where("active", "==", true)
+      .orderBy("updated_at", "desc")
+      .limit(30)
+      .get();
+
+    const query = ((args.query as string) || "").toLowerCase();
+    const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
+    let deactivated = 0;
+
+    for (const d of snap.docs) {
+      const content = (d.data().content || "").toLowerCase();
+      if (content.includes(query) || queryWords.every((w: string) => content.includes(w))) {
+        await d.ref.update({active: false, updated_at: admin.firestore.FieldValue.serverTimestamp()});
+        deactivated++;
+      }
+    }
+
+    if (deactivated > 0) {
+      await rebuildMemoryProfile(userId, db);
+    }
+    return {success: true, deactivated};
+  }
 
   default:
     return {success: false, error: `Unknown tool: ${toolName}`};
@@ -1024,13 +1420,43 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
       return;
     }
 
-    const {transcript, audioData, audioMimeType: inputAudioMimeType, conversationHistory = []} = req.body;
+    const {transcript, audioData, audioMimeType: inputAudioMimeType, conversationHistory: clientHistory = [], sessionId: incomingSessionId} = req.body;
     if (!transcript?.trim() && !audioData) {
       res.status(400).json({error: "Transcript or audio data is required"});
       return;
     }
 
+    // Load conversation from session if client didn't send history (e.g. page refresh)
+    let conversationHistory = clientHistory;
+    let currentSessionId: string | null = incomingSessionId || null;
+    if (currentSessionId && (!conversationHistory || conversationHistory.length === 0)) {
+      try {
+        const sessionDoc = await db.collection("nova_conversations").doc(currentSessionId).get();
+        if (sessionDoc.exists && sessionDoc.data()?.user_id === user.uid) {
+          conversationHistory = sessionDoc.data()?.turns || [];
+          console.log(`[VoiceAgent] Restored ${conversationHistory.length} turns from session ${currentSessionId}`);
+        }
+      } catch (sessionErr) {
+        console.warn("[VoiceAgent] Could not load session:", sessionErr);
+      }
+    }
+
     const displayName = user.name || user.email?.split("@")[0] || "there";
+    const db = admin.firestore();
+
+    // Load Nova's memory profile for this user (single Firestore read)
+    let memorySummary: string | null = null;
+    let lastConversationSummary: string | null = null;
+    try {
+      const profileDoc = await db.collection("nova_user_profile").doc(user.uid).get();
+      if (profileDoc.exists) {
+        const profileData = profileDoc.data();
+        memorySummary = profileData?.memory_summary || null;
+        lastConversationSummary = profileData?.last_conversation_summary || null;
+      }
+    } catch (profileErr) {
+      console.warn("[VoiceAgent] Could not load memory profile:", profileErr);
+    }
 
     try {
       const userText: string = transcript?.trim() || "";
@@ -1061,7 +1487,7 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            systemInstruction: {parts: [{text: buildVoiceAgentSystemPrompt(displayName)}]},
+            systemInstruction: {parts: [{text: buildVoiceAgentSystemPrompt(displayName, memorySummary, lastConversationSummary)}]},
             tools: VOICE_AGENT_TOOLS,
             contents,
             generationConfig: {maxOutputTokens: 256, temperature: 0.7},
@@ -1118,6 +1544,13 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         }
       }
 
+      // ── Auto-extract memories from user input (fire-and-forget) ────────────
+      if (userText) {
+        extractAndStoreMemories(userText, user.uid, db).catch((err) => {
+          console.warn("[VoiceAgent] Memory extraction failed:", err);
+        });
+      }
+
       // ── TTS — Gemini TTS (Kore voice) ────────────────────────────────────────
       let audioContent: string | null = null;
       let audioMimeType = "audio/mpeg";
@@ -1169,6 +1602,41 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         ),
       }));
 
+      // ── Save conversation session ──────────────────────────────────────────
+      try {
+        const sessionTurns = cleanHistory.slice(-10);
+        const sessionActions = actionsExecuted.map((a: any) => ({
+          tool: a.tool,
+          args: a.args,
+          result_summary: a.result?.success ? "success" : "failed",
+          timestamp: Date.now(),
+        }));
+
+        if (currentSessionId) {
+          await db.collection("nova_conversations").doc(currentSessionId).update({
+            turns: sessionTurns,
+            turn_count: sessionTurns.length,
+            actions: admin.firestore.FieldValue.arrayUnion(...sessionActions),
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        } else {
+          const sessionDoc = await db.collection("nova_conversations").add({
+            user_id: user.uid,
+            turns: sessionTurns,
+            turn_count: sessionTurns.length,
+            actions: sessionActions,
+            active: true,
+            started_at: admin.firestore.FieldValue.serverTimestamp(),
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+            ended_at: null,
+            summary: null,
+          });
+          currentSessionId = sessionDoc.id;
+        }
+      } catch (sessionErr) {
+        console.warn("[VoiceAgent] Could not save session:", sessionErr);
+      }
+
       res.json({
         transcript: userText,
         responseText,
@@ -1177,6 +1645,7 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         actionsExecuted,
         appCommands,
         conversationHistory: cleanHistory,
+        sessionId: currentSessionId,
       });
     } catch (error: any) {
       console.error("[VoiceAgent] Error:", error);
@@ -1257,4 +1726,3 @@ export const enhanceBrainDump = functions.https.onRequest(
     }
   })
 );
-export { voiceAgent };

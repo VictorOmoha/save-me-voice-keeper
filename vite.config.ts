@@ -19,4 +19,34 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-firebase': [
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore',
+            'firebase/storage',
+            'firebase/analytics',
+          ],
+          'vendor-ui': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+          ],
+          'vendor-editor': [
+            '@tiptap/react',
+            '@tiptap/starter-kit',
+          ],
+          'vendor-charts': [
+            'recharts',
+          ],
+        },
+      },
+    },
+  },
 }));

@@ -1,23 +1,12 @@
 
 import { Button } from "@/components/ui/button";
-import { Search, Mic, Plus, FileText } from "lucide-react";
-import { VoiceInputFixed } from "@/components/VoiceInputFixed";
-import { VoiceCommand } from "@/utils/voiceCommandProcessor";
-import { useState } from "react";
+import { Plus, FileText } from "lucide-react";
 import { SmartSearchWithBoundary as SmartSearch } from "@/components/SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 
 interface NewQuickActionsProps {
   onAddEntry: () => void;
-  onVoiceInput: () => void;
-  onEnhancedVoiceInput: (text: string) => void;
   onCreateDocument: () => void;
-  isVoiceProcessing?: boolean;
-  lastVoiceCommand?: unknown;
-  conversationState?: 'listening' | 'confirming' | 'idle';
-  hasPendingConfirmation?: boolean;
-  onCancelVoice?: () => void;
-  conversationData?: { isActive: boolean; currentStep?: { question: string } };
   entries: SavedEntry[];
   searchQuery: string;
   onSearchChange: (value: string) => void;
@@ -26,21 +15,12 @@ interface NewQuickActionsProps {
 
 export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
   onAddEntry,
-  onVoiceInput,
-  onEnhancedVoiceInput,
   onCreateDocument,
-  isVoiceProcessing,
-  lastVoiceCommand,
-  conversationState,
-  hasPendingConfirmation,
-  onCancelVoice,
-  conversationData,
   entries,
   searchQuery,
   onSearchChange,
   onEntrySelect,
 }) => {
-  const [showVoiceInput, setShowVoiceInput] = useState(false);
   return (
     <div className="bg-card border border-border rounded-lg p-4 md:p-6 mb-6 md:mb-8">
       <div>
@@ -75,19 +55,6 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             <FileText className="w-4 h-4" />
             <span className="hidden xs:inline">Create </span>Doc
           </Button>
-
-          <Button
-            onClick={() => {
-              console.log('Voice Input button clicked');
-              setShowVoiceInput(!showVoiceInput);
-            }}
-            variant={showVoiceInput ? "default" : "outline"}
-            className="flex items-center space-x-2 sm:hidden"
-            size="sm"
-          >
-            <Mic className="w-4 h-4" />
-            <span>Voice</span>
-          </Button>
         </div>
 
         {/* Search - full width on mobile, flexible on desktop */}
@@ -100,35 +67,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             placeholder="Search entries..."
           />
         </div>
-
-        {/* Voice button - hidden on mobile (shown above), visible on desktop */}
-        <Button
-          onClick={() => {
-            console.log('Voice Input button clicked');
-            setShowVoiceInput(!showVoiceInput);
-          }}
-          variant={showVoiceInput ? "default" : "outline"}
-          className="hidden sm:flex items-center space-x-2"
-          size="sm"
-        >
-          <Mic className="w-4 h-4" />
-          <span>Voice Commands</span>
-        </Button>
       </div>
-
-      {showVoiceInput && (
-        <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-border">
-          <VoiceInputFixed
-            onEnhancedVoiceInput={onEnhancedVoiceInput}
-            isVoiceProcessing={isVoiceProcessing || false}
-            lastVoiceCommand={lastVoiceCommand}
-            conversationState={conversationState || 'idle'}
-            hasPendingConfirmation={hasPendingConfirmation || false}
-            onCancelVoice={onCancelVoice || (() => {})}
-            conversationData={conversationData}
-          />
-        </div>
-      )}
     </div>
   );
 };

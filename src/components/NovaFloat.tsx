@@ -9,56 +9,88 @@
  *  - open: full panel
  */
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Sparkles, X, Mic, ChevronDown, ChevronUp } from "lucide-react";
 import { NovaVoiceAgent } from "@/components/NovaVoiceAgent";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type PanelState = "closed" | "minimized" | "open";
 
 export const NovaFloat: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { setTheme } = useTheme();
   const [panelState, setPanelState] = useState<PanelState>("closed");
 
-  if (!user) return null;
-
-  const handleNavigate = (route: string) => {
+  const handleNavigate = useCallback((route: string) => {
     navigate(route);
     setPanelState("closed");
-  };
+  }, [navigate]);
 
-  const handleOpenEntryForm = (category?: string | null) => {
+  const handleOpenEntryForm = useCallback((category?: string | null) => {
     const params = category ? `?action=create&category=${encodeURIComponent(category)}` : "?action=create";
     navigate(`/dashboard${params}`);
     setPanelState("closed");
-  };
+  }, [navigate]);
 
-  const handleOpenEntry = (id?: string | null, title?: string | null) => {
+  const handleOpenEntry = useCallback((id?: string | null, title?: string | null) => {
     if (id) navigate(`/all-entries/${id}`);
     else if (title) navigate(`/all-entries?search=${encodeURIComponent(title || "")}`);
     setPanelState("closed");
-  };
+  }, [navigate]);
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     navigate(-1);
-  };
+  }, [navigate]);
 
-  const handleStartBrainDump = () => {
+  const handleStartBrainDump = useCallback(() => {
     sessionStorage.setItem("brain_dump_auto_start", JSON.stringify({ autoStart: true, autoSpeak: false }));
     navigate("/brain-dump");
     setPanelState("minimized");
-  };
+  }, [navigate]);
 
-  const handleProcessBrainDump = () => {
+  const handleProcessBrainDump = useCallback(() => {
     window.dispatchEvent(new CustomEvent("brain-dump:process"));
-  };
+  }, []);
 
-  const handleSaveBrainDump = (category?: string | null) => {
+  const handleSaveBrainDump = useCallback((category?: string | null) => {
     window.dispatchEvent(new CustomEvent("brain-dump:save", { detail: { category: category || undefined } }));
-  };
+  }, []);
+
+  const handleUpdateTheme = useCallback((theme: string) => {
+    if (theme === "light" || theme === "dark" || theme === "system") {
+      setTheme(theme);
+      toast.success(`Theme switched to ${theme}`);
+    }
+  }, [setTheme]);
+
+  const handleSettingsUpdated = useCallback((setting: string, value?: any) => {
+    const labels: Record<string, string> = {
+      profile: "Profile updated",
+      email_notifications: `Email notifications ${value ? "enabled" : "disabled"}`,
+      push_notifications: `Push notifications ${value ? "enabled" : "disabled"}`,
+      reminder_notifications: `Reminders ${value ? "enabled" : "disabled"}`,
+      automation_notifications: `Automation alerts ${value ? "enabled" : "disabled"}`,
+      voice: "Voice settings updated",
+    };
+    toast.success(labels[setting] || "Settings updated");
+    window.dispatchEvent(new CustomEvent("nova:settings-updated", { detail: { setting, value } }));
+  }, []);
+
+  const handleExportData = useCallback((format: string) => {
+    navigate("/settings");
+    toast.info(`Opening data management to export as ${format.toUpperCase()}...`);
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("nova:export-data", { detail: { format } }));
+    }, 500);
+  }, [navigate]);
+
+  // Early return AFTER all hooks
+  if (!user) return null;
 
   const isOpen = panelState === "open";
   const isMinimized = panelState === "minimized";
@@ -72,11 +104,9 @@ export const NovaFloat: React.FC = () => {
           "fixed z-50 w-full sm:w-[420px] sm:right-6",
           "bg-background border shadow-2xl",
           "transition-all duration-300 ease-out",
-          // Position: anchored to bottom on mobile, above FAB on desktop
           isMinimized
             ? "bottom-0 sm:bottom-20 rounded-t-2xl sm:rounded-2xl"
             : "bottom-0 sm:bottom-20 rounded-t-2xl sm:rounded-2xl",
-          // Visibility
           isVisible
             ? "translate-y-0 opacity-100 pointer-events-auto"
             : "translate-y-6 opacity-0 pointer-events-none"
@@ -86,7 +116,7 @@ export const NovaFloat: React.FC = () => {
           overflow: "hidden",
         }}
       >
-        {/* Minimized header bar — always rendered, acts as drag handle / title */}
+        {/* Minimized header bar */}
         <div
           className={cn(
             "flex items-center justify-between px-4 shrink-0",
@@ -103,7 +133,6 @@ export const NovaFloat: React.FC = () => {
             )}
           </div>
           <div className="flex items-center gap-1">
-            {/* Minimize / expand toggle */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -116,7 +145,6 @@ export const NovaFloat: React.FC = () => {
                 ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
                 : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
             </button>
-            {/* Close button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -130,7 +158,7 @@ export const NovaFloat: React.FC = () => {
           </div>
         </div>
 
-        {/* Full panel content — only visible when open */}
+        {/* Full panel content */}
         <div
           className={cn(
             "h-[calc(100%-48px)] transition-opacity duration-200",
@@ -145,11 +173,14 @@ export const NovaFloat: React.FC = () => {
             onStartBrainDump={handleStartBrainDump}
             onProcessBrainDump={handleProcessBrainDump}
             onSaveBrainDump={handleSaveBrainDump}
+            onUpdateTheme={handleUpdateTheme}
+            onSettingsUpdated={handleSettingsUpdated}
+            onExportData={handleExportData}
           />
         </div>
       </div>
 
-      {/* Floating trigger button — hidden when panel is visible */}
+      {/* Floating trigger button */}
       <button
         onClick={() => setPanelState("open")}
         className={cn(

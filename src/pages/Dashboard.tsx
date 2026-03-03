@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { DashboardVoiceListener } from '@/components/DashboardVoiceListener';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
@@ -67,17 +66,8 @@ export default function Dashboard() {
     getFormMode,
     getFormTitle,
     handleAddEntry,
-    handleEnhancedVoiceInput,
-    isVoiceProcessing,
-    lastVoiceCommand,
-    conversationState,
-    hasPendingConfirmation,
-    conversationData,
-    cancelCurrentOperation,
     refreshEntries,
   } = useDashboard();
-
-  // Voice input handler is provided by useDashboard hook (handleEnhancedVoiceInput)
 
   // Check auth state and redirect if needed
   useEffect(() => {
@@ -232,7 +222,6 @@ export default function Dashboard() {
         onSaveEntry={saveEntry}
         onCancelEdit={handleCancelEdit}
         onFillEntry={fillEntry}
-        onEnhancedVoiceInput={handleEnhancedVoiceInput}
       >
       {(showAddEntry || editingEntry || fillingEntry || showDocumentCreator) ? (
         <>
@@ -276,19 +265,12 @@ export default function Dashboard() {
           onCategorySelect={handleCategorySelect}
           onAddEntry={handleAddEntry}
           onCreateDocument={handleCreateDocument}
-          onEnhancedVoiceInput={handleEnhancedVoiceInput}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
           onDeleteEntry={deleteEntry}
           onViewDocument={handleViewDocument}
           onViewAllEntries={handleViewAllEntries}
-          isVoiceProcessing={isVoiceProcessing}
           isSaving={isSaving}
-          lastVoiceCommand={lastVoiceCommand}
-          conversationState={conversationState}
-          hasPendingConfirmation={hasPendingConfirmation}
-          onCancelVoice={cancelCurrentOperation}
-          conversationData={conversationData}
         />
       )}
 

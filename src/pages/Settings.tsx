@@ -13,10 +13,11 @@ import { VoiceSettings } from "@/components/settings/VoiceSettings";
 import { EnhancedVoiceSettings } from "@/components/settings/EnhancedVoiceSettings";
 import { EnhancedHelpSupportSettings } from "@/components/settings/EnhancedHelpSupportSettings";
 import { EnhancedDataManagementSettings } from "@/components/settings/EnhancedDataManagementSettings";
+import { NovaMemorySettings } from "@/components/settings/NovaMemorySettings";
 import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic, Database } from "lucide-react";
+import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic, Database, Brain } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
@@ -97,6 +98,10 @@ const Settings = () => {
                 <Mic className="w-4 h-4" />
                 VOICE_SETTINGS
               </TabsTrigger>
+              <TabsTrigger value="nova-memory" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
+                <Brain className="w-4 h-4" />
+                NOVA_MEMORY
+              </TabsTrigger>
               <TabsTrigger value="automation" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
                 <Zap className="w-4 h-4" />
                 AUTOMATION_API
@@ -137,6 +142,9 @@ const Settings = () => {
             </TabsContent>
             <TabsContent value="voice">
               <VoiceSettings />
+            </TabsContent>
+            <TabsContent value="nova-memory">
+              <NovaMemorySettings />
             </TabsContent>
             <TabsContent value="automation">
               <AutomationSettings />

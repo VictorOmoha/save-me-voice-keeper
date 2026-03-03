@@ -1310,8 +1310,10 @@ async function executeVoiceTool(
       success: true,
       id: docRef.id,
       title: args.title,
-      appCommand: "liveCreateEntry",
-      entryData: {
+      appCommand: "novaAction",
+      actionType: "save_entry",
+      actionData: {
+        id: docRef.id,
         title: args.title,
         category: args.category || "Personal",
         content: args.content || null,
@@ -1337,7 +1339,12 @@ async function executeVoiceTool(
       )
       .slice(0, limit)
       .map((e: any) => ({id: e.id, title: e.title, content: e.fields?.content, category: e.fields?.category}));
-    return {success: true, results, count: results.length};
+    return {
+      success: true, results, count: results.length,
+      appCommand: "novaAction",
+      actionType: "search",
+      actionData: { query: args.query, results: results.slice(0, 5), count: results.length },
+    };
   }
 
   case "getRecentEntries": {
@@ -1374,12 +1381,30 @@ async function executeVoiceTool(
       };
     }
     await entriesRef.doc(args.id).update(updateData);
-    return {success: true, id: args.id};
+    return {
+      success: true, id: args.id,
+      appCommand: "novaAction",
+      actionType: "update_entry",
+      actionData: {
+        id: args.id,
+        title: args.title || null,
+        category: args.category || null,
+        content: args.content || null,
+      },
+    };
   }
 
   case "deleteEntry": {
+    // Get title before deleting for the live feedback
+    const delDoc = await entriesRef.doc(args.id).get();
+    const delTitle = delDoc.data()?.title || "Entry";
     await entriesRef.doc(args.id).delete();
-    return {success: true, id: args.id};
+    return {
+      success: true, id: args.id,
+      appCommand: "novaAction",
+      actionType: "delete_entry",
+      actionData: { id: args.id, title: delTitle },
+    };
   }
   }
 
@@ -1467,7 +1492,12 @@ async function executeVoiceTool(
     });
 
     await rebuildMemoryProfile(userId, db);
-    return {success: true, memoryId: memDoc.id};
+    return {
+      success: true, memoryId: memDoc.id,
+      appCommand: "novaAction",
+      actionType: "remember",
+      actionData: { content: args.content, category: args.category || null },
+    };
   }
 
   case "recallMemories": {
@@ -1535,7 +1565,12 @@ async function executeVoiceTool(
     if (deactivated > 0) {
       await rebuildMemoryProfile(userId, db);
     }
-    return {success: true, deactivated};
+    return {
+      success: true, deactivated,
+      appCommand: "novaAction",
+      actionType: "forget",
+      actionData: { query: args.query, count: deactivated },
+    };
   }
 
   }
@@ -1836,7 +1871,12 @@ Write a concise briefing (2-4 sentences) suitable for voice. Mention key facts, 
     }
     await bestMatch.ref.update(updateData);
 
-    return {success: true, id: bestMatch.id, text: bestMatch.text, newStatus: args.status};
+    return {
+      success: true, id: bestMatch.id, text: bestMatch.text, newStatus: args.status,
+      appCommand: "novaAction",
+      actionType: "update_task",
+      actionData: { text: bestMatch.text, status: args.status },
+    };
   }
 
   case "setReminder": {
@@ -1899,7 +1939,12 @@ Write a concise briefing (2-4 sentences) suitable for voice. Mention key facts, 
       created_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return {success: true, reminderId: reminderDoc.id, triggerAt: triggerAt.toISOString(), text: args.text};
+    return {
+      success: true, reminderId: reminderDoc.id, triggerAt: triggerAt.toISOString(), text: args.text,
+      appCommand: "novaAction",
+      actionType: "set_reminder",
+      actionData: { text: args.text, when: triggerAt.toISOString() },
+    };
   }
 
   default:

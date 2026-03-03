@@ -183,6 +183,13 @@ export const useSavedEntries = () => {
     }
   }, [user, authLoading, fetchEntries]);
 
+  // Refresh when Nova modifies entries (voice agent backend saves)
+  useEffect(() => {
+    const handler = () => { fetchEntries(); };
+    window.addEventListener("nova:entries-changed", handler);
+    return () => window.removeEventListener("nova:entries-changed", handler);
+  }, [fetchEntries]);
+
   return {
     savedEntries: filteredEntries,
     isLoading,

@@ -12,13 +12,14 @@
 import React, { useState, useCallback } from "react";
 import { Sparkles, X, Mic, ChevronDown, ChevronUp } from "lucide-react";
 import { NovaVoiceAgent } from "@/components/NovaVoiceAgent";
-import { LiveEntryExecution } from "@/components/LiveEntryExecution";
+import { NovaLiveAction } from "@/components/NovaLiveAction";
+import type { NovaActionPayload } from "@/components/NovaLiveAction";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import type { LiveEntryData } from "@/hooks/useVoiceAgent";
+import type { NovaActionPayload as HookPayload } from "@/hooks/useVoiceAgent";
 
 type PanelState = "closed" | "minimized" | "open";
 
@@ -27,7 +28,7 @@ export const NovaFloat: React.FC = () => {
   const navigate = useNavigate();
   const { setTheme } = useTheme();
   const [panelState, setPanelState] = useState<PanelState>("closed");
-  const [liveEntry, setLiveEntry] = useState<LiveEntryData | null>(null);
+  const [liveAction, setLiveAction] = useState<NovaActionPayload | null>(null);
 
   const handleNavigate = useCallback((route: string) => {
     navigate(route);
@@ -92,9 +93,39 @@ export const NovaFloat: React.FC = () => {
     }, 500);
   }, [navigate]);
 
-  const handleLiveCreateEntry = useCallback((data: LiveEntryData) => {
-    setLiveEntry(data);
+  // ── Unified Nova action handler ──────────────────────────────────────────
+  const handleNovaAction = useCallback((payload: HookPayload) => {
+    setLiveAction({ actionType: payload.actionType, actionData: payload.actionData } as NovaActionPayload);
   }, []);
+
+  // ── After live action animation completes, execute post-action UI update ─
+  const handleActionComplete = useCallback((action: NovaActionPayload) => {
+    setLiveAction(null);
+    const { actionType, actionData } = action;
+
+    // Notify the app that entries changed (dashboard/all-entries can listen to refresh)
+    if (["save_entry", "update_entry", "delete_entry"].includes(actionType)) {
+      window.dispatchEvent(new CustomEvent("nova:entries-changed", { detail: { actionType, id: actionData.id } }));
+    }
+
+    // Navigate to show the entry after save/update
+    if ((actionType === "save_entry" || actionType === "update_entry") && actionData.id) {
+      navigate(`/all-entries/${actionData.id}`);
+      setPanelState("minimized");
+    }
+
+    // After search, navigate to all-entries with search query
+    if (actionType === "search" && actionData.query) {
+      navigate(`/all-entries?search=${encodeURIComponent(actionData.query)}`);
+      setPanelState("minimized");
+    }
+
+    // After delete, refresh the current page
+    if (actionType === "delete_entry") {
+      navigate("/all-entries");
+      setPanelState("minimized");
+    }
+  }, [navigate]);
 
   // Early return AFTER all hooks
   if (!user) return null;
@@ -183,16 +214,16 @@ export const NovaFloat: React.FC = () => {
             onUpdateTheme={handleUpdateTheme}
             onSettingsUpdated={handleSettingsUpdated}
             onExportData={handleExportData}
-            onLiveCreateEntry={handleLiveCreateEntry}
+            onNovaAction={handleNovaAction}
           />
         </div>
       </div>
 
-      {/* Live entry creation overlay */}
-      {liveEntry && (
-        <LiveEntryExecution
-          data={liveEntry}
-          onComplete={() => setLiveEntry(null)}
+      {/* Nova live action overlay */}
+      {liveAction && (
+        <NovaLiveAction
+          action={liveAction}
+          onComplete={handleActionComplete}
         />
       )}
 

@@ -1985,7 +1985,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
           .limit(5)
           .get();
         activePatterns = patternsSnap.docs.map((d) => `- ${d.data().description}: ${d.data().suggested_action}`);
-      } catch { /* non-critical — collection may not exist yet */ }
+      } catch (pErr: any) {
+        console.warn("[VoiceAgent] Patterns query skipped:", pErr?.message || pErr);
+      }
 
       // ── Gemini function calling loop (max 6 iterations for agentic chaining) ──
       let keepLooping = true;
@@ -2033,7 +2035,13 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
             if (!part.functionCall) continue;
             const {name, args} = part.functionCall;
             console.log(`[VoiceAgent] Tool: ${name}`, args);
-            const result = await executeVoiceTool(name, args, user.uid);
+            let result: Record<string, any>;
+            try {
+              result = await executeVoiceTool(name, args, user.uid);
+            } catch (toolErr: any) {
+              console.error(`[VoiceAgent] Tool ${name} failed:`, toolErr?.message || toolErr);
+              result = {success: false, error: `Tool ${name} failed: ${toolErr?.message || "unknown error"}`};
+            }
             actionsExecuted.push({tool: name, args, result});
             functionResponses.push({
               functionResponse: {name, response: result},
@@ -2122,12 +2130,15 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         }));
 
         if (currentSessionId) {
-          await db.collection("nova_conversations").doc(currentSessionId).update({
+          const updateData: Record<string, any> = {
             turns: sessionTurns,
             turn_count: sessionTurns.length,
-            actions: admin.firestore.FieldValue.arrayUnion(...sessionActions),
             updated_at: admin.firestore.FieldValue.serverTimestamp(),
-          });
+          };
+          if (sessionActions.length > 0) {
+            updateData.actions = admin.firestore.FieldValue.arrayUnion(...sessionActions);
+          }
+          await db.collection("nova_conversations").doc(currentSessionId).update(updateData);
         } else {
           const sessionDoc = await db.collection("nova_conversations").add({
             user_id: user.uid,

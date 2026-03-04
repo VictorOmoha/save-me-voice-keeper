@@ -17,17 +17,18 @@ interface CategoryViewProps {
   onEdit: (entry: SavedEntry) => void;
   onDelete: (id: string) => void;
   onFill: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   onCreateEntry: (categoryName: string) => void;
   showDocumentCreator?: boolean;
   showAddEntry?: boolean;
   editingEntry?: SavedEntry | null;
-  fillingEntry?: SavedEntry | null;
+  templateEntry?: SavedEntry | null;
   onDocumentSave?: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onDocumentCancel?: () => void;
   onSaveEntry?: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancelEdit?: () => void;
   getFormTitle?: () => string;
-  getFormMode?: () => 'create' | 'edit' | 'fill';
+  getFormMode?: () => 'create' | 'edit' | 'fill' | 'template';
   isSaving?: boolean;
 }
 
@@ -38,11 +39,12 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   onEdit,
   onDelete,
   onFill,
+  onUseAsTemplate,
   onCreateEntry,
   showDocumentCreator = false,
   showAddEntry = false,
   editingEntry = null,
-  fillingEntry = null,
+  templateEntry = null,
   onDocumentSave = () => {},
   onDocumentCancel = () => {},
   onSaveEntry = () => {},
@@ -54,12 +56,12 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   const { downloadingFiles, handleDownload } = useDownload();
   const { filterEntriesByCategory } = useCategoryFilter();
 
-  console.log('DIAGNOSTIC: CategoryView rendered with:', { 
-    categoryName, 
-    showDocumentCreator, 
+  console.log('DIAGNOSTIC: CategoryView rendered with:', {
+    categoryName,
+    showDocumentCreator,
     showAddEntry,
     editingEntry: editingEntry?.title,
-    fillingEntry: fillingEntry?.title,
+    templateEntry: templateEntry?.title,
     totalEntries: entries.length
   });
 
@@ -121,11 +123,11 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
             <CardTitle>{getFormTitle()}</CardTitle>
           </CardHeader>
           <CardContent>
-            <DataEntryForm 
+            <DataEntryForm
               onSave={onSaveEntry}
               onCancel={onCancelEdit}
               editEntry={editingEntry}
-              templateEntry={fillingEntry}
+              templateEntry={templateEntry}
               mode={getFormMode()}
               isSaving={isSaving}
             />
@@ -159,6 +161,7 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onFill={onFill}
+                onUseAsTemplate={onUseAsTemplate}
                 onDownload={handleDownload}
                 isDownloading={downloadingFiles.includes(entry.id)}
               />

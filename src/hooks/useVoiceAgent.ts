@@ -32,7 +32,7 @@ export interface NovaActionPayload {
 }
 
 export interface AppCommand {
-  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData" | "novaAction";
+  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData" | "novaAction" | "printEntry";
   route?: string;
   category?: string | null;
   id?: string | null;
@@ -42,6 +42,7 @@ export interface AppCommand {
   value?: any;
   updates?: Record<string, any>;
   format?: string;
+  entries?: any[];
   actionType?: string;
   actionData?: Record<string, any>;
 }
@@ -57,6 +58,7 @@ export interface UseVoiceAgentOptions {
   onUpdateTheme?: (theme: string) => void;
   onSettingsUpdated?: (setting: string, value?: any, updates?: Record<string, any>) => void;
   onExportData?: (format: string) => void;
+  onPrintEntry?: (entries: any[]) => void;
   onNovaAction?: (payload: NovaActionPayload) => void;
   continuous?: boolean;
 }
@@ -107,6 +109,7 @@ const toolLabel = (name: string, args: Record<string, any>): string => {
     case "getUpcomingDeadlines": return "Checking deadlines...";
     case "updateActionItem": return `Updating task "${args.query}"...`;
     case "setReminder":      return `Setting reminder: "${args.text}"...`;
+    case "printEntry":       return `Printing "${args.title || args.category || "entry"}"...`;
     default:                 return `${name}...`;
   }
 };
@@ -121,11 +124,11 @@ const ACTION_TOAST_ICON: Record<string, string> = {
   rememberFact: "🧠", recallMemories: "💭", forgetMemory: "🗑️",
   getEntityGraph: "🕸️", getRelatedEntries: "🔗", prepareBriefing: "📊",
   getActivitySummary: "📈", getUpcomingDeadlines: "⏰", updateActionItem: "✅",
-  setReminder: "🔔",
+  setReminder: "🔔", printEntry: "🖨️",
 };
 
 export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgentReturn => {
-  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onStartBrainDump, onProcessBrainDump, onSaveBrainDump, onUpdateTheme, onSettingsUpdated, onExportData, onNovaAction } = options;
+  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onStartBrainDump, onProcessBrainDump, onSaveBrainDump, onUpdateTheme, onSettingsUpdated, onExportData, onPrintEntry, onNovaAction } = options;
 
   const [status, setStatus] = useState<AgentStatus>("idle");
   const [transcript, setTranscript] = useState("");
@@ -157,6 +160,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const onUpdateThemeRef = useRef(onUpdateTheme);
   const onSettingsUpdatedRef = useRef(onSettingsUpdated);
   const onExportDataRef = useRef(onExportData);
+  const onPrintEntryRef = useRef(onPrintEntry);
   const onNovaActionRef = useRef(onNovaAction);
   useEffect(() => { onNavigateRef.current = onNavigate; }, [onNavigate]);
   useEffect(() => { onOpenEntryFormRef.current = onOpenEntryForm; }, [onOpenEntryForm]);
@@ -168,6 +172,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   useEffect(() => { onUpdateThemeRef.current = onUpdateTheme; }, [onUpdateTheme]);
   useEffect(() => { onSettingsUpdatedRef.current = onSettingsUpdated; }, [onSettingsUpdated]);
   useEffect(() => { onExportDataRef.current = onExportData; }, [onExportData]);
+  useEffect(() => { onPrintEntryRef.current = onPrintEntry; }, [onPrintEntry]);
   useEffect(() => { onNovaActionRef.current = onNovaAction; }, [onNovaAction]);
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
 
@@ -208,6 +213,9 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
       } else if (cmd.appCommand === "exportData") {
         onExportDataRef.current?.(cmd.format || "json");
+
+      } else if (cmd.appCommand === "printEntry" && cmd.entries) {
+        onPrintEntryRef.current?.(cmd.entries);
 
       } else if (cmd.appCommand === "novaAction" && cmd.actionType && cmd.actionData) {
         onNovaActionRef.current?.({ actionType: cmd.actionType, actionData: cmd.actionData });

@@ -29,6 +29,7 @@ interface DashboardMainContentProps {
   onCreateDocument: () => void;
   onEditEntry: (entry: SavedEntry) => void;
   onFillEntry: (entry: SavedEntry) => void;
+  onUseAsTemplate: (entry: SavedEntry) => void;
   onDeleteEntry: (id: string) => void;
   onViewAllEntries: () => void;
   isSaving?: boolean;
@@ -115,6 +116,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onCreateDocument,
   onEditEntry,
   onFillEntry,
+  onUseAsTemplate,
   onDeleteEntry,
   onViewAllEntries,
   isSaving,
@@ -232,6 +234,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         maxEntries={6}
         onEdit={onEditEntry}
         onFill={onFillEntry}
+        onUseAsTemplate={onUseAsTemplate}
         onDelete={onDeleteEntry}
         onView={onViewDocument}
         onViewAll={onViewAllEntries}

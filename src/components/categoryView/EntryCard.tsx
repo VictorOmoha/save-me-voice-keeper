@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
-import { Download, Printer } from "lucide-react";
+import { Download, Printer, Copy } from "lucide-react";
 import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import { toast } from "sonner";
 
@@ -13,6 +13,7 @@ interface EntryCardProps {
   onEdit: (entry: SavedEntry) => void;
   onDelete: (id: string) => void;
   onFill: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   onDownload: (entry: SavedEntry) => void;
   isDownloading: boolean;
 }
@@ -22,6 +23,7 @@ const EntryCardComponent: React.FC<EntryCardProps> = ({
   onEdit,
   onDelete,
   onFill,
+  onUseAsTemplate,
   onDownload,
   isDownloading
 }) => {
@@ -73,6 +75,17 @@ const EntryCardComponent: React.FC<EntryCardProps> = ({
             >
               Fill Form
             </Button>
+            {onUseAsTemplate && (
+              <Button
+                onClick={() => onUseAsTemplate(entry)}
+                variant="outline"
+                size="sm"
+                className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-y-1"
+              >
+                <Copy className="w-4 h-4 mr-1" />
+                Template
+              </Button>
+            )}
             <Button
               onClick={() => onEdit(entry)}
               variant="outline"

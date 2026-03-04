@@ -44,6 +44,7 @@ const ACTION_ICON: Record<string, string> = {
   rememberFact: "🧠",
   recallMemories: "💭",
   forgetMemory: "🗑️",
+  printEntry: "🖨️",
 };
 
 type NovaVoiceAgentProps = UseVoiceAgentOptions;

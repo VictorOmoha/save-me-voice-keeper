@@ -1018,6 +1018,19 @@ Examples:
           required: ["text", "when"],
         },
       },
+      // ── Print ──────────────────────────────────────────────────────────────
+      {
+        name: "printEntry",
+        description: "Print one or more entries. Use when user says 'print', 'print this entry', 'print my [title]', 'print entries in [category]'. Searches for the entry by title or category and opens the browser print dialog.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            title: {type: "STRING", description: "Entry title or partial title to find and print"},
+            id: {type: "STRING", description: "Entry ID to print (if known)"},
+            category: {type: "STRING", description: "Print all entries in this category"},
+          },
+        },
+      },
     ],
   },
 ];
@@ -1031,23 +1044,32 @@ const buildVoiceAgentSystemPrompt = (
 You are Nova — the conversational AI built into SaveMe.Space, a personal knowledge vault.
 You are talking to ${displayName}. Be warm, sharp, and concise.
 
-## CRITICAL RULE
-NEVER describe what you are going to do. ALWAYS call the tool immediately.
-Wrong: "Sure, I'll navigate to Books for you!"
-Right: [call navigateToCategory tool immediately, then say "Done — opening Books."]
+## CRITICAL RULES
+1. NEVER describe what you are going to do. ALWAYS call the tool immediately.
+   Wrong: "Sure, I'll navigate to Books for you!"
+   Right: [call navigateToCategory tool immediately, then say "Done — opening Books."]
+2. ALWAYS match the user's VERB to the right tool. The verb IS the action:
+   - "print" → printEntry (NEVER saveEntry)
+   - "save" / "remember" / "note" → saveEntry
+   - "create" / "new" / "add" → openEntryForm
+   - "find" / "search" / "what did I save about" → searchEntries
+   - "delete" / "remove" → deleteEntry
+   - "edit" / "update" / "change" → updateEntry
+   - "open" / "go to" / "show me" → navigateToCategory or navigateApp
+3. If the user's request contains the word "print" anywhere, call printEntry. Do NOT create or save an entry.
 
 ## Tools — call them immediately, no hesitation
-- User says "open", "go to", "show me", "take me to" a category → call navigateToCategory NOW
-- User says "go to insights / settings / dashboard / brain dump" → call navigateApp NOW
-- User says "save this", "remember this", "note that" → call saveEntry NOW
-- User says "what did I save about X" or "find X" → call searchEntries NOW
-- User says "show recent", "what did I save lately" → call getRecentEntries NOW
-- User says "create entry", "new entry", "add entry" → call openEntryForm NOW
-- User says "open [title]", "view [title]" → call searchEntries to find it, then openEntry NOW
-- User says "close", "go back", "exit", "back", "close this", "close the entry" → call closeEntry NOW
-- User says "brain dump", "start brain dump", "open brain dump", "capture my thoughts" → call startBrainDump NOW
-- User says "process", "structure this", "organize my thoughts" (on brain dump page) → call processBrainDump NOW
-- User says "save this", "save the brain dump", "save my notes" (on brain dump page) → call saveBrainDump NOW
+- "open", "go to", "show me", "take me to" a category → navigateToCategory
+- "go to insights / settings / dashboard / brain dump" → navigateApp
+- "save this", "remember this", "note that" → saveEntry
+- "what did I save about X", "find X" → searchEntries
+- "show recent", "what did I save lately" → getRecentEntries
+- "create entry", "new entry", "add entry" → openEntryForm
+- "open [title]", "view [title]" → searchEntries to find, then openEntry
+- "close", "go back", "exit", "back" → closeEntry
+- "brain dump", "capture my thoughts" → startBrainDump
+- "process", "structure this", "organize" → processBrainDump
+- "print", "print this", "print my X", "print entries" → printEntry
 
 ## saveEntry — content vs structured fields
 Detect intent automatically:
@@ -1270,6 +1292,38 @@ async function executeVoiceTool(
       if (found) resolvedId = found.id;
     }
     return {appCommand: "openEntry", id: resolvedId, title: args.title || null, success: true};
+  }
+  case "printEntry": {
+    // Find matching entries to print
+    const snap = await entriesRef
+      .where("user_id", "==", userId)
+      .orderBy("updated_at", "desc")
+      .limit(50)
+      .get();
+    const allDocs = snap.docs.map((d) => ({id: d.id, ...(d.data() as any)}));
+    let toPrint: any[] = [];
+
+    if (args.id) {
+      const byId = allDocs.find((e) => e.id === args.id);
+      if (byId) toPrint = [byId];
+    } else if (args.title) {
+      const q = args.title.toLowerCase();
+      toPrint = allDocs.filter((e: any) => e.title && e.title.toLowerCase().includes(q));
+    } else if (args.category) {
+      const cat = args.category.toLowerCase();
+      toPrint = allDocs.filter((e: any) => e.fields?.category && e.fields.category.toLowerCase() === cat);
+    }
+
+    if (toPrint.length === 0) {
+      return {success: false, error: "No entries found to print"};
+    }
+
+    return {
+      appCommand: "printEntry",
+      entries: toPrint.map((e) => ({id: e.id, title: e.title, fields: e.fields || {}, category: e.fields?.category})),
+      count: toPrint.length,
+      success: true,
+    };
   }
   }
 
@@ -2056,8 +2110,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
           body: JSON.stringify({
             systemInstruction: {parts: [{text: buildVoiceAgentSystemPrompt(displayName, memorySummary, lastConversationSummary, activePatterns)}]},
             tools: VOICE_AGENT_TOOLS,
+            toolConfig: {functionCallingConfig: {mode: "AUTO"}},
             contents,
-            generationConfig: {maxOutputTokens: 384, temperature: 0.7},
+            generationConfig: {maxOutputTokens: 512, temperature: 0.5},
           }),
         });
 

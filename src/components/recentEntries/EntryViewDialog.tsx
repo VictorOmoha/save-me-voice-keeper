@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SavedEntry } from "@/types/dashboard";
-import { Edit, FileText, Download, Eye, Printer } from "lucide-react";
+import { Edit, FileText, Download, Eye, Printer, Copy } from "lucide-react";
 import { getCategoryIcon, getCategoryColor, getCategoryName, getEntryType } from "./categoryUtils";
 import { toast } from "sonner";
 import { ImageGallery } from "@/components/forms/ImageGallery";
@@ -26,6 +26,7 @@ interface EntryViewDialogProps {
   onClose: () => void;
   onEdit?: (entry: SavedEntry) => void;
   onFill?: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   onViewDocument?: (entry: SavedEntry) => void;
 }
 
@@ -35,6 +36,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   onClose,
   onEdit,
   onFill,
+  onUseAsTemplate,
   onViewDocument,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -284,6 +286,19 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Fill Form
+              </Button>
+            )}
+            {onUseAsTemplate && (
+              <Button
+                onClick={() => {
+                  onUseAsTemplate(entry);
+                  onClose();
+                }}
+                variant="outline"
+                className="text-purple-600 hover:text-purple-700"
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Use as Template
               </Button>
             )}
             {onEdit && (

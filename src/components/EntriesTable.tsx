@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SavedEntry } from "@/types/dashboard";
-import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download, Printer } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Trash2, FileText, ArrowUpDown, Download, Printer, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { ExportButton } from "@/components/export/ExportButton";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
@@ -23,6 +23,7 @@ interface EntriesTableProps {
   onDelete: (id: string) => void;
   onEdit: (entry: SavedEntry) => void;
   onFill: (entry: SavedEntry) => void;
+  onUseAsTemplate: (entry: SavedEntry) => void;
   onBulkDelete: (ids: string[]) => void;
   onViewDocument?: (entry: SavedEntry) => void;
 }
@@ -35,6 +36,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
   onDelete,
   onEdit,
   onFill,
+  onUseAsTemplate,
   onBulkDelete,
   onViewDocument,
 }) => {
@@ -360,14 +362,25 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                         variant="ghost"
                         size="sm"
                         className="text-green-600 hover:text-green-700"
+                        title="Fill Form"
                       >
                         <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => onUseAsTemplate(entry)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-purple-600 hover:text-purple-700"
+                        title="Use as Template"
+                      >
+                        <Copy className="h-4 w-4" />
                       </Button>
                       <Button
                         onClick={() => onEdit(entry)}
                         variant="ghost"
                         size="sm"
                         className="text-blue-600 hover:text-blue-700"
+                        title="Edit Entry"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -424,6 +437,11 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
         }}
         onFill={(entry) => {
           onFill(entry);
+          setIsViewDialogOpen(false);
+          setViewingEntry(null);
+        }}
+        onUseAsTemplate={(entry) => {
+          onUseAsTemplate(entry);
           setIsViewDialogOpen(false);
           setViewingEntry(null);
         }}

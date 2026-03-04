@@ -27,20 +27,20 @@ export default function AllEntries() {
   const [showAddEntry, setShowAddEntry] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
   const [templateEntry, setTemplateEntry] = useState<SavedEntry | null>(null);
+  const [isFillMode, setIsFillMode] = useState(false);
   const [documentViewerState, setDocumentViewerState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const [documentEditorState, setDocumentEditorState] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const [selectedEntryDialog, setSelectedEntryDialog] = useState<{ isOpen: boolean; entry: SavedEntry | null }>({ isOpen: false, entry: null });
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      // Use the hook's saveEntry function for both create and edit
-      // Pass templateEntry when in fill mode, editingEntry when in edit mode
-      await saveEntry(entryData, editingEntry || templateEntry);
+      // Edit/Fill: pass editingEntry for UPDATE. Template: pass null for CREATE new.
+      await saveEntry(entryData, editingEntry);
       setShowAddEntry(false);
       setEditingEntry(null);
       setTemplateEntry(null);
+      setIsFillMode(false);
     } catch (error) {
       console.error('Error saving entry:', error);
-      // Error handling is already done in the hook
     }
   };
 
@@ -68,13 +68,24 @@ export default function AllEntries() {
 
   const handleEditEntry = (entry: SavedEntry) => {
     setEditingEntry(entry);
+    setTemplateEntry(null);
+    setIsFillMode(false);
     setShowAddEntry(true);
   };
 
   const handleFillEntry = (entry: SavedEntry) => {
-    // Create a new entry based on the template - set up fill mode properly
+    // Fill Form: open entry for completing fields, save updates the SAME entry
+    setEditingEntry(entry);
+    setTemplateEntry(null);
+    setIsFillMode(true);
+    setShowAddEntry(true);
+  };
+
+  const handleUseAsTemplate = (entry: SavedEntry) => {
+    // Use as Template: clone structure to create a NEW entry
     setEditingEntry(null);
     setTemplateEntry(entry);
+    setIsFillMode(false);
     setShowAddEntry(true);
   };
 
@@ -82,6 +93,7 @@ export default function AllEntries() {
     setShowAddEntry(false);
     setEditingEntry(null);
     setTemplateEntry(null);
+    setIsFillMode(false);
   };
 
   // View/Edit document handlers
@@ -142,6 +154,7 @@ export default function AllEntries() {
         onSaveEntry={() => {}}
         onCancelEdit={handleCancelEdit}
         onFillEntry={handleFillEntry}
+        onUseAsTemplate={handleUseAsTemplate}
       >
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -170,6 +183,7 @@ export default function AllEntries() {
       onSaveEntry={() => {}}
       onCancelEdit={handleCancelEdit}
       onFillEntry={handleFillEntry}
+      onUseAsTemplate={handleUseAsTemplate}
     >
       {/* Page Header - Skeletal */}
       <div className="mb-6">
@@ -194,14 +208,14 @@ export default function AllEntries() {
       {showAddEntry && (
         <div className="galvanized-card p-6 mb-6">
           <h3 className="mono text-sm font-bold text-foreground mb-4 pb-3 border-b border-galvanized">
-            {editingEntry ? 'EDIT_ENTRY' : templateEntry ? 'FILL_TEMPLATE' : 'CREATE_NEW_ENTRY'}
+            {isFillMode ? 'FILL_FORM' : editingEntry ? 'EDIT_ENTRY' : templateEntry ? 'NEW_FROM_TEMPLATE' : 'CREATE_NEW_ENTRY'}
           </h3>
           <DataEntryForm
             onSave={handleSaveEntry}
             onCancel={handleCancelEdit}
             editEntry={editingEntry}
             templateEntry={templateEntry}
-            mode={editingEntry ? 'edit' : templateEntry ? 'fill' : 'create'}
+            mode={isFillMode ? 'fill' : editingEntry ? 'edit' : templateEntry ? 'template' : 'create'}
             isSaving={isSaving}
           />
         </div>
@@ -212,6 +226,7 @@ export default function AllEntries() {
         onDelete={handleDeleteEntry}
         onEdit={handleEditEntry}
         onFill={handleFillEntry}
+        onUseAsTemplate={handleUseAsTemplate}
         onBulkDelete={handleBulkDelete}
         onViewDocument={handleViewDocument}
       />
@@ -236,7 +251,6 @@ export default function AllEntries() {
         isOpen={selectedEntryDialog.isOpen}
         onClose={() => {
           setSelectedEntryDialog({ isOpen: false, entry: null });
-          // Navigate back to all-entries without the entry ID
           navigate('/all-entries');
         }}
         onEdit={(entry) => {
@@ -246,6 +260,11 @@ export default function AllEntries() {
         }}
         onFill={(entry) => {
           handleFillEntry(entry);
+          setSelectedEntryDialog({ isOpen: false, entry: null });
+          navigate('/all-entries');
+        }}
+        onUseAsTemplate={(entry) => {
+          handleUseAsTemplate(entry);
           setSelectedEntryDialog({ isOpen: false, entry: null });
           navigate('/all-entries');
         }}

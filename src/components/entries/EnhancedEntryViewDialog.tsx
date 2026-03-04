@@ -39,6 +39,7 @@ interface EnhancedEntryViewDialogProps {
   onClose: () => void;
   onEdit?: (entry: SavedEntry) => void;
   onFill?: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   onViewDocument?: (entry: SavedEntry) => void;
   onPrint?: (entry: SavedEntry) => void;
 }
@@ -122,6 +123,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
   onClose,
   onEdit,
   onFill,
+  onUseAsTemplate,
   onViewDocument,
   onPrint,
 }) => {
@@ -459,7 +461,20 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                 onClose();
               }}
               variant="outline"
-              className="gap-2"
+              className="gap-2 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+            >
+              <FileText className="h-4 w-4" />
+              Fill Form
+            </Button>
+          )}
+          {onUseAsTemplate && (
+            <Button
+              onClick={() => {
+                onUseAsTemplate(entry);
+                onClose();
+              }}
+              variant="outline"
+              className="gap-2 text-purple-600 hover:text-purple-700 border-purple-200 hover:border-purple-300"
             >
               <Copy className="h-4 w-4" />
               Use as Template

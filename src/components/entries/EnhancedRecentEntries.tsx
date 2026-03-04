@@ -22,6 +22,7 @@ interface EnhancedRecentEntriesProps {
   entries: SavedEntry[];
   onEdit?: (entry: SavedEntry) => void;
   onFill?: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   onDelete?: (id: string) => void;
   onView?: (entry: SavedEntry) => void;
   onViewAll?: () => void;
@@ -36,6 +37,7 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
   entries,
   onEdit,
   onFill,
+  onUseAsTemplate,
   onDelete,
   onView,
   onViewAll,
@@ -211,6 +213,7 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onFill={onFill}
+                  onUseAsTemplate={onUseAsTemplate}
                   onDownload={handleDownload}
                 />
               ))}
@@ -240,6 +243,7 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
         onClose={handleCloseDialog}
         onEdit={onEdit}
         onFill={onFill}
+        onUseAsTemplate={onUseAsTemplate}
         onViewDocument={onView}
       />
     </>

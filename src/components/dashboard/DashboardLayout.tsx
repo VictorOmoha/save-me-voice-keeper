@@ -18,6 +18,7 @@ interface DashboardLayoutProps {
   onSaveEntry: (entry: Omit<SavedEntry, "id" | "createdAt" | "updatedAt">) => void;
   onCancelEdit: () => void;
   onFillEntry?: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   children: React.ReactNode;
 }
 
@@ -34,6 +35,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSaveEntry,
   onCancelEdit,
   onFillEntry,
+  onUseAsTemplate,
   children,
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -95,6 +97,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             onAllEntriesSelect={onAllEntriesSelect}
             onEditEntry={onEditEntry}
             onFillEntry={onFillEntry}
+            onUseAsTemplate={onUseAsTemplate}
           />
         </div>
 

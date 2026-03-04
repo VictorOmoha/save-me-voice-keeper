@@ -31,7 +31,7 @@ const detectFieldType = (value: unknown): CustomField['type'] => {
 interface UseFormLogicProps {
   editEntry?: SavedEntry | null;
   templateEntry?: SavedEntry | null;
-  mode?: 'create' | 'edit' | 'fill';
+  mode?: 'create' | 'edit' | 'fill' | 'template';
   preselectedCategory?: string;
 }
 
@@ -110,8 +110,8 @@ export const useFormLogic = ({
         
         console.log('Created fields from fields object with normalized names:', newFields);
       }
-    } else if (templateEntry && mode === 'fill') {
-      console.log('Processing templateEntry for fill mode:', {
+    } else if (templateEntry && mode === 'template') {
+      console.log('Processing templateEntry for template mode:', {
         title: templateEntry.title,
         fields: templateEntry.fields,
         fieldDefinitions: templateEntry.fieldDefinitions
@@ -119,32 +119,32 @@ export const useFormLogic = ({
 
       newTitle = templateEntry.title; // Use template title as starting point
       newCategory = templateEntry.fields.category || preselectedCategory || "";
-      
+
       if (templateEntry.fieldDefinitions && templateEntry.fieldDefinitions.length > 0) {
-        // Use field definitions but clear values for filling
+        // Use field definitions with values as starting point
         const templateFields: CustomField[] = templateEntry.fieldDefinitions
           .filter(fieldDef => fieldDef.name !== 'category')
           .map(fieldDef => ({
             ...fieldDef,
-            name: normalizeFieldName(fieldDef.name), // Normalize display name
-            value: templateEntry.fields[fieldDef.name] || '' // Keep template values for easier editing
+            name: normalizeFieldName(fieldDef.name),
+            value: templateEntry.fields[fieldDef.name] || ''
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
-        
-        console.log('Created template fields for fill mode with normalized names and cleared values:', newFields);
+
+        console.log('Created template fields for template mode:', newFields);
       } else {
-        // Fallback: create fields from the fields object but clear values
+        // Fallback: create fields from the fields object
         const templateFields: CustomField[] = Object.entries(templateEntry.fields)
           .filter(([name]) => name !== 'category')
           .map(([name, value], index) => ({
             id: (index + 1).toString(),
-            name: normalizeFieldName(name), // Normalize display name
+            name: normalizeFieldName(name),
             type: detectFieldType(value),
-            value: value || '' // Keep template values for easier editing
+            value: value || ''
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
-        
-        console.log('Created template fields from fields object with normalized names and cleared values:', newFields);
+
+        console.log('Created template fields from fields object:', newFields);
       }
     }
 

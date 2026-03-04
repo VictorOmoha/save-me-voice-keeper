@@ -35,6 +35,7 @@ interface EnhancedEntryCardProps {
   onEdit?: (entry: SavedEntry) => void;
   onDelete?: (id: string) => void;
   onFill?: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   onDownload?: (entry: SavedEntry) => void;
   onPrint?: (entry: SavedEntry) => void;
   variant?: "grid" | "list" | "compact";
@@ -47,6 +48,7 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
   onEdit,
   onDelete,
   onFill,
+  onUseAsTemplate,
   onDownload,
   onPrint,
   variant = "grid",
@@ -168,6 +170,11 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
                 )}
                 {onFill && (
                   <DropdownMenuItem onClick={() => onFill(entry)}>
+                    <FileText className="w-4 h-4 mr-2" /> Fill Form
+                  </DropdownMenuItem>
+                )}
+                {onUseAsTemplate && (
+                  <DropdownMenuItem onClick={() => onUseAsTemplate(entry)}>
                     <Copy className="w-4 h-4 mr-2" /> Use as Template
                   </DropdownMenuItem>
                 )}
@@ -280,6 +287,11 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
               )}
               {onFill && (
                 <DropdownMenuItem onClick={() => onFill(entry)}>
+                  <FileText className="w-4 h-4 mr-2" /> Fill Form
+                </DropdownMenuItem>
+              )}
+              {onUseAsTemplate && (
+                <DropdownMenuItem onClick={() => onUseAsTemplate(entry)}>
                   <Copy className="w-4 h-4 mr-2" /> Use as Template
                 </DropdownMenuItem>
               )}

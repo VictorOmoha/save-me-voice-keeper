@@ -29,6 +29,7 @@ interface SearchHeaderProps {
   onAllEntriesSelect: () => void;
   onEditEntry?: (entry: SavedEntry) => void;
   onFillEntry?: (entry: SavedEntry) => void;
+  onUseAsTemplate?: (entry: SavedEntry) => void;
   showSettingsShortcut?: boolean;
 }
 
@@ -43,6 +44,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
   onAllEntriesSelect,
   onEditEntry,
   onFillEntry,
+  onUseAsTemplate,
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
   const navigate = useNavigate();
@@ -201,6 +203,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         onClose={() => setViewingEntry(null)}
         onEdit={onEditEntry}
         onFill={onFillEntry}
+        onUseAsTemplate={onUseAsTemplate}
       />
     </div>
   );

@@ -33,6 +33,8 @@ export default function CategoryPage() {
   const [showDocumentCreator, setShowDocumentCreator] = useState(false);
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
   const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
+  const [templateEntry, setTemplateEntry] = useState<SavedEntry | null>(null);
+  const [isFillMode, setIsFillMode] = useState(false);
 
   const isValidCategory = !!categoryName && VALID_CATEGORIES.includes(categoryName);
 
@@ -146,13 +148,26 @@ export default function CategoryPage() {
   const handleEditEntry = (entry: SavedEntry) => {
     setEditingEntry(entry);
     setFillingEntry(null);
+    setTemplateEntry(null);
+    setIsFillMode(false);
     setShowDocumentCreator(false);
     setShowAddEntry(true);
   };
 
   const handleFillEntry = (entry: SavedEntry) => {
-    setFillingEntry(entry);
+    setEditingEntry(entry);
+    setFillingEntry(null);
+    setTemplateEntry(null);
+    setIsFillMode(true);
+    setShowDocumentCreator(false);
+    setShowAddEntry(true);
+  };
+
+  const handleUseAsTemplate = (entry: SavedEntry) => {
+    setTemplateEntry(entry);
     setEditingEntry(null);
+    setFillingEntry(null);
+    setIsFillMode(false);
     setShowDocumentCreator(false);
     setShowAddEntry(true);
   };
@@ -161,6 +176,8 @@ export default function CategoryPage() {
     console.log('Creating entry for category:', selectedCategory);
     setEditingEntry(null);
     setFillingEntry(null);
+    setTemplateEntry(null);
+    setIsFillMode(false);
     setShowDocumentCreator(false);
     setShowAddEntry(true);
   };
@@ -170,17 +187,21 @@ export default function CategoryPage() {
     setShowDocumentCreator(false);
     setEditingEntry(null);
     setFillingEntry(null);
+    setTemplateEntry(null);
+    setIsFillMode(false);
   };
 
   const getFormTitle = () => {
+    if (templateEntry) return `New from: ${templateEntry.title}`;
+    if (isFillMode && editingEntry) return `Fill: ${editingEntry.title}`;
     if (editingEntry) return `Edit ${editingEntry.title}`;
-    if (fillingEntry) return `Fill Template: ${fillingEntry.title}`;
     return `Add New ${categoryName} Entry`;
   };
 
-  const getFormMode = (): 'create' | 'edit' | 'fill' => {
+  const getFormMode = (): 'create' | 'edit' | 'fill' | 'template' => {
+    if (templateEntry) return 'template';
+    if (isFillMode) return 'fill';
     if (editingEntry) return 'edit';
-    if (fillingEntry) return 'fill';
     return 'create';
   };
 
@@ -209,6 +230,7 @@ export default function CategoryPage() {
       onSaveEntry={handleSaveEntry}
       onCancelEdit={handleCancelEdit}
       onFillEntry={handleFillEntry}
+      onUseAsTemplate={handleUseAsTemplate}
     >
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -227,11 +249,12 @@ export default function CategoryPage() {
         onEdit={handleEditEntry}
         onDelete={handleDeleteEntry}
         onFill={handleFillEntry}
+        onUseAsTemplate={handleUseAsTemplate}
         onCreateEntry={handleCreateEntry}
         showDocumentCreator={showDocumentCreator}
         showAddEntry={showAddEntry}
         editingEntry={editingEntry}
-        fillingEntry={fillingEntry}
+        templateEntry={templateEntry}
         onDocumentSave={handleSaveEntry}
         onDocumentCancel={handleCancelEdit}
         onSaveEntry={handleSaveEntry}

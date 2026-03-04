@@ -58,10 +58,12 @@ export default function Dashboard() {
     showAddEntry,
     editingEntry,
     fillingEntry,
+    templateEntry,
     saveEntry,
     deleteEntry,
     editEntry,
     fillEntry,
+    useAsTemplate,
     handleCancelEdit,
     getFormMode,
     getFormTitle,
@@ -109,7 +111,7 @@ export default function Dashboard() {
   // Listen for voice command to close entry forms
   useEffect(() => {
     const handleCloseFormCommand = () => {
-      if (showAddEntry || editingEntry || fillingEntry) {
+      if (showAddEntry || editingEntry || fillingEntry || templateEntry) {
         console.log('🎤 Voice command: Closing entry form');
         handleCancelEdit();
       }
@@ -130,7 +132,7 @@ export default function Dashboard() {
       window.removeEventListener('close-entry-form', handleCloseFormCommand);
       window.removeEventListener('show-delete-confirmation', handleDeleteConfirmation as EventListener);
     };
-  }, [showAddEntry, editingEntry, fillingEntry, handleCancelEdit]);
+  }, [showAddEntry, editingEntry, fillingEntry, templateEntry, handleCancelEdit]);
 
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);
@@ -222,8 +224,9 @@ export default function Dashboard() {
         onSaveEntry={saveEntry}
         onCancelEdit={handleCancelEdit}
         onFillEntry={fillEntry}
+        onUseAsTemplate={useAsTemplate}
       >
-      {(showAddEntry || editingEntry || fillingEntry || showDocumentCreator) ? (
+      {(showAddEntry || editingEntry || fillingEntry || templateEntry || showDocumentCreator) ? (
         <>
           {showDocumentCreator ? (
             // Show DocumentCreator when creating documents
@@ -237,8 +240,8 @@ export default function Dashboard() {
             // Use standard DataEntryForm for all entries
             <DataEntryForm
               mode={getFormMode()}
-              editEntry={editingEntry}
-              templateEntry={fillingEntry}
+              editEntry={editingEntry || fillingEntry}
+              templateEntry={templateEntry}
               onSave={saveEntry}
               onCancel={handleCancelEdit}
               isVoiceActive={false}
@@ -267,6 +270,7 @@ export default function Dashboard() {
           onCreateDocument={handleCreateDocument}
           onEditEntry={editEntry}
           onFillEntry={fillEntry}
+          onUseAsTemplate={useAsTemplate}
           onDeleteEntry={deleteEntry}
           onViewDocument={handleViewDocument}
           onViewAllEntries={handleViewAllEntries}

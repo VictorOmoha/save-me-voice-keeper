@@ -17,7 +17,7 @@ interface DataEntryFormProps {
   onCancel: () => void;
   editEntry?: SavedEntry | null;
   templateEntry?: SavedEntry | null;
-  mode?: 'create' | 'edit' | 'fill';
+  mode?: 'create' | 'edit' | 'fill' | 'template';
   preselectedCategory?: string;
   isVoiceActive?: boolean;
   isSaving?: boolean;
@@ -114,14 +114,15 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     onSave(prepareSubmissionData());
   };
 
-  const isEditMode = mode === 'edit' || mode === 'create';
+  const isEditMode = mode === 'edit' || mode === 'fill' || mode === 'create';
   const isFillMode = mode === 'fill';
-  const isCategoryReadonly = !!preselectedCategory || (templateEntry && mode === 'fill');
+  const isTemplateMode = mode === 'template';
+  const isCategoryReadonly = !!preselectedCategory || (templateEntry && mode === 'template');
 
   return (
     <div className={`bg-background text-foreground transition-all duration-500 animate-fade-in ${
       isDirty ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20 bg-primary/5' : ''
-    } ${mode === 'create' || mode === 'edit' ? 'mb-20' : ''} ${
+    } ${mode === 'create' || mode === 'edit' || mode === 'fill' ? 'mb-20' : ''} ${
       isVoiceActive ? 'ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10' : ''
     }`}>
       {isVoiceActive && (
@@ -173,7 +174,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
             }`}
             required
           />
-          {mode === 'fill' && templateEntry && (
+          {mode === 'template' && templateEntry && (
             <p className="text-sm text-muted-foreground">
               📋 Using template: "{templateEntry.title}" - Edit the title above for your new entry
             </p>
@@ -238,7 +239,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
             Cancel
           </Button>
           <Button type="submit" variant="gradient" className="w-full sm:w-auto" disabled={isSaving}>
-            {isSaving ? 'Saving...' : editEntry ? 'Update Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
+            {isSaving ? 'Saving...' : editEntry ? 'Update Entry' : isTemplateMode ? 'Save Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
           </Button>
         </div>
       </form>

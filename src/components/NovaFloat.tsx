@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/components/ThemeProvider";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import type { NovaActionPayload as HookPayload } from "@/hooks/useVoiceAgent";
 
 type PanelState = "closed" | "minimized" | "open";
@@ -92,6 +93,26 @@ export const NovaFloat: React.FC = () => {
       window.dispatchEvent(new CustomEvent("nova:export-data", { detail: { format } }));
     }, 500);
   }, [navigate]);
+
+  const handlePrintEntry = useCallback((entries: any[]) => {
+    if (!entries.length) {
+      toast.error("No entries found to print");
+      return;
+    }
+    // Convert backend entry shape to SavedEntry shape for printProfessionally
+    const printable = entries.map((e: any) => ({
+      id: e.id,
+      title: e.title || "Untitled",
+      fields: e.fields || {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+    printProfessionally(printable, {
+      title: entries.length === 1 ? entries[0].title : `${entries.length} Entries`,
+      includeMetadata: true,
+    });
+    toast.success(`Print dialog opened for ${entries.length} ${entries.length === 1 ? "entry" : "entries"}`);
+  }, []);
 
   // ── Unified Nova action handler ──────────────────────────────────────────
   const handleNovaAction = useCallback((payload: HookPayload) => {
@@ -214,6 +235,7 @@ export const NovaFloat: React.FC = () => {
             onUpdateTheme={handleUpdateTheme}
             onSettingsUpdated={handleSettingsUpdated}
             onExportData={handleExportData}
+            onPrintEntry={handlePrintEntry}
             onNovaAction={handleNovaAction}
           />
         </div>

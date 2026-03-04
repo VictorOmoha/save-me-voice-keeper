@@ -705,6 +705,17 @@ const VOICE_AGENT_TOOLS = [
         },
       },
       {
+        name: "scrollPage",
+        description: "Scroll the current page. Use when user says 'scroll down', 'scroll up', 'go to top', 'go to bottom', 'scroll to the bottom', 'show me more', 'keep going'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            direction: {type: "STRING", enum: ["down", "up", "top", "bottom"], description: "Scroll direction: down/up by one screen, or jump to top/bottom"},
+          },
+          required: ["direction"],
+        },
+      },
+      {
         name: "startBrainDump",
         description: "Navigate to the Brain Dump page and start voice capture. Use when user says 'brain dump', 'start brain dump', 'open brain dump', 'capture my thoughts'.",
         parameters: {
@@ -1067,6 +1078,7 @@ You are talking to ${displayName}. Be warm, sharp, and concise.
 - "create entry", "new entry", "add entry" → openEntryForm
 - "open [title]", "view [title]" → searchEntries to find, then openEntry
 - "close", "go back", "exit", "back" → closeEntry
+- "scroll down", "scroll up", "go to top", "go to bottom", "show me more" → scrollPage
 - "brain dump", "capture my thoughts" → startBrainDump
 - "process", "structure this", "organize" → processBrainDump
 - "print", "print this", "print my X", "print entries" → printEntry
@@ -1270,6 +1282,8 @@ async function executeVoiceTool(
     return {appCommand: "openEntryForm", category: args.category || null, success: true};
   case "closeEntry":
     return {appCommand: "goBack", success: true};
+  case "scrollPage":
+    return {appCommand: "scrollPage", direction: args.direction || "down", success: true};
   case "startBrainDump":
     return {appCommand: "startBrainDump", success: true};
   case "processBrainDump":

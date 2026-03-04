@@ -53,6 +53,26 @@ export const NovaFloat: React.FC = () => {
     window.dispatchEvent(new CustomEvent("nova:close"));
   }, []);
 
+  const handleScrollPage = useCallback((direction: string) => {
+    const scrollContainer = document.querySelector("main") || document.documentElement;
+    const viewportHeight = window.innerHeight;
+
+    switch (direction) {
+      case "down":
+        scrollContainer.scrollBy({ top: viewportHeight * 0.8, behavior: "smooth" });
+        break;
+      case "up":
+        scrollContainer.scrollBy({ top: -viewportHeight * 0.8, behavior: "smooth" });
+        break;
+      case "top":
+        scrollContainer.scrollTo({ top: 0, behavior: "smooth" });
+        break;
+      case "bottom":
+        scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: "smooth" });
+        break;
+    }
+  }, []);
+
   const handleStartBrainDump = useCallback(() => {
     sessionStorage.setItem("brain_dump_auto_start", JSON.stringify({ autoStart: true, autoSpeak: false }));
     navigate("/brain-dump");
@@ -230,6 +250,7 @@ export const NovaFloat: React.FC = () => {
             onOpenEntryForm={handleOpenEntryForm}
             onOpenEntry={handleOpenEntry}
             onGoBack={handleGoBack}
+            onScrollPage={handleScrollPage}
             onStartBrainDump={handleStartBrainDump}
             onProcessBrainDump={handleProcessBrainDump}
             onSaveBrainDump={handleSaveBrainDump}

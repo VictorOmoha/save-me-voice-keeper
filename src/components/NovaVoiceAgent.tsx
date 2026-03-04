@@ -45,6 +45,7 @@ const ACTION_ICON: Record<string, string> = {
   recallMemories: "💭",
   forgetMemory: "🗑️",
   printEntry: "🖨️",
+  scrollPage: "📜",
 };
 
 type NovaVoiceAgentProps = UseVoiceAgentOptions;

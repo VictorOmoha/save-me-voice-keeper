@@ -32,7 +32,7 @@ export interface NovaActionPayload {
 }
 
 export interface AppCommand {
-  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData" | "novaAction" | "printEntry";
+  appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "scrollPage" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData" | "novaAction" | "printEntry";
   route?: string;
   category?: string | null;
   id?: string | null;
@@ -43,6 +43,7 @@ export interface AppCommand {
   updates?: Record<string, any>;
   format?: string;
   entries?: any[];
+  direction?: string;
   actionType?: string;
   actionData?: Record<string, any>;
 }
@@ -52,6 +53,7 @@ export interface UseVoiceAgentOptions {
   onOpenEntryForm?: (category?: string | null) => void;
   onOpenEntry?: (id?: string | null, title?: string | null) => void;
   onGoBack?: () => void;
+  onScrollPage?: (direction: string) => void;
   onStartBrainDump?: () => void;
   onProcessBrainDump?: () => void;
   onSaveBrainDump?: (category?: string | null) => void;
@@ -110,6 +112,7 @@ const toolLabel = (name: string, args: Record<string, any>): string => {
     case "updateActionItem": return `Updating task "${args.query}"...`;
     case "setReminder":      return `Setting reminder: "${args.text}"...`;
     case "printEntry":       return `Printing "${args.title || args.category || "entry"}"...`;
+    case "scrollPage":       return `Scrolling ${args.direction || "down"}...`;
     default:                 return `${name}...`;
   }
 };
@@ -124,11 +127,11 @@ const ACTION_TOAST_ICON: Record<string, string> = {
   rememberFact: "🧠", recallMemories: "💭", forgetMemory: "🗑️",
   getEntityGraph: "🕸️", getRelatedEntries: "🔗", prepareBriefing: "📊",
   getActivitySummary: "📈", getUpcomingDeadlines: "⏰", updateActionItem: "✅",
-  setReminder: "🔔", printEntry: "🖨️",
+  setReminder: "🔔", printEntry: "🖨️", scrollPage: "📜",
 };
 
 export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgentReturn => {
-  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onStartBrainDump, onProcessBrainDump, onSaveBrainDump, onUpdateTheme, onSettingsUpdated, onExportData, onPrintEntry, onNovaAction } = options;
+  const { onNavigate, onOpenEntryForm, onOpenEntry, onGoBack, onScrollPage, onStartBrainDump, onProcessBrainDump, onSaveBrainDump, onUpdateTheme, onSettingsUpdated, onExportData, onPrintEntry, onNovaAction } = options;
 
   const [status, setStatus] = useState<AgentStatus>("idle");
   const [transcript, setTranscript] = useState("");
@@ -154,6 +157,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const onOpenEntryFormRef = useRef(onOpenEntryForm);
   const onOpenEntryRef = useRef(onOpenEntry);
   const onGoBackRef = useRef(onGoBack);
+  const onScrollPageRef = useRef(onScrollPage);
   const onStartBrainDumpRef = useRef(onStartBrainDump);
   const onProcessBrainDumpRef = useRef(onProcessBrainDump);
   const onSaveBrainDumpRef = useRef(onSaveBrainDump);
@@ -166,6 +170,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   useEffect(() => { onOpenEntryFormRef.current = onOpenEntryForm; }, [onOpenEntryForm]);
   useEffect(() => { onOpenEntryRef.current = onOpenEntry; }, [onOpenEntry]);
   useEffect(() => { onGoBackRef.current = onGoBack; }, [onGoBack]);
+  useEffect(() => { onScrollPageRef.current = onScrollPage; }, [onScrollPage]);
   useEffect(() => { onStartBrainDumpRef.current = onStartBrainDump; }, [onStartBrainDump]);
   useEffect(() => { onProcessBrainDumpRef.current = onProcessBrainDump; }, [onProcessBrainDump]);
   useEffect(() => { onSaveBrainDumpRef.current = onSaveBrainDump; }, [onSaveBrainDump]);
@@ -195,6 +200,9 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
       } else if (cmd.appCommand === "goBack") {
         onGoBackRef.current?.();
+
+      } else if (cmd.appCommand === "scrollPage") {
+        onScrollPageRef.current?.(cmd.direction || "down");
 
       } else if (cmd.appCommand === "startBrainDump") {
         onStartBrainDumpRef.current?.();

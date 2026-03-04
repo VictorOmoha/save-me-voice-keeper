@@ -49,8 +49,9 @@ export const NovaFloat: React.FC = () => {
   }, [navigate]);
 
   const handleGoBack = useCallback(() => {
-    navigate(-1);
-  }, [navigate]);
+    // Dispatch event so the current page can close any open form/dialog first
+    window.dispatchEvent(new CustomEvent("nova:close"));
+  }, []);
 
   const handleStartBrainDump = useCallback(() => {
     sessionStorage.setItem("brain_dump_auto_start", JSON.stringify({ autoStart: true, autoSpeak: false }));

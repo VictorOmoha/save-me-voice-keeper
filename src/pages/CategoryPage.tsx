@@ -212,6 +212,16 @@ export default function CategoryPage() {
     )
   );
 
+  // Listen for Nova close command
+  useEffect(() => {
+    const handleNovaClose = () => {
+      if (showAddEntry || showDocumentCreator) {
+        handleCancelEdit();
+      }
+    };
+    window.addEventListener('nova:close', handleNovaClose);
+    return () => window.removeEventListener('nova:close', handleNovaClose);
+  }, [showAddEntry, showDocumentCreator]);
 
   if (!isValidCategory || !categoryName) {
     return <Navigate to="/dashboard" replace />;

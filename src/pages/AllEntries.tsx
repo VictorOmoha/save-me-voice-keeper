@@ -136,6 +136,26 @@ export default function AllEntries() {
     }
   }, [entryId, entries, isLoading]);
 
+  // Listen for Nova close command
+  useEffect(() => {
+    const handleNovaClose = () => {
+      if (showAddEntry) {
+        handleCancelEdit();
+      }
+      if (selectedEntryDialog.isOpen) {
+        setSelectedEntryDialog({ isOpen: false, entry: null });
+      }
+      if (documentViewerState.isOpen) {
+        setDocumentViewerState({ isOpen: false, entry: null });
+      }
+      if (documentEditorState.isOpen) {
+        setDocumentEditorState({ isOpen: false, entry: null });
+      }
+    };
+    window.addEventListener('nova:close', handleNovaClose);
+    return () => window.removeEventListener('nova:close', handleNovaClose);
+  }, [showAddEntry, selectedEntryDialog.isOpen, documentViewerState.isOpen, documentEditorState.isOpen, handleCancelEdit]);
+
 
   if (isLoading) {
     const handleCategorySelectNav = (name: string) => navigate(`/category/${encodeURIComponent(name)}`);

@@ -111,9 +111,10 @@ export default function Dashboard() {
   // Listen for voice command to close entry forms
   useEffect(() => {
     const handleCloseFormCommand = () => {
-      if (showAddEntry || editingEntry || fillingEntry || templateEntry) {
+      if (showAddEntry || editingEntry || fillingEntry || templateEntry || showDocumentCreator) {
         console.log('🎤 Voice command: Closing entry form');
         handleCancelEdit();
+        setShowDocumentCreator(false);
       }
     };
 
@@ -126,13 +127,15 @@ export default function Dashboard() {
     };
 
     window.addEventListener('close-entry-form', handleCloseFormCommand);
+    window.addEventListener('nova:close', handleCloseFormCommand);
     window.addEventListener('show-delete-confirmation', handleDeleteConfirmation as EventListener);
 
     return () => {
       window.removeEventListener('close-entry-form', handleCloseFormCommand);
+      window.removeEventListener('nova:close', handleCloseFormCommand);
       window.removeEventListener('show-delete-confirmation', handleDeleteConfirmation as EventListener);
     };
-  }, [showAddEntry, editingEntry, fillingEntry, templateEntry, handleCancelEdit]);
+  }, [showAddEntry, editingEntry, fillingEntry, templateEntry, showDocumentCreator, handleCancelEdit]);
 
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);

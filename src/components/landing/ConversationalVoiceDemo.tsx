@@ -189,7 +189,8 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     setError(null);
     setTranscript("");
     setInterimTranscript("");
-    
+    transcriptRef.current = "";
+
     try {
       console.log('[VoiceDemo] Starting recognition...');
       recognitionRef.current.start();
@@ -346,16 +347,18 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     recognition.onend = () => {
       console.log('[VoiceDemo] Recognition onend, state:', stateRef.current, 'transcript:', transcriptRef.current);
       setInterimTranscript("");
-      
+
       const currentTranscript = transcriptRef.current;
       const currentState = stateRef.current;
-      
+
       if (currentTranscript && currentState === 'listening') {
+        transcriptRef.current = "";
+        setTranscript("");
         processInput(currentTranscript);
-        setTranscript("");
       } else if (currentTranscript && (currentState === 'waiting_response' || currentState === 'editing_title' || currentState === 'editing_category')) {
-        handleResponse(currentTranscript);
+        transcriptRef.current = "";
         setTranscript("");
+        handleResponse(currentTranscript);
       }
     };
 
@@ -363,10 +366,14 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
       console.error('[VoiceDemo] Recognition error:', event.error);
       if (event.error === 'not-allowed') {
         setError('Microphone access denied. Please allow microphone access and try again.');
-      } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        setState('idle');
+      } else if (event.error === 'no-speech' || event.error === 'aborted') {
+        // no-speech and aborted are expected during conversation flow — don't reset state
+        console.log('[VoiceDemo] Benign error (no-speech/aborted), keeping current state');
+      } else {
         setError(`Speech recognition error: ${event.error}`);
+        setState('idle');
       }
-      setState('idle');
       setInterimTranscript("");
     };
 
@@ -386,16 +393,18 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     recognitionRef.current.onend = () => {
       console.log('[VoiceDemo] Recognition onend (updated), state:', stateRef.current, 'transcript:', transcriptRef.current);
       setInterimTranscript("");
-      
+
       const currentTranscript = transcriptRef.current;
       const currentState = stateRef.current;
-      
+
       if (currentTranscript && currentState === 'listening') {
+        transcriptRef.current = "";
+        setTranscript("");
         processInput(currentTranscript);
-        setTranscript("");
       } else if (currentTranscript && (currentState === 'waiting_response' || currentState === 'editing_title' || currentState === 'editing_category')) {
-        handleResponse(currentTranscript);
+        transcriptRef.current = "";
         setTranscript("");
+        handleResponse(currentTranscript);
       }
     };
   }, [processInput, handleResponse]);

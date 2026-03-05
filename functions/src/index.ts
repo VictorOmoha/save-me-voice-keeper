@@ -541,10 +541,18 @@ function getPlanFromPriceId(priceId: string): string {
 }
 
 /**
- * Public Demo TTS - Rate-limited ElevenLabs proxy for landing page
+ * Public Demo TTS - Rate-limited Google Cloud TTS proxy for landing page
  * No auth required, but limited to short texts and throttled per IP
  */
 const demoRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+// Google Cloud TTS voice options for demo
+const DEMO_VOICES: Record<string, { name: string; languageCode: string }> = {
+  rachel: {name: "en-US-Studio-O", languageCode: "en-US"},       // Warm female
+  adam: {name: "en-US-Studio-M", languageCode: "en-US"},          // Professional male
+  aria: {name: "en-US-Neural2-F", languageCode: "en-US"},         // Expressive female
+  josh: {name: "en-US-Neural2-D", languageCode: "en-US"},         // Deep male
+};
 
 export const demoTts = functions.https.onRequest(
   withCors(async (req, res) => {
@@ -576,7 +584,7 @@ export const demoTts = functions.https.onRequest(
       }
     }
 
-    const {text, voiceId} = req.body;
+    const {text, voice} = req.body;
 
     if (!text) {
       res.status(400).json({error: "Text is required"});
@@ -589,30 +597,31 @@ export const demoTts = functions.https.onRequest(
       return;
     }
 
-    const apiKey = process.env.ELEVENLABS_API_KEY;
+    const apiKey = process.env.GOOGLE_TTS_API_KEY;
     if (!apiKey) {
-      res.status(500).json({error: "ElevenLabs not configured"});
+      res.status(500).json({error: "Google TTS not configured"});
       return;
     }
 
+    // Resolve voice name from friendly key or use default
+    const voiceConfig = DEMO_VOICES[voice || "rachel"] || DEMO_VOICES.rachel;
+
     try {
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceId || "pqHfZKP75CvOlQylNhV4"}/stream`,
+        `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey.trim()}`,
         {
           method: "POST",
-          headers: {
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-            "xi-api-key": apiKey,
-          },
+          headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            text,
-            model_id: "eleven_turbo_v2_5",
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.8,
-              style: 0.2,
-              use_speaker_boost: true,
+            input: {text},
+            voice: {
+              languageCode: voiceConfig.languageCode,
+              name: voiceConfig.name,
+            },
+            audioConfig: {
+              audioEncoding: "MP3",
+              speakingRate: 1.0,
+              pitch: 0,
             },
           }),
         }
@@ -620,15 +629,15 @@ export const demoTts = functions.https.onRequest(
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Demo TTS ElevenLabs error:", response.status, errorText);
-        res.status(response.status).json({error: "ElevenLabs API error"});
+        console.error("Demo TTS Google error:", response.status, errorText);
+        res.status(response.status).json({error: "Google TTS API error"});
         return;
       }
 
-      const audioBuffer = await response.arrayBuffer();
-      const base64Audio = Buffer.from(audioBuffer).toString("base64");
+      const data = await response.json() as { audioContent?: string };
 
-      res.json({audioContent: base64Audio});
+      // Google TTS returns base64 audioContent directly
+      res.json({audioContent: data.audioContent});
     } catch (error) {
       console.error("Demo TTS error:", error);
       res.status(500).json({error: "Failed to generate speech"});

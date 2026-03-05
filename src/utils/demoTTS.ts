@@ -1,6 +1,6 @@
 /**
  * Demo TTS - High-quality text-to-speech for landing page demo
- * Uses server-side ElevenLabs proxy (secure, no API key exposed)
+ * Uses server-side Google Cloud TTS proxy (secure, no API key exposed)
  * Falls back to browser TTS if cloud function unavailable
  */
 
@@ -9,18 +9,18 @@ const DEMO_TTS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL
   ? `${import.meta.env.VITE_CLOUD_FUNCTIONS_URL}/demoTts`
   : null;
 
-// Voice options for demo
+// Voice options for demo (mapped to Google Cloud TTS voices on the server)
 export const DEMO_VOICES = {
-  rachel: 'pqHfZKP75CvOlQylNhV4',  // Rachel - friendly, warm
-  adam: 'pNInz6obpgDQGcFmaJgB',     // Adam - clear, professional male
-  aria: '9BWtsMINqrJLrRacOk9x',     // Aria - expressive female
-  josh: 'TxGEqnHWrfWFTfGW9XjX',     // Josh - deep, confident male
+  rachel: 'rachel',  // Warm female (en-US-Studio-O)
+  adam: 'adam',       // Professional male (en-US-Studio-M)
+  aria: 'aria',      // Expressive female (en-US-Neural2-F)
+  josh: 'josh',      // Deep male (en-US-Neural2-D)
 } as const;
 
 // State tracking
 let isSpeakingFlag = false;
 let currentAudio: HTMLAudioElement | null = null;
-let elevenLabsAvailable: boolean | null = null;
+let cloudTtsAvailable: boolean | null = null;
 
 // Preload browser voices
 let browserVoicesLoaded = false;
@@ -79,7 +79,7 @@ export const demoSpeak = async (
     return;
   }
 
-  const voiceId = options?.voice ? DEMO_VOICES[options.voice] : DEMO_VOICES.rachel;
+  const voice = options?.voice ? DEMO_VOICES[options.voice] : DEMO_VOICES.rachel;
 
   isSpeakingFlag = true;
   options?.onStart?.();
@@ -87,16 +87,16 @@ export const demoSpeak = async (
 
   try {
     if (DEMO_TTS_URL) {
-      console.log('[DemoTTS] Using server-side ElevenLabs proxy');
-      await speakWithCloudFunction(text, voiceId);
-      elevenLabsAvailable = true;
+      console.log('[DemoTTS] Using server-side Google Cloud TTS proxy');
+      await speakWithCloudFunction(text, voice);
+      cloudTtsAvailable = true;
     } else {
       console.log('[DemoTTS] No cloud function URL, using browser TTS');
       await speakWithBrowser(text);
     }
   } catch (error) {
     console.error('[DemoTTS] Error:', error);
-    elevenLabsAvailable = false;
+    cloudTtsAvailable = false;
     // Fallback to browser TTS
     if (DEMO_TTS_URL) {
       console.log('[DemoTTS] Falling back to browser TTS');
@@ -115,13 +115,13 @@ export const demoSpeak = async (
 };
 
 /**
- * Speak using server-side cloud function (ElevenLabs proxy)
+ * Speak using server-side cloud function (Google Cloud TTS proxy)
  */
-const speakWithCloudFunction = async (text: string, voiceId: string): Promise<void> => {
+const speakWithCloudFunction = async (text: string, voice: string): Promise<void> => {
   const response = await fetch(DEMO_TTS_URL!, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text.substring(0, 500), voiceId }),
+    body: JSON.stringify({ text: text.substring(0, 500), voice }),
   });
 
   if (!response.ok) {
@@ -222,10 +222,10 @@ export const demoStopSpeaking = (): void => {
 /** Check if currently speaking */
 export const demoIsSpeaking = (): boolean => isSpeakingFlag;
 
-/** Check if ElevenLabs is available (via cloud function) */
-export const isElevenLabsAvailable = (): boolean => {
+/** Check if cloud TTS is available (via cloud function) */
+export const isCloudTtsAvailable = (): boolean => {
   // If we've tested it, return cached result
-  if (elevenLabsAvailable !== null) return elevenLabsAvailable;
+  if (cloudTtsAvailable !== null) return cloudTtsAvailable;
   // Optimistically return true if cloud function URL is configured
   return !!DEMO_TTS_URL;
 };

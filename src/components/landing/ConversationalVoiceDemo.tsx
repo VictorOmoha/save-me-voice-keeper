@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Mic, MicOff, Sparkles, ArrowRight, Check, Loader2, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { demoSpeak, demoStopSpeaking, demoIsSpeaking, isElevenLabsAvailable } from "@/utils/demoTTS";
+import { demoSpeak, demoStopSpeaking, demoIsSpeaking, isCloudTtsAvailable } from "@/utils/demoTTS";
 
 type ConversationState = 
   | 'idle' 
@@ -54,7 +54,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [usingElevenLabs, setUsingElevenLabs] = useState(false);
+  const [usingCloudTts, setUsingElevenLabs] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
@@ -75,7 +75,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
 
   // Check ElevenLabs availability on mount
   useEffect(() => {
-    setUsingElevenLabs(isElevenLabsAvailable());
+    setUsingElevenLabs(isCloudTtsAvailable());
   }, []);
 
   // Auto-scroll conversation
@@ -448,7 +448,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     <div className="w-full max-w-lg mx-auto">
       {/* Voice toggle & ElevenLabs indicator */}
       <div className="flex justify-between items-center mb-2">
-        {usingElevenLabs && (
+        {usingCloudTts && (
           <span className={`text-xs font-mono flex items-center gap-1 ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`}>
             <Sparkles className="w-3 h-3" /> AI Voice
           </span>

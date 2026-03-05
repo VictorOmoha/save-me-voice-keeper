@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import cors from "cors";
+import {GoogleAuth} from "google-auth-library";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -597,21 +598,22 @@ export const demoTts = functions.https.onRequest(
       return;
     }
 
-    const apiKey = process.env.GOOGLE_TTS_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({error: "Google TTS not configured"});
-      return;
-    }
-
     // Resolve voice name from friendly key or use default
     const voiceConfig = DEMO_VOICES[voice || "rachel"] || DEMO_VOICES.rachel;
 
     try {
+      // Use Application Default Credentials (service account) — no API key needed
+      const auth = new GoogleAuth({scopes: ["https://www.googleapis.com/auth/cloud-platform"]});
+      const accessToken = await auth.getAccessToken();
+
       const response = await fetch(
-        `https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey.trim()}`,
+        "https://texttospeech.googleapis.com/v1/text:synthesize",
         {
           method: "POST",
-          headers: {"Content-Type": "application/json"},
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({
             input: {text},
             voice: {
@@ -630,7 +632,7 @@ export const demoTts = functions.https.onRequest(
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Demo TTS Google error:", response.status, errorText);
-        res.status(response.status).json({error: "Google TTS API error"});
+        res.status(response.status).json({error: "Google TTS API error", details: errorText});
         return;
       }
 

@@ -17,3 +17,10 @@ console.log('Main.tsx: Rendering App component...');
 root.render(<App />);
 
 console.log('Main.tsx: App component rendered successfully');
+
+// Register service worker for PWA install support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

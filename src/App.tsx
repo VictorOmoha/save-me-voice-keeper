@@ -1,6 +1,4 @@
-
 import React, { Suspense } from "react";
-const ExtensionBridge = () => { useExtensionBridge(); return null; };
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +12,12 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
 import { NovaFloat } from "./components/NovaFloat";
 import { useExtensionBridge } from "./hooks/useExtensionBridge";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { useOfflineSync } from "./hooks/useOfflineSync";
+import { KeyboardShortcutsProvider } from "./contexts/KeyboardShortcutsContext";
 import { PwaInstallBanner } from "./components/PwaInstallBanner";
+import { QuickCaptureOverlay } from "./components/QuickCaptureOverlay";
+import { OfflineIndicator } from "./components/OfflineIndicator";
 
 // Lazy-loaded pages — each becomes its own chunk
 const Index = React.lazy(() => import("./pages/Index"));
@@ -47,6 +50,14 @@ const PageLoader = () => (
   </div>
 );
 
+// Global hooks — mounted once inside the Router + Auth context
+const GlobalProviders: React.FC = () => {
+  useExtensionBridge();
+  useGlobalShortcuts();
+  useOfflineSync();
+  return null;
+};
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -58,34 +69,42 @@ const App = () => (
             <AuthProvider>
               <ThemeBootstrapper />
               <VoiceFormProvider>
-                <HashRouter>
-                  <VoiceNavigationListener />
-                  <ExtensionBridge />
-                  <NovaFloat />
-                  <PwaInstallBanner />
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/login" element={<Login />} />
-                      <Route path="/signup" element={<Signup />} />
-                      <Route path="/reset-password" element={<ResetPassword />} />
-                      <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/all-entries" element={<AllEntries />} />
-                      <Route path="/all-entries/:entryId" element={<AllEntries />} />
-                      <Route path="/category/:categoryName" element={<CategoryPage />} />
-                      <Route path="/insights" element={<Insights />} />
-                      <Route path="/subscription" element={<Subscription />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/user-guide" element={<UserGuide />} />
-                      <Route path="/brain-dump" element={<BrainDump />} />
-                      <Route path="/onboarding" element={<Onboarding />} />
-                      <Route path="/terms" element={<TermsOfService />} />
-                      <Route path="/privacy" element={<PrivacyPolicy />} />
-                      <Route path="/share" element={<Dashboard />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Suspense>
-                </HashRouter>
+                <KeyboardShortcutsProvider>
+                  <HashRouter>
+                    {/* Global hooks — need Router + Auth context */}
+                    <GlobalProviders />
+
+                    {/* Global UI layers */}
+                    <VoiceNavigationListener />
+                    <NovaFloat />
+                    <QuickCaptureOverlay />
+                    <PwaInstallBanner />
+                    <OfflineIndicator />
+
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/signup" element={<Signup />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/all-entries" element={<AllEntries />} />
+                        <Route path="/all-entries/:entryId" element={<AllEntries />} />
+                        <Route path="/category/:categoryName" element={<CategoryPage />} />
+                        <Route path="/insights" element={<Insights />} />
+                        <Route path="/subscription" element={<Subscription />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/user-guide" element={<UserGuide />} />
+                        <Route path="/brain-dump" element={<BrainDump />} />
+                        <Route path="/onboarding" element={<Onboarding />} />
+                        <Route path="/terms" element={<TermsOfService />} />
+                        <Route path="/privacy" element={<PrivacyPolicy />} />
+                        <Route path="/share" element={<Dashboard />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </HashRouter>
+                </KeyboardShortcutsProvider>
               </VoiceFormProvider>
             </AuthProvider>
           </ErrorBoundary>

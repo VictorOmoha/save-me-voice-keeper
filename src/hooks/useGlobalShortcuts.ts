@@ -74,6 +74,19 @@ export const useGlobalShortcuts = () => {
       },
     ];
 
+    // Quick Capture — registered here so it appears in the help modal
+    // (the actual handler is in QuickCaptureOverlay.tsx)
+    navShortcuts.push({
+      key: "n",
+      ctrl: true,
+      description: "Quick Capture — save anything instantly",
+      action: () => {
+        // Dispatch custom event — QuickCaptureOverlay listens for this
+        window.dispatchEvent(new CustomEvent("saveme:quick-capture"));
+      },
+      category: "Actions",
+    });
+
     navShortcuts.forEach(s => registerShortcut(s));
   }, [navigate, registerShortcut]);
 };

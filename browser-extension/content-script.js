@@ -1,58 +1,62 @@
-// SaveMe Voice Keeper - Content Script
-// Injected into saveme-f5af0.web.app pages to handle extension communication
+// SaveMe.Space — Content Script v2
+// Runs on saveme.space: relays auth token to background + handles brain dump trigger
 
-(function() {
+(function () {
   'use strict';
-  
-  // Check if we're on SaveMe domain
-  if (!window.location.hostname.includes('saveme-f5af0.web.app') && 
-      !window.location.hostname.includes('localhost')) {
-    return;
-  }
-  
-  console.log('[SaveMe Extension] Content script loaded');
-  
-  // Listen for messages from background script
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'start-brain-dump') {
-      // Dispatch custom event that the React app listens for
-      window.dispatchEvent(new CustomEvent('brain-dump:start-capture', {
-        detail: {
-          autoStart: request.autoStart || true,
-          autoSpeak: request.autoSpeak || true
+
+  // ── Auth token relay ─────────────────────────────────────────────────────
+  // Firebase stores auth in IndexedDB. We grab the token via the app's own API.
+  function grabAndRelayToken() {
+    // Try to get a fresh token via Firebase's global auth object
+    try {
+      // Firebase Auth stores the current user — trigger a token refresh
+      const intervalId = setInterval(() => {
+        const fbApp = window.__FIREBASE_APP__ || (window.firebase && window.firebase.app && window.firebase.app());
+        if (fbApp) {
+          clearInterval(intervalId);
+          return;
         }
-      }));
-      
-      sendResponse({ success: true });
-    }
-    
-    if (request.action === 'get-selection') {
-      sendResponse({ 
-        selection: window.getSelection().toString() 
+
+        // Fallback: look for firebase auth in common locations
+        const authToken = localStorage.getItem('firebase:authUser:AIzaSy') ||
+          Object.keys(localStorage).filter(k => k.startsWith('firebase:authUser:')).map(k => {
+            try { return JSON.parse(localStorage.getItem(k)); } catch { return null; }
+          }).find(Boolean);
+
+        if (authToken) clearInterval(intervalId);
+      }, 500);
+
+      // Listen for custom event dispatched by the React app
+      window.addEventListener('saveme:auth-token', (e) => {
+        if (e.detail && e.detail.token) {
+          chrome.runtime.sendMessage({
+            action: 'relay-auth-token',
+            token: e.detail.token,
+          });
+        }
       });
+
+      // Dispatch a request to the app to provide the token
+      window.dispatchEvent(new CustomEvent('saveme:request-token'));
+
+    } catch (err) {
+      // Content script may be restricted — fail silently
     }
-    
-    return true;
-  });
-  
-  // Check URL parameters for autostart
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('autostart') === 'true') {
-    // Wait for React app to mount
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('brain-dump:start-capture', {
-        detail: {
-          autoStart: true,
-          autoSpeak: urlParams.get('autospeak') !== 'false'
-        }
-      }));
-    }, 500);
   }
-  
-  // Pre-fill text if provided in URL
-  const prefillText = urlParams.get('text');
-  if (prefillText) {
-    // Store for React app to pick up
-    sessionStorage.setItem('brain_dump_prefill', prefillText);
+
+  // ── Brain dump trigger ───────────────────────────────────────────────────
+  chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === 'start-brain-dump') {
+      window.dispatchEvent(new CustomEvent('saveme:start-brain-dump', {
+        detail: { autoStart: request.autoStart, autoSpeak: request.autoSpeak },
+      }));
+    }
+  });
+
+  // ── Run on load ──────────────────────────────────────────────────────────
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', grabAndRelayToken);
+  } else {
+    grabAndRelayToken();
   }
 })();

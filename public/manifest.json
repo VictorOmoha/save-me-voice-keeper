@@ -1,7 +1,7 @@
 {
-  "name": "SaveMe Voice Keeper",
+  "name": "SaveMe.Space",
   "short_name": "SaveMe",
-  "description": "Voice-powered personal archive system. Preserve your important data with voice commands.",
+  "description": "Your personal AI knowledge vault. Save anything, find everything, Nova thinks with you.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#030712",
@@ -18,9 +18,43 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "utilities"],
-  "lang": "en-US"
+  "share_target": {
+    "action": "/#/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "Nova — Quick Capture",
+      "short_name": "Capture",
+      "description": "Open Nova for instant voice capture",
+      "url": "/#/dashboard?nova=open",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Brain Dump",
+      "short_name": "Dump",
+      "description": "Start a brain dump session",
+      "url": "/#/brain-dump",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "All Entries",
+      "short_name": "Entries",
+      "description": "Browse your vault",
+      "url": "/#/all-entries",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["productivity", "utilities", "lifestyle"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false
 }

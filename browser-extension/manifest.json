@@ -1,17 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "SaveMe Voice Keeper",
-  "version": "1.0.0",
-  "description": "Global hotkey for instant brain dump capture",
+  "name": "SaveMe.Space — Quick Capture",
+  "version": "2.0.0",
+  "description": "Save anything from the web to your personal vault instantly. One shortcut, zero friction.",
   "permissions": [
     "commands",
     "activeTab",
     "scripting",
-    "contextMenus"
+    "contextMenus",
+    "storage",
+    "notifications"
   ],
   "host_permissions": [
     "*://saveme.space/*",
     "*://saveme-f5af0.web.app/*",
+    "*://us-central1-saveme-f5af0.cloudfunctions.net/*",
     "*://localhost/*"
   ],
   "background": {
@@ -24,17 +27,24 @@
         "*://saveme-f5af0.web.app/*",
         "*://localhost/*"
       ],
-      "run_at": "document_start",
+      "run_at": "document_idle",
       "js": ["content-script.js"]
     }
   ],
   "commands": {
     "_execute_action": {
       "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Quick save to SaveMe.Space vault"
+    },
+    "brain-dump": {
+      "suggested_key": {
         "default": "Ctrl+Space",
         "mac": "Command+Space"
       },
-      "description": "Open SaveMe Brain Dump"
+      "description": "Open Nova Brain Dump"
     }
   },
   "action": {

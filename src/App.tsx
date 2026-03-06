@@ -1,5 +1,6 @@
 
 import React, { Suspense } from "react";
+const ExtensionBridge = () => { useExtensionBridge(); return null; };
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +13,7 @@ import { ThemeBootstrapper } from "./components/ThemeBootstrapper";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
 import { NovaFloat } from "./components/NovaFloat";
+import { useExtensionBridge } from "./hooks/useExtensionBridge";
 import { PwaInstallBanner } from "./components/PwaInstallBanner";
 
 // Lazy-loaded pages — each becomes its own chunk
@@ -58,6 +60,7 @@ const App = () => (
               <VoiceFormProvider>
                 <HashRouter>
                   <VoiceNavigationListener />
+                  <ExtensionBridge />
                   <NovaFloat />
                   <PwaInstallBanner />
                   <Suspense fallback={<PageLoader />}>
@@ -78,6 +81,7 @@ const App = () => (
                       <Route path="/onboarding" element={<Onboarding />} />
                       <Route path="/terms" element={<TermsOfService />} />
                       <Route path="/privacy" element={<PrivacyPolicy />} />
+                      <Route path="/share" element={<Dashboard />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>

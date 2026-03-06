@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1280px; height: 800px; background: linear-gradient(135deg, #0a0a1a 0%, #0d1b2a 50%, #1b2838 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.container { display: flex; gap: 60px; align-items: center; max-width: 1100px; }
+.left { flex: 1; }
+.left h2 { font-size: 40px; line-height: 1.2; margin-bottom: 16px; }
+.left h2 span { color: #00b4ff; }
+.left > p { color: #8899aa; font-size: 18px; line-height: 1.6; margin-bottom: 30px; }
+.step { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.step-num { width: 36px; height: 36px; border-radius: 50%; background: rgba(0,180,255,0.15); color: #00b4ff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+.step-text h4 { font-size: 17px; margin-bottom: 4px; }
+.step-text p { color: #667788; font-size: 14px; margin: 0; }
+.right { flex: 1; display: flex; justify-content: center; }
+.popup-mock { width: 340px; background: #141c28; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+.popup-header { background: linear-gradient(135deg, #0d1b2a, #1a2a3a); padding: 20px 24px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.popup-header img { width: 28px; height: 28px; border-radius: 6px; }
+.popup-title { font-size: 16px; font-weight: 600; }
+.popup-body { padding: 28px 24px; text-align: center; }
+.popup-mic { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #06b6d4); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 0 30px rgba(0,180,255,0.3); }
+.popup-mic svg { width: 36px; height: 36px; }
+.popup-status { color: #00b4ff; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.popup-wave { color: #334455; font-size: 28px; letter-spacing: 2px; margin-bottom: 20px; }
+.popup-transcript { background: rgba(0,180,255,0.08); border-radius: 10px; padding: 14px 18px; text-align: left; }
+.popup-transcript p { font-size: 14px; color: #aabbcc; line-height: 1.5; }
+.popup-transcript .label { font-size: 11px; color: #556677; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.logo { position: absolute; top: 30px; left: 40px; display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 600; }
+.logo img { width: 36px; height: 36px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="logo">
+  <img src="https://saveme.space/logo.png" alt="SaveMe.Space">
+  SaveMe Voice Keeper
+</div>
+<div class="container">
+  <div class="left">
+    <h2>How it <span>works</span></h2>
+    <p>Three simple steps to capture and organize anything.</p>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <h4>Press Ctrl+Space</h4>
+        <p>From any tab, any page. The popup opens instantly.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <h4>Speak naturally</h4>
+        <p>Say whatever's on your mind. AI transcribes in real-time.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <h4>Done — it's organized</h4>
+        <p>AI auto-categorizes, extracts key details, and saves to your vault.</p>
+      </div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="popup-mock">
+      <div class="popup-header">
+        <img src="https://saveme.space/logo.png" alt="SaveMe.Space">
+        <span class="popup-title">SaveMe Voice Keeper</span>
+      </div>
+      <div class="popup-body">
+        <div class="popup-mic">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+            <circle cx="64" cy="48" r="12" fill="white"/>
+            <path d="M76 52v12c0 6.63-5.37 12-12 12s-12-5.37-12-12V52" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/>
+            <line x1="64" y1="76" x2="64" y2="96" stroke="white" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="popup-status">● Listening...</div>
+        <div class="popup-wave">∿∿∿∿∿∿∿∿</div>
+        <div class="popup-transcript">
+          <div class="label">Transcript</div>
+          <p>"Remind me to call Sarah tomorrow about the project proposal and send the updated deck..."</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

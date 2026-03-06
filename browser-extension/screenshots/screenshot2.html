@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1280px; height: 800px; background: linear-gradient(135deg, #0a0a1a 0%, #0d1b2a 50%, #1b2838 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.container { max-width: 1100px; width: 100%; }
+h2 { text-align: center; font-size: 42px; margin-bottom: 12px; }
+h2 span { color: #00b4ff; }
+.subtitle { text-align: center; color: #667788; font-size: 18px; margin-bottom: 50px; }
+.features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 32px 28px; }
+.card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 24px; }
+.card-icon.blue { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.card-icon.cyan { background: rgba(6,182,212,0.15); color: #06b6d4; }
+.card-icon.amber { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.card-icon.green { background: rgba(34,197,94,0.15); color: #22c55e; }
+.card-icon.purple { background: rgba(168,85,247,0.15); color: #a855f7; }
+.card-icon.red { background: rgba(239,68,68,0.15); color: #ef4444; }
+.card h3 { font-size: 20px; margin-bottom: 10px; font-weight: 600; }
+.card p { color: #8899aa; font-size: 15px; line-height: 1.6; }
+.highlight { border-color: rgba(0,180,255,0.3); background: rgba(0,180,255,0.05); }
+.logo { position: absolute; top: 30px; left: 40px; display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 600; }
+.logo img { width: 36px; height: 36px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="logo">
+  <img src="https://saveme.space/logo.png" alt="SaveMe.Space">
+  SaveMe Voice Keeper
+</div>
+<div class="container">
+  <h2>Why <span>SaveMe</span>?</h2>
+  <p class="subtitle">Voice-first knowledge capture that actually works</p>
+  <div class="features">
+    <div class="card">
+      <div class="card-icon blue">🎤</div>
+      <h3>Voice Capture</h3>
+      <p>Just speak naturally. Capture notes, ideas, contacts, and reminders without typing a single word.</p>
+    </div>
+    <div class="card highlight">
+      <div class="card-icon cyan">🧠</div>
+      <h3>AI Organization</h3>
+      <p>Your data is automatically categorized. No folders to manage, no tags to remember. AI does it all.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon amber">⚡</div>
+      <h3>Instant Search</h3>
+      <p>Find anything in seconds. Search by keyword, category, or just describe what you're looking for.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon green">🖱️</div>
+      <h3>Right-Click Save</h3>
+      <p>Highlight any text on the web, right-click, and send it straight to your SaveMe vault instantly.</p>
+    </div>
+    <div class="card highlight">
+      <div class="card-icon purple">⌨️</div>
+      <h3>Global Hotkey</h3>
+      <p>Press Ctrl+Space from any tab — no switching, no clicking. Your brain dump starts immediately.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon red">🔒</div>
+      <h3>Privacy First</h3>
+      <p>Your data stays yours. End-to-end encryption. We never sell, share, or track your information.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

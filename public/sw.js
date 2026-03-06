@@ -108,3 +108,65 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// ── Push notifications ─────────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: 'Nova', body: event.data.text() };
+  }
+
+  const {
+    title = 'Nova',
+    body = '',
+    url = '/',
+    icon = '/logo.png',
+    badge = '/logo.png',
+  } = payload;
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      badge,
+      data: { url },
+      vibrate: [100, 50, 100],
+      actions: [
+        { action: 'open', title: 'Open' },
+        { action: 'dismiss', title: 'Dismiss' },
+      ],
+    })
+  );
+});
+
+// ── Notification click ─────────────────────────────────────────────────────
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const targetUrl = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Focus existing tab if already open
+        for (const client of clientList) {
+          if ('focus' in client) {
+            client.focus();
+            client.postMessage({ type: 'NOVA_NOTIFICATION_CLICK', url: targetUrl });
+            return;
+          }
+        }
+        // Open new tab
+        if (clients.openWindow) {
+          return clients.openWindow(targetUrl);
+        }
+      })
+  );
+});

@@ -2853,3 +2853,192 @@ Only include patterns with confidence >= 0.6. Return empty array if no clear pat
       console.error("[analyzePatterns] Error:", error);
     }
   });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOVA INSIGHTS — Proactive daily intelligence
+// Runs every 24 hours, analyzes each active user's entries,
+// and surfaces patterns/connections/gaps as in-app notifications.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GEMINI_FLASH_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+async function generateUserInsights(
+  userId: string,
+  db: admin.firestore.Firestore,
+  geminiKey: string
+): Promise<void> {
+  // Idempotent: skip if insights already generated for this user today
+  const today = new Date().toISOString().split("T")[0];
+  const existingToday = await db.collection("pending_notifications")
+    .where("user_id", "==", userId)
+    .where("insight_date", "==", today)
+    .where("type", "==", "nova_insight")
+    .limit(1)
+    .get();
+
+  if (!existingToday.empty) {
+    console.log(`[novaInsights] Already ran for user ${userId} today — skipping`);
+    return;
+  }
+
+  // Fetch last 7 days of entries
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+
+  const entriesSnap = await db.collection("entries")
+    .where("user_id", "==", userId)
+    .where("created_at", ">=", cutoff)
+    .orderBy("created_at", "desc")
+    .limit(30)
+    .get();
+
+  if (entriesSnap.empty) return;
+
+  const entries = entriesSnap.docs.map((d) => {
+    const data = d.data();
+    const fields = data.fields || {};
+    const content = fields.content
+      || Object.values(fields).filter((v) => typeof v === "string").join(" ").slice(0, 200);
+    return {
+      id: d.id,
+      title: data.title || "Untitled",
+      category: data.category || "Personal",
+      content: (content as string).slice(0, 150),
+      createdAt: data.created_at?.toDate?.()?.toISOString() || new Date().toISOString(),
+    };
+  });
+
+  // Category breakdown (all-time, for context)
+  const allEntriesSnap = await db.collection("entries")
+    .where("user_id", "==", userId)
+    .select("category")
+    .get();
+
+  const categoryCounts: Record<string, number> = {};
+  allEntriesSnap.docs.forEach((d) => {
+    const cat = d.data().category || "Personal";
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  });
+
+  const categoryBreakdown = Object.entries(categoryCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 8)
+    .map(([c, n]) => `${c} (${n})`)
+    .join(", ");
+
+  const prompt = `You are Nova — an intelligent personal knowledge assistant inside SaveMe.Space.
+
+A user saved ${entries.length} entries in the last 7 days. Analyze them and generate 2–3 proactive, hyper-personalized insights.
+
+Recent entries:
+${entries.map((e) => `- [${e.id.slice(0, 8)}] "${e.title}" (${e.category}) — ${e.content}`).join("\n")}
+
+Their full knowledge base: ${categoryBreakdown}
+
+Generate insights that do ONE of these:
+1. Surface a connection between 2+ entries they haven't noticed
+2. Highlight a clear pattern in their thinking this week
+3. Note a gap — something they started but haven't followed up on
+4. Surface an unresolved thread worth revisiting
+
+Rules:
+- Use their ACTUAL entry titles (quoted)
+- Be specific, not generic
+- Max 120 characters each
+- Sound like a brilliant friend paying close attention
+
+Return JSON only:
+[{
+  "text": "Insight text (max 120 chars)",
+  "type": "connection" | "pattern" | "gap" | "reminder",
+  "entry_ids": ["short_id1", "short_id2"]
+}]`;
+
+  const res = await fetchWithRetry(`${GEMINI_FLASH_API}?key=${geminiKey}`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      contents: [{role: "user", parts: [{text: prompt}]}],
+      generationConfig: {
+        maxOutputTokens: 512,
+        temperature: 0.75,
+        responseMimeType: "application/json",
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`[novaInsights] Gemini error for user ${userId}: ${res.status} — ${errText}`);
+    return;
+  }
+
+  const data = await res.json();
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+
+  let insights: {text: string; type: string; entry_ids?: string[]}[];
+  try {
+    insights = JSON.parse(rawText);
+  } catch {
+    console.warn(`[novaInsights] Failed to parse Gemini response for user ${userId}:`, rawText);
+    return;
+  }
+
+  if (!Array.isArray(insights) || insights.length === 0) return;
+
+  // Write insights to pending_notifications (max 3)
+  const batch = db.batch();
+  let written = 0;
+  for (const insight of insights.slice(0, 3)) {
+    if (!insight.text || insight.text.length < 10) continue;
+    const notifRef = db.collection("pending_notifications").doc();
+    batch.set(notifRef, {
+      user_id: userId,
+      type: "nova_insight",
+      text: insight.text,
+      insight_type: insight.type || "pattern",
+      entry_ids: insight.entry_ids || [],
+      status: "pending",
+      insight_date: today,
+      created_at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    written++;
+  }
+
+  await batch.commit();
+  console.log(`[novaInsights] Wrote ${written} insights for user ${userId}`);
+}
+
+export const novaInsights = functions.pubsub
+  .schedule("every 24 hours")
+  .timeZone("America/New_York")
+  .onRun(async () => {
+    const db = admin.firestore();
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      console.error("[novaInsights] GEMINI_API_KEY not configured");
+      return null;
+    }
+
+    // Find active users: any user with entries touched in last 7 days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+
+    const recentSnap = await db.collection("entries")
+      .where("updated_at", ">=", cutoff)
+      .select("user_id")
+      .get();
+
+    const userIds = [...new Set(recentSnap.docs.map((d) => d.data().user_id as string))].filter(Boolean);
+    console.log(`[novaInsights] Processing ${userIds.length} active users`);
+
+    for (const userId of userIds) {
+      try {
+        await generateUserInsights(userId, db, geminiKey);
+      } catch (err) {
+        console.error(`[novaInsights] Failed for user ${userId}:`, err);
+      }
+    }
+
+    return null;
+  });

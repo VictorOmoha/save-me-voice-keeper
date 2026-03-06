@@ -9,7 +9,7 @@
  *  - open: full panel
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { Sparkles, X, Mic, ChevronDown, ChevronUp } from "lucide-react";
 import { NovaVoiceAgent } from "@/components/NovaVoiceAgent";
 import { NovaLiveAction } from "@/components/NovaLiveAction";
@@ -30,6 +30,18 @@ export const NovaFloat: React.FC = () => {
   const { setTheme } = useTheme();
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [liveAction, setLiveAction] = useState<NovaActionPayload | null>(null);
+  const [shouldGreet, setShouldGreet] = useState(false);
+  const hasGreetedRef = useRef(false);
+
+  // Fire greeting the first time the panel opens
+  useEffect(() => {
+    if (panelState === "open" && !hasGreetedRef.current) {
+      hasGreetedRef.current = true;
+      setShouldGreet(true);
+      // Reset flag so NovaVoiceAgent can consume it
+      setTimeout(() => setShouldGreet(false), 200);
+    }
+  }, [panelState]);
 
   const handleNavigate = useCallback((route: string) => {
     navigate(route);
@@ -259,6 +271,8 @@ export const NovaFloat: React.FC = () => {
             onExportData={handleExportData}
             onPrintEntry={handlePrintEntry}
             onNovaAction={handleNovaAction}
+            autoGreet={shouldGreet}
+            displayName={user?.displayName || user?.email?.split("@")[0] || "there"}
           />
         </div>
       </div>

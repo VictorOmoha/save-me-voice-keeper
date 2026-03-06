@@ -3,7 +3,7 @@
  * Conversational AI interface — live action feed + continuous listening.
  */
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Mic, Square, RotateCcw, Send, Sparkles, CheckCircle2, XCircle, Loader2, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVoiceAgent, UseVoiceAgentOptions, AgentStatus } from "@/hooks/useVoiceAgent";
@@ -48,9 +48,16 @@ const ACTION_ICON: Record<string, string> = {
   scrollPage: "📜",
 };
 
-type NovaVoiceAgentProps = UseVoiceAgentOptions;
+type NovaVoiceAgentProps = UseVoiceAgentOptions & {
+  autoGreet?: boolean;
+  displayName?: string;
+};
 
-export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = (props) => {
+export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
+  autoGreet,
+  displayName,
+  ...props
+}) => {
   const {
     status, transcript, responseText, error,
     actions, conversationHistory, continuous, setContinuous,
@@ -59,6 +66,23 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = (props) => {
 
   const [textInput, setTextInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasGreetedRef = useRef(false);
+
+  // ── Auto-greet on first open ──────────────────────────────────────────────
+  useEffect(() => {
+    if (
+      autoGreet &&
+      !hasGreetedRef.current &&
+      conversationHistory.length === 0 &&
+      status === "idle"
+    ) {
+      hasGreetedRef.current = true;
+      // Small delay so the panel animation completes first
+      setTimeout(() => {
+        sendText(`__nova_greet__:${displayName || "there"}`);
+      }, 400);
+    }
+  }, [autoGreet]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

@@ -12,6 +12,7 @@ import { ThemeBootstrapper } from "./components/ThemeBootstrapper";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListener";
 import { NovaFloat } from "./components/NovaFloat";
+import { PwaInstallBanner } from "./components/PwaInstallBanner";
 
 // Lazy-loaded pages — each becomes its own chunk
 const Index = React.lazy(() => import("./pages/Index"));
@@ -58,6 +59,7 @@ const App = () => (
                 <HashRouter>
                   <VoiceNavigationListener />
                   <NovaFloat />
+                  <PwaInstallBanner />
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       <Route path="/" element={<Index />} />

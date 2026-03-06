@@ -1094,6 +1094,13 @@ You are talking to ${displayName}. Be warm, sharp, and concise.
 - "process", "structure this", "organize" → processBrainDump
 - "print", "print this", "print my X", "print entries" → printEntry
 
+## Category Intelligence — Nova auto-files entries
+When you save an entry, the system auto-predicts the category using the user's history.
+- ALWAYS confirm the category in your response: "Saved '[title]' under [Category]."
+- If the entry result includes category_was_predicted: true, you predicted it — state it confidently: "Saved under [Category]."
+- If user says "wrong category", "that should be X", "move it to X" → call updateEntry with corrected category IMMEDIATELY
+- Never ask "what category should this go in?" — just predict and confirm. Let the user correct you if needed.
+
 ## saveEntry — content vs structured fields
 Detect intent automatically:
 - General note/reminder/idea → use 'content' field only
@@ -1275,6 +1282,152 @@ Rules:
 }
 
 // ── Tool executor ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// CATEGORY INTELLIGENCE — Nova learns your categories over time
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Predict the best category for an entry based on user's history + learned patterns.
+ * Returns { predicted, confidence } — confidence >= 0.7 means Nova is sure enough to auto-file.
+ */
+async function predictCategory(
+  userId: string,
+  title: string,
+  content: string,
+  db: admin.firestore.Firestore,
+  geminiKey: string
+): Promise<{predicted: string; confidence: number}> {
+  try {
+    // Fetch user's category history (last 60 entries)
+    const entriesSnap = await db.collection("entries")
+      .where("user_id", "==", userId)
+      .orderBy("updated_at", "desc")
+      .limit(60)
+      .get();
+
+    if (entriesSnap.empty) return {predicted: "Personal", confidence: 0.5};
+
+    // Build category frequency + examples map
+    const categoryCounts: Record<string, number> = {};
+    const categoryExamples: Record<string, string[]> = {};
+    for (const d of entriesSnap.docs) {
+      const data = d.data();
+      const cat = (data.category || "Personal") as string;
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      if (!categoryExamples[cat]) categoryExamples[cat] = [];
+      if (categoryExamples[cat].length < 3 && data.title) {
+        categoryExamples[cat].push(data.title as string);
+      }
+    }
+
+    const categoryList = Object.entries(categoryCounts)
+      .sort(([, a], [, b]) => b - a)
+      .map(([cat, count]) => {
+        const examples = (categoryExamples[cat] || []).join(", ");
+        return `${cat} (${count} entries${examples ? `, e.g. "${examples}"` : ""})`;
+      })
+      .join("\n");
+
+    // Fetch learned patterns from corrections/feedback
+    const patternsSnap = await db.collection("user_category_patterns")
+      .where("user_id", "==", userId)
+      .orderBy("weight", "desc")
+      .limit(30)
+      .get();
+
+    const learnedPatterns = patternsSnap.docs.map((d) => {
+      const data = d.data();
+      return `"${data.signal}" → ${data.category} (strength: ${Math.round((data.weight || 1) * 10) / 10})`;
+    }).join("\n");
+
+    const prompt = `You are Nova, predicting the best category for a personal knowledge vault entry.
+
+User's existing categories:
+${categoryList}
+${learnedPatterns ? `\nLearned patterns from this user's corrections:\n${learnedPatterns}` : ""}
+
+Entry to categorize:
+Title: "${title}"
+Content: "${(content || "").slice(0, 200)}"
+
+Rules:
+- Pick from the user's EXISTING categories whenever possible
+- Only suggest a new category if no existing one fits at all
+- Confidence 0.9+ = very obvious (e.g. "blood pressure" → Health)
+- Confidence 0.7-0.89 = good fit with some reasoning
+- Confidence < 0.7 = uncertain, do not auto-file
+
+Return JSON only: {"category": "string", "confidence": 0.0}`;
+
+    const res = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        contents: [{role: "user", parts: [{text: prompt}]}],
+        generationConfig: {
+          maxOutputTokens: 64,
+          temperature: 0.1,
+          responseMimeType: "application/json",
+        },
+      }),
+    });
+
+    if (!res.ok) return {predicted: "Personal", confidence: 0.5};
+
+    const data = await res.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    const parsed = JSON.parse(rawText);
+    return {
+      predicted: (parsed.category as string) || "Personal",
+      confidence: (parsed.confidence as number) || 0.5,
+    };
+  } catch (err) {
+    console.warn("[predictCategory] Failed:", err);
+    return {predicted: "Personal", confidence: 0.5};
+  }
+}
+
+/**
+ * Record a category correction/confirmation to strengthen Nova's learning model.
+ * Call this when: (a) user corrects Nova's category prediction, or (b) Nova's prediction is confirmed.
+ */
+async function recordCategorySignal(
+  userId: string,
+  title: string,
+  content: string,
+  correctCategory: string,
+  wasCorrection: boolean,
+  db: admin.firestore.Firestore
+): Promise<void> {
+  try {
+    // Extract signals from title + content (lowercased words, 3+ chars)
+    const text = `${title} ${content || ""}`.toLowerCase();
+    const signals = [...new Set(
+      text.split(/\W+/).filter((w) => w.length >= 3 && w.length <= 20)
+    )].slice(0, 15);
+
+    const weight = wasCorrection ? 1.5 : 1.0; // corrections carry more weight
+
+    const batch = db.batch();
+    for (const signal of signals) {
+      const docId = `${userId}_${signal}_${correctCategory}`.replace(/[^a-z0-9_]/g, "_");
+      const ref = db.collection("user_category_patterns").doc(docId);
+      batch.set(ref, {
+        user_id: userId,
+        signal,
+        category: correctCategory,
+        weight: admin.firestore.FieldValue.increment(weight),
+        count: admin.firestore.FieldValue.increment(1),
+        was_correction: wasCorrection,
+        last_updated: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+    }
+    await batch.commit();
+  } catch (err) {
+    console.warn("[recordCategorySignal] Failed:", err);
+  }
+}
+
 async function executeVoiceTool(
   toolName: string,
   args: Record<string, any>,
@@ -1371,30 +1524,59 @@ async function executeVoiceTool(
       field_definitions = [{id: "content", name: "Content", type: "textarea"}];
     }
 
-    if (args.category) {
-      fields["category"] = args.category;
+    // ── Category Intelligence: predict if not explicitly provided ──────────
+    let finalCategory: string = args.category || "";
+    let categoryWasPredicted = false;
+    const geminiKey = process.env.GEMINI_API_KEY;
+
+    if ((!finalCategory || finalCategory === "Personal") && geminiKey) {
+      const contentForPrediction = args.content
+        || (args.fields ? (args.fields as any[]).map((f: any) => `${f.key}: ${f.value}`).join(", ") : "");
+
+      const prediction = await predictCategory(userId, args.title || "", contentForPrediction, db, geminiKey);
+
+      if (prediction.confidence >= 0.7 && prediction.predicted !== "Personal") {
+        finalCategory = prediction.predicted;
+        categoryWasPredicted = true;
+      } else if (!finalCategory) {
+        finalCategory = prediction.predicted || "Personal";
+      }
     }
+
+    if (!finalCategory) finalCategory = "Personal";
+    fields["category"] = finalCategory;
 
     const docRef = await entriesRef.add({
       title: args.title,
       fields,
       field_definitions,
-      category: args.category || "Personal",
+      category: finalCategory,
       user_id: userId,
       processed: false,
+      category_predicted: categoryWasPredicted,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // Record signal to strengthen future predictions
+    if (geminiKey) {
+      const contentText = args.content
+        || (args.fields ? (args.fields as any[]).map((f: any) => `${f.value}`).join(" ") : "");
+      recordCategorySignal(userId, args.title || "", contentText, finalCategory, false, db).catch(() => {});
+    }
+
     return {
       success: true,
       id: docRef.id,
       title: args.title,
+      category: finalCategory,
+      category_was_predicted: categoryWasPredicted,
       appCommand: "novaAction",
       actionType: "save_entry",
       actionData: {
         id: docRef.id,
         title: args.title,
-        category: args.category || "Personal",
+        category: finalCategory,
         content: args.content || null,
         fields: args.fields || null,
       },
@@ -1449,16 +1631,34 @@ async function executeVoiceTool(
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     };
     if (args.title) updateData.title = args.title;
+
+    // Fetch existing entry to compare and merge
+    const existingDoc = await entriesRef.doc(args.id).get();
+    const existingData = existingDoc.data() || {};
+    const currentFields = existingData.fields || {};
+
     if (args.content || args.category) {
-      // Need to merge fields
-      const existing = await entriesRef.doc(args.id).get();
-      const currentFields = existing.data()?.fields || {};
       updateData.fields = {
         ...currentFields,
         ...(args.content ? {content: args.content} : {}),
         ...(args.category ? {category: args.category} : {}),
       };
     }
+
+    // Category correction learning — if category changed, record it as a correction
+    const oldCategory = existingData.category as string | undefined;
+    if (args.category && oldCategory && args.category !== oldCategory) {
+      updateData.category = args.category;
+      updateData.category_predicted = false; // human corrected it
+
+      // Record this as a high-confidence correction signal
+      const entryTitle = args.title || (existingData.title as string) || "";
+      const entryContent = args.content || currentFields.content || "";
+      recordCategorySignal(userId, entryTitle, entryContent, args.category, true, db).catch(() => {});
+    } else if (args.category && !oldCategory) {
+      updateData.category = args.category;
+    }
+
     await entriesRef.doc(args.id).update(updateData);
     return {
       success: true, id: args.id,

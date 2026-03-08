@@ -1,6 +1,6 @@
-import { auth } from "@/lib/firebase";
+import { getCloudFunctionUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 
-const VOICE_AGENT_URL = `${import.meta.env.VITE_CLOUD_FUNCTIONS_URL}/voiceAgent`;
+const VOICE_AGENT_URL = getCloudFunctionUrl('voiceAgent');
 
 type BriefingToolName = "prepareBriefing" | "getActivitySummary" | "getUpcomingDeadlines" | "getRelatedEntries";
 
@@ -20,9 +20,7 @@ interface VoiceAgentResponse {
 }
 
 const getAuthToken = async (): Promise<string> => {
-  const user = auth.currentUser;
-  if (!user) throw new Error("Authentication required");
-  return user.getIdToken();
+  return getFirebaseIdToken();
 };
 
 const extractToolResult = (response: VoiceAgentResponse, toolName: BriefingToolName) => {

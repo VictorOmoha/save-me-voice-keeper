@@ -1,19 +1,11 @@
-import { auth } from '@/lib/firebase';
-
-const CLOUD_FUNCTIONS_BASE_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || 'https://us-central1-saveme-f5af0.cloudfunctions.net';
+import { getCloudFunctionUrl, getFirebaseIdToken } from '@/utils/cloudFunctions';
 
 /**
  * Get Firebase Auth token for Cloud Functions calls
  */
 const getAuthToken = async (): Promise<string | null> => {
-  const user = auth.currentUser;
-  if (!user) {
-    console.error('User not authenticated');
-    return null;
-  }
-  
   try {
-    return await user.getIdToken();
+    return await getFirebaseIdToken();
   } catch (error) {
     console.error('Failed to get auth token:', error);
     return null;
@@ -45,7 +37,7 @@ export const sendToVoiceAgent = async (
       throw new Error('Authentication required');
     }
 
-    const response = await fetch(`${CLOUD_FUNCTIONS_BASE_URL}/voiceAgent`, {
+    const response = await fetch(getCloudFunctionUrl('voiceAgent'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

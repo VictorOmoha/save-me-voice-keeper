@@ -6,10 +6,10 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
+import { getCloudFunctionUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 
-const VOICE_AGENT_URL = `${import.meta.env.VITE_CLOUD_FUNCTIONS_URL}/voiceAgent`;
+const VOICE_AGENT_URL = getCloudFunctionUrl('voiceAgent');
 
 export type AgentStatus = "idle" | "listening" | "thinking" | "acting" | "speaking";
 
@@ -312,7 +312,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     setActions([]);
 
     try {
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getFirebaseIdToken();
       if (!token) throw new Error("Not authenticated");
 
       const base = { conversationHistory, sessionId };

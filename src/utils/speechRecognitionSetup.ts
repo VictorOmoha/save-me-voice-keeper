@@ -1,4 +1,9 @@
-
+/**
+ * Legacy/local speech-recognition setup.
+ *
+ * Supports browser-side capture utilities and diagnostics.
+ * Not part of the canonical Nova agent execution path.
+ */
 import { VoiceCommand, processVoiceCommandSync } from './voiceCommandProcessor';
 import { toast } from 'sonner';
 

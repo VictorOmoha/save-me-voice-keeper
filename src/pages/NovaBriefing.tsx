@@ -40,6 +40,7 @@ const NovaBriefing: React.FC = () => {
   const [backendRelatedEntries, setBackendRelatedEntries] = useState<Array<{ id: string; title: string; summary?: string | null }>>([]);
   const [isBackendLoading, setIsBackendLoading] = useState(false);
   const [backendError, setBackendError] = useState<string | null>(null);
+  const [backendMode, setBackendMode] = useState<"loading" | "ready" | "partial" | "fallback">("loading");
   const [clientSessionId, setClientSessionId] = useState<string | null>(null);
 
   const scopedEntries = useMemo(() => {
@@ -83,6 +84,7 @@ const NovaBriefing: React.FC = () => {
       try {
         setIsBackendLoading(true);
         setBackendError(null);
+        setBackendMode("loading");
 
         const subject = topActionEntries[0]?.entry.title || linkedEntries[0]?.entry.title || "my work";
         const timeframe = scopeToBackendTimeframe[scope];
@@ -94,14 +96,42 @@ const NovaBriefing: React.FC = () => {
           novaBriefingClient.getRelatedEntries(subject, 5, clientSessionId),
         ]);
 
-        setBackendBriefing(briefingResult.briefing || null);
-        setBackendActivitySummary({
-          totalEntries: activityResult.totalEntries,
-          openActionItems: activityResult.openActionItems,
-          recentTitles: activityResult.recentTitles,
-        });
-        setBackendDeadlines(deadlinesResult.items || []);
-        setBackendRelatedEntries(relatedResult.entries || []);
+        const results = [briefingResult, activityResult, deadlinesResult, relatedResult];
+        const successCount = results.filter((result) => result.success).length;
+        const errorMessages = results
+          .map((result) => result.error)
+          .filter((error): error is string => Boolean(error));
+
+        if (briefingResult.success) {
+          setBackendBriefing(briefingResult.briefing || null);
+        } else {
+          setBackendBriefing(null);
+        }
+
+        if (activityResult.success) {
+          setBackendActivitySummary({
+            totalEntries: activityResult.totalEntries,
+            openActionItems: activityResult.openActionItems,
+            recentTitles: activityResult.recentTitles,
+          });
+        } else {
+          setBackendActivitySummary(null);
+        }
+
+        setBackendDeadlines(deadlinesResult.success ? (deadlinesResult.items || []) : []);
+        setBackendRelatedEntries(relatedResult.success ? (relatedResult.entries || []) : []);
+
+        if (successCount === results.length) {
+          setBackendMode("ready");
+          setBackendError(null);
+        } else if (successCount > 0) {
+          setBackendMode("partial");
+          setBackendError(errorMessages.join(" • ") || "Some backend briefing systems are unavailable.");
+        } else {
+          setBackendMode("fallback");
+          setBackendError(errorMessages.join(" • ") || "Failed to load backend briefing intelligence.");
+        }
+
         setClientSessionId(
           briefingResult.sessionId ||
           activityResult.sessionId ||
@@ -111,7 +141,12 @@ const NovaBriefing: React.FC = () => {
         );
       } catch (error: any) {
         console.error("[NovaBriefing] backend briefing load failed", error);
+        setBackendMode("fallback");
         setBackendError(error?.message || "Failed to load backend briefing intelligence.");
+        setBackendBriefing(null);
+        setBackendActivitySummary(null);
+        setBackendDeadlines([]);
+        setBackendRelatedEntries([]);
       } finally {
         setIsBackendLoading(false);
       }
@@ -237,11 +272,14 @@ const NovaBriefing: React.FC = () => {
           <CardHeader><CardTitle>Today’s Synthesis</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {isBackendLoading && <p className="text-sm text-muted-foreground">Loading backend briefing intelligence…</p>}
+            {backendMode === "ready" && <p className="text-xs text-emerald-600">Backend briefing online.</p>}
+            {backendMode === "partial" && <p className="text-xs text-amber-600">Backend briefing partially available.</p>}
+            {backendMode === "fallback" && <p className="text-xs text-amber-600">Backend briefing unavailable — using local fallback signals.</p>}
             {backendBriefing && <p className="text-sm text-foreground leading-relaxed">{backendBriefing}</p>}
             {briefingSummary.map((line, index) => (
               <p key={index} className="text-sm text-foreground">{line}</p>
             ))}
-            {backendError && <p className="text-xs text-amber-600">Backend briefing fallback active: {backendError}</p>}
+            {backendError && <p className="text-xs text-amber-600">{backendError}</p>}
           </CardContent>
         </Card>
 

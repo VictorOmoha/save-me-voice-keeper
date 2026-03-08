@@ -72,6 +72,7 @@ export const VoiceCommandProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       const command = processVoiceCommandSync(transcript);
       if (command.type !== 'unknown') {
+        console.warn('[VoiceCommandContext] Legacy voice command path invoked. Prefer canonical Nova flow.');
         executeCommand(command);
       }
     };

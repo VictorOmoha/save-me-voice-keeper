@@ -1,3 +1,10 @@
+/**
+ * Legacy browser speech-recognition hook.
+ *
+ * This is still used by non-canonical capture/diagnostic flows (for example brain-dump capture),
+ * but it is NOT the Nova assistant path.
+ * Do not add assistant orchestration here.
+ */
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useEffect, useState, useRef } from 'react';

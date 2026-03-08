@@ -24,6 +24,17 @@ import type { NovaActionPayload as HookPayload } from "@/hooks/useVoiceAgent";
 
 type PanelState = "closed" | "minimized" | "open";
 
+/**
+ * Canonical Nova orchestration shell.
+ *
+ * Ownership boundary:
+ * - UI shell / panel state lives here
+ * - conversational transport lives in NovaVoiceAgent/useVoiceAgent
+ * - backend tool execution lives in Firebase voiceAgent
+ * - app-wide reactions are emitted as stable window events for pages/dialogs to consume
+ *
+ * Do not add alternate assistant execution paths here.
+ */
 export const NovaFloat: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();

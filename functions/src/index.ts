@@ -1433,6 +1433,13 @@ async function recordCategorySignal(
   }
 }
 
+import { VoiceToolResult, ok, fail, command, novaAction } from "./voiceToolResults";
+import { handleAppControlTool } from "./voiceTools/appControl";
+import { handleSettingsTool } from "./voiceTools/settings";
+import { handleMemoryTool } from "./voiceTools/memory";
+import { handleIntelligenceTool } from "./voiceTools/intelligence";
+import { summarizeToolArgs, validateToolArgs } from "./voiceToolValidation";
+
 async function executeVoiceTool(
   toolName: string,
   args: Record<string, any>,
@@ -1441,73 +1448,25 @@ async function executeVoiceTool(
   const db = admin.firestore();
   const entriesRef = db.collection("entries");
 
+  const validation = validateToolArgs(toolName, args);
+  if (!validation.valid) {
+    console.warn(`[VoiceTool] Validation failed for ${toolName}`, {
+      userId,
+      args: summarizeToolArgs(args),
+      error: validation.error,
+    });
+    return fail(validation.error || `Invalid arguments for ${toolName}`);
+  }
+
+  console.log(`[VoiceTool] Executing ${toolName}`, {
+    userId,
+    args: summarizeToolArgs(args),
+  });
+
   // ── App control tools — return commands for the frontend to execute ────────
-  switch (toolName) {
-  case "navigateApp":
-    return {appCommand: "navigate", route: args.route, success: true};
-  case "navigateToCategory":
-    return {appCommand: "navigate", route: `/category/${encodeURIComponent(args.category)}`, success: true};
-  case "openEntryForm":
-    return {appCommand: "openEntryForm", category: args.category || null, success: true};
-  case "closeEntry":
-    return {appCommand: "goBack", success: true};
-  case "scrollPage":
-    return {appCommand: "scrollPage", direction: args.direction || "down", success: true};
-  case "startBrainDump":
-    return {appCommand: "startBrainDump", success: true};
-  case "processBrainDump":
-    return {appCommand: "processBrainDump", success: true};
-  case "saveBrainDump":
-    return {appCommand: "saveBrainDump", category: args.category || null, success: true};
-  case "openEntry": {
-    let resolvedId = args.id || null;
-    // If no ID provided, search Firestore by title to get the real ID
-    if (!resolvedId && args.title) {
-      const snap = await entriesRef
-        .where("user_id", "==", userId)
-        .orderBy("updated_at", "desc")
-        .limit(30)
-        .get();
-      const q = args.title.toLowerCase();
-      const found = snap.docs
-        .map((d) => ({id: d.id, ...(d.data() as any)}))
-        .find((e: any) => e.title && e.title.toLowerCase().includes(q));
-      if (found) resolvedId = found.id;
-    }
-    return {appCommand: "openEntry", id: resolvedId, title: args.title || null, success: true};
-  }
-  case "printEntry": {
-    // Find matching entries to print
-    const snap = await entriesRef
-      .where("user_id", "==", userId)
-      .orderBy("updated_at", "desc")
-      .limit(50)
-      .get();
-    const allDocs = snap.docs.map((d) => ({id: d.id, ...(d.data() as any)}));
-    let toPrint: any[] = [];
-
-    if (args.id) {
-      const byId = allDocs.find((e) => e.id === args.id);
-      if (byId) toPrint = [byId];
-    } else if (args.title) {
-      const q = args.title.toLowerCase();
-      toPrint = allDocs.filter((e: any) => e.title && e.title.toLowerCase().includes(q));
-    } else if (args.category) {
-      const cat = args.category.toLowerCase();
-      toPrint = allDocs.filter((e: any) => e.fields?.category && e.fields.category.toLowerCase() === cat);
-    }
-
-    if (toPrint.length === 0) {
-      return {success: false, error: "No entries found to print"};
-    }
-
-    return {
-      appCommand: "printEntry",
-      entries: toPrint.map((e) => ({id: e.id, title: e.title, fields: e.fields || {}, category: e.fields?.category})),
-      count: toPrint.length,
-      success: true,
-    };
-  }
+  const appControlResult = await handleAppControlTool(toolName, args, userId, entriesRef);
+  if (appControlResult) {
+    return appControlResult;
   }
 
   // ── Vault operations ───────────────────────────────────────────────────────
@@ -1570,22 +1529,20 @@ async function executeVoiceTool(
       recordCategorySignal(userId, args.title || "", contentText, finalCategory, false, db).catch(() => {});
     }
 
-    return {
-      success: true,
+    const actionData = {
+      id: docRef.id,
+      title: args.title,
+      category: finalCategory,
+      content: args.content || null,
+      fields: args.fields || null,
+    };
+
+    return novaAction("save_entry", actionData, {
       id: docRef.id,
       title: args.title,
       category: finalCategory,
       category_was_predicted: categoryWasPredicted,
-      appCommand: "novaAction",
-      actionType: "save_entry",
-      actionData: {
-        id: docRef.id,
-        title: args.title,
-        category: finalCategory,
-        content: args.content || null,
-        fields: args.fields || null,
-      },
-    };
+    });
   }
 
   case "searchEntries": {
@@ -1605,12 +1562,8 @@ async function executeVoiceTool(
       )
       .slice(0, limit)
       .map((e: any) => ({id: e.id, title: e.title, content: e.fields?.content, category: e.fields?.category}));
-    return {
-      success: true, results, count: results.length,
-      appCommand: "novaAction",
-      actionType: "search",
-      actionData: { query: args.query, results: results.slice(0, 5), count: results.length },
-    };
+    const actionData = { query: args.query, results: results.slice(0, 5), count: results.length };
+    return novaAction("search", actionData, { results, count: results.length });
   }
 
   case "getRecentEntries": {
@@ -1628,7 +1581,7 @@ async function executeVoiceTool(
       const data = d.data() as any;
       return {id: d.id, title: data.title, content: data.fields?.content, category: data.fields?.category};
     });
-    return {success: true, results, count: results.length};
+    return ok({ results, count: results.length });
   }
 
   case "updateEntry": {
@@ -1665,17 +1618,13 @@ async function executeVoiceTool(
     }
 
     await entriesRef.doc(args.id).update(updateData);
-    return {
-      success: true, id: args.id,
-      appCommand: "novaAction",
-      actionType: "update_entry",
-      actionData: {
-        id: args.id,
-        title: args.title || null,
-        category: args.category || null,
-        content: args.content || null,
-      },
+    const actionData = {
+      id: args.id,
+      title: args.title || null,
+      category: args.category || null,
+      content: args.content || null,
     };
+    return novaAction("update_entry", actionData, { id: args.id });
   }
 
   case "deleteEntry": {
@@ -1683,560 +1632,52 @@ async function executeVoiceTool(
     const delDoc = await entriesRef.doc(args.id).get();
     const delTitle = delDoc.data()?.title || "Entry";
     await entriesRef.doc(args.id).delete();
-    return {
-      success: true, id: args.id,
-      appCommand: "novaAction",
-      actionType: "delete_entry",
-      actionData: { id: args.id, title: delTitle },
-    };
+    return novaAction("delete_entry", { id: args.id, title: delTitle }, { id: args.id, title: delTitle });
   }
   }
 
   // ── Settings operations ──────────────────────────────────────────────────
-  const prefsRef = db.collection("user_preferences").doc(userId);
-
-  switch (toolName) {
-  case "updateTheme": {
-    await prefsRef.set({theme: args.theme}, {merge: true});
-    return {appCommand: "updateTheme", theme: args.theme, success: true};
-  }
-
-  case "updateProfile": {
-    const profileRef = db.collection("profiles").doc(userId);
-    const updates: Record<string, any> = {};
-    if (args.fullName) updates.fullName = args.fullName;
-    if (args.phone) updates.phone = args.phone;
-    await profileRef.set(updates, {merge: true});
-    // Also update Firebase Auth display name if provided
-    if (args.fullName) {
-      await admin.auth().updateUser(userId, {displayName: args.fullName});
-    }
-    return {appCommand: "settingsUpdated", setting: "profile", success: true};
-  }
-
-  case "toggleNotification": {
-    await prefsRef.set({[args.type]: args.enabled}, {merge: true});
-    return {appCommand: "settingsUpdated", setting: args.type, value: args.enabled, success: true};
-  }
-
-  case "updateVoiceSettings": {
-    const voiceUpdates: Record<string, any> = {};
-    for (const [key, value] of Object.entries(args)) {
-      if (value !== undefined && value !== null) {
-        voiceUpdates[key] = value;
-      }
-    }
-    await prefsRef.set(voiceUpdates, {merge: true});
-    return {appCommand: "settingsUpdated", setting: "voice", updates: voiceUpdates, success: true};
-  }
-
-  case "exportUserData": {
-    // Trigger export on the frontend — backend collects the data
-    return {appCommand: "exportData", format: args.format || "json", success: true};
-  }
+  const settingsResult = await handleSettingsTool(toolName, args, userId, db);
+  if (settingsResult) {
+    return settingsResult;
   }
 
   // ── Memory operations ──────────────────────────────────────────────────
-  const memoriesRef = db.collection("nova_memories");
-
-  switch (toolName) {
-  case "rememberFact": {
-    // If this overrides an existing fact, deactivate the old one
-    if (args.overrides) {
-      const existingSnap = await memoriesRef
-        .where("user_id", "==", userId)
-        .where("active", "==", true)
-        .orderBy("updated_at", "desc")
-        .limit(30)
-        .get();
-
-      const overrideText = (args.overrides as string).toLowerCase();
-      for (const d of existingSnap.docs) {
-        const content = (d.data().content || "").toLowerCase();
-        if (content.includes(overrideText.substring(0, Math.min(20, overrideText.length)))) {
-          await d.ref.update({active: false, superseded_by: "pending", updated_at: admin.firestore.FieldValue.serverTimestamp()});
-          break;
-        }
-      }
-    }
-
-    const memDoc = await memoriesRef.add({
-      user_id: userId,
-      type: "fact",
-      content: args.content,
-      category: args.category || null,
-      source: "explicit",
-      confidence: 0.9,
-      access_count: 0,
-      last_accessed: null,
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      superseded_by: null,
-      active: true,
-    });
-
-    await rebuildMemoryProfile(userId, db);
-    return {
-      success: true, memoryId: memDoc.id,
-      appCommand: "novaAction",
-      actionType: "remember",
-      actionData: { content: args.content, category: args.category || null },
-    };
-  }
-
-  case "recallMemories": {
-    let q: admin.firestore.Query = memoriesRef
-      .where("user_id", "==", userId)
-      .where("active", "==", true);
-
-    if (args.category) {
-      q = q.where("category", "==", args.category);
-    }
-
-    const snap = await q.orderBy("updated_at", "desc").limit(30).get();
-    const query = ((args.query as string) || "").toLowerCase();
-    const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
-
-    const scored = snap.docs
-      .map((d) => ({id: d.id, ...(d.data() as any)}))
-      .map((mem: any) => {
-        const content = (mem.content || "").toLowerCase();
-        let score = 0.1;
-        if (content.includes(query)) score = 1.0;
-        else if (queryWords.some((w: string) => content.includes(w))) score = 0.5;
-        return {...mem, score};
-      })
-      .sort((a: any, b: any) => b.score - a.score)
-      .slice(0, 5);
-
-    // Update access counts for relevant matches (fire-and-forget)
-    for (const mem of scored) {
-      if (mem.score > 0.3) {
-        memoriesRef.doc(mem.id).update({
-          access_count: admin.firestore.FieldValue.increment(1),
-          last_accessed: admin.firestore.FieldValue.serverTimestamp(),
-        }).catch(() => {/* non-critical */});
-      }
-    }
-
-    return {
-      success: true,
-      memories: scored.map((m: any) => ({content: m.content, category: m.category, type: m.type})),
-      count: scored.length,
-    };
-  }
-
-  case "forgetMemory": {
-    const snap = await memoriesRef
-      .where("user_id", "==", userId)
-      .where("active", "==", true)
-      .orderBy("updated_at", "desc")
-      .limit(30)
-      .get();
-
-    const query = ((args.query as string) || "").toLowerCase();
-    const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
-    let deactivated = 0;
-
-    for (const d of snap.docs) {
-      const content = (d.data().content || "").toLowerCase();
-      if (content.includes(query) || queryWords.every((w: string) => content.includes(w))) {
-        await d.ref.update({active: false, updated_at: admin.firestore.FieldValue.serverTimestamp()});
-        deactivated++;
-      }
-    }
-
-    if (deactivated > 0) {
-      await rebuildMemoryProfile(userId, db);
-    }
-    return {
-      success: true, deactivated,
-      appCommand: "novaAction",
-      actionType: "forget",
-      actionData: { query: args.query, count: deactivated },
-    };
-  }
-
+  const memoryResult = await handleMemoryTool(toolName, args, userId, db, rebuildMemoryProfile);
+  if (memoryResult) {
+    return memoryResult;
   }
 
   // ── Agentic intelligence operations ───────────────────────────────────
   const geminiKey = process.env.GEMINI_API_KEY;
 
-  switch (toolName) {
-  case "getEntityGraph": {
-    const entitySnap = await db.collection("entity_graph")
-      .where("user_id", "==", userId)
-      .limit(100)
-      .get();
-
-    const query = (args.query as string).toLowerCase();
-    const typeFilter = args.type as string | undefined;
-    const matches = entitySnap.docs
-      .map((d) => ({id: d.id, ...(d.data() as any)}))
-      .filter((e: any) => {
-        const nameMatch = e.name.toLowerCase().includes(query) ||
-          (e.aliases || []).some((a: string) => a.toLowerCase().includes(query));
-        const typeMatch = !typeFilter || e.type === typeFilter;
-        return nameMatch && typeMatch;
-      })
-      .slice(0, 10);
-
-    // For each matched entity, get linked entries
-    for (const entity of matches) {
-      const links = await db.collection("entry_entities")
-        .where("user_id", "==", userId)
-        .where("entity_id", "==", entity.id)
-        .limit(10)
-        .get();
-      const entryIds = links.docs.map((d) => d.data().entry_id);
-      const entries: any[] = [];
-      for (const eid of entryIds.slice(0, 5)) {
-        const entryDoc = await entriesRef.doc(eid).get();
-        if (entryDoc.exists) {
-          const data = entryDoc.data() as any;
-          entries.push({id: eid, title: data.title, category: data.category || data.fields?.category, summary: data.summary});
-        }
-      }
-      entity.entries = entries;
-    }
-
-    return {success: true, entities: matches, count: matches.length};
+  const intelligenceResult = await handleIntelligenceTool(toolName, args, userId, db, entriesRef, {
+    executeVoiceTool,
+    fetchWithRetry,
+    GEMINI_API,
+    geminiKey,
+  });
+  if (intelligenceResult) {
+    return intelligenceResult;
   }
 
-  case "getRelatedEntries": {
-    const limit = (args.limit as number) || 5;
-    const relatedIds: Set<string> = new Set();
-
-    if (args.entryId) {
-      const links = await db.collection("entry_links")
-        .where("user_id", "==", userId)
-        .where("source_entry_id", "==", args.entryId)
-        .orderBy("strength", "desc")
-        .limit(limit)
-        .get();
-      links.docs.forEach((d) => relatedIds.add(d.data().target_entry_id));
-
-      // Also check reverse links
-      const reverseLinks = await db.collection("entry_links")
-        .where("user_id", "==", userId)
-        .where("target_entry_id", "==", args.entryId)
-        .orderBy("strength", "desc")
-        .limit(limit)
-        .get();
-      reverseLinks.docs.forEach((d) => relatedIds.add(d.data().source_entry_id));
-    }
-
-    if (args.topic) {
-      const entitySnap = await db.collection("entity_graph")
-        .where("user_id", "==", userId)
-        .limit(50)
-        .get();
-      const topicLower = (args.topic as string).toLowerCase();
-      const matchedEntityIds = entitySnap.docs
-        .filter((d) => {
-          const data = d.data();
-          return data.name.toLowerCase().includes(topicLower) ||
-            (data.aliases || []).some((a: string) => a.toLowerCase().includes(topicLower));
-        })
-        .map((d) => d.id);
-
-      for (const entityId of matchedEntityIds.slice(0, 10)) {
-        const entityEntries = await db.collection("entry_entities")
-          .where("user_id", "==", userId)
-          .where("entity_id", "==", entityId)
-          .limit(limit * 2)
-          .get();
-        entityEntries.docs.forEach((d) => relatedIds.add(d.data().entry_id));
-      }
-    }
-
-    // Fetch full entry data
-    const entries: any[] = [];
-    for (const id of Array.from(relatedIds).slice(0, limit)) {
-      const entryDoc = await entriesRef.doc(id).get();
-      if (entryDoc.exists) {
-        const data = entryDoc.data() as any;
-        entries.push({
-          id,
-          title: data.title,
-          summary: data.summary || null,
-          category: data.category || data.fields?.category,
-          action_items: data.action_items || [],
-          tags: data.tags || [],
-          updated_at: data.updated_at,
-        });
-      }
-    }
-
-    return {success: true, entries, count: entries.length};
-  }
-
-  case "prepareBriefing": {
-    if (!geminiKey) return {success: false, error: "AI not configured"};
-
-    // 1. Gather context from multiple sources
-    const searchResult = await executeVoiceTool("searchEntries", {query: args.subject, limit: 10}, userId);
-    const relatedResult = await executeVoiceTool("getRelatedEntries", {topic: args.subject, limit: 10}, userId);
-    const memoryResult = await executeVoiceTool("recallMemories", {query: args.subject}, userId);
-
-    // 2. Combine and deduplicate entries
-    const allEntries = [...(searchResult.results || []), ...(relatedResult.entries || [])];
-    const seen = new Set<string>();
-    const uniqueEntries = allEntries.filter((e: any) => {
-      if (seen.has(e.id)) return false;
-      seen.add(e.id);
-      return true;
-    });
-    const memories = memoryResult.memories || [];
-
-    // 3. Collect open action items
-    const actionItemsSnap = await db.collection("action_items")
-      .where("user_id", "==", userId)
-      .where("status", "in", ["open", "in_progress"])
-      .orderBy("created_at", "desc")
-      .limit(20)
-      .get();
-    const subjectLower = (args.subject as string).toLowerCase();
-    const relevantActions = actionItemsSnap.docs
-      .map((d) => d.data())
-      .filter((a: any) => (a.text || "").toLowerCase().includes(subjectLower));
-
-    // 4. Synthesize with Gemini
-    const synthesisPrompt = `Synthesize a ${args.type || "general"} briefing about "${args.subject}".
-
-Entries found (${uniqueEntries.length}):
-${uniqueEntries.map((e: any) => `- ${e.title}: ${e.summary || e.content || "(no summary)"}`).join("\n")}
-
-Memories about this:
-${memories.length ? memories.map((m: any) => `- ${m.content}`).join("\n") : "None"}
-
-Open action items:
-${relevantActions.length ? relevantActions.map((a: any) => `- ${a.text} [${a.priority || "medium"}]${a.due_date ? " due: " + a.due_date : ""}`).join("\n") : "None"}
-
-Write a concise briefing (2-4 sentences) suitable for voice. Mention key facts, open tasks, and anything time-sensitive.`;
-
-    const briefingRes = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        contents: [{role: "user", parts: [{text: synthesisPrompt}]}],
-        generationConfig: {maxOutputTokens: 512, temperature: 0.3},
-      }),
-    });
-
-    let briefingText = "I couldn't generate a briefing right now.";
-    if (briefingRes.ok) {
-      const briefingData = await briefingRes.json();
-      briefingText = briefingData.candidates?.[0]?.content?.parts?.[0]?.text || briefingText;
-    }
-
-    return {
-      success: true,
-      briefing: briefingText,
-      entriesUsed: uniqueEntries.length,
-      memoriesUsed: memories.length,
-      openActionItems: relevantActions.length,
-    };
-  }
-
-  case "getActivitySummary": {
-    const timeframeMap: Record<string, number> = {
-      today: 1, yesterday: 2, this_week: 7, last_week: 14, this_month: 30,
-    };
-    const daysBack = timeframeMap[args.timeframe as string] || 7;
-    const since = new Date(Date.now() - daysBack * 86400000);
-
-    const snap = await entriesRef
-      .where("user_id", "==", userId)
-      .where("created_at", ">=", admin.firestore.Timestamp.fromDate(since))
-      .orderBy("created_at", "desc")
-      .limit(30)
-      .get();
-
-    const entries = snap.docs.map((d) => ({id: d.id, ...(d.data() as any)}));
-    const categoryCounts: Record<string, number> = {};
-    const allActionItems: any[] = [];
-
-    entries.forEach((e: any) => {
-      const cat = e.category || e.fields?.category || "Uncategorized";
-      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-      if (e.action_items) allActionItems.push(...e.action_items);
-    });
-
-    return {
-      success: true,
-      totalEntries: entries.length,
-      categoryCounts,
-      recentTitles: entries.slice(0, 7).map((e: any) => e.title),
-      openActionItems: allActionItems.filter((a: any) => a.status !== "completed").length,
-      timeframe: args.timeframe,
-    };
-  }
-
-  case "getUpcomingDeadlines": {
-    const tfMap: Record<string, number> = {
-      today: 1, tomorrow: 2, this_week: 7, next_week: 14,
-    };
-    const daysAhead = tfMap[args.timeframe as string] || 7;
-    const until = new Date(Date.now() + daysAhead * 86400000);
-    const statusFilter = (args.status as string) || "open";
-
-    let q: admin.firestore.Query = db.collection("action_items")
-      .where("user_id", "==", userId);
-
-    if (statusFilter !== "all") {
-      q = q.where("status", "==", statusFilter);
-    }
-
-    const snap = await q.orderBy("created_at", "desc").limit(30).get();
-
-    const items = snap.docs
-      .map((d) => ({id: d.id, ...(d.data() as any)}))
-      .filter((item: any) => {
-        if (!item.due_date) return true; // Include items without due dates
-        const dueDate = item.due_date.toDate ? item.due_date.toDate() : new Date(item.due_date);
-        return dueDate <= until;
-      })
-      .slice(0, 10);
-
-    return {
-      success: true,
-      items: items.map((i: any) => ({
-        id: i.id,
-        text: i.text,
-        priority: i.priority,
-        status: i.status,
-        due_date: i.due_date ? (i.due_date.toDate ? i.due_date.toDate().toISOString() : i.due_date) : null,
-        entry_id: i.entry_id,
-      })),
-      count: items.length,
-      timeframe: args.timeframe,
-    };
-  }
-
-  case "updateActionItem": {
-    const snap = await db.collection("action_items")
-      .where("user_id", "==", userId)
-      .where("status", "in", ["open", "in_progress"])
-      .orderBy("created_at", "desc")
-      .limit(30)
-      .get();
-
-    const query = (args.query as string).toLowerCase();
-    const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
-
-    // Find best match
-    let bestMatch: any = null;
-    let bestScore = 0;
-    for (const d of snap.docs) {
-      const text = (d.data().text || "").toLowerCase();
-      let score = 0;
-      if (text.includes(query)) score = 1.0;
-      else {
-        const matchedWords = queryWords.filter((w) => text.includes(w));
-        score = queryWords.length > 0 ? matchedWords.length / queryWords.length : 0;
-      }
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = {id: d.id, ref: d.ref, ...d.data()};
-      }
-    }
-
-    if (!bestMatch || bestScore < 0.3) {
-      return {success: false, error: "No matching action item found"};
-    }
-
-    const updateData: Record<string, any> = {
-      status: args.status,
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    };
-    if (args.status === "completed") {
-      updateData.completed_at = admin.firestore.FieldValue.serverTimestamp();
-    }
-    await bestMatch.ref.update(updateData);
-
-    return {
-      success: true, id: bestMatch.id, text: bestMatch.text, newStatus: args.status,
-      appCommand: "novaAction",
-      actionType: "update_task",
-      actionData: { text: bestMatch.text, status: args.status },
-    };
-  }
-
-  case "setReminder": {
-    // Parse the "when" field into a timestamp
-    const whenStr = (args.when as string).toLowerCase();
-    let triggerAt = new Date();
-
-    if (whenStr.includes("tomorrow")) {
-      triggerAt.setDate(triggerAt.getDate() + 1);
-      triggerAt.setHours(9, 0, 0, 0); // Default 9am
-    } else if (whenStr.includes("next week") || whenStr.includes("next monday")) {
-      const daysUntilMonday = (8 - triggerAt.getDay()) % 7 || 7;
-      triggerAt.setDate(triggerAt.getDate() + daysUntilMonday);
-      triggerAt.setHours(9, 0, 0, 0);
-    } else if (whenStr.match(/in (\d+) hour/)) {
-      const hours = parseInt(whenStr.match(/in (\d+) hour/)![1]);
-      triggerAt.setTime(triggerAt.getTime() + hours * 3600000);
-    } else if (whenStr.match(/in (\d+) minute/)) {
-      const mins = parseInt(whenStr.match(/in (\d+) minute/)![1]);
-      triggerAt.setTime(triggerAt.getTime() + mins * 60000);
-    } else if (whenStr.match(/in (\d+) day/)) {
-      const days = parseInt(whenStr.match(/in (\d+) day/)![1]);
-      triggerAt.setDate(triggerAt.getDate() + days);
-      triggerAt.setHours(9, 0, 0, 0);
-    } else if (whenStr.includes("friday")) {
-      const daysUntilFri = (5 - triggerAt.getDay() + 7) % 7 || 7;
-      triggerAt.setDate(triggerAt.getDate() + daysUntilFri);
-      triggerAt.setHours(9, 0, 0, 0);
-    } else if (whenStr.includes("monday")) {
-      const daysUntilMon = (1 - triggerAt.getDay() + 7) % 7 || 7;
-      triggerAt.setDate(triggerAt.getDate() + daysUntilMon);
-      triggerAt.setHours(9, 0, 0, 0);
-    } else if (whenStr.includes("wednesday")) {
-      const daysUntilWed = (3 - triggerAt.getDay() + 7) % 7 || 7;
-      triggerAt.setDate(triggerAt.getDate() + daysUntilWed);
-      triggerAt.setHours(9, 0, 0, 0);
-    } else {
-      // Default: tomorrow 9am
-      triggerAt.setDate(triggerAt.getDate() + 1);
-      triggerAt.setHours(9, 0, 0, 0);
-    }
-
-    // Parse time if specified (e.g., "at 3pm", "at 9am")
-    const timeMatch = whenStr.match(/at (\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-    if (timeMatch) {
-      let hours = parseInt(timeMatch[1]);
-      const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
-      if (timeMatch[3]?.toLowerCase() === "pm" && hours < 12) hours += 12;
-      if (timeMatch[3]?.toLowerCase() === "am" && hours === 12) hours = 0;
-      triggerAt.setHours(hours, minutes, 0, 0);
-    }
-
-    const reminderDoc = await db.collection("reminders").add({
-      user_id: userId,
-      text: args.text,
-      trigger_at: admin.firestore.Timestamp.fromDate(triggerAt),
-      entry_id: args.entryId || null,
-      action_item_id: null,
-      status: "pending",
-      created_at: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    return {
-      success: true, reminderId: reminderDoc.id, triggerAt: triggerAt.toISOString(), text: args.text,
-      appCommand: "novaAction",
-      actionType: "set_reminder",
-      actionData: { text: args.text, when: triggerAt.toISOString() },
-    };
-  }
-
-  default:
-    return {success: false, error: `Unknown tool: ${toolName}`};
-  }
+  return fail(`Unknown tool: ${toolName}`);
 }
 
 // ── Voice Agent Function ──────────────────────────────────────────────────────
+/**
+ * Canonical Nova backend execution endpoint.
+ *
+ * Ownership boundary:
+ * - accepts transcript/audio + session context
+ * - executes tool calls
+ * - returns conversational response, tool execution results, and optional canonical appCommand payloads
+ *
+ * Frontend contract:
+ * - `actionsExecuted[*].result.success` is required
+ * - `actionsExecuted[*].result.appCommand` is the only supported UI trigger channel
+ * - `appCommands` is derived from tool results and consumed by useVoiceAgent
+ */
 export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB", minInstances: 1 }).https.onRequest(
   withCors(async (req, res) => {
     const user = await verifyAuth(req);
@@ -2327,17 +1768,24 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         typeof debugToolOverride.tool === "string" &&
         ALLOWED_DIRECT_TOOLS.has(debugToolOverride.tool)
       ) {
+        const directStartedAt = Date.now();
         const directResult = await executeVoiceTool(
           debugToolOverride.tool,
           debugToolOverride.args || {},
           user.uid
         );
+        console.log("[VoiceAgent] Direct tool completed", {
+          tool: debugToolOverride.tool,
+          success: directResult?.success,
+          latencyMs: Date.now() - directStartedAt,
+          args: summarizeToolArgs(debugToolOverride.args || {}),
+        });
         actionsExecuted.push({
           tool: debugToolOverride.tool,
           args: debugToolOverride.args || {},
           result: directResult,
         });
-        responseText = directResult?.briefing || directResult?.message || `Completed ${debugToolOverride.tool}.`;
+        responseText = directResult?.data?.briefing || directResult?.data?.message || directResult?.message || `Completed ${debugToolOverride.tool}.`;
 
         const cleanHistory = [
           ...cappedHistory,
@@ -2389,7 +1837,7 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
           audioMimeType: null,
           actionsExecuted,
           conversationHistory: cleanHistory,
-          appCommands: actionsExecuted.filter((a) => a.result?.appCommand).map((a) => a.result),
+          appCommands: actionsExecuted.map((a) => a.result).filter((result) => result?.success && result?.appCommand),
           sessionId: currentSessionId,
         });
         return;
@@ -2458,11 +1906,19 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
             const {name, args} = part.functionCall;
             console.log(`[VoiceAgent] Tool: ${name}`, args);
             let result: Record<string, any>;
+            const toolStartedAt = Date.now();
             try {
               result = await executeVoiceTool(name, args, user.uid);
+              console.log("[VoiceAgent] Tool completed", {
+                tool: name,
+                success: result?.success,
+                appCommand: result?.appCommand || null,
+                latencyMs: Date.now() - toolStartedAt,
+                args: summarizeToolArgs(args || {}),
+              });
             } catch (toolErr: any) {
               console.error(`[VoiceAgent] Tool ${name} failed:`, toolErr?.message || toolErr);
-              result = {success: false, error: `Tool ${name} failed: ${toolErr?.message || "unknown error"}`};
+              result = fail(`Tool ${name} failed: ${toolErr?.message || "unknown error"}`);
             }
             actionsExecuted.push({tool: name, args, result});
             functionResponses.push({
@@ -2528,10 +1984,10 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         }
       }
 
-      // Separate app commands from vault actions
+      // Separate canonical app commands from broader tool results.
       const appCommands = actionsExecuted
-        .filter((a) => a.result?.appCommand)
-        .map((a) => a.result);
+        .map((a) => a.result)
+        .filter((result) => result?.success && result?.appCommand);
 
       // Replace audio parts in history with text placeholder (audio can't be stored in history)
       const cleanHistory = contents.map((turn: any) => ({

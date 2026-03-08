@@ -31,7 +31,20 @@ export interface NovaActionPayload {
   actionData: Record<string, any>;
 }
 
+/**
+ * Canonical frontend command contract emitted by backend voiceAgent tool execution.
+ *
+ * Architecture boundary:
+ *   backend tool result -> optional appCommand payload -> frontend callback/event execution
+ *
+ * Rules:
+ * - `success` must always be present.
+ * - `appCommand` identifies the single UI action to perform.
+ * - command-specific fields must be self-contained; frontend should not infer from tool names.
+ * - live-action animations flow separately via `novaAction`.
+ */
 export interface AppCommand {
+  success: boolean;
   appCommand: "navigate" | "openEntryForm" | "openEntry" | "goBack" | "scrollPage" | "startBrainDump" | "processBrainDump" | "saveBrainDump" | "updateTheme" | "settingsUpdated" | "exportData" | "novaAction" | "printEntry";
   route?: string;
   category?: string | null;
@@ -46,6 +59,7 @@ export interface AppCommand {
   direction?: string;
   actionType?: string;
   actionData?: Record<string, any>;
+  error?: string;
 }
 
 export interface UseVoiceAgentOptions {
@@ -181,7 +195,8 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   useEffect(() => { onNovaActionRef.current = onNovaAction; }, [onNovaAction]);
   useEffect(() => { continuousRef.current = continuous; }, [continuous]);
 
-  // ── Execute app commands via React Router callbacks ──────────────────────
+  // ── Execute canonical backend app commands via React Router callbacks ────
+  // This is the single supported frontend command executor for Nova.
   useEffect(() => {
     if (!pendingCommands.length) return;
     console.log("[useVoiceAgent] Executing app commands:", pendingCommands);

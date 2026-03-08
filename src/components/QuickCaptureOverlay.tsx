@@ -167,6 +167,10 @@ export const QuickCaptureOverlay: React.FC = () => {
       setSavedCategory(data.category || "Personal");
       setSaveState("saved");
 
+      window.dispatchEvent(new CustomEvent('nova:entries-changed', {
+        detail: { actionType: 'save_entry', id: data.id }
+      }));
+
       // Auto-close after showing confirmation
       setTimeout(() => setOpen(false), 1500);
 

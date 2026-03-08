@@ -1,3 +1,10 @@
+/**
+ * @deprecated Legacy standalone voice control modal.
+ *
+ * Not part of the canonical Nova architecture.
+ * Keep only for temporary diagnostics/backward compatibility.
+ * Do not wire this into primary user flows; prefer NovaFloat/NovaVoiceAgent.
+ */
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";

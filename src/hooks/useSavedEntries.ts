@@ -183,7 +183,8 @@ export const useSavedEntries = () => {
     }
   }, [user, authLoading, fetchEntries]);
 
-  // Refresh when Nova modifies entries (voice agent backend saves)
+  // Refresh when Nova or quick-capture modifies entries.
+  // `saveEntry`/`deleteEntry` update local state optimistically; backend-originated changes use this event.
   useEffect(() => {
     const handler = () => { fetchEntries(); };
     window.addEventListener("nova:entries-changed", handler);

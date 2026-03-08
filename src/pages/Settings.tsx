@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
@@ -25,6 +25,7 @@ import { doc, getDoc } from "firebase/firestore";
 
 const Settings = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("profile");
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -53,6 +54,37 @@ const Settings = () => {
     if (entries) {
       setSavedEntries(JSON.parse(entries));
     }
+  }, []);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (requestedTab) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const handleSettingsUpdated = (e: Event) => {
+      const event = e as CustomEvent<{ setting?: string }>;
+      const setting = event.detail?.setting;
+
+      if (setting === 'profile') setActiveTab('profile');
+      else if (setting === 'voice') setActiveTab('voice');
+      else if (setting && setting.includes('notification')) setActiveTab('notifications');
+      else setActiveTab((prev) => prev || 'profile');
+    };
+
+    const handleNovaExport = () => {
+      setActiveTab('data-management');
+    };
+
+    window.addEventListener('nova:settings-updated', handleSettingsUpdated as EventListener);
+    window.addEventListener('nova:export-data', handleNovaExport);
+
+    return () => {
+      window.removeEventListener('nova:settings-updated', handleSettingsUpdated as EventListener);
+      window.removeEventListener('nova:export-data', handleNovaExport);
+    };
   }, []);
 
   return (

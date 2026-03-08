@@ -1,3 +1,9 @@
+/**
+ * @deprecated Legacy dashboard voice listener.
+ *
+ * Not part of canonical Nova flow. Do not extend.
+ * Prefer NovaFloat/useVoiceAgent/backend voiceAgent path for all new assistant behavior.
+ */
 import React, { useEffect, useCallback } from 'react';
 import { useVoiceCommand } from '@/contexts/VoiceCommandContext';
 import { VoiceCommand } from '@/utils/voiceCommandProcessor';

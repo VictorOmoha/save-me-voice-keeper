@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -7,9 +6,15 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DataEntryForm } from '@/components/DataEntryForm';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
-import { DocumentCreator } from '@/components/DocumentCreator';
-import { EnhancedDocumentViewer } from '@/components/documents/EnhancedDocumentViewer';
-import { DocumentEditor } from '@/components/documents/DocumentEditor';
+const DocumentCreator = lazy(() =>
+  import('@/components/DocumentCreator').then((module) => ({ default: module.DocumentCreator }))
+);
+const EnhancedDocumentViewer = lazy(() =>
+  import('@/components/documents/EnhancedDocumentViewer').then((module) => ({ default: module.EnhancedDocumentViewer }))
+);
+const DocumentEditor = lazy(() =>
+  import('@/components/documents/DocumentEditor').then((module) => ({ default: module.DocumentEditor }))
+);
 import { VoiceErrorBoundary } from '@/components/voice/ErrorBoundary';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,7 +53,6 @@ export default function Dashboard() {
     onConfirm: () => {}
   });
 
-  // Use the comprehensive dashboard hook that includes voice handling
   const {
     savedEntries,
     isLoading: entriesLoading,
@@ -56,9 +60,13 @@ export default function Dashboard() {
     searchQuery,
     setSearchQuery,
     showAddEntry,
+    setShowAddEntry,
     editingEntry,
+    setEditingEntry,
     fillingEntry,
+    setFillingEntry,
     templateEntry,
+    setTemplateEntry,
     saveEntry,
     deleteEntry,
     editEntry,
@@ -71,29 +79,23 @@ export default function Dashboard() {
     refreshEntries,
   } = useDashboard();
 
-  // Check auth state and redirect if needed
   useEffect(() => {
-    // Wait for auth to finish loading
     if (authLoading) return;
 
-    // If not authenticated, redirect to login
     if (!isAuthenticated || !user) {
       navigate('/login');
       return;
     }
 
-    // Check onboarding in background (non-blocking)
     const checkOnboarding = async () => {
       try {
         const prefsRef = doc(db, 'user_preferences', user.uid);
         const prefsSnap = await getDoc(prefsRef);
 
-        // Only redirect to onboarding if preferences doc doesn't exist at all
         if (!prefsSnap.exists()) {
           navigate('/onboarding');
         }
       } catch (error) {
-        // If error, just continue - don't block dashboard
         console.log('Could not fetch preferences:', error);
       }
     };
@@ -101,14 +103,23 @@ export default function Dashboard() {
     checkOnboarding();
   }, [authLoading, isAuthenticated, user, navigate]);
 
-  // Open entry form when Nova navigates with ?action=create
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
       handleAddEntry();
     }
-  }, [searchParams]);
+  }, [searchParams, handleAddEntry]);
 
-  // Listen for voice command to close entry forms
+  useEffect(() => {
+    const requestedCategory = searchParams.get('category');
+    if (!requestedCategory) return;
+
+    setSelectedCategory(requestedCategory);
+    setTemplateEntry(null);
+    setFillingEntry(null);
+    setEditingEntry(null);
+    setShowAddEntry(true);
+  }, [searchParams, setTemplateEntry, setFillingEntry, setEditingEntry, setShowAddEntry]);
+
   useEffect(() => {
     const handleCloseFormCommand = () => {
       if (showAddEntry || editingEntry || fillingEntry || templateEntry || showDocumentCreator) {
@@ -145,6 +156,7 @@ export default function Dashboard() {
   const handleAllEntriesSelect = () => {
     navigate('/all-entries');
   };
+
   const handleViewAllEntries = () => {
     navigate('/all-entries');
   };
@@ -189,9 +201,14 @@ export default function Dashboard() {
     setDocumentViewerState({ isOpen: false, entry: null });
   };
 
+  const handleOpenRelatedEntry = (entry: SavedEntry) => {
+    setDocumentViewerState({ isOpen: false, entry: null });
+    navigate(`/all-entries/${entry.id}`);
+  };
+
   const handleEditDocument = (entry: SavedEntry) => {
     console.log('📝 Dashboard: Edit document triggered for:', entry.title);
-    setDocumentViewerState({ isOpen: false, entry: null }); // Close viewer
+    setDocumentViewerState({ isOpen: false, entry: null });
     setDocumentEditorState({ isOpen: true, entry });
   };
 
@@ -205,7 +222,6 @@ export default function Dashboard() {
     setDocumentEditorState({ isOpen: false, entry: null });
   };
 
-  // Get user display name (Firebase uses displayName, not user_metadata)
   const userName = user?.displayName || user?.email || 'User';
 
   if (authLoading) {
@@ -229,84 +245,85 @@ export default function Dashboard() {
         onFillEntry={fillEntry}
         onUseAsTemplate={useAsTemplate}
       >
-      {(showAddEntry || editingEntry || fillingEntry || templateEntry || showDocumentCreator) ? (
-        <>
-          {showDocumentCreator ? (
-            // Show DocumentCreator when creating documents
-            <div className="p-6">
-              <DocumentCreator
-                onSave={handleDocumentSave}
-                onCancel={handleDocumentCancel}
+        {(showAddEntry || editingEntry || fillingEntry || templateEntry || showDocumentCreator) ? (
+          <>
+            {showDocumentCreator ? (
+              <div className="p-6">
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading document tools…</div>}>
+                  <DocumentCreator
+                    onSave={handleDocumentSave}
+                    onCancel={handleDocumentCancel}
+                  />
+                </Suspense>
+              </div>
+            ) : (
+              <DataEntryForm
+                mode={getFormMode()}
+                editEntry={editingEntry || fillingEntry}
+                templateEntry={templateEntry}
+                onSave={saveEntry}
+                onCancel={handleCancelEdit}
+                isVoiceActive={false}
+                isSaving={isSaving}
               />
-            </div>
-          ) : (
-            // Use standard DataEntryForm for all entries
-            <DataEntryForm
-              mode={getFormMode()}
-              editEntry={editingEntry || fillingEntry}
-              templateEntry={templateEntry}
-              onSave={saveEntry}
-              onCancel={handleCancelEdit}
-              isVoiceActive={false}
-              isSaving={isSaving}
-            />
-          )}
-        </>
-      ) : (
-        <DashboardMainContent
-          userName={userName}
-          savedEntries={savedEntries}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          showDocumentCreator={showDocumentCreator}
-          showAddEntry={showAddEntry}
-          editingEntry={editingEntry}
-          fillingEntry={fillingEntry}
-          getFormTitle={getFormTitle}
-          getFormMode={getFormMode}
-          onDocumentSave={handleDocumentSave}
-          onDocumentCancel={handleDocumentCancel}
-          onSaveEntry={saveEntry}
-          onCancelEdit={handleCancelEdit}
-          onCategorySelect={handleCategorySelect}
-          onAddEntry={handleAddEntry}
-          onCreateDocument={handleCreateDocument}
-          onEditEntry={editEntry}
-          onFillEntry={fillEntry}
-          onUseAsTemplate={useAsTemplate}
-          onDeleteEntry={deleteEntry}
-          onViewDocument={handleViewDocument}
-          onViewAllEntries={handleViewAllEntries}
-          isSaving={isSaving}
+            )}
+          </>
+        ) : (
+          <DashboardMainContent
+            userName={userName}
+            savedEntries={savedEntries}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            showDocumentCreator={showDocumentCreator}
+            showAddEntry={showAddEntry}
+            editingEntry={editingEntry}
+            fillingEntry={fillingEntry}
+            getFormTitle={getFormTitle}
+            getFormMode={getFormMode}
+            onDocumentSave={handleDocumentSave}
+            onDocumentCancel={handleDocumentCancel}
+            onSaveEntry={saveEntry}
+            onCancelEdit={handleCancelEdit}
+            onCategorySelect={handleCategorySelect}
+            onAddEntry={handleAddEntry}
+            onCreateDocument={handleCreateDocument}
+            onEditEntry={editEntry}
+            onFillEntry={fillEntry}
+            onUseAsTemplate={useAsTemplate}
+            onDeleteEntry={deleteEntry}
+            onViewDocument={handleViewDocument}
+            onViewAllEntries={handleViewAllEntries}
+            isSaving={isSaving}
+          />
+        )}
+
+        <Suspense fallback={null}>
+          <EnhancedDocumentViewer
+            isOpen={documentViewerState.isOpen}
+            onClose={handleCloseDocumentViewer}
+            entry={documentViewerState.entry}
+            onEdit={handleEditDocument}
+            allEntries={savedEntries}
+            onOpenRelatedEntry={handleOpenRelatedEntry}
+          />
+
+          <DocumentEditor
+            isOpen={documentEditorState.isOpen}
+            onClose={handleCloseDocumentEditor}
+            entry={documentEditorState.entry}
+            onSave={handleDocumentSaved}
+          />
+        </Suspense>
+
+        <DeleteConfirmDialog
+          isOpen={deleteDialog.isOpen}
+          onClose={() => setDeleteDialog(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={() => {
+            deleteDialog.onConfirm();
+            setDeleteDialog(prev => ({ ...prev, isOpen: false }));
+          }}
+          title={deleteDialog.entry?.title || ''}
         />
-      )}
-
-      {/* Enhanced Document Viewer */}
-      <EnhancedDocumentViewer
-        isOpen={documentViewerState.isOpen}
-        onClose={handleCloseDocumentViewer}
-        entry={documentViewerState.entry}
-        onEdit={handleEditDocument}
-      />
-
-      {/* Document Editor */}
-      <DocumentEditor
-        isOpen={documentEditorState.isOpen}
-        onClose={handleCloseDocumentEditor}
-        entry={documentEditorState.entry}
-        onSave={handleDocumentSaved}
-      />
-
-
-      <DeleteConfirmDialog
-        isOpen={deleteDialog.isOpen}
-        onClose={() => setDeleteDialog(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={() => {
-          deleteDialog.onConfirm();
-          setDeleteDialog(prev => ({ ...prev, isOpen: false }));
-        }}
-        title={deleteDialog.entry?.title || ''}
-      />
       </DashboardLayout>
     </VoiceErrorBoundary>
   );

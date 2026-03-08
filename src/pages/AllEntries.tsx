@@ -126,6 +126,11 @@ export default function AllEntries() {
     setDocumentEditorState({ isOpen: false, entry: null });
   };
 
+  const handleOpenRelatedEntry = (entry: SavedEntry) => {
+    setSelectedEntryDialog({ isOpen: true, entry });
+    navigate(`/all-entries/${entry.id}`);
+  };
+
   // Handle URL parameter for showing specific entry
   useEffect(() => {
     if (entryId && entries.length > 0 && !isLoading) {
@@ -152,9 +157,18 @@ export default function AllEntries() {
         setDocumentEditorState({ isOpen: false, entry: null });
       }
     };
+
+    const handleEntriesChanged = () => {
+      refreshEntries();
+    };
+
     window.addEventListener('nova:close', handleNovaClose);
-    return () => window.removeEventListener('nova:close', handleNovaClose);
-  }, [showAddEntry, selectedEntryDialog.isOpen, documentViewerState.isOpen, documentEditorState.isOpen, handleCancelEdit]);
+    window.addEventListener('nova:entries-changed', handleEntriesChanged);
+    return () => {
+      window.removeEventListener('nova:close', handleNovaClose);
+      window.removeEventListener('nova:entries-changed', handleEntriesChanged);
+    };
+  }, [showAddEntry, selectedEntryDialog.isOpen, documentViewerState.isOpen, documentEditorState.isOpen, handleCancelEdit, refreshEntries]);
 
 
   if (isLoading) {
@@ -256,6 +270,8 @@ export default function AllEntries() {
         onClose={handleCloseDocumentViewer}
         entry={documentViewerState.entry}
         onEdit={handleEditFromViewer}
+        allEntries={entries}
+        onOpenRelatedEntry={handleOpenRelatedEntry}
       />
 
       <DocumentEditor
@@ -289,6 +305,8 @@ export default function AllEntries() {
           navigate('/all-entries');
         }}
         onViewDocument={handleViewDocument}
+        allEntries={entries}
+        onOpenRelatedEntry={handleOpenRelatedEntry}
       />
     </DashboardLayout>
   );

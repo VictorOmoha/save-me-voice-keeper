@@ -84,6 +84,15 @@ export default function CategoryPage() {
     }
   }, [user, authLoading, loadEntries]);
 
+  useEffect(() => {
+    const handleEntriesChanged = () => {
+      loadEntries();
+    };
+
+    window.addEventListener('nova:entries-changed', handleEntriesChanged);
+    return () => window.removeEventListener('nova:entries-changed', handleEntriesChanged);
+  }, [loadEntries]);
+
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!user) {
       toast.error("You must be logged in to save entries");

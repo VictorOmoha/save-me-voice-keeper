@@ -28,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getCategoryConfig } from "@/utils/categoryConfig";
 import { formatFieldValue, formatFieldName, metadataFields } from "@/utils/fieldFormatters";
+import { getEntryIntelligenceSignals } from "@/utils/entryIntelligence";
 
 interface EnhancedEntryCardProps {
   entry: SavedEntry;
@@ -88,6 +89,13 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
   const remainingCount = sortedFields.length - maxPreviewFields;
 
   const hasFile = entry.fields.hasUploadedFile && entry.fields.fileName;
+  const intelligence = getEntryIntelligenceSignals(entry);
+  const summary = intelligence.summary;
+  const tags = intelligence.tags.slice(0, 3);
+  const linkedCount = intelligence.linkedCount;
+  const actionItemCount = intelligence.actionItemCount;
+  const reminderLikeCount = intelligence.reminderLikeCount;
+  const isEnriched = intelligence.isEnriched;
 
   const createdDate = new Date(entry.createdAt).toLocaleDateString("en-US", {
     month: "short",
@@ -140,10 +148,30 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
           <div className="flex items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold text-lg">{entry.title}</h3>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant="secondary" className={cn("text-xs", config.color, config.bgColor)}>
                   {category}
                 </Badge>
+                {isEnriched && (
+                  <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+                    Smart
+                  </Badge>
+                )}
+                {actionItemCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {actionItemCount} action{actionItemCount > 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {linkedCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {linkedCount} linked
+                  </Badge>
+                )}
+                {reminderLikeCount > 0 && (
+                  <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">
+                    Deadline
+                  </Badge>
+                )}
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   {createdDate}
@@ -217,6 +245,22 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
             })}
           </div>
 
+          {summary && (
+            <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+              {summary}
+            </p>
+          )}
+
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+
           {remainingCount > 0 && (
             <p className="text-xs text-muted-foreground mt-2">
               +{remainingCount} more field{remainingCount > 1 ? "s" : ""}
@@ -253,13 +297,28 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
               <h3 className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors">
                 {entry.title}
               </h3>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <Badge
                   variant="secondary"
                   className={cn("text-xs px-2 py-0", config.color, "bg-background")}
                 >
                   {category}
                 </Badge>
+                {isEnriched && (
+                  <Badge variant="outline" className="text-xs px-2 py-0 border-primary/30 text-primary bg-background">
+                    Smart
+                  </Badge>
+                )}
+                {actionItemCount > 0 && (
+                  <Badge variant="outline" className="text-xs px-2 py-0 bg-background">
+                    {actionItemCount} action{actionItemCount > 1 ? 's' : ''}
+                  </Badge>
+                )}
+                {reminderLikeCount > 0 && (
+                  <Badge variant="outline" className="text-xs px-2 py-0 bg-background border-amber-300 text-amber-700">
+                    Deadline
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -345,6 +404,22 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
             );
           })}
         </div>
+
+        {summary && (
+          <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+            {summary}
+          </p>
+        )}
+
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
 
         {remainingCount > 0 && (
           <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">

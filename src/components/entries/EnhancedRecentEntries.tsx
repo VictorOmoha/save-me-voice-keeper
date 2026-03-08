@@ -245,6 +245,8 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
         onFill={onFill}
         onUseAsTemplate={onUseAsTemplate}
         onViewDocument={onView}
+        allEntries={entries}
+        onOpenRelatedEntry={(entry) => setViewingEntry(entry)}
       />
     </>
   );

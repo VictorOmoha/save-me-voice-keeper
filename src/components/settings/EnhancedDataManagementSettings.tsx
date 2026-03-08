@@ -28,6 +28,21 @@ export const EnhancedDataManagementSettings = () => {
     }
   }, [user, loadStorageStats]);
 
+  useEffect(() => {
+    const handleNovaExport = (e: Event) => {
+      const event = e as CustomEvent<{ format?: string }>;
+      const format = (event.detail?.format || 'json').toLowerCase();
+      if (format === 'json') {
+        handleExportAllData();
+      } else {
+        handleExportAllData();
+      }
+    };
+
+    window.addEventListener('nova:export-data', handleNovaExport as EventListener);
+    return () => window.removeEventListener('nova:export-data', handleNovaExport as EventListener);
+  }, [user]);
+
   const loadStorageStats = useCallback(async () => {
     if (!user) return;
 

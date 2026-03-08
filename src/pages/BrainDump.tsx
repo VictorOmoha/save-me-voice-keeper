@@ -406,7 +406,7 @@ const [showShortcuts, setShowShortcuts] = useState(false);
       console.debug("Stop failed before dashboard navigation:", error);
     }
     speak('Opening dashboard');
-    window.dispatchEvent(new CustomEvent('voice-navigate', { detail: { destination: 'dashboard' } }));
+    navigate('/dashboard');
   };
 
   useEffect(() => {

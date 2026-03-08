@@ -19,7 +19,6 @@ import { PwaInstallBanner } from "./components/PwaInstallBanner";
 import { QuickCaptureOverlay } from "./components/QuickCaptureOverlay";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 
-// Lazy-loaded pages — each becomes its own chunk
 const Index = React.lazy(() => import("./pages/Index"));
 const Login = React.lazy(() => import("./pages/Login"));
 const Signup = React.lazy(() => import("./pages/Signup"));
@@ -35,6 +34,7 @@ const TermsOfService = React.lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
 const BrainDump = React.lazy(() => import("./pages/BrainDump"));
 const Insights = React.lazy(() => import("./pages/Insights"));
+const NovaBriefing = React.lazy(() => import("./pages/NovaBriefing"));
 const Onboarding = React.lazy(() => import("./pages/Onboarding"));
 
 const queryClient = new QueryClient();
@@ -50,7 +50,6 @@ const PageLoader = () => (
   </div>
 );
 
-// Global hooks — mounted once inside the Router + Auth context
 const GlobalProviders: React.FC = () => {
   useExtensionBridge();
   useGlobalShortcuts();
@@ -71,10 +70,7 @@ const App = () => (
               <VoiceFormProvider>
                 <KeyboardShortcutsProvider>
                   <HashRouter>
-                    {/* Global hooks — need Router + Auth context */}
                     <GlobalProviders />
-
-                    {/* Global UI layers */}
                     <VoiceNavigationListener />
                     <NovaFloat />
                     <QuickCaptureOverlay />
@@ -92,6 +88,7 @@ const App = () => (
                         <Route path="/all-entries/:entryId" element={<AllEntries />} />
                         <Route path="/category/:categoryName" element={<CategoryPage />} />
                         <Route path="/insights" element={<Insights />} />
+                        <Route path="/briefing" element={<NovaBriefing />} />
                         <Route path="/subscription" element={<Subscription />} />
                         <Route path="/settings" element={<Settings />} />
                         <Route path="/user-guide" element={<UserGuide />} />

@@ -13,6 +13,7 @@ import mammoth from 'mammoth';
 import { RichTextEditor } from '@/components/documents/RichTextEditor';
 import { printBlobDocument, printDocumentHtml } from '@/utils/printUtils';
 import DOMPurify from 'dompurify';
+import { EntryIntelligencePanel } from '@/components/entries/EntryIntelligencePanel';
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -22,6 +23,8 @@ interface EnhancedDocumentViewerProps {
   onClose: () => void;
   entry: SavedEntry | null;
   onEdit?: (entry: SavedEntry) => void;
+  allEntries?: SavedEntry[];
+  onOpenRelatedEntry?: (entry: SavedEntry) => void;
 }
 
 interface DocumentState {
@@ -38,7 +41,9 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   isOpen,
   onClose,
   entry,
-  onEdit
+  onEdit,
+  allEntries = [],
+  onOpenRelatedEntry,
 }) => {
   const { user } = useAuth();
   // Removed early return to maintain consistent hooks usage
@@ -135,6 +140,15 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       loadDocument();
     }
   }, [isOpen, entry, isDocumentEntry, loadDocument]);
+
+  useEffect(() => {
+    const handleNovaClose = () => {
+      if (isOpen) onClose();
+    };
+
+    window.addEventListener('nova:close', handleNovaClose);
+    return () => window.removeEventListener('nova:close', handleNovaClose);
+  }, [isOpen, onClose]);
 
   const loadWordDocument = async (blob: Blob) => {
     try {
@@ -405,6 +419,14 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
       </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col space-y-4">
+          {!documentState.isFullscreen && entry && (
+            <EntryIntelligencePanel
+              entry={entry}
+              allEntries={allEntries}
+              onOpenEntry={onOpenRelatedEntry}
+            />
+          )}
+
           {/* Document Information */}
           {!documentState.isFullscreen && (
             <div className="flex-shrink-0 bg-muted/50 p-4 rounded-lg">

@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +58,17 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   const { registerFormSetters, unregisterFormSetters } = useVoiceFormContext();
 
+  // Keep latest setters/functions in refs so registration effect can run once.
+  const titleSetterRef = useRef(setTitle);
+  const categorySetterRef = useRef(setSelectedCategory);
+  const addFieldRef = useRef(addField);
+
+  useEffect(() => {
+    titleSetterRef.current = setTitle;
+    categorySetterRef.current = setSelectedCategory;
+    addFieldRef.current = addField;
+  }, [setTitle, setSelectedCategory, addField]);
+
   // Handle voice conversation state changes for animations
   useEffect(() => {
     if (voiceConversationState?.currentStep) {
@@ -73,17 +84,24 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     }
   }, [voiceConversationState?.currentStep]);
 
-  // Register form setters for voice input when component mounts  
+  // Register form setters once on mount; wrappers read latest refs.
   useEffect(() => {
-    console.log('🔧 DataEntryForm: useEffect triggered');
-    console.log('🔧 DataEntryForm: registerFormSetters available:', !!registerFormSetters);
-    
+    console.log('🔧 DataEntryForm: voice registration effect mounted');
+
     if (registerFormSetters && unregisterFormSetters) {
-      console.log('✅ DataEntryForm: Registering voice form setters');
-      
-      // Use a small delay to ensure component is fully mounted
       const timer = setTimeout(() => {
-        // Create enhanced addField function that can handle voice parameters
+        const voiceSetTitle = (value: string) => {
+          titleSetterRef.current(value);
+          setLastVoiceUpdate(`Title updated: ${value}`);
+          setHighlightedField('title');
+        };
+
+        const voiceSetCategory = (value: string) => {
+          categorySetterRef.current(value);
+          setLastVoiceUpdate(`Category set: ${value}`);
+          setHighlightedField('category');
+        };
+
         const voiceAddField = (fieldName?: string, fieldType?: string) => {
           setLastVoiceUpdate(`Adding field: ${fieldName || 'Custom Field'}`);
           setHighlightedField('field_name');
@@ -91,23 +109,23 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           const initial: { name?: string; type?: string } = {};
           if (fieldName) initial.name = fieldName;
           if (fieldType) initial.type = fieldType;
-          const newId = addField(initial);
+          const newId = addFieldRef.current(initial);
           console.debug('🎤 DataEntryForm.voiceAddField -> added field', { newId, fieldName, fieldType });
         };
-        
-        registerFormSetters(setTitle, setSelectedCategory, voiceAddField);
-        console.log('🎯 DataEntryForm: Form setters registered with delay including addField');
+
+        registerFormSetters(voiceSetTitle, voiceSetCategory, voiceAddField);
+        console.log('🎯 DataEntryForm: Form setters registered');
       }, 100);
-      
+
       return () => {
         clearTimeout(timer);
         console.log('🧹 DataEntryForm: Unregistering voice form setters');
         unregisterFormSetters();
       };
-    } else {
-      console.log('❌ DataEntryForm: Voice form context not available');
     }
-  }, [addField, registerFormSetters, setSelectedCategory, setTitle, unregisterFormSetters]);
+
+    console.log('❌ DataEntryForm: Voice form context not available');
+  }, [registerFormSetters, unregisterFormSetters]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

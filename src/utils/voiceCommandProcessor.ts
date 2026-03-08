@@ -1,3 +1,10 @@
+/**
+ * @deprecated Legacy/local voice command processor.
+ *
+ * This file belongs to the pre-Nova command pipeline and is not the canonical agent path.
+ * Keep only for temporary backward compatibility while legacy listeners are removed.
+ * Do not route new assistant capabilities through this processor.
+ */
 import { MultiIntentParser, ParsedIntent } from './nlp/multiIntentParser';
 import { CommandSequencer, SequencedCommand } from './nlp/commandSequencer';
 

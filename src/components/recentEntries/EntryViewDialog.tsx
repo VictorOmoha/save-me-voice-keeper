@@ -19,6 +19,7 @@ import { TableFieldViewer } from "@/components/forms/table/TableFieldViewer";
 import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCardViewer";
 import { TableData } from "@/components/forms/types";
 import { logVoice, logError } from "@/utils/logger";
+import { EntryIntelligencePanel } from "@/components/entries/EntryIntelligencePanel";
 
 interface EntryViewDialogProps {
   entry: SavedEntry | null;
@@ -28,6 +29,8 @@ interface EntryViewDialogProps {
   onFill?: (entry: SavedEntry) => void;
   onUseAsTemplate?: (entry: SavedEntry) => void;
   onViewDocument?: (entry: SavedEntry) => void;
+  allEntries?: SavedEntry[];
+  onOpenRelatedEntry?: (entry: SavedEntry) => void;
 }
 
 export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
@@ -38,22 +41,24 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   onFill,
   onUseAsTemplate,
   onViewDocument,
+  allEntries = [],
+  onOpenRelatedEntry,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Listen for voice command to close entry
+  // Listen for canonical Nova close event
   useEffect(() => {
     const handleCloseCommand = () => {
       if (isOpen) {
-        logVoice('Voice command: Closing entry dialog');
+        logVoice('Nova close: Closing entry dialog');
         onClose();
       }
     };
 
-    window.addEventListener('close-entry-dialog', handleCloseCommand);
-    
+    window.addEventListener('nova:close', handleCloseCommand);
+
     return () => {
-      window.removeEventListener('close-entry-dialog', handleCloseCommand);
+      window.removeEventListener('nova:close', handleCloseCommand);
     };
   }, [isOpen, onClose]);
 
@@ -172,6 +177,12 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
               <ImageGallery images={entryImages} readOnly={true} />
             </div>
           )}
+
+          <EntryIntelligencePanel
+            entry={entry}
+            allEntries={allEntries}
+            onOpenEntry={onOpenRelatedEntry}
+          />
 
           {/* Entry Fields */}
           <div className="space-y-4">

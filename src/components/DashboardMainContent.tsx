@@ -7,6 +7,7 @@ import { DataEntryForm } from "@/components/DataEntryForm";
 import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { SavedEntry } from "@/types/dashboard";
+import { DashboardIntelligencePanel } from "@/components/dashboard/DashboardIntelligencePanel";
 
 interface DashboardMainContentProps {
   userName?: string;
@@ -177,6 +178,9 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         entries={savedEntries}
         userTier={userTier}
       />
+
+      {/* Intelligence Layer */}
+      <DashboardIntelligencePanel entries={savedEntries} />
 
       {/* View All Entries */}
       {savedEntries.length > 0 && (

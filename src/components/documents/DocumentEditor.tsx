@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,8 +9,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ref, uploadBytes, getBlob } from 'firebase/storage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
-import { RichTextEditor } from './RichTextEditor';
-import { printDocumentHtml } from '@/utils/printUtils';
+const RichTextEditor = lazy(() =>
+  import('./RichTextEditor').then((module) => ({ default: module.RichTextEditor }))
+);
 
 interface DocumentEditorProps {
   isOpen: boolean;
@@ -118,6 +119,17 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   }, [isOpen, entry, loadDocumentForEditing]);
 
   useEffect(() => {
+    const handleNovaClose = () => {
+      if (isOpen) {
+        handleClose();
+      }
+    };
+
+    window.addEventListener('nova:close', handleNovaClose);
+    return () => window.removeEventListener('nova:close', handleNovaClose);
+  }, [isOpen, handleClose]);
+
+  useEffect(() => {
     setHasChanges(documentContent !== originalContent);
   }, [documentContent, originalContent]);
 
@@ -198,10 +210,11 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     return `<pre>${withBreaks}</pre>`;
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     try {
       const title = entry?.title || fileName || 'Document';
       const body = isHtml ? documentContent : textToHtml(documentContent);
+      const { printDocumentHtml } = await import('@/utils/printUtils');
       printDocumentHtml(title, body);
       toast.success('Opening print dialog...');
     } catch (e) {
@@ -209,13 +222,13 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       toast.error('Failed to open print dialog');
     }
   };
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (hasChanges) {
       const confirmClose = window.confirm("You have unsaved changes. Are you sure you want to close?");
       if (!confirmClose) return;
     }
     onClose();
-  };
+  }, [hasChanges, onClose]);
   if (!isTextBased) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -299,11 +312,13 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
               <div className="h-full flex flex-col">
                 {isHtml ? (
                   <div className="flex-1 p-4">
-                    <RichTextEditor
-                      content={documentContent}
-                      onContentChange={setDocumentContent}
-                      placeholder="Start editing your HTML document..."
-                    />
+                    <Suspense fallback={<div className="text-sm text-muted-foreground">Loading editor…</div>}>
+                      <RichTextEditor
+                        content={documentContent}
+                        onContentChange={setDocumentContent}
+                        placeholder="Start editing your HTML document..."
+                      />
+                    </Suspense>
                   </div>
                 ) : (
                   <Textarea

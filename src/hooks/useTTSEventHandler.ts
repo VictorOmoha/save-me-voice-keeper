@@ -11,24 +11,49 @@ interface UseTTSEventHandlerProps {
   setIsListening?: (value: boolean) => void;
 }
 
+// Global/shared TTS listener registration guards
+let ttsHandlerRefCount = 0;
+let globalRestartTimeout: NodeJS.Timeout | null = null;
+
+const handleGlobalTTSStarted = () => {
+  console.log('🔊 TTS Event Handler: TTS started - pausing recognition');
+  try {
+    speechRecognition.stop();
+    console.log('🛑 TTS Event Handler: Stopped recognition due to TTS start');
+  } catch (error) {
+    console.log('Error stopping recognition on TTS start:', error);
+  }
+};
+
+const handleGlobalTTSCompleted = () => {
+  console.log('🔊 TTS Event Handler: TTS completed, will restart recognition');
+
+  if (globalRestartTimeout) {
+    clearTimeout(globalRestartTimeout);
+    globalRestartTimeout = null;
+  }
+
+  globalRestartTimeout = setTimeout(() => {
+    try {
+      speechRecognition.resetRestartAttempts();
+      speechRecognition.start();
+      console.log('🎤 TTS Event Handler: Recognition restarted after TTS');
+    } catch (e) {
+      console.log('TTS Event Handler: start after TTS failed', e);
+    }
+  }, 500);
+};
+
 export const useTTSEventHandler = ({
   conversationState,
   isListening,
   recognitionRef,
   setIsListening = () => {},
 }: UseTTSEventHandlerProps) => {
-  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Use refs to always have current values in event handlers
   const isListeningRef = useRef(isListening);
   const conversationActiveRef = useRef(conversationState?.isActive || false);
-  
-  // FIX: Local refs to replace window globals
-  const ttsSpeakingRef = useRef(false);
-  const lastTTSEndTimeRef = useRef(0);
-  const manualStopRef = useRef(false);
 
-  // Keep refs updated with latest values
+  // Keep refs updated (for compatibility with existing hook shape)
   useEffect(() => {
     isListeningRef.current = isListening;
   }, [isListening]);
@@ -38,70 +63,35 @@ export const useTTSEventHandler = ({
   }, [conversationState?.isActive]);
 
   useEffect(() => {
-    const handleTTSCompleted = async (event: CustomEvent) => {
-      // Mark TTS finished - using local ref instead of window global
-      ttsSpeakingRef.current = false;
-      lastTTSEndTimeRef.current = Date.now();
-      
-      // CRITICAL: Clear manual stop flag so recognition can restart
-      manualStopRef.current = false;
-      
-      console.log('🔊 TTS Event Handler: TTS completed, will restart recognition');
+    ttsHandlerRefCount += 1;
 
-      // Clear any existing restart timeout
-      if (restartTimeoutRef.current) {
-        clearTimeout(restartTimeoutRef.current);
-        restartTimeoutRef.current = null;
-      }
-
-      // ALWAYS try to restart after TTS - the singleton will manage actual state
-      // Give a small grace period before restarting to avoid feedback
-      restartTimeoutRef.current = setTimeout(() => {
-        try {
-          // Ensure manual_stop is still false before starting
-          manualStopRef.current = false;
-          
-          // Reset restart attempts to allow fresh restart cycle
-          speechRecognition.resetRestartAttempts();
-          speechRecognition.start();
-          console.log('🎤 TTS Event Handler: Recognition restarted after TTS');
-        } catch (e) {
-          console.log('TTS Event Handler: start after TTS failed', e);
-        }
-      }, 500);
-    };
-
-    const handleTTSStarted = () => {
-      console.log('🔊 TTS Event Handler: TTS started - pausing recognition');
-      // FIX: Using local ref instead of window global
-      ttsSpeakingRef.current = true;
-      
-      try {
-        speechRecognition.stop();
-        console.log('🛑 TTS Event Handler: Stopped recognition due to TTS start');
-      } catch (error) {
-        console.log('Error stopping recognition on TTS start:', error);
-      }
-    };
-
-    window.addEventListener('tts-completed', handleTTSCompleted as EventListener);
-    window.addEventListener('tts-started', handleTTSStarted as EventListener);
+    if (ttsHandlerRefCount === 1) {
+      window.addEventListener('tts-completed', handleGlobalTTSCompleted as EventListener);
+      window.addEventListener('tts-started', handleGlobalTTSStarted as EventListener);
+    }
 
     return () => {
-      window.removeEventListener('tts-completed', handleTTSCompleted as EventListener);
-      window.removeEventListener('tts-started', handleTTSStarted as EventListener);
-      if (restartTimeoutRef.current) {
-        clearTimeout(restartTimeoutRef.current);
-        restartTimeoutRef.current = null;
+      ttsHandlerRefCount = Math.max(0, ttsHandlerRefCount - 1);
+
+      if (ttsHandlerRefCount === 0) {
+        window.removeEventListener('tts-completed', handleGlobalTTSCompleted as EventListener);
+        window.removeEventListener('tts-started', handleGlobalTTSStarted as EventListener);
+
+        if (globalRestartTimeout) {
+          clearTimeout(globalRestartTimeout);
+          globalRestartTimeout = null;
+        }
       }
     };
-      }, []); // Only run once on mount - we use refs for current values
-  
-  // Return refs so other functions can check state
+  }, []);
+
+  // Return shape preserved for compatibility
   return {
-    isSpeaking: () => ttsSpeakingRef.current,
-    getLastEndTime: () => lastTTSEndTimeRef.current,
-    isManualStop: () => manualStopRef.current,
-    setManualStop: (value: boolean) => { manualStopRef.current = value; },
+    isSpeaking: () => (window as unknown).__tts_is_speaking === true,
+    getLastEndTime: () => (window as unknown).__last_tts_end_time || 0,
+    isManualStop: () => (window as unknown).__manual_stop === true,
+    setManualStop: (value: boolean) => {
+      (window as unknown).__manual_stop = value;
+    },
   };
 };

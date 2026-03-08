@@ -1,5 +1,5 @@
 
-import { VoiceCommand, processVoiceCommand } from './voiceCommandProcessor';
+import { VoiceCommand, processVoiceCommandSync } from './voiceCommandProcessor';
 import { toast } from 'sonner';
 
 interface SpeechRecognitionSetupProps {
@@ -161,6 +161,13 @@ export const setupSpeechRecognition = ({
       }
       
       console.log('✅ SETUP: Processing user command:', finalTranscript);
+      window.dispatchEvent(new CustomEvent('voice-debug-trace', {
+        detail: {
+          stage: 'speech.final_transcript',
+          transcript: finalTranscript,
+          timestamp: Date.now(),
+        }
+      }));
       
       commandCounter++;
       setLastProcessedTranscript(finalTranscript);
@@ -276,6 +283,12 @@ export const setupSpeechRecognition = ({
 
   recognition.onend = () => {
     console.log('🔚 SETUP: Speech recognition ended');
+
+    // Capture restart intent BEFORE resetting global flags
+    const shouldAutoRestart =
+      !(window as unknown).__manual_stop &&
+      consecutiveErrors < MAX_CONSECUTIVE_ERRORS;
+
     setIsListening(false);
     globalRecognitionActive = false;
     (window as unknown).__speech_recognition_active = false;
@@ -286,7 +299,7 @@ export const setupSpeechRecognition = ({
     }
     
     // Only auto-restart for certain error conditions, not normal manual stops
-    if (!(window as unknown).__manual_stop && consecutiveErrors < MAX_CONSECUTIVE_ERRORS && globalRecognitionActive) {
+    if (shouldAutoRestart) {
       console.log('🔄 SETUP: Auto-restarting recognition');
       setTimeout(() => {
         if (!(window as unknown).__manual_stop && !globalRecognitionActive) {
@@ -298,7 +311,7 @@ export const setupSpeechRecognition = ({
             consecutiveErrors++;
           }
         }
-      }, 1500); // Reduced delay
+      }, 1500);
     }
   };
 

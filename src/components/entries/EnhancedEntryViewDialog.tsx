@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { getCategoryConfig } from "@/utils/categoryConfig";
 import { formatFieldName, metadataFields } from "@/utils/fieldFormatters";
 import { logError } from "@/utils/logger";
+import { EntryIntelligencePanel } from "@/components/entries/EntryIntelligencePanel";
 
 interface EnhancedEntryViewDialogProps {
   entry: SavedEntry | null;
@@ -42,6 +43,8 @@ interface EnhancedEntryViewDialogProps {
   onUseAsTemplate?: (entry: SavedEntry) => void;
   onViewDocument?: (entry: SavedEntry) => void;
   onPrint?: (entry: SavedEntry) => void;
+  allEntries?: SavedEntry[];
+  onOpenRelatedEntry?: (entry: SavedEntry) => void;
 }
 
 
@@ -126,10 +129,12 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
   onUseAsTemplate,
   onViewDocument,
   onPrint,
+  allEntries = [],
+  onOpenRelatedEntry,
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // Listen for voice command to close entry
+  // Listen for canonical Nova close event
   useEffect(() => {
     const handleCloseCommand = () => {
       if (isOpen) {
@@ -137,9 +142,9 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
       }
     };
 
-    window.addEventListener("close-entry-dialog", handleCloseCommand);
+    window.addEventListener("nova:close", handleCloseCommand);
     return () => {
-      window.removeEventListener("close-entry-dialog", handleCloseCommand);
+      window.removeEventListener("nova:close", handleCloseCommand);
     };
   }, [isOpen, onClose]);
 
@@ -302,6 +307,14 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
               <ImageGallery images={entryImages} readOnly={true} />
             </div>
           )}
+
+          <div className="mb-6">
+            <EntryIntelligencePanel
+              entry={entry}
+              allEntries={allEntries}
+              onOpenEntry={onOpenRelatedEntry}
+            />
+          </div>
 
           {/* Entry Fields */}
           <div className="space-y-1">

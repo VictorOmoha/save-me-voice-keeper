@@ -2256,7 +2256,7 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
       return;
     }
 
-    const {transcript, audioData, audioMimeType: inputAudioMimeType, conversationHistory: clientHistory = [], sessionId: incomingSessionId} = req.body;
+    const {transcript, audioData, audioMimeType: inputAudioMimeType, conversationHistory: clientHistory = [], sessionId: incomingSessionId, debugToolOverride} = req.body;
     if (!transcript?.trim() && !audioData) {
       res.status(400).json({error: "Transcript or audio data is required"});
       return;
@@ -2313,6 +2313,87 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
 
       let responseText = "";
       const actionsExecuted: any[] = [];
+
+      // ── Explicit authenticated tool path for briefing/client integrations ──
+      const ALLOWED_DIRECT_TOOLS = new Set([
+        "prepareBriefing",
+        "getActivitySummary",
+        "getUpcomingDeadlines",
+        "getRelatedEntries",
+      ]);
+
+      if (
+        debugToolOverride?.tool &&
+        typeof debugToolOverride.tool === "string" &&
+        ALLOWED_DIRECT_TOOLS.has(debugToolOverride.tool)
+      ) {
+        const directResult = await executeVoiceTool(
+          debugToolOverride.tool,
+          debugToolOverride.args || {},
+          user.uid
+        );
+        actionsExecuted.push({
+          tool: debugToolOverride.tool,
+          args: debugToolOverride.args || {},
+          result: directResult,
+        });
+        responseText = directResult?.briefing || directResult?.message || `Completed ${debugToolOverride.tool}.`;
+
+        const cleanHistory = [
+          ...cappedHistory,
+          {role: "user", parts: [{text: transcript?.trim() || `[direct tool] ${debugToolOverride.tool}`}]},
+          {role: "model", parts: [{text: responseText}]},
+        ];
+
+        try {
+          const sessionTurns = cleanHistory.slice(-10);
+          const sessionActions = actionsExecuted.map((a: any) => ({
+            tool: a.tool,
+            args: a.args,
+            result_summary: a.result?.success ? "success" : "failed",
+            timestamp: Date.now(),
+          }));
+
+          if (currentSessionId) {
+            const updateData: Record<string, any> = {
+              turns: sessionTurns,
+              turn_count: sessionTurns.length,
+              updated_at: admin.firestore.FieldValue.serverTimestamp(),
+            };
+            if (sessionActions.length > 0) {
+              updateData.actions = admin.firestore.FieldValue.arrayUnion(...sessionActions);
+            }
+            await db.collection("nova_conversations").doc(currentSessionId).update(updateData);
+          } else {
+            const sessionDoc = await db.collection("nova_conversations").add({
+              user_id: user.uid,
+              turns: sessionTurns,
+              turn_count: sessionTurns.length,
+              actions: sessionActions,
+              active: true,
+              started_at: admin.firestore.FieldValue.serverTimestamp(),
+              updated_at: admin.firestore.FieldValue.serverTimestamp(),
+              ended_at: null,
+              summary: null,
+            });
+            currentSessionId = sessionDoc.id;
+          }
+        } catch (sessionErr) {
+          console.warn("[VoiceAgent] Could not save direct-tool session:", sessionErr);
+        }
+
+        res.json({
+          transcript: transcript?.trim() || "",
+          responseText,
+          audioContent: null,
+          audioMimeType: null,
+          actionsExecuted,
+          conversationHistory: cleanHistory,
+          appCommands: actionsExecuted.filter((a) => a.result?.appCommand).map((a) => a.result),
+          sessionId: currentSessionId,
+        });
+        return;
+      }
 
       // ── Load active user patterns for agentic behavior ───────────────────
       let activePatterns: string[] = [];

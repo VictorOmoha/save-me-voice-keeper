@@ -120,11 +120,12 @@ export const NovaFloat: React.FC = () => {
   }, []);
 
   const handleExportData = useCallback((format: string) => {
-    navigate("/settings");
+    navigate("/settings?tab=data-management");
     toast.info(`Opening data management to export as ${format.toUpperCase()}...`);
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent("nova:export-data", { detail: { format } }));
     }, 500);
+    setPanelState("minimized");
   }, [navigate]);
 
   const handlePrintEntry = useCallback((entries: any[]) => {

@@ -1,3 +1,13 @@
+/**
+ * @deprecated Legacy voice-command context.
+ *
+ * This provider is NOT part of the canonical Nova architecture.
+ * Canonical path:
+ *   NovaFloat -> NovaVoiceAgent -> useVoiceAgent -> backend voiceAgent -> app commands/events
+ *
+ * Do not add new voice features here.
+ * Only keep temporarily for backward compatibility while legacy paths are removed.
+ */
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { processVoiceCommandSync, VoiceCommand } from '@/utils/voiceCommandProcessor';
 import { errorTracker } from '@/utils/errorTracker';

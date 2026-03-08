@@ -17,6 +17,7 @@ import { ExportButton } from "@/components/export/ExportButton";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
+import { getEntryIntelligenceSignals } from "@/utils/entryIntelligence";
 
 interface EntriesTableProps {
   entries: SavedEntry[];
@@ -298,6 +299,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
               <SortableHeader field="title">Title</SortableHeader>
               <SortableHeader field="type">Type</SortableHeader>
               <SortableHeader field="updatedAt">Last Modified</SortableHeader>
+              <TableHead>Intelligence</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -335,6 +337,34 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                   </TableCell>
                   <TableCell className="text-gray-600">
                     {new Date(entry.updatedAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const intelligence = getEntryIntelligenceSignals(entry);
+                      return (
+                        <div className="flex flex-wrap gap-1 max-w-[220px]">
+                          {intelligence.isEnriched ? (
+                            <>
+                              <Badge variant="outline" className="text-xs border-primary/30 text-primary">Smart</Badge>
+                              {intelligence.actionItemCount > 0 && (
+                                <Badge variant="outline" className="text-xs">{intelligence.actionItemCount} actions</Badge>
+                              )}
+                              {intelligence.linkedCount > 0 && (
+                                <Badge variant="outline" className="text-xs">{intelligence.linkedCount} linked</Badge>
+                              )}
+                              {intelligence.reminderLikeCount > 0 && (
+                                <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">Deadline</Badge>
+                              )}
+                              {intelligence.tags.slice(0, 1).map((tag) => (
+                                <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                              ))}
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">

@@ -1,4 +1,11 @@
 
+/**
+ * @deprecated Legacy enhanced voice processor.
+ *
+ * This processor predates the canonical Nova agent flow.
+ * Keep only for temporary compatibility with old voice-command surfaces.
+ * Do not add new product behavior here.
+ */
 import { toast } from 'sonner';
 import { speak } from '@/utils/textToSpeech';
 

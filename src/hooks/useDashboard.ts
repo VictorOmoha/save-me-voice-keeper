@@ -22,7 +22,6 @@ export const useDashboard = () => {
 
   const saveEntry = useCallback(async (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      // Both edit and fill modes update the same entry; template mode creates new (no second arg)
       await baseSaveEntry(entry, editingEntry || fillingEntry);
       setShowAddEntry(false);
       setEditingEntry(null);
@@ -40,7 +39,6 @@ export const useDashboard = () => {
     try {
       console.log('🗑️ Dashboard: deleteEntry called for ID:', id);
       await baseDeleteEntry(id);
-      // Don't show duplicate toast here since it's shown in handleDeleteEntry
     } catch (error) {
       console.error('Error deleting entry:', error);
       toast.error('Failed to delete entry');

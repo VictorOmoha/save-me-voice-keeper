@@ -80,7 +80,7 @@ export const QuickCaptureOverlay: React.FC = () => {
     }
   }, [open]);
 
-  // ── Escape to close ───────────────────────────────────────────────────────
+  // ── Escape / Nova close to close ──────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -89,8 +89,13 @@ export const QuickCaptureOverlay: React.FC = () => {
         setOpen(false);
       }
     };
+    const handleNovaClose = () => setOpen(false);
     window.addEventListener("keydown", handler, true);
-    return () => window.removeEventListener("keydown", handler, true);
+    window.addEventListener("nova:close", handleNovaClose);
+    return () => {
+      window.removeEventListener("keydown", handler, true);
+      window.removeEventListener("nova:close", handleNovaClose);
+    };
   }, [open]);
 
   // ── Backdrop click to close ───────────────────────────────────────────────

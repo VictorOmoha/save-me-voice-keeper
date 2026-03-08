@@ -112,6 +112,14 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     }
   }, [entry, fileName, user]);
 
+  const handleClose = useCallback(() => {
+    if (hasChanges) {
+      const confirmClose = window.confirm("You have unsaved changes. Are you sure you want to close?");
+      if (!confirmClose) return;
+    }
+    onClose();
+  }, [hasChanges, onClose]);
+
   useEffect(() => {
     if (isOpen && entry) {
       loadDocumentForEditing();
@@ -222,13 +230,6 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       toast.error('Failed to open print dialog');
     }
   };
-  const handleClose = useCallback(() => {
-    if (hasChanges) {
-      const confirmClose = window.confirm("You have unsaved changes. Are you sure you want to close?");
-      if (!confirmClose) return;
-    }
-    onClose();
-  }, [hasChanges, onClose]);
   if (!isTextBased) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>

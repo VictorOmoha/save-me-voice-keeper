@@ -156,6 +156,52 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Visual Proof */}
+        <section className={`py-20 px-4 md:px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-14">
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-6 reveal ${theme === 'dark' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+                Visual Proof
+              </div>
+              <h2 className={`text-3xl md:text-5xl font-bold mb-6 reveal stagger-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>See the product, not just the promise</h2>
+              <p className={`text-base md:text-lg max-w-3xl mx-auto reveal stagger-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                SaveMe.Space gives you a clean home for voice capture, organized entries, and quick retrieval — built to feel calm, fast, and usable.
+              </p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-8 items-start">
+              <div className={`rounded-3xl overflow-hidden border reveal ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
+                <img src="/lovable-uploads/a98a0b41-8946-445c-97c4-379ad69e55bd.png" alt="SaveMe.Space dashboard in dark mode" className="w-full h-auto object-cover" />
+                <div className="p-6">
+                  <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Your knowledge, organized at a glance</h3>
+                  <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'} text-sm leading-relaxed`}>
+                    Get a clear view of your entries, categories, storage, and recent activity without digging through clutter.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-8">
+                <div className={`rounded-3xl overflow-hidden border reveal ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
+                  <img src="/lovable-uploads/bc240c60-e282-4d87-8e60-f2af2366f886.png" alt="SaveMe.Space dashboard in light mode" className="w-full h-auto object-cover" />
+                  <div className="p-6">
+                    <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Built to feel clean in every mode</h3>
+                    <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'} text-sm leading-relaxed`}>
+                      Whether you prefer dark mode or light mode, the experience stays polished, focused, and easy to navigate.
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`p-8 rounded-3xl border reveal ${theme === 'dark' ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20'}`}>
+                  <h3 className={`text-lg font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>What happens after you speak?</h3>
+                  <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'} text-sm md:text-base leading-relaxed`}>
+                    SaveMe.Space turns voice into something you can actually use later: captured thoughts, organized entries, searchable knowledge, and a dashboard that helps you return to what matters.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Voice vs Typing Comparison */}
         <section className={`py-16 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
           <div className="max-w-4xl mx-auto">
@@ -264,6 +310,46 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Beta Invitation */}
+        {!isAuthenticated && (
+          <section className={`py-24 px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
+            <div className="max-w-5xl mx-auto">
+              <div className={`p-12 md:p-16 rounded-3xl border text-center ${theme === 'dark' ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20'}`}>
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-6 ${theme === 'dark' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+                  Beta Access
+                </div>
+                <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Join the SaveMe.Space beta</h2>
+                <p className={`text-base md:text-lg max-w-3xl mx-auto mb-8 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                  I’m inviting a small group of early users to test SaveMe.Space in real life — especially people who constantly capture ideas, notes, and voice thoughts.
+                </p>
+                <div className="grid md:grid-cols-3 gap-4 text-left max-w-4xl mx-auto mb-10">
+                  {[
+                    'Use SaveMe.Space over a few real days',
+                    'Capture thoughts naturally as they come',
+                    'Share honest feedback on what works and what feels confusing'
+                  ].map((item, i) => (
+                    <div key={i} className={`rounded-2xl p-5 border ${theme === 'dark' ? 'bg-zinc-900/40 border-zinc-800/50 text-zinc-300' : 'bg-white border-zinc-200 text-zinc-600'}`}>
+                      <div className="flex items-start gap-3 text-sm leading-relaxed">
+                        <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-4">
+                  <button className={`px-8 py-4 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`} onClick={() => setIsWaitingListModalOpen(true)}>
+                    Join the Beta
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                  <button className={`px-8 py-4 rounded-lg font-medium transition-all ${theme === 'dark' ? 'border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800 text-zinc-200' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 text-zinc-700'}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                    Try Voice Capture First
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Pricing */}
         <section className={`py-24 px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
           <div className="max-w-7xl mx-auto">
@@ -294,7 +380,7 @@ const Index = () => {
                     ))}
                   </ul>
                   <button className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`} onClick={() => setIsWaitingListModalOpen(true)}>
-                    {plan.price === "$0" ? "Start Free" : "Get Started"}
+                    {plan.price === "$0" ? "Join Free Beta" : "Get Started"}
                   </button>
                 </div>
               ))}

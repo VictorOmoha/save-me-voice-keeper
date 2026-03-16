@@ -171,31 +171,34 @@ const Index = () => {
 
             <div className="grid lg:grid-cols-2 gap-8 items-start">
               <div className={`rounded-3xl overflow-hidden border reveal ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
-                <img src="/lovable-uploads/a98a0b41-8946-445c-97c4-379ad69e55bd.png" alt="SaveMe.Space dashboard in dark mode" className="w-full h-auto object-cover" />
+                <img src="/Dashboard-screenshot.png" alt="SaveMe.Space dashboard overview" className="w-full h-auto object-cover" />
                 <div className="p-6">
                   <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Your knowledge, organized at a glance</h3>
                   <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'} text-sm leading-relaxed`}>
-                    Get a clear view of your entries, categories, storage, and recent activity without digging through clutter.
+                    See your entries, categories, daily intelligence, and quick actions in one place — without digging through clutter.
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-8">
                 <div className={`rounded-3xl overflow-hidden border reveal ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
-                  <img src="/lovable-uploads/bc240c60-e282-4d87-8e60-f2af2366f886.png" alt="SaveMe.Space dashboard in light mode" className="w-full h-auto object-cover" />
+                  <img src="/Dashboard-screenshot2.png" alt="SaveMe.Space categories and recent entries" className="w-full h-auto object-cover" />
                   <div className="p-6">
-                    <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Built to feel clean in every mode</h3>
+                    <h3 className={`text-lg font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Browse real categories and recent entries</h3>
                     <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'} text-sm leading-relaxed`}>
-                      Whether you prefer dark mode or light mode, the experience stays polished, focused, and easy to navigate.
+                      Move from scattered information to clear categories, recent activity, and entries that feel easy to find again.
                     </p>
                   </div>
                 </div>
 
-                <div className={`p-8 rounded-3xl border reveal ${theme === 'dark' ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20'}`}>
-                  <h3 className={`text-lg font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>What happens after you speak?</h3>
-                  <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'} text-sm md:text-base leading-relaxed`}>
-                    SaveMe.Space turns voice into something you can actually use later: captured thoughts, organized entries, searchable knowledge, and a dashboard that helps you return to what matters.
-                  </p>
+                <div className={`rounded-3xl overflow-hidden border reveal ${theme === 'dark' ? 'bg-primary/5 border-primary/20' : 'bg-primary/5 border-primary/20'}`}>
+                  <img src="/Braindump-screenshot.png" alt="SaveMe.Space brain dump capture flow" className="w-full h-auto object-cover" />
+                  <div className="p-6 md:p-8">
+                    <h3 className={`text-lg font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Turn raw thoughts into usable structure</h3>
+                    <p className={`${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'} text-sm md:text-base leading-relaxed`}>
+                      SaveMe.Space helps you brain dump freely, then shape those thoughts into organized entries, searchable knowledge, and next actions you can actually use later.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

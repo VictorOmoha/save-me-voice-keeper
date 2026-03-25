@@ -18,6 +18,7 @@ import { KeyboardShortcutsProvider } from "./contexts/KeyboardShortcutsContext";
 import { PwaInstallBanner } from "./components/PwaInstallBanner";
 import { QuickCaptureOverlay } from "./components/QuickCaptureOverlay";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import PrivateRoute from "./components/PrivateRoute";
 
 const Index = React.lazy(() => import("./pages/Index.tsx"));
 const Login = React.lazy(() => import("./pages/Login.tsx"));
@@ -83,20 +84,20 @@ const App = () => (
                         <Route path="/login" element={<Login />} />
                         <Route path="/signup" element={<Signup />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/all-entries" element={<AllEntries />} />
-                        <Route path="/all-entries/:entryId" element={<AllEntries />} />
-                        <Route path="/category/:categoryName" element={<CategoryPage />} />
-                        <Route path="/insights" element={<Insights />} />
-                        <Route path="/briefing" element={<NovaBriefing />} />
-                        <Route path="/subscription" element={<Subscription />} />
-                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                        <Route path="/all-entries" element={<PrivateRoute><AllEntries /></PrivateRoute>} />
+                        <Route path="/all-entries/:entryId" element={<PrivateRoute><AllEntries /></PrivateRoute>} />
+                        <Route path="/category/:categoryName" element={<PrivateRoute><CategoryPage /></PrivateRoute>} />
+                        <Route path="/insights" element={<PrivateRoute><Insights /></PrivateRoute>} />
+                        <Route path="/briefing" element={<PrivateRoute><NovaBriefing /></PrivateRoute>} />
+                        <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
+                        <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                         <Route path="/user-guide" element={<UserGuide />} />
-                        <Route path="/brain-dump" element={<BrainDump />} />
-                        <Route path="/onboarding" element={<Onboarding />} />
+                        <Route path="/brain-dump" element={<PrivateRoute><BrainDump /></PrivateRoute>} />
+                        <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
                         <Route path="/terms" element={<TermsOfService />} />
                         <Route path="/privacy" element={<PrivacyPolicy />} />
-                        <Route path="/share" element={<Dashboard />} />
+                        <Route path="/share" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>

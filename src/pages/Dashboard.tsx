@@ -80,12 +80,7 @@ export default function Dashboard() {
   } = useDashboard();
 
   useEffect(() => {
-    if (authLoading) return;
-
-    if (!isAuthenticated || !user) {
-      navigate('/login');
-      return;
-    }
+    if (authLoading || !user) return;
 
     const checkOnboarding = async () => {
       try {
@@ -101,7 +96,7 @@ export default function Dashboard() {
     };
 
     checkOnboarding();
-  }, [authLoading, isAuthenticated, user, navigate]);
+  }, [authLoading, user, navigate]);
 
   useEffect(() => {
     if (searchParams.get('action') === 'create') {

@@ -462,10 +462,17 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     return;
   }
 
+  const rawBody = req.rawBody || req.body;
+  if (!rawBody) {
+    console.error("Stripe webhook: no rawBody available on request");
+    res.status(400).json({error: "Missing request body"});
+    return;
+  }
+
   let event;
   try {
     event = stripe.webhooks.constructEvent(
-      req.rawBody,
+      rawBody,
       sig,
       webhookSecret
     );

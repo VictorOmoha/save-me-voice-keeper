@@ -1,77 +1,179 @@
 export interface ToolValidationResult {
   valid: boolean;
   error?: string;
+  sanitizedArgs?: Record<string, any>;
 }
 
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.trim().length > 0;
+const MAX_STRING_LENGTH = 5000;
+const MAX_QUERY_LENGTH = 500;
+const MAX_CONTENT_LENGTH = 10000;
+
+const VALID_ROUTES = [
+  "/dashboard", "/all-entries", "/insights", "/briefing",
+  "/subscription", "/settings", "/user-guide", "/brain-dump",
+  "/onboarding", "/terms", "/privacy",
+];
+
+const VALID_THEMES = ["light", "dark", "system"];
+
+const VALID_NOTIFICATION_TYPES = [
+  "email", "push", "reminder", "automation",
+];
+
+const VALID_ACTION_STATUSES = [
+  "open", "in_progress", "completed", "cancelled",
+];
+
+const VALID_TIMEFRAMES = [
+  "today", "week", "month", "all",
+];
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function truncate(value: string, max: number): string {
+  return value.length > max ? value.slice(0, max) : value;
+}
+
+function sanitizeString(value: unknown, max = MAX_STRING_LENGTH): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return truncate(value.trim(), max);
+}
 
 export function validateToolArgs(toolName: string, args: Record<string, any>): ToolValidationResult {
+  const sanitized = { ...args };
+
   switch (toolName) {
-  case "navigateApp":
-      return isNonEmptyString(args.route) ? {valid: true} : {valid: false, error: "navigateApp requires route"};
+  case "navigateApp": {
+    if (!isNonEmptyString(args.route)) return { valid: false, error: "navigateApp requires route" };
+    const route = args.route.trim();
+    if (!VALID_ROUTES.includes(route) && !route.startsWith("/category/")) {
+      return { valid: false, error: `navigateApp: invalid route "${route}"` };
+    }
+    sanitized.route = route;
+    return { valid: true, sanitizedArgs: sanitized };
+  }
 
   case "navigateToCategory":
-      return isNonEmptyString(args.category) ? {valid: true} : {valid: false, error: "navigateToCategory requires category"};
+    if (!isNonEmptyString(args.category)) return { valid: false, error: "navigateToCategory requires category" };
+    sanitized.category = truncate(args.category.trim(), 100);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "openEntry":
-      return (isNonEmptyString(args.id) || isNonEmptyString(args.title)) ? {valid: true} : {valid: false, error: "openEntry requires id or title"};
+    if (!isNonEmptyString(args.id) && !isNonEmptyString(args.title)) return { valid: false, error: "openEntry requires id or title" };
+    if (args.id) sanitized.id = truncate(args.id.trim(), 200);
+    if (args.title) sanitized.title = truncate(args.title.trim(), 500);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "printEntry":
-      return (isNonEmptyString(args.id) || isNonEmptyString(args.title) || isNonEmptyString(args.category))
-        ? {valid: true}
-        : {valid: false, error: "printEntry requires id, title, or category"};
+    if (!isNonEmptyString(args.id) && !isNonEmptyString(args.title) && !isNonEmptyString(args.category)) {
+      return { valid: false, error: "printEntry requires id, title, or category" };
+    }
+    if (args.id) sanitized.id = truncate(args.id.trim(), 200);
+    if (args.title) sanitized.title = truncate(args.title.trim(), 500);
+    if (args.category) sanitized.category = truncate(args.category.trim(), 100);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "saveEntry":
-      return isNonEmptyString(args.title) ? {valid: true} : {valid: false, error: "saveEntry requires title"};
+    if (!isNonEmptyString(args.title)) return { valid: false, error: "saveEntry requires title" };
+    sanitized.title = truncate(args.title.trim(), 500);
+    if (args.content) sanitized.content = sanitizeString(args.content, MAX_CONTENT_LENGTH);
+    if (args.category) sanitized.category = truncate(String(args.category).trim(), 100);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "searchEntries":
+  case "getEntityGraph":
+    if (!isNonEmptyString(args.query)) return { valid: false, error: `${toolName} requires query` };
+    sanitized.query = truncate(args.query.trim(), MAX_QUERY_LENGTH);
+    if (args.limit != null) sanitized.limit = Math.min(Math.max(1, Number(args.limit) || 10), 50);
+    return { valid: true, sanitizedArgs: sanitized };
+
   case "recallMemories":
   case "forgetMemory":
-  case "getEntityGraph":
-      return isNonEmptyString(args.query) ? {valid: true} : {valid: false, error: `${toolName} requires query`};
+    if (!isNonEmptyString(args.query)) return { valid: false, error: `${toolName} requires query` };
+    sanitized.query = truncate(args.query.trim(), MAX_QUERY_LENGTH);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "rememberFact":
-      return isNonEmptyString(args.content) ? {valid: true} : {valid: false, error: "rememberFact requires content"};
+    if (!isNonEmptyString(args.content)) return { valid: false, error: "rememberFact requires content" };
+    sanitized.content = truncate(args.content.trim(), MAX_CONTENT_LENGTH);
+    if (args.category) sanitized.category = truncate(String(args.category).trim(), 100);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "updateEntry":
-      return isNonEmptyString(args.id) ? {valid: true} : {valid: false, error: "updateEntry requires id"};
+    if (!isNonEmptyString(args.id)) return { valid: false, error: "updateEntry requires id" };
+    sanitized.id = truncate(args.id.trim(), 200);
+    if (args.title) sanitized.title = truncate(args.title.trim(), 500);
+    if (args.content) sanitized.content = sanitizeString(args.content, MAX_CONTENT_LENGTH);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "deleteEntry":
-      return isNonEmptyString(args.id) ? {valid: true} : {valid: false, error: "deleteEntry requires id"};
+    if (!isNonEmptyString(args.id)) return { valid: false, error: "deleteEntry requires id" };
+    sanitized.id = truncate(args.id.trim(), 200);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "updateTheme":
-      return isNonEmptyString(args.theme) ? {valid: true} : {valid: false, error: "updateTheme requires theme"};
+    if (!isNonEmptyString(args.theme)) return { valid: false, error: "updateTheme requires theme" };
+    if (!VALID_THEMES.includes(args.theme.trim())) {
+      return { valid: false, error: `updateTheme: invalid theme "${args.theme}" (expected: ${VALID_THEMES.join(", ")})` };
+    }
+    sanitized.theme = args.theme.trim();
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "toggleNotification":
-      return isNonEmptyString(args.type) && typeof args.enabled === "boolean"
-        ? {valid: true}
-        : {valid: false, error: "toggleNotification requires type and enabled boolean"};
+    if (!isNonEmptyString(args.type) || typeof args.enabled !== "boolean") {
+      return { valid: false, error: "toggleNotification requires type and enabled boolean" };
+    }
+    if (!VALID_NOTIFICATION_TYPES.includes(args.type.trim())) {
+      return { valid: false, error: `toggleNotification: invalid type "${args.type}"` };
+    }
+    sanitized.type = args.type.trim();
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "prepareBriefing":
-      return isNonEmptyString(args.subject) ? {valid: true} : {valid: false, error: "prepareBriefing requires subject"};
+    if (!isNonEmptyString(args.subject)) return { valid: false, error: "prepareBriefing requires subject" };
+    sanitized.subject = truncate(args.subject.trim(), MAX_QUERY_LENGTH);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "getRelatedEntries":
-      return (isNonEmptyString(args.topic) || isNonEmptyString(args.entryId))
-        ? {valid: true}
-        : {valid: false, error: "getRelatedEntries requires topic or entryId"};
+    if (!isNonEmptyString(args.topic) && !isNonEmptyString(args.entryId)) {
+      return { valid: false, error: "getRelatedEntries requires topic or entryId" };
+    }
+    if (args.topic) sanitized.topic = truncate(args.topic.trim(), MAX_QUERY_LENGTH);
+    if (args.entryId) sanitized.entryId = truncate(args.entryId.trim(), 200);
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "getActivitySummary":
   case "getUpcomingDeadlines":
-      return isNonEmptyString(args.timeframe) ? {valid: true} : {valid: false, error: `${toolName} requires timeframe`};
+    if (!isNonEmptyString(args.timeframe)) return { valid: false, error: `${toolName} requires timeframe` };
+    if (!VALID_TIMEFRAMES.includes(args.timeframe.trim())) {
+      return { valid: false, error: `${toolName}: invalid timeframe "${args.timeframe}" (expected: ${VALID_TIMEFRAMES.join(", ")})` };
+    }
+    sanitized.timeframe = args.timeframe.trim();
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "updateActionItem":
-      return isNonEmptyString(args.query) && isNonEmptyString(args.status)
-        ? {valid: true}
-        : {valid: false, error: "updateActionItem requires query and status"};
+    if (!isNonEmptyString(args.query) || !isNonEmptyString(args.status)) {
+      return { valid: false, error: "updateActionItem requires query and status" };
+    }
+    if (!VALID_ACTION_STATUSES.includes(args.status.trim())) {
+      return { valid: false, error: `updateActionItem: invalid status "${args.status}"` };
+    }
+    sanitized.query = truncate(args.query.trim(), MAX_QUERY_LENGTH);
+    sanitized.status = args.status.trim();
+    return { valid: true, sanitizedArgs: sanitized };
 
   case "setReminder":
-      return isNonEmptyString(args.text) && isNonEmptyString(args.when)
-        ? {valid: true}
-        : {valid: false, error: "setReminder requires text and when"};
+    if (!isNonEmptyString(args.text) || !isNonEmptyString(args.when)) {
+      return { valid: false, error: "setReminder requires text and when" };
+    }
+    sanitized.text = truncate(args.text.trim(), 1000);
+    sanitized.when = truncate(args.when.trim(), 200);
+    return { valid: true, sanitizedArgs: sanitized };
 
   default:
-      return {valid: true};
+    return { valid: true, sanitizedArgs: sanitized };
   }
 }
 

@@ -1,0 +1,156 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- User-owned data (user_id field) ---
+    match /entries/{docId} {
+      allow read, write: if isSignedIn()
+        && resource == null
+          ? request.resource.data.user_id == request.auth.uid
+          : resource.data.user_id == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid;
+    }
+
+    match /action_items/{docId} {
+      allow read, write: if isSignedIn()
+        && (resource == null || resource.data.user_id == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid;
+    }
+
+    match /nova_memories/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /nova_conversations/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /nova_user_profile/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // server-only writes
+    }
+
+    match /entry_links/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /entry_entities/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /entity_graph/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /user_patterns/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /user_category_patterns/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /reminders/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    match /pending_notifications/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // server-only writes
+    }
+
+    // --- User profile / settings (doc ID = user UID) ---
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /profiles/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /user_preferences/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /api_keys/{docId} {
+      allow read, write: if isSignedIn()
+        && (resource == null || resource.data.user_id == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // --- User-generated content ---
+    match /search_analytics/{docId} {
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid;
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /webhook_events/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /support_tickets/{docId} {
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid;
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // --- Public collections ---
+    match /public_demo_videos/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /demo_videos/{docId} {
+      // Admin-only writes should be handled server-side
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    match /waiting_list/{docId} {
+      allow create: if true; // public signup
+      allow read, update, delete: if false;
+    }
+
+    // --- Deny everything else ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

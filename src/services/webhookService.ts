@@ -8,6 +8,32 @@ interface WebhookEvent {
   webhook_url?: string;
 }
 
+function isUrlSafe(urlStr: string): boolean {
+  try {
+    const url = new URL(urlStr);
+    if (!['https:', 'http:'].includes(url.protocol)) return false;
+    const hostname = url.hostname.toLowerCase();
+    // Block private/internal IPs and localhost
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname === '[::1]' ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal') ||
+      /^10\./.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^169\.254\./.test(hostname)
+    ) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export const webhookService = {
   // Trigger a webhook event (can be called when entries are created/updated)
   triggerWebhook: async (event: WebhookEvent): Promise<{ success: boolean; error?: string }> => {
@@ -17,6 +43,11 @@ export const webhookService = {
 
       if (!user) {
         return { success: false, error: 'User not authenticated' };
+      }
+
+      // Validate webhook URL before use
+      if (event.webhook_url && !isUrlSafe(event.webhook_url)) {
+        return { success: false, error: 'Invalid webhook URL: must be a public HTTPS/HTTP endpoint' };
       }
 
       // Store the webhook event in Firebase Firestore

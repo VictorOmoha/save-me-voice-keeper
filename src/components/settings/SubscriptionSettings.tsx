@@ -67,7 +67,7 @@ export const SubscriptionSettings = () => {
 
     try {
       // TODO: Implement Firebase-based checkout when payment integration is ready
-      toast.info("Subscription upgrades are coming soon! Stay tuned.");
+      toast.info("Billing is not configured in this environment yet.");
     } catch (err) {
       console.error('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
@@ -82,7 +82,7 @@ export const SubscriptionSettings = () => {
 
     try {
       // TODO: Implement Firebase-based billing portal when payment integration is ready
-      toast.info("Billing management is coming soon! Stay tuned.");
+      toast.info("Billing is not configured in this environment yet.");
     } catch (err) {
       console.error('Portal error:', err);
       toast.error('An error occurred. Please try again.');
@@ -172,16 +172,16 @@ export const SubscriptionSettings = () => {
                         {loadingPlan === plan.name ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Processing...
+                            Opening...
                           </>
                         ) : plan.current ? (
                           'Current Plan'
                         ) : plan.name === "Free" ? (
                           'Free Plan'
                         ) : plan.name === "Enterprise" ? (
-                          'Contact Us'
+                          'Open Enterprise Contact'
                         ) : (
-                          'Select Plan'
+                          'Open Plan'
                         )}
                       </Button>
                       {!plan.current && plan.name !== "Free" && plan.name !== "Enterprise" && (

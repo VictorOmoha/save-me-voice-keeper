@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Database } from "lucide-react";
 import { EntriesTable } from "@/components/EntriesTable";
@@ -89,12 +89,12 @@ export default function AllEntries() {
     setShowAddEntry(true);
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setShowAddEntry(false);
     setEditingEntry(null);
     setTemplateEntry(null);
     setIsFillMode(false);
-  };
+  }, []);
 
   // View/Edit document handlers
   const handleViewDocument = (entry: SavedEntry) => {

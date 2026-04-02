@@ -1,11 +1,11 @@
-export type VoiceToolResult = Record<string, any>;
+export type VoiceToolResult = Record<string, unknown>;
 
-export const ok = (data: Record<string, any> = {}): VoiceToolResult => ({
+export const ok = (data: Record<string, unknown> = {}): VoiceToolResult => ({
   success: true,
   data,
 });
 
-export const fail = (error: string, data: Record<string, any> = {}): VoiceToolResult => ({
+export const fail = (error: string, data: Record<string, unknown> = {}): VoiceToolResult => ({
   success: false,
   error,
   data,
@@ -13,8 +13,8 @@ export const fail = (error: string, data: Record<string, any> = {}): VoiceToolRe
 
 export const command = (
   appCommand: string,
-  fields: Record<string, any> = {},
-  data: Record<string, any> = {}
+  fields: Record<string, unknown> = {},
+  data: Record<string, unknown> = {}
 ): VoiceToolResult => ({
   success: true,
   appCommand,
@@ -24,8 +24,8 @@ export const command = (
 
 export const novaAction = (
   actionType: string,
-  actionData: Record<string, any>,
-  data: Record<string, any> = {}
+  actionData: Record<string, unknown>,
+  data: Record<string, unknown> = {}
 ): VoiceToolResult => ({
   success: true,
   appCommand: "novaAction",

@@ -1243,9 +1243,12 @@ Rules:
     const data = await res.json();
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
 
-    let facts: any[];
+    let facts: ExtractedMemoryFact[];
     try {
-      facts = JSON.parse(rawText);
+      const parsed = JSON.parse(rawText);
+      facts = Array.isArray(parsed)
+        ? parsed.filter((fact): fact is ExtractedMemoryFact => Boolean(fact && typeof fact === "object" && typeof fact.content === "string"))
+        : [];
     } catch {
       return;
     }
@@ -1440,18 +1443,94 @@ async function recordCategorySignal(
   }
 }
 
-import { VoiceToolResult, ok, fail, command, novaAction } from "./voiceToolResults";
+import { ok, fail, novaAction } from "./voiceToolResults";
 import { handleAppControlTool } from "./voiceTools/appControl";
 import { handleSettingsTool } from "./voiceTools/settings";
 import { handleMemoryTool } from "./voiceTools/memory";
 import { handleIntelligenceTool } from "./voiceTools/intelligence";
 import { summarizeToolArgs, validateToolArgs } from "./voiceToolValidation";
 
+interface StructuredFieldInput {
+  key: string;
+  value: string;
+}
+
+interface EntrySearchRecord {
+  id: string;
+  title?: string;
+  fields?: Record<string, unknown>;
+}
+
+interface ExtractedMemoryFact {
+  content: string;
+  category?: string;
+}
+
+interface ConversationPart {
+  text?: string;
+  inlineData?: { mimeType?: string; data?: string };
+  functionCall?: { name: string; args: Record<string, unknown> };
+  functionResponse?: { name: string; response: Record<string, unknown> };
+}
+
+interface ConversationTurnRecord {
+  role: string;
+  parts: ConversationPart[];
+}
+
+interface ActionExecutionRecord {
+  tool: string;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
+interface ExtractedEntityRecord {
+  name?: string;
+  type?: string;
+  aliases?: string[];
+}
+
+interface ExtractedActionItemRecord {
+  text?: string;
+  priority?: string;
+  due_date?: string;
+  assignee?: string;
+}
+
+interface UserPatternRecord {
+  description?: string;
+  trigger_conditions?: string;
+  suggested_action?: string;
+  confidence?: number;
+}
+
+const isStructuredFieldInput = (value: unknown): value is StructuredFieldInput => {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    typeof (value as Record<string, unknown>).key === "string" &&
+    typeof (value as Record<string, unknown>).value === "string",
+  );
+};
+
+const toStructuredFieldInputs = (value: unknown): StructuredFieldInput[] => {
+  return Array.isArray(value) ? value.filter(isStructuredFieldInput) : [];
+};
+
+const toEntrySearchRecord = (doc: admin.firestore.QueryDocumentSnapshot): EntrySearchRecord => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: typeof data.title === "string" ? data.title : undefined,
+    fields: data.fields && typeof data.fields === "object" ? data.fields as Record<string, unknown> : undefined,
+  };
+};
+
 async function executeVoiceTool(
   toolName: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userId: string
-): Promise<Record<string, any>> {
+): Promise<Record<string, unknown>> {
   const db = admin.firestore();
   const entriesRef = db.collection("entries");
 
@@ -1480,31 +1559,35 @@ async function executeVoiceTool(
   switch (toolName) {
   case "saveEntry": {
     let fields: Record<string, string> = {};
-    let field_definitions: any[] = [];
+    let field_definitions: Array<{ id: string; name: string; type: string }> = [];
+    const structuredFields = toStructuredFieldInputs(args.fields);
+    const title = typeof args.title === "string" ? args.title : "Untitled";
+    const content = typeof args.content === "string" ? args.content : "";
+    const requestedCategory = typeof args.category === "string" ? args.category : "";
 
-    if (args.fields && Array.isArray(args.fields) && args.fields.length > 0) {
+    if (structuredFields.length > 0) {
       // Structured entry — build fields map + definitions from key-value pairs
-      for (const f of args.fields) {
+      for (const f of structuredFields) {
         const id = f.key.toLowerCase().replace(/[^a-z0-9]/g, "_");
         fields[id] = f.value;
         field_definitions.push({id, name: f.key, type: "text"});
       }
     } else {
       // General content entry
-      fields = {content: args.content || ""};
+      fields = {content};
       field_definitions = [{id: "content", name: "Content", type: "textarea"}];
     }
 
     // ── Category Intelligence: predict if not explicitly provided ──────────
-    let finalCategory: string = args.category || "";
+    let finalCategory: string = requestedCategory;
     let categoryWasPredicted = false;
     const geminiKey = process.env.GEMINI_API_KEY;
 
     if ((!finalCategory || finalCategory === "Personal") && geminiKey) {
-      const contentForPrediction = args.content
-        || (args.fields ? (args.fields as any[]).map((f: any) => `${f.key}: ${f.value}`).join(", ") : "");
+      const contentForPrediction = content
+        || structuredFields.map((f) => `${f.key}: ${f.value}`).join(", ");
 
-      const prediction = await predictCategory(userId, args.title || "", contentForPrediction, db, geminiKey);
+      const prediction = await predictCategory(userId, title, contentForPrediction, db, geminiKey);
 
       if (prediction.confidence >= 0.7 && prediction.predicted !== "Personal") {
         finalCategory = prediction.predicted;
@@ -1531,115 +1614,133 @@ async function executeVoiceTool(
 
     // Record signal to strengthen future predictions
     if (geminiKey) {
-      const contentText = args.content
-        || (args.fields ? (args.fields as any[]).map((f: any) => `${f.value}`).join(" ") : "");
-      recordCategorySignal(userId, args.title || "", contentText, finalCategory, false, db).catch(() => {});
+      const contentText = content || structuredFields.map((f) => `${f.value}`).join(" ");
+      recordCategorySignal(userId, title, contentText, finalCategory, false, db).catch(() => {});
     }
 
     const actionData = {
       id: docRef.id,
-      title: args.title,
+      title,
       category: finalCategory,
-      content: args.content || null,
-      fields: args.fields || null,
+      content: content || null,
+      fields: structuredFields.length ? structuredFields : null,
     };
 
     return novaAction("save_entry", actionData, {
       id: docRef.id,
-      title: args.title,
+      title,
       category: finalCategory,
       category_was_predicted: categoryWasPredicted,
     });
   }
 
   case "searchEntries": {
-    const limit = args.limit || 5;
+    const limit = typeof args.limit === "number" ? args.limit : 5;
     const snap = await entriesRef
       .where("user_id", "==", userId)
       .orderBy("updated_at", "desc")
       .limit(50)
       .get();
-    const q = args.query.toLowerCase();
+    const q = String(args.query || "").toLowerCase();
     const results = snap.docs
-      .map((d) => ({id: d.id, ...d.data()}))
-      .filter((e: any) =>
-        (e.title && e.title.toLowerCase().includes(q)) ||
-        (e.fields?.content && e.fields.content.toLowerCase().includes(q)) ||
-        (e.fields?.category && e.fields.category.toLowerCase().includes(q))
+      .map(toEntrySearchRecord)
+      .filter((entry) =>
+        (entry.title && entry.title.toLowerCase().includes(q)) ||
+        (typeof entry.fields?.content === "string" && entry.fields.content.toLowerCase().includes(q)) ||
+        (typeof entry.fields?.category === "string" && entry.fields.category.toLowerCase().includes(q))
       )
       .slice(0, limit)
-      .map((e: any) => ({id: e.id, title: e.title, content: e.fields?.content, category: e.fields?.category}));
+      .map((entry) => ({
+        id: entry.id,
+        title: entry.title,
+        content: typeof entry.fields?.content === "string" ? entry.fields.content : undefined,
+        category: typeof entry.fields?.category === "string" ? entry.fields.category : undefined,
+      }));
     const actionData = { query: args.query, results: results.slice(0, 5), count: results.length };
     return novaAction("search", actionData, { results, count: results.length });
   }
 
   case "getRecentEntries": {
-    const limit = args.limit || 5;
+    const limit = typeof args.limit === "number" ? args.limit : 5;
     let q = entriesRef.where("user_id", "==", userId).orderBy("updated_at", "desc").limit(limit);
-    if (args.category) {
+    const categoryFilter = typeof args.category === "string" ? args.category : undefined;
+    if (categoryFilter) {
       q = entriesRef
         .where("user_id", "==", userId)
-        .where("fields.category", "==", args.category)
+        .where("fields.category", "==", categoryFilter)
         .orderBy("updated_at", "desc")
         .limit(limit);
     }
     const snap = await q.get();
     const results = snap.docs.map((d) => {
-      const data = d.data() as any;
-      return {id: d.id, title: data.title, content: data.fields?.content, category: data.fields?.category};
+      const data = d.data();
+      const docFields = data.fields && typeof data.fields === "object" ? data.fields as Record<string, unknown> : undefined;
+      return {
+        id: d.id,
+        title: typeof data.title === "string" ? data.title : undefined,
+        content: typeof docFields?.content === "string" ? docFields.content : undefined,
+        category: typeof docFields?.category === "string" ? docFields.category : undefined,
+      };
     });
     return ok({ results, count: results.length });
   }
 
   case "updateEntry": {
-    const updateData: Record<string, any> = {
+    const entryId = typeof args.id === "string" ? args.id : "";
+    const title = typeof args.title === "string" ? args.title : undefined;
+    const content = typeof args.content === "string" ? args.content : undefined;
+    const category = typeof args.category === "string" ? args.category : undefined;
+
+    const updateData: Record<string, unknown> = {
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     };
-    if (args.title) updateData.title = args.title;
+    if (title) updateData.title = title;
 
     // Fetch existing entry to compare and merge
-    const existingDoc = await entriesRef.doc(args.id).get();
+    const existingDoc = await entriesRef.doc(entryId).get();
     const existingData = existingDoc.data() || {};
-    const currentFields = existingData.fields || {};
+    const currentFields = existingData.fields && typeof existingData.fields === "object"
+      ? existingData.fields as Record<string, unknown>
+      : {};
 
-    if (args.content || args.category) {
+    if (content || category) {
       updateData.fields = {
         ...currentFields,
-        ...(args.content ? {content: args.content} : {}),
-        ...(args.category ? {category: args.category} : {}),
+        ...(content ? {content} : {}),
+        ...(category ? {category} : {}),
       };
     }
 
     // Category correction learning — if category changed, record it as a correction
-    const oldCategory = existingData.category as string | undefined;
-    if (args.category && oldCategory && args.category !== oldCategory) {
-      updateData.category = args.category;
-      updateData.category_predicted = false; // human corrected it
+    const oldCategory = typeof existingData.category === "string" ? existingData.category : undefined;
+    if (category && oldCategory && category !== oldCategory) {
+      updateData.category = category;
+      updateData.category_predicted = false;
 
-      // Record this as a high-confidence correction signal
-      const entryTitle = args.title || (existingData.title as string) || "";
-      const entryContent = args.content || currentFields.content || "";
-      recordCategorySignal(userId, entryTitle, entryContent, args.category, true, db).catch(() => {});
-    } else if (args.category && !oldCategory) {
-      updateData.category = args.category;
+      const entryTitle = title || (typeof existingData.title === "string" ? existingData.title : "");
+      const entryContent = content || (typeof currentFields.content === "string" ? currentFields.content : "");
+      recordCategorySignal(userId, entryTitle, entryContent, category, true, db).catch(() => {});
+    } else if (category && !oldCategory) {
+      updateData.category = category;
     }
 
-    await entriesRef.doc(args.id).update(updateData);
+    await entriesRef.doc(entryId).update(updateData);
     const actionData = {
-      id: args.id,
-      title: args.title || null,
-      category: args.category || null,
-      content: args.content || null,
+      id: entryId,
+      title: title || null,
+      category: category || null,
+      content: content || null,
     };
-    return novaAction("update_entry", actionData, { id: args.id });
+    return novaAction("update_entry", actionData, { id: entryId });
   }
 
   case "deleteEntry": {
-    // Get title before deleting for the live feedback
-    const delDoc = await entriesRef.doc(args.id).get();
-    const delTitle = delDoc.data()?.title || "Entry";
-    await entriesRef.doc(args.id).delete();
-    return novaAction("delete_entry", { id: args.id, title: delTitle }, { id: args.id, title: delTitle });
+    const entryId = typeof args.id === "string" ? args.id : "";
+    const delDoc = await entriesRef.doc(entryId).get();
+    const delData = delDoc.data() || {};
+    const delTitle = typeof delData.title === "string" ? delData.title : "Entry";
+    await entriesRef.doc(entryId).delete();
+    return novaAction("delete_entry", { id: entryId, title: delTitle }, { id: entryId, title: delTitle });
   }
   }
 
@@ -1746,7 +1847,7 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
       const userText: string = transcript?.trim() || "";
 
       // Build user message parts — audio or text
-      const userParts: any[] = audioData
+      const userParts: ConversationPart[] = audioData
         ? [{inlineData: {mimeType: inputAudioMimeType || "audio/webm", data: audioData}}]
         : [{text: userText}];
 
@@ -1754,13 +1855,13 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
       const cappedHistory = conversationHistory.slice(-10);
 
       // Build contents array from history + new user message
-      const contents: any[] = [
+      const contents: ConversationTurnRecord[] = [
         ...cappedHistory,
         {role: "user", parts: userParts},
       ];
 
       let responseText = "";
-      const actionsExecuted: any[] = [];
+      const actionsExecuted: ActionExecutionRecord[] = [];
 
       // ── Explicit authenticated tool path for briefing/client integrations ──
       const ALLOWED_DIRECT_TOOLS = new Set([
@@ -1792,7 +1893,14 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
           args: debugToolOverride.args || {},
           result: directResult,
         });
-        responseText = directResult?.data?.briefing || directResult?.data?.message || directResult?.message || `Completed ${debugToolOverride.tool}.`;
+        const directData = directResult.data && typeof directResult.data === "object"
+          ? directResult.data as Record<string, unknown>
+          : {};
+        responseText =
+          (typeof directData.briefing === "string" ? directData.briefing : undefined) ||
+          (typeof directData.message === "string" ? directData.message : undefined) ||
+          (typeof directResult.message === "string" ? directResult.message : undefined) ||
+          `Completed ${debugToolOverride.tool}.`;
 
         const cleanHistory = [
           ...cappedHistory,
@@ -1802,15 +1910,15 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
 
         try {
           const sessionTurns = cleanHistory.slice(-10);
-          const sessionActions = actionsExecuted.map((a: any) => ({
-            tool: a.tool,
-            args: a.args,
-            result_summary: a.result?.success ? "success" : "failed",
+          const sessionActions = actionsExecuted.map((action) => ({
+            tool: action.tool,
+            args: action.args,
+            result_summary: action.result?.success ? "success" : "failed",
             timestamp: Date.now(),
           }));
 
           if (currentSessionId) {
-            const updateData: Record<string, any> = {
+            const updateData: Record<string, unknown> = {
               turns: sessionTurns,
               turn_count: sessionTurns.length,
               updated_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -1861,8 +1969,8 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
           .limit(5)
           .get();
         activePatterns = patternsSnap.docs.map((d) => `- ${d.data().description}: ${d.data().suggested_action}`);
-      } catch (pErr: any) {
-        console.warn("[VoiceAgent] Patterns query skipped:", pErr?.message || pErr);
+      } catch (pErr: unknown) {
+        console.warn("[VoiceAgent] Patterns query skipped:", pErr instanceof Error ? pErr.message : pErr);
       }
 
       // ── Gemini function calling loop (max 6 iterations for agentic chaining) ──
@@ -1900,19 +2008,19 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         }
 
         const parts = candidate.content?.parts || [];
-        const hasFunctionCall = parts.some((p: any) => p.functionCall);
+        const hasFunctionCall = parts.some((part: ConversationPart) => part.functionCall);
 
         if (hasFunctionCall) {
           // Add model's function call turn to history
           contents.push({role: "model", parts});
 
           // Execute all tool calls
-          const functionResponses: any[] = [];
+          const functionResponses: ConversationPart[] = [];
           for (const part of parts) {
             if (!part.functionCall) continue;
             const {name, args} = part.functionCall;
             console.log(`[VoiceAgent] Tool: ${name}`, args);
-            let result: Record<string, any>;
+            let result: Record<string, unknown>;
             const toolStartedAt = Date.now();
             try {
               result = await executeVoiceTool(name, args, user.uid);
@@ -1923,9 +2031,10 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
                 latencyMs: Date.now() - toolStartedAt,
                 args: summarizeToolArgs(args || {}),
               });
-            } catch (toolErr: any) {
-              console.error(`[VoiceAgent] Tool ${name} failed:`, toolErr?.message || toolErr);
-              result = fail(`Tool ${name} failed: ${toolErr?.message || "unknown error"}`);
+            } catch (toolErr: unknown) {
+              const toolMessage = toolErr instanceof Error ? toolErr.message : String(toolErr);
+              console.error(`[VoiceAgent] Tool ${name} failed:`, toolMessage);
+              result = fail(`Tool ${name} failed: ${toolMessage || "unknown error"}`);
             }
             actionsExecuted.push({tool: name, args, result});
             functionResponses.push({
@@ -1938,8 +2047,8 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         } else {
           // Final text response
           responseText = parts
-            .filter((p: any) => p.text)
-            .map((p: any) => p.text)
+            .filter((part: ConversationPart) => part.text)
+            .map((part: ConversationPart) => part.text)
             .join("");
           contents.push({role: "model", parts: [{text: responseText}]});
           keepLooping = false;
@@ -1997,25 +2106,25 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         .filter((result) => result?.success && result?.appCommand);
 
       // Replace audio parts in history with text placeholder (audio can't be stored in history)
-      const cleanHistory = contents.map((turn: any) => ({
+      const cleanHistory = contents.map((turn: ConversationTurnRecord) => ({
         ...turn,
-        parts: turn.parts.map((p: any) =>
-          p.inlineData ? {text: "[voice message]"} : p
+        parts: turn.parts.map((part: ConversationPart) =>
+          part.inlineData ? {text: "[voice message]"} : part
         ),
       }));
 
       // ── Save conversation session ──────────────────────────────────────────
       try {
         const sessionTurns = cleanHistory.slice(-10);
-        const sessionActions = actionsExecuted.map((a: any) => ({
-          tool: a.tool,
-          args: a.args,
-          result_summary: a.result?.success ? "success" : "failed",
+        const sessionActions = actionsExecuted.map((action) => ({
+          tool: action.tool,
+          args: action.args,
+          result_summary: action.result?.success ? "success" : "failed",
           timestamp: Date.now(),
         }));
 
         if (currentSessionId) {
-          const updateData: Record<string, any> = {
+          const updateData: Record<string, unknown> = {
             turns: sessionTurns,
             turn_count: sessionTurns.length,
             updated_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -2052,9 +2161,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         conversationHistory: cleanHistory,
         sessionId: currentSessionId,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[VoiceAgent] Error:", error);
-      res.status(500).json({error: "Voice agent failed", detail: error?.message || String(error)});
+      res.status(500).json({error: "Voice agent failed", detail: error instanceof Error ? error.message : String(error)});
     }
   })
 );
@@ -2221,19 +2330,26 @@ export const processEntryDeep = functions.firestore
       const geminiData = await geminiRes.json();
       const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-      let extracted: any;
+      let extracted: Record<string, unknown>;
       try {
-        extracted = JSON.parse(rawText);
+        const parsed = JSON.parse(rawText);
+        extracted = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
       } catch {
         console.warn("[processEntryDeep] Failed to parse Gemini JSON:", rawText.substring(0, 200));
         await change.after.ref.update({processed: true});
         return;
       }
 
-      const entities = extracted.entities || [];
-      const tags = extracted.tags || [];
-      const actionItems = extracted.action_items || [];
-      const summary = extracted.summary || "";
+      const entities: ExtractedEntityRecord[] = Array.isArray(extracted.entities)
+        ? extracted.entities as ExtractedEntityRecord[]
+        : [];
+      const tags: string[] = Array.isArray(extracted.tags)
+        ? extracted.tags.filter((tag): tag is string => typeof tag === "string")
+        : [];
+      const actionItems: ExtractedActionItemRecord[] = Array.isArray(extracted.action_items)
+        ? extracted.action_items as ExtractedActionItemRecord[]
+        : [];
+      const summary = typeof extracted.summary === "string" ? extracted.summary : "";
 
       // ── Upsert entities into entity_graph ─────────────────────────────────
       const entityIds: string[] = [];
@@ -2511,7 +2627,7 @@ export const analyzePatterns = functions.pubsub
         .get();
 
       // Group by user
-      const userEntries: Record<string, any[]> = {};
+      const userEntries: Record<string, Array<{title?: unknown; category?: unknown; tags?: unknown; created_at?: unknown}>> = {};
       for (const doc of recentEntries.docs) {
         const data = doc.data();
         const uid = data.user_id;
@@ -2527,7 +2643,7 @@ export const analyzePatterns = functions.pubsub
         const analysisPrompt = `Analyze these ${entries.length} entries from the last 30 days and detect behavioral patterns.
 
 Entries:
-${entries.map((e: any) => `- "${e.title}" [${e.category || "uncategorized"}] tags: ${(e.tags || []).join(", ") || "none"}`).join("\n")}
+${entries.map((entry) => `- "${entry.title}" [${entry.category || "uncategorized"}] tags: ${Array.isArray(entry.tags) ? entry.tags.join(", ") || "none" : "none"}`).join("\n")}
 
 Detect patterns like:
 - Category preferences (e.g., "80% of entries about meetings are categorized as Work")
@@ -2553,9 +2669,10 @@ Only include patterns with confidence >= 0.6. Return empty array if no clear pat
         const resData = await res.json();
         const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
 
-        let patterns: any[];
+        let patterns: UserPatternRecord[];
         try {
-          patterns = JSON.parse(rawText);
+          const parsed = JSON.parse(rawText);
+          patterns = Array.isArray(parsed) ? parsed.filter((pattern): pattern is UserPatternRecord => Boolean(pattern && typeof pattern === "object")) : [];
         } catch {
           continue;
         }
@@ -2563,7 +2680,8 @@ Only include patterns with confidence >= 0.6. Return empty array if no clear pat
         if (!Array.isArray(patterns)) continue;
 
         for (const pattern of patterns) {
-          if (!pattern.description || pattern.confidence < 0.6) continue;
+          const confidence = typeof pattern.confidence === "number" ? pattern.confidence : 0;
+          if (!pattern.description || confidence < 0.6) continue;
 
           // Check if this pattern already exists
           const existingSnap = await db.collection("user_patterns")
@@ -2579,16 +2697,16 @@ Only include patterns with confidence >= 0.6. Return empty array if no clear pat
               description: pattern.description,
               trigger_conditions: pattern.trigger_conditions || "",
               suggested_action: pattern.suggested_action || "",
-              confidence: pattern.confidence,
+              confidence,
               occurrence_count: 1,
               last_occurred: admin.firestore.FieldValue.serverTimestamp(),
-              active: pattern.confidence >= 0.7,
+              active: confidence >= 0.7,
               created_at: admin.firestore.FieldValue.serverTimestamp(),
             });
           } else {
             // Update confidence and occurrence count
             await existingSnap.docs[0].ref.update({
-              confidence: Math.min(pattern.confidence + 0.05, 1.0),
+              confidence: Math.min(confidence + 0.05, 1.0),
               occurrence_count: admin.firestore.FieldValue.increment(1),
               last_occurred: admin.firestore.FieldValue.serverTimestamp(),
               active: true,
@@ -2653,7 +2771,7 @@ export const quickSave = functions.https.onRequest(
 
     // Build field definitions
     const fields: Record<string, string> = {content: finalContent, category};
-    const field_definitions: any[] = [{id: "content", name: "Content", type: "textarea"}];
+    const field_definitions: Array<{id: string; name: string; type: string}> = [{id: "content", name: "Content", type: "textarea"}];
     if (sourceUrl) {
       fields.url = sourceUrl;
       field_definitions.push({id: "url", name: "Source URL", type: "text"});

@@ -68,7 +68,7 @@ export const EntryIntelligencePanel: React.FC<EntryIntelligencePanelProps> = ({
       .sort((a, b) => b.score - a.score)
       .slice(0, 4)
       .map((item) => item.candidate);
-  }, [allEntries, entry.id, entry.title, entry.fields, linkedEntryIds, tags]);
+  }, [allEntries, entry.id, entry.title, linkedEntryIds, tags]);
 
   if (!summary && tags.length === 0 && actionItems.length === 0 && relatedEntries.length === 0) {
     return null;

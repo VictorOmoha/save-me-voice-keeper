@@ -82,7 +82,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
         sendText(`__nova_greet__:${displayName || "there"}`);
       }, 400);
     }
-  }, [autoGreet]);
+  }, [autoGreet, conversationHistory.length, status, sendText, displayName]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

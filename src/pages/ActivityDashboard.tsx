@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
-import { DashboardHeader } from "@/components/DashboardHeader";
 import { useSavedEntries } from "@/hooks/useSavedEntries";
-import { useStorageStats } from "@/hooks/useStorageStats";
+import { SavedEntry } from "@/types/dashboard";
 import {
   ArrowLeft,
   TrendingUp,
@@ -21,43 +20,60 @@ import {
   Clock,
 } from "lucide-react";
 
-const ActivityDashboard: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const { entries } = useSavedEntries();
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
+const TIME_RANGE_MS = {
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
+  all: Infinity,
+} as const;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+type TimeRange = keyof typeof TIME_RANGE_MS;
+
+type FirestoreTimestampLike = {
+  seconds?: number;
+};
+
+const getEntryTimestamp = (value: SavedEntry['createdAt'] | string | FirestoreTimestampLike | null | undefined): number => {
+  if (value instanceof Date) {
+    return value.getTime();
   }
 
-  const now = new Date();
-  const rangeMs = {
-    '7d': 7 * 24 * 60 * 60 * 1000,
-    '30d': 30 * 24 * 60 * 60 * 1000,
-    '90d': 90 * 24 * 60 * 60 * 1000,
-    'all': Infinity,
-  };
+  if (typeof value === 'string') {
+    const timestamp = new Date(value).getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  }
+
+  if (value && typeof value === 'object' && typeof value.seconds === 'number') {
+    return value.seconds * 1000;
+  }
+
+  return 0;
+};
+
+const ActivityDashboard: React.FC = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { savedEntries } = useSavedEntries();
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+
+  const now = Date.now();
 
   const filteredEntries = useMemo(() => {
-    if (timeRange === 'all') return entries;
-    const cutoff = now.getTime() - rangeMs[timeRange];
-    return entries.filter(e => {
-      const created = e.createdAt instanceof Date ? e.createdAt.getTime() :
-        (e.createdAt as any)?.seconds ? (e.createdAt as any).seconds * 1000 :
-        typeof e.createdAt === 'string' ? new Date(e.createdAt).getTime() : 0;
-      return created >= cutoff;
-    });
-  }, [entries, timeRange]);
+    if (timeRange === 'all') return savedEntries;
+
+    const cutoff = now - TIME_RANGE_MS[timeRange];
+    return savedEntries.filter((entry) => getEntryTimestamp(entry.createdAt) >= cutoff);
+  }, [savedEntries, timeRange, now]);
 
   // Compute stats
   const totalEntries = filteredEntries.length;
 
   const categoryBreakdown = useMemo(() => {
     const counts: Record<string, number> = {};
-    filteredEntries.forEach(e => {
-      const cat = (e as any).category || e.fields?.category || 'Uncategorized';
-      counts[cat] = (counts[cat] || 0) + 1;
+    filteredEntries.forEach((entry) => {
+      const fieldCategory = typeof entry.fields?.category === 'string' ? entry.fields.category : null;
+      const category = entry.category || fieldCategory || 'Uncategorized';
+      counts[category] = (counts[category] || 0) + 1;
     });
     return Object.entries(counts)
       .sort(([, a], [, b]) => b - a)
@@ -85,9 +101,8 @@ const ActivityDashboard: React.FC = () => {
       const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
       const dayEnd = dayStart + 24 * 60 * 60 * 1000;
 
-      const count = entries.filter(e => {
-        const created = e.createdAt instanceof Date ? e.createdAt.getTime() :
-          (e.createdAt as any)?.seconds ? (e.createdAt as any).seconds * 1000 : 0;
+      const count = savedEntries.filter((entry) => {
+        const created = getEntryTimestamp(entry.createdAt);
         return created >= dayStart && created < dayEnd;
       }).length;
 
@@ -97,22 +112,16 @@ const ActivityDashboard: React.FC = () => {
       });
     }
     return days;
-  }, [entries]);
+  }, [savedEntries, now]);
 
   const maxDailyCount = Math.max(...dailyActivity.map(d => d.count), 1);
 
   // Recent entries
   const recentEntries = useMemo(() => {
-    return [...entries]
-      .sort((a, b) => {
-        const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() :
-          (a.createdAt as any)?.seconds ? (a.createdAt as any).seconds * 1000 : 0;
-        const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() :
-          (b.createdAt as any)?.seconds ? (b.createdAt as any).seconds * 1000 : 0;
-        return bTime - aTime;
-      })
+    return [...savedEntries]
+      .sort((a, b) => getEntryTimestamp(b.createdAt) - getEntryTimestamp(a.createdAt))
       .slice(0, 5);
-  }, [entries]);
+  }, [savedEntries]);
 
   // Entries with action items
   const actionItemEntries = useMemo(() => {
@@ -120,6 +129,10 @@ const ActivityDashboard: React.FC = () => {
       e.fields?.actionItems && String(e.fields.actionItems).trim().length > 0
     ).length;
   }, [filteredEntries]);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -129,7 +142,7 @@ const ActivityDashboard: React.FC = () => {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Dashboard
           </Button>
-          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as any)}>
+          <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
             <SelectTrigger className="w-[120px] h-8">
               <SelectValue />
             </SelectTrigger>
@@ -271,9 +284,7 @@ const ActivityDashboard: React.FC = () => {
                 ) : (
                   <div className="space-y-2">
                     {recentEntries.map((entry) => {
-                      const created = entry.createdAt instanceof Date ? entry.createdAt :
-                        (entry.createdAt as any)?.seconds ? new Date((entry.createdAt as any).seconds * 1000) :
-                        typeof entry.createdAt === 'string' ? new Date(entry.createdAt) : new Date();
+                      const created = new Date(getEntryTimestamp(entry.createdAt));
 
                       return (
                         <div

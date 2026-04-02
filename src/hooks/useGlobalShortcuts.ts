@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useKeyboardShortcuts } from '@/contexts/KeyboardShortcutsContext';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcutsContext';
 
 export const useGlobalShortcuts = () => {
   const navigate = useNavigate();

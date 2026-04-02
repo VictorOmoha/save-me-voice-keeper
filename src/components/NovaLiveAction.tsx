@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   CheckCircle2, FileText, Tag, AlignLeft, List,
   Search, Brain, Trash2, Bell, ListChecks, Pencil, XCircle
@@ -12,7 +12,7 @@ export type NovaActionType =
 
 export interface NovaActionPayload {
   actionType: NovaActionType;
-  actionData: Record<string, any>;
+  actionData: Record<string, unknown>;
 }
 
 interface NovaLiveActionProps {
@@ -40,7 +40,7 @@ const ACTION_CONFIG: Record<NovaActionType, {
 
 // ── Entry form animation (save_entry / update_entry) ──────────────────────────
 const EntryFormBody = ({ data, actionType, onPhaseDone }: {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   actionType: "save_entry" | "update_entry";
   onPhaseDone: () => void;
 }) => {
@@ -53,7 +53,7 @@ const EntryFormBody = ({ data, actionType, onPhaseDone }: {
   const title = data.title || "";
   const category = data.category || "";
   const content = data.content || "";
-  const fields = data.fields as Array<{ key: string; value: string }> | null;
+  const fields = Array.isArray(data.fields) ? data.fields as Array<{ key: string; value: string }> : null;
 
   useEffect(() => {
     if (phase !== "title" || !title) { if (!title) { setPhase("done"); setTimeout(onPhaseDone, 100); } return; }
@@ -146,7 +146,7 @@ const EntryFormBody = ({ data, actionType, onPhaseDone }: {
 };
 
 // ── Delete animation ──────────────────────────────────────────────────────────
-const DeleteBody = ({ data, onPhaseDone }: { data: Record<string, any>; onPhaseDone: () => void }) => {
+const DeleteBody = ({ data, onPhaseDone }: { data: Record<string, unknown>; onPhaseDone: () => void }) => {
   const [struck, setStruck] = useState(false);
   useEffect(() => {
     const t1 = setTimeout(() => setStruck(true), 400);
@@ -164,8 +164,13 @@ const DeleteBody = ({ data, onPhaseDone }: { data: Record<string, any>; onPhaseD
 };
 
 // ── Search results animation ──────────────────────────────────────────────────
-const SearchBody = ({ data, onPhaseDone }: { data: Record<string, any>; onPhaseDone: () => void }) => {
-  const results = (data.results || []) as Array<{ title: string; category?: string }>;
+const SearchBody = ({ data, onPhaseDone }: { data: Record<string, unknown>; onPhaseDone: () => void }) => {
+  const results = useMemo(
+    () => (Array.isArray(data.results)
+      ? data.results as Array<{ title: string; category?: string }>
+      : []),
+    [data.results]
+  );
   const [visible, setVisible] = useState(0);
 
   useEffect(() => {
@@ -193,7 +198,7 @@ const SearchBody = ({ data, onPhaseDone }: { data: Record<string, any>; onPhaseD
 
 // ── Quick action animation (memory, task, reminder) ───────────────────────────
 const QuickActionBody = ({ data, actionType, onPhaseDone }: {
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   actionType: NovaActionType;
   onPhaseDone: () => void;
 }) => {

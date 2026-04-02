@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import type { NovaActionPayload as HookPayload } from "@/hooks/useVoiceAgent";
+import type { SavedEntry } from "@/types/dashboard";
 
 type PanelState = "closed" | "minimized" | "open";
 
@@ -43,6 +44,10 @@ export const NovaFloat: React.FC = () => {
   const [liveAction, setLiveAction] = useState<NovaActionPayload | null>(null);
   const [shouldGreet, setShouldGreet] = useState(false);
   const hasGreetedRef = useRef(false);
+
+  const isPrintableEntry = (entry: Record<string, unknown>): entry is Partial<SavedEntry> & { id: string } => {
+    return typeof entry.id === "string";
+  };
 
   // Fire greeting the first time the panel opens
   useEffect(() => {
@@ -117,7 +122,7 @@ export const NovaFloat: React.FC = () => {
     }
   }, [setTheme]);
 
-  const handleSettingsUpdated = useCallback((setting: string, value?: any) => {
+  const handleSettingsUpdated = useCallback((setting: string, value?: unknown) => {
     const labels: Record<string, string> = {
       profile: "Profile updated",
       email_notifications: `Email notifications ${value ? "enabled" : "disabled"}`,
@@ -139,24 +144,30 @@ export const NovaFloat: React.FC = () => {
     setPanelState("minimized");
   }, [navigate]);
 
-  const handlePrintEntry = useCallback((entries: any[]) => {
+  const handlePrintEntry = useCallback((entries: Record<string, unknown>[]) => {
     if (!entries.length) {
       toast.error("No entries found to print");
       return;
     }
-    // Convert backend entry shape to SavedEntry shape for printProfessionally
-    const printable = entries.map((e: any) => ({
-      id: e.id,
-      title: e.title || "Untitled",
-      fields: e.fields || {},
+
+    const printable: SavedEntry[] = entries.filter(isPrintableEntry).map((entry) => ({
+      id: entry.id,
+      title: typeof entry.title === "string" ? entry.title : "Untitled",
+      fields: entry.fields && typeof entry.fields === "object" ? entry.fields as SavedEntry["fields"] : {},
       createdAt: new Date(),
       updatedAt: new Date(),
     }));
+
+    if (!printable.length) {
+      toast.error("No printable entries found");
+      return;
+    }
+
     printProfessionally(printable, {
-      title: entries.length === 1 ? entries[0].title : `${entries.length} Entries`,
+      title: printable.length === 1 ? printable[0].title : `${printable.length} Entries`,
       includeMetadata: true,
     });
-    toast.success(`Print dialog opened for ${entries.length} ${entries.length === 1 ? "entry" : "entries"}`);
+    toast.success(`Print dialog opened for ${printable.length} ${printable.length === 1 ? "entry" : "entries"}`);
   }, []);
 
   // ── Unified Nova action handler ──────────────────────────────────────────

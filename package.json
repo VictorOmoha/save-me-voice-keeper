@@ -1,13 +1,16 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "saveme-voice-keeper",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "SaveMe.Space — Voice-first external memory system powered by Nova AI. Capture thoughts by voice, organize them with intelligence, export structured documents.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:legacy-voice": "vitest run --config vitest.legacy.config.ts",
     "preview": "vite preview"
   },
   "dependencies": {

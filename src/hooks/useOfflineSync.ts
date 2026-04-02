@@ -1,5 +1,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import type { SavedEntry } from '@/types/dashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   cacheEntries,
@@ -17,67 +18,6 @@ export const useOfflineSync = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const syncingRef = useRef(false);
-
-  // Track online/offline status
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      syncPendingChanges();
-    };
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [user]);
-
-  // Listen for service worker sync messages
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SYNC_OFFLINE_ENTRIES') {
-        syncPendingChanges();
-      }
-    };
-
-    navigator.serviceWorker?.addEventListener('message', handleMessage);
-    return () => {
-      navigator.serviceWorker?.removeEventListener('message', handleMessage);
-    };
-  }, [user]);
-
-  // Check pending count on mount
-  useEffect(() => {
-    checkPendingCount();
-  }, []);
-
-  const checkPendingCount = async () => {
-    const queue = await getOfflineQueue();
-    setPendingCount(queue.length);
-  };
-
-  // Cache entries locally when online
-  const cacheEntriesLocally = useCallback(async (entries: any[]) => {
-    try {
-      await cacheEntries(entries);
-    } catch (error) {
-      console.warn('Failed to cache entries locally:', error);
-    }
-  }, []);
-
-  // Get entries from cache when offline
-  const getCachedEntriesForUser = useCallback(async () => {
-    if (!user) return [];
-    try {
-      return await getCachedEntries(user.uid);
-    } catch (error) {
-      console.warn('Failed to get cached entries:', error);
-      return [];
-    }
-  }, [user]);
 
   // Sync pending offline changes to Firestore
   const syncPendingChanges = useCallback(async () => {
@@ -135,6 +75,67 @@ export const useOfflineSync = () => {
     } finally {
       setIsSyncing(false);
       syncingRef.current = false;
+    }
+  }, [user]);
+
+  const checkPendingCount = useCallback(async () => {
+    const queue = await getOfflineQueue();
+    setPendingCount(queue.length);
+  }, []);
+
+  // Track online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncPendingChanges();
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [syncPendingChanges]);
+
+  // Listen for service worker sync messages
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SYNC_OFFLINE_ENTRIES') {
+        syncPendingChanges();
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleMessage);
+    };
+  }, [syncPendingChanges]);
+
+  // Check pending count on mount
+  useEffect(() => {
+    checkPendingCount();
+  }, [checkPendingCount]);
+
+  // Cache entries locally when online
+  const cacheEntriesLocally = useCallback(async (entries: SavedEntry[]) => {
+    try {
+      await cacheEntries(entries);
+    } catch (error) {
+      console.warn('Failed to cache entries locally:', error);
+    }
+  }, []);
+
+  // Get entries from cache when offline
+  const getCachedEntriesForUser = useCallback(async () => {
+    if (!user) return [];
+    try {
+      return await getCachedEntries(user.uid);
+    } catch (error) {
+      console.warn('Failed to get cached entries:', error);
+      return [];
     }
   }, [user]);
 

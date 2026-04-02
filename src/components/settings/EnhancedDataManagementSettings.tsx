@@ -41,7 +41,7 @@ export const EnhancedDataManagementSettings = () => {
 
     window.addEventListener('nova:export-data', handleNovaExport as EventListener);
     return () => window.removeEventListener('nova:export-data', handleNovaExport as EventListener);
-  }, [user]);
+  }, [handleExportAllData]);
 
   const loadStorageStats = useCallback(async () => {
     if (!user) return;
@@ -74,7 +74,7 @@ export const EnhancedDataManagementSettings = () => {
     }
   }, [user]);
 
-  const handleExportAllData = async () => {
+  const handleExportAllData = useCallback(async () => {
     if (!user) return;
 
     setIsExporting(true);
@@ -159,7 +159,7 @@ export const EnhancedDataManagementSettings = () => {
     } finally {
       setIsExporting(false);
     }
-  };
+  }, [user, toast]);
 
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true);

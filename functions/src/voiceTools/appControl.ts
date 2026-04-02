@@ -1,17 +1,34 @@
 import * as admin from "firebase-admin";
 import { command, fail, VoiceToolResult } from "../voiceToolResults";
 
+interface EntryRecord {
+  id: string;
+  title?: string;
+  fields?: Record<string, unknown>;
+}
+
+const toEntryRecord = (doc: admin.firestore.QueryDocumentSnapshot): EntryRecord => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    title: typeof data.title === "string" ? data.title : undefined,
+    fields: data.fields && typeof data.fields === "object" ? data.fields as Record<string, unknown> : undefined,
+  };
+};
+
 export async function handleAppControlTool(
   toolName: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userId: string,
   entriesRef: admin.firestore.CollectionReference
 ): Promise<VoiceToolResult | null> {
   switch (toolName) {
   case "navigateApp":
     return command("navigate", { route: args.route }, { route: args.route });
-  case "navigateToCategory":
-    return command("navigate", { route: `/category/${encodeURIComponent(args.category)}` }, { category: args.category || null });
+  case "navigateToCategory": {
+    const category = typeof args.category === "string" ? args.category : "";
+    return command("navigate", { route: `/category/${encodeURIComponent(category)}` }, { category: category || null });
+  }
   case "openEntryForm":
     return command("openEntryForm", { category: args.category || null }, { category: args.category || null });
   case "closeEntry":
@@ -32,10 +49,10 @@ export async function handleAppControlTool(
         .orderBy("updated_at", "desc")
         .limit(30)
         .get();
-      const q = args.title.toLowerCase();
+      const q = typeof args.title === "string" ? args.title.toLowerCase() : "";
       const found = snap.docs
-        .map((d) => ({id: d.id, ...(d.data() as any)}))
-        .find((e: any) => e.title && e.title.toLowerCase().includes(q));
+        .map(toEntryRecord)
+        .find((entry) => entry.title?.toLowerCase().includes(q));
       if (found) resolvedId = found.id;
     }
     return command("openEntry", { id: resolvedId, title: args.title || null }, { id: resolvedId, title: args.title || null });
@@ -46,18 +63,18 @@ export async function handleAppControlTool(
       .orderBy("updated_at", "desc")
       .limit(50)
       .get();
-    const allDocs = snap.docs.map((d) => ({id: d.id, ...(d.data() as any)}));
-    let toPrint: any[] = [];
+    const allDocs = snap.docs.map(toEntryRecord);
+    let toPrint: EntryRecord[] = [];
 
     if (args.id) {
       const byId = allDocs.find((e) => e.id === args.id);
       if (byId) toPrint = [byId];
     } else if (args.title) {
-      const q = args.title.toLowerCase();
-      toPrint = allDocs.filter((e: any) => e.title && e.title.toLowerCase().includes(q));
+      const q = typeof args.title === "string" ? args.title.toLowerCase() : "";
+      toPrint = allDocs.filter((entry) => entry.title?.toLowerCase().includes(q));
     } else if (args.category) {
-      const cat = args.category.toLowerCase();
-      toPrint = allDocs.filter((e: any) => e.fields?.category && e.fields.category.toLowerCase() === cat);
+      const cat = typeof args.category === "string" ? args.category.toLowerCase() : "";
+      toPrint = allDocs.filter((entry) => typeof entry.fields?.category === "string" && entry.fields.category.toLowerCase() === cat);
     }
 
     if (toPrint.length === 0) {

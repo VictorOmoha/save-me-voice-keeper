@@ -1,34 +1,6 @@
 
-import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-interface ShortcutAction {
-  key: string;
-  ctrl?: boolean;
-  shift?: boolean;
-  alt?: boolean;
-  description: string;
-  action: () => void;
-  category: string;
-}
-
-interface KeyboardShortcutsContextType {
-  shortcuts: ShortcutAction[];
-  isHelpOpen: boolean;
-  setIsHelpOpen: (open: boolean) => void;
-  registerShortcut: (shortcut: ShortcutAction) => void;
-  unregisterShortcut: (key: string) => void;
-}
-
-const KeyboardShortcutsContext = createContext<KeyboardShortcutsContextType>({
-  shortcuts: [],
-  isHelpOpen: false,
-  setIsHelpOpen: () => {},
-  registerShortcut: () => {},
-  unregisterShortcut: () => {},
-});
-
-export const useKeyboardShortcuts = () => useContext(KeyboardShortcutsContext);
+import React, { useEffect, useCallback, useState } from 'react';
+import { KeyboardShortcutsContext, type ShortcutAction } from './KeyboardShortcutsContextValue';
 
 export const KeyboardShortcutsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [shortcuts, setShortcuts] = useState<ShortcutAction[]>([]);

@@ -7,7 +7,7 @@ const QUEUE_STORE = 'offline_queue';
 interface OfflineQueueItem {
   id: string;
   action: 'create' | 'update' | 'delete';
-  data: any;
+  data: Record<string, unknown>;
   timestamp: number;
   userId: string;
 }
@@ -37,7 +37,7 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 // Cache entries locally
-export async function cacheEntries(entries: any[]): Promise<void> {
+export async function cacheEntries(entries: Array<Record<string, unknown>>): Promise<void> {
   try {
     const db = await openDB();
     const tx = db.transaction(ENTRIES_STORE, 'readwrite');
@@ -59,7 +59,7 @@ export async function cacheEntries(entries: any[]): Promise<void> {
 }
 
 // Get cached entries for a user
-export async function getCachedEntries(userId: string): Promise<any[]> {
+export async function getCachedEntries(userId: string): Promise<Array<Record<string, unknown>>> {
   try {
     const db = await openDB();
     const tx = db.transaction(ENTRIES_STORE, 'readonly');

@@ -170,7 +170,7 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
         ]);
 
         const loadedReminders: ReminderItem[] = remindersSnap.docs.map((docSnap) => {
-          const data = docSnap.data() as Record<string, any>;
+          const data = docSnap.data() as Record<string, unknown>;
           return {
             id: docSnap.id,
             text: String(data.text || data.title || "Reminder"),
@@ -181,7 +181,7 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
         });
 
         const loadedLinks: LinkedEntry[] = linksSnap.docs.map((docSnap) => {
-          const data = docSnap.data() as Record<string, any>;
+          const data = docSnap.data() as Record<string, unknown>;
           return {
             id: docSnap.id,
             target_entry_id: data.target_entry_id,
@@ -190,7 +190,7 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
         });
 
         const loadedMemories: MemoryItem[] = memoriesSnap.docs.map((docSnap) => {
-          const data = docSnap.data() as Record<string, any>;
+          const data = docSnap.data() as Record<string, unknown>;
           return {
             id: docSnap.id,
             content: String(data.content || ""),

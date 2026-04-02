@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
@@ -46,5 +46,17 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
+  },
+  test: {
+    environment: "jsdom",
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/cypress/**",
+      "**/.{idea,git,cache,output,temp}/**",
+      "**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*",
+      "**/src/utils/nlp/tests/**",
+      "**/src/utils/tests/categoryMatcher.test.ts",
+    ],
   },
 }));

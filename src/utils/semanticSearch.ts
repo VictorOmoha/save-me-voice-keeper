@@ -4,6 +4,11 @@ import { auth } from '@/lib/firebase';
 const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
 
 // Local embedding cache to avoid redundant API calls
+type SearchableEntry = {
+  title?: string;
+  fields?: Record<string, unknown>;
+};
+
 const embeddingCache = new Map<string, number[]>();
 
 /**
@@ -73,7 +78,7 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 /**
  * Build a searchable text from an entry
  */
-export function entryToSearchText(entry: any): string {
+export function entryToSearchText(entry: SearchableEntry): string {
   const parts = [entry.title || ''];
 
   if (entry.fields) {
@@ -93,13 +98,13 @@ export function entryToSearchText(entry: any): string {
  */
 export async function semanticSearch(
   query: string,
-  entries: any[],
+  entries: SearchableEntry[],
   topK = 10
-): Promise<Array<{ entry: any; score: number }>> {
+): Promise<Array<{ entry: SearchableEntry; score: number }>> {
   const queryEmbedding = await generateEmbedding(query);
   if (!queryEmbedding) return [];
 
-  const results: Array<{ entry: any; score: number }> = [];
+  const results: Array<{ entry: SearchableEntry; score: number }> = [];
 
   for (const entry of entries) {
     const searchText = entryToSearchText(entry);

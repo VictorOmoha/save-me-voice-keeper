@@ -139,10 +139,10 @@ const NovaBriefing: React.FC = () => {
           relatedResult.sessionId ||
           clientSessionId
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("[NovaBriefing] backend briefing load failed", error);
         setBackendMode("fallback");
-        setBackendError(error?.message || "Failed to load backend briefing intelligence.");
+        setBackendError(error instanceof Error ? error.message : "Failed to load backend briefing intelligence.");
         setBackendBriefing(null);
         setBackendActivitySummary(null);
         setBackendDeadlines([]);
@@ -153,7 +153,7 @@ const NovaBriefing: React.FC = () => {
     };
 
     loadBackendBriefing();
-  }, [user, scope, topActionEntries, linkedEntries]);
+  }, [user, scope, topActionEntries, linkedEntries, clientSessionId]);
 
   const recommendedMoves = useMemo(() => {
     const moves: { title: string; description: string; target?: string; actionLabel: string }[] = [];

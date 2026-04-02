@@ -3,7 +3,7 @@ import { command, VoiceToolResult } from "../voiceToolResults";
 
 export async function handleSettingsTool(
   toolName: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userId: string,
   db: admin.firestore.Firestore
 ): Promise<VoiceToolResult | null> {
@@ -17,23 +17,29 @@ export async function handleSettingsTool(
 
   case "updateProfile": {
     const profileRef = db.collection("profiles").doc(userId);
-    const updates: Record<string, any> = {};
-    if (args.fullName) updates.fullName = args.fullName;
-    if (args.phone) updates.phone = args.phone;
+    const updates: Record<string, unknown> = {};
+    const fullName = typeof args.fullName === "string" ? args.fullName : undefined;
+    const phone = typeof args.phone === "string" ? args.phone : undefined;
+
+    if (fullName) updates.fullName = fullName;
+    if (phone) updates.phone = phone;
+
     await profileRef.set(updates, {merge: true});
-    if (args.fullName) {
-      await admin.auth().updateUser(userId, {displayName: args.fullName});
+    if (fullName) {
+      await admin.auth().updateUser(userId, {displayName: fullName});
     }
     return command("settingsUpdated", { setting: "profile" }, { setting: "profile", updates });
   }
 
   case "toggleNotification": {
-    await prefsRef.set({[args.type]: args.enabled}, {merge: true});
-    return command("settingsUpdated", { setting: args.type, value: args.enabled }, { setting: args.type, value: args.enabled });
+    const notificationType = typeof args.type === "string" ? args.type : "";
+    const enabled = typeof args.enabled === "boolean" ? args.enabled : false;
+    await prefsRef.set({[notificationType]: enabled}, {merge: true});
+    return command("settingsUpdated", { setting: notificationType, value: enabled }, { setting: notificationType, value: enabled });
   }
 
   case "updateVoiceSettings": {
-    const voiceUpdates: Record<string, any> = {};
+    const voiceUpdates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(args)) {
       if (value !== undefined && value !== null) {
         voiceUpdates[key] = value;

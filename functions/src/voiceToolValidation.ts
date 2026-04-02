@@ -41,9 +41,7 @@ function sanitizeString(value: unknown, max = MAX_STRING_LENGTH): string | undef
   return truncate(value.trim(), max);
 }
 
-export function validateToolArgs(toolName: string, args: Record<string, any>): ToolValidationResult {
-  const sanitized = { ...args };
-
+export function validateToolArgs(toolName: string, args: Record<string, unknown>): ToolValidationResult {
   switch (toolName) {
   case "navigateApp": {
     if (!isNonEmptyString(args.route)) return { valid: false, error: "navigateApp requires route" };
@@ -177,8 +175,8 @@ export function validateToolArgs(toolName: string, args: Record<string, any>): T
   }
 }
 
-export function summarizeToolArgs(args: Record<string, any>): Record<string, any> {
-  const summary: Record<string, any> = {};
+export function summarizeToolArgs(args: Record<string, unknown>): Record<string, unknown> {
+  const summary: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(args || {})) {
     if (value == null) continue;

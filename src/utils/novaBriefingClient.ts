@@ -6,20 +6,20 @@ type BriefingToolName = "prepareBriefing" | "getActivitySummary" | "getUpcomingD
 
 interface VoiceAgentAction {
   tool: string;
-  args: Record<string, any>;
-  result: Record<string, any>;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
 }
 
 interface VoiceAgentResponse {
   transcript?: string;
   responseText?: string;
   actionsExecuted?: VoiceAgentAction[];
-  conversationHistory?: any[];
-  appCommands?: any[];
+  conversationHistory?: unknown[];
+  appCommands?: unknown[];
   sessionId?: string;
 }
 
-interface BriefingToolEnvelope<T = Record<string, any>> {
+interface BriefingToolEnvelope<T = Record<string, unknown>> {
   success: boolean;
   data: T;
   error?: string | null;
@@ -34,7 +34,7 @@ const extractToolResult = (response: VoiceAgentResponse, toolName: BriefingToolN
   return action?.result || null;
 };
 
-const extractEnvelope = <T = Record<string, any>>(
+const extractEnvelope = <T = Record<string, unknown>>(
   response: VoiceAgentResponse,
   toolName: BriefingToolName
 ): BriefingToolEnvelope<T> => {
@@ -64,7 +64,7 @@ const extractEnvelope = <T = Record<string, any>>(
 
 const callBriefingTool = async (
   toolName: BriefingToolName,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   sessionId?: string | null
 ) => {
   const token = await getAuthToken();
@@ -151,9 +151,9 @@ export interface RelatedEntriesResult {
     title: string;
     summary?: string | null;
     category?: string | null;
-    action_items?: any[];
+    action_items?: unknown[];
     tags?: string[];
-    updated_at?: any;
+    updated_at?: unknown;
   }>;
   count: number;
   error?: string | null;

@@ -27,8 +27,8 @@ interface AgentResponse {
  * @returns The agent's decision and spoken response
  */
 export const sendToVoiceAgent = async (
-  transcript: string, 
-  conversationHistory: any[] = []
+  transcript: string,
+  conversationHistory: Array<Record<string, unknown>> = []
 ): Promise<AgentResponse> => {
   
   try {

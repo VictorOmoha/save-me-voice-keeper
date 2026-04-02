@@ -158,50 +158,48 @@ const speakWithCloudFunction = async (text: string, voice: string): Promise<void
  * Optimized browser TTS fallback
  */
 const speakWithBrowser = async (text: string): Promise<void> => {
-  return new Promise(async (resolve, reject) => {
-    if (!('speechSynthesis' in window)) {
-      reject(new Error('Speech synthesis not supported'));
-      return;
-    }
+  if (!('speechSynthesis' in window)) {
+    throw new Error('Speech synthesis not supported');
+  }
 
-    const synth = window.speechSynthesis;
-    synth.cancel();
+  const synth = window.speechSynthesis;
+  synth.cancel();
 
-    const voices = await loadBrowserVoices();
-    const utterance = new SpeechSynthesisUtterance(text);
+  const voices = await loadBrowserVoices();
+  const utterance = new SpeechSynthesisUtterance(text);
 
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.volume = 0.9;
-    utterance.lang = 'en-US';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 0.9;
+  utterance.lang = 'en-US';
 
-    const voicePreferences = [
-      'Google US English',
-      'Google UK English Female',
-      'Microsoft Zira',
-      'Microsoft David',
-      'Samantha',
-      'Karen',
-      'Daniel',
-    ];
+  const voicePreferences = [
+    'Google US English',
+    'Google UK English Female',
+    'Microsoft Zira',
+    'Microsoft David',
+    'Samantha',
+    'Karen',
+    'Daniel',
+  ];
 
-    let selectedVoice: SpeechSynthesisVoice | null = null;
-    for (const pref of voicePreferences) {
-      selectedVoice = voices.find(v => v.name.includes(pref)) || null;
-      if (selectedVoice) break;
-    }
+  let selectedVoice: SpeechSynthesisVoice | null = null;
+  for (const pref of voicePreferences) {
+    selectedVoice = voices.find(v => v.name.includes(pref)) || null;
+    if (selectedVoice) break;
+  }
 
-    if (!selectedVoice) {
-      selectedVoice = voices.find(v => v.lang.startsWith('en')) || null;
-    }
+  if (!selectedVoice) {
+    selectedVoice = voices.find(v => v.lang.startsWith('en')) || null;
+  }
 
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
+  if (selectedVoice) {
+    utterance.voice = selectedVoice;
+  }
 
+  await new Promise<void>((resolve, reject) => {
     utterance.onend = () => resolve();
     utterance.onerror = (event) => reject(event);
-
     synth.speak(utterance);
   });
 };

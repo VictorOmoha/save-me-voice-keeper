@@ -1,9 +1,30 @@
 import * as admin from "firebase-admin";
 import { novaAction, ok, VoiceToolResult } from "../voiceToolResults";
 
+interface StoredMemoryRecord {
+  id: string;
+  content?: string;
+  category?: string | null;
+  type?: string;
+}
+
+interface ScoredMemoryRecord extends StoredMemoryRecord {
+  score: number;
+}
+
+const toStoredMemoryRecord = (doc: admin.firestore.QueryDocumentSnapshot): StoredMemoryRecord => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    content: typeof data.content === "string" ? data.content : undefined,
+    category: typeof data.category === "string" ? data.category : null,
+    type: typeof data.type === "string" ? data.type : undefined,
+  };
+};
+
 export async function handleMemoryTool(
   toolName: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userId: string,
   db: admin.firestore.Firestore,
   rebuildMemoryProfile: (userId: string, db: admin.firestore.Firestore) => Promise<void>
@@ -66,16 +87,16 @@ export async function handleMemoryTool(
     const query = ((args.query as string) || "").toLowerCase();
     const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
 
-    const scored = snap.docs
-      .map((d) => ({id: d.id, ...(d.data() as any)}))
-      .map((mem: any) => {
-        const content = (mem.content || "").toLowerCase();
+    const scored: ScoredMemoryRecord[] = snap.docs
+      .map(toStoredMemoryRecord)
+      .map((memoryDoc) => {
+        const content = memoryDoc.content?.toLowerCase() || "";
         let score = 0.1;
         if (content.includes(query)) score = 1.0;
-        else if (queryWords.some((w: string) => content.includes(w))) score = 0.5;
-        return {...mem, score};
+        else if (queryWords.some((word) => content.includes(word))) score = 0.5;
+        return { ...memoryDoc, score };
       })
-      .sort((a: any, b: any) => b.score - a.score)
+      .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
     for (const mem of scored) {
@@ -88,7 +109,7 @@ export async function handleMemoryTool(
     }
 
     return ok({
-      memories: scored.map((m: any) => ({content: m.content, category: m.category, type: m.type})),
+      memories: scored.map((memoryDoc) => ({ content: memoryDoc.content, category: memoryDoc.category, type: memoryDoc.type })),
       count: scored.length,
     });
   }
@@ -107,7 +128,7 @@ export async function handleMemoryTool(
 
     for (const d of snap.docs) {
       const content = (d.data().content || "").toLowerCase();
-      if (content.includes(query) || queryWords.every((w: string) => content.includes(w))) {
+      if (content.includes(query) || queryWords.every((word) => content.includes(word))) {
         await d.ref.update({active: false, updated_at: admin.firestore.FieldValue.serverTimestamp()});
         deactivated++;
       }

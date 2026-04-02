@@ -7,12 +7,9 @@ import { NotificationSettings } from "@/components/settings/NotificationSettings
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings";
 import { AutomationSettings } from "@/components/settings/AutomationSettings";
-import { DataManagementSettings } from "@/components/settings/DataManagementSettings";
-import { HelpSupportSettings } from "@/components/settings/HelpSupportSettings";
-import { VoiceSettings } from "@/components/settings/VoiceSettings";
-import { EnhancedVoiceSettings } from "@/components/settings/EnhancedVoiceSettings";
-import { EnhancedHelpSupportSettings } from "@/components/settings/EnhancedHelpSupportSettings";
 import { EnhancedDataManagementSettings } from "@/components/settings/EnhancedDataManagementSettings";
+import { VoiceSettings } from "@/components/settings/VoiceSettings";
+import { EnhancedHelpSupportSettings } from "@/components/settings/EnhancedHelpSupportSettings";
 import { NovaMemorySettings } from "@/components/settings/NovaMemorySettings";
 import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";

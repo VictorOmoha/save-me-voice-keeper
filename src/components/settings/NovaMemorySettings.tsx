@@ -15,7 +15,7 @@ interface Memory {
   type: string;
   source: "explicit" | "inferred";
   confidence: number;
-  created_at: any;
+  created_at: { toMillis?: () => number } | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {

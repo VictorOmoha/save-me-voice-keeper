@@ -2,15 +2,107 @@ import * as admin from "firebase-admin";
 import { fail, novaAction, ok, VoiceToolResult } from "../voiceToolResults";
 
 interface IntelligenceDeps {
-  executeVoiceTool: (toolName: string, args: Record<string, any>, userId: string) => Promise<Record<string, any>>;
-  fetchWithRetry: (url: string, init: RequestInit) => Promise<any>;
+  executeVoiceTool: (toolName: string, args: Record<string, unknown>, userId: string) => Promise<Record<string, unknown>>;
+  fetchWithRetry: (url: string, init: RequestInit) => Promise<Response>;
   GEMINI_API: string;
   geminiKey?: string;
 }
 
+interface EntityGraphRecord {
+  id: string;
+  name?: string;
+  aliases?: string[];
+  type?: string;
+  entries?: Array<{ id: string; title?: unknown; category?: unknown; summary?: unknown }>;
+}
+
+interface RelatedEntryRecord {
+  id: string;
+  title?: string;
+  summary?: string | null;
+  content?: string | null;
+  category?: string | null;
+  action_items?: Array<{ status?: string; text?: string; priority?: string; due_date?: string | null }>;
+  tags?: string[];
+  updated_at?: unknown;
+}
+
+interface MemoryRecord {
+  content?: string;
+  category?: string | null;
+  type?: string;
+}
+
+interface ActionItemRecord {
+  id?: string;
+  text?: string;
+  priority?: string;
+  status?: string;
+  due_date?: string | null | { toDate?: () => Date };
+  entry_id?: string | null;
+  ref?: admin.firestore.DocumentReference;
+}
+
+const getDueDate = (dueDate: ActionItemRecord["due_date"]): Date | null => {
+  if (!dueDate) return null;
+  if (typeof dueDate === "string") return new Date(dueDate);
+  if (typeof dueDate.toDate === "function") return dueDate.toDate();
+  return null;
+};
+
+const toEntityGraphRecord = (doc: admin.firestore.QueryDocumentSnapshot): EntityGraphRecord => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    name: typeof data.name === "string" ? data.name : undefined,
+    aliases: Array.isArray(data.aliases) ? data.aliases.filter((alias): alias is string => typeof alias === "string") : [],
+    type: typeof data.type === "string" ? data.type : undefined,
+  };
+};
+
+const toRelatedEntryRecord = (doc: admin.firestore.QueryDocumentSnapshot | admin.firestore.DocumentSnapshot, fallbackId?: string): RelatedEntryRecord => {
+  const data = doc.data() || {};
+  const id = "id" in doc ? doc.id : fallbackId || "";
+  return {
+    id,
+    title: typeof data.title === "string" ? data.title : undefined,
+    summary: typeof data.summary === "string" ? data.summary : null,
+    content: data.fields && typeof data.fields === "object" && typeof (data.fields as Record<string, unknown>).content === "string"
+      ? ((data.fields as Record<string, unknown>).content as string)
+      : null,
+    category: typeof data.category === "string"
+      ? data.category
+      : data.fields && typeof data.fields === "object" && typeof (data.fields as Record<string, unknown>).category === "string"
+        ? ((data.fields as Record<string, unknown>).category as string)
+        : null,
+    action_items: Array.isArray(data.action_items) ? data.action_items as RelatedEntryRecord["action_items"] : [],
+    tags: Array.isArray(data.tags) ? data.tags.filter((tag): tag is string => typeof tag === "string") : [],
+    updated_at: data.updated_at,
+  };
+};
+
+const toMemoryRecord = (value: Record<string, unknown>): MemoryRecord => ({
+  content: typeof value.content === "string" ? value.content : undefined,
+  category: typeof value.category === "string" ? value.category : null,
+  type: typeof value.type === "string" ? value.type : undefined,
+});
+
+const toActionItemRecord = (doc: admin.firestore.QueryDocumentSnapshot): ActionItemRecord => {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    text: typeof data.text === "string" ? data.text : undefined,
+    priority: typeof data.priority === "string" ? data.priority : undefined,
+    status: typeof data.status === "string" ? data.status : undefined,
+    due_date: data.due_date as ActionItemRecord["due_date"],
+    entry_id: typeof data.entry_id === "string" ? data.entry_id : null,
+    ref: doc.ref,
+  };
+};
+
 export async function handleIntelligenceTool(
   toolName: string,
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   userId: string,
   db: admin.firestore.Firestore,
   entriesRef: admin.firestore.CollectionReference,
@@ -25,14 +117,15 @@ export async function handleIntelligenceTool(
       .limit(100)
       .get();
 
-    const query = (args.query as string).toLowerCase();
+    const query = String(args.query || "").toLowerCase();
     const typeFilter = args.type as string | undefined;
     const matches = entitySnap.docs
-      .map((d) => ({id: d.id, ...(d.data() as any)}))
-      .filter((e: any) => {
-        const nameMatch = e.name.toLowerCase().includes(query) ||
-          (e.aliases || []).some((a: string) => a.toLowerCase().includes(query));
-        const typeMatch = !typeFilter || e.type === typeFilter;
+      .map(toEntityGraphRecord)
+      .filter((entity) => {
+        const entityName = entity.name?.toLowerCase() || "";
+        const aliases = entity.aliases || [];
+        const nameMatch = entityName.includes(query) || aliases.some((alias) => alias.toLowerCase().includes(query));
+        const typeMatch = !typeFilter || entity.type === typeFilter;
         return nameMatch && typeMatch;
       })
       .slice(0, 10);
@@ -43,13 +136,13 @@ export async function handleIntelligenceTool(
         .where("entity_id", "==", entity.id)
         .limit(10)
         .get();
-      const entryIds = links.docs.map((d) => d.data().entry_id);
-      const entries: any[] = [];
-      for (const eid of entryIds.slice(0, 5)) {
-        const entryDoc = await entriesRef.doc(eid).get();
+      const entryIds = links.docs.map((d) => d.data().entry_id).filter((entryId): entryId is string => typeof entryId === "string");
+      const entries: Array<{ id: string; title?: unknown; category?: unknown; summary?: unknown }> = [];
+      for (const entryId of entryIds.slice(0, 5)) {
+        const entryDoc = await entriesRef.doc(entryId).get();
         if (entryDoc.exists) {
-          const data = entryDoc.data() as any;
-          entries.push({id: eid, title: data.title, category: data.category || data.fields?.category, summary: data.summary});
+          const data = entryDoc.data() || {};
+          entries.push({ id: entryId, title: data.title, category: data.category || data.fields?.category, summary: data.summary });
         }
       }
       entity.entries = entries;
@@ -104,20 +197,11 @@ export async function handleIntelligenceTool(
       }
     }
 
-    const entries: any[] = [];
+    const entries: RelatedEntryRecord[] = [];
     for (const id of Array.from(relatedIds).slice(0, limit)) {
       const entryDoc = await entriesRef.doc(id).get();
       if (entryDoc.exists) {
-        const data = entryDoc.data() as any;
-        entries.push({
-          id,
-          title: data.title,
-          summary: data.summary || null,
-          category: data.category || data.fields?.category,
-          action_items: data.action_items || [],
-          tags: data.tags || [],
-          updated_at: data.updated_at,
-        });
+        entries.push(toRelatedEntryRecord(entryDoc, id));
       }
     }
 
@@ -131,15 +215,21 @@ export async function handleIntelligenceTool(
     const relatedResult = await executeVoiceTool("getRelatedEntries", {topic: args.subject, limit: 10}, userId);
     const memoryResult = await executeVoiceTool("recallMemories", {query: args.subject}, userId);
 
-    const searchEntries = searchResult?.data?.results || [];
-    const relatedEntries = relatedResult?.data?.entries || [];
-    const memories = memoryResult?.data?.memories || [];
+    const searchEntries = Array.isArray((searchResult.data as Record<string, unknown> | undefined)?.results)
+      ? ((searchResult.data as Record<string, unknown>).results as RelatedEntryRecord[])
+      : [];
+    const relatedEntries = Array.isArray((relatedResult.data as Record<string, unknown> | undefined)?.entries)
+      ? ((relatedResult.data as Record<string, unknown>).entries as RelatedEntryRecord[])
+      : [];
+    const memories = Array.isArray((memoryResult.data as Record<string, unknown> | undefined)?.memories)
+      ? ((memoryResult.data as Record<string, unknown>).memories as Record<string, unknown>[]).map(toMemoryRecord)
+      : [];
 
     const allEntries = [...searchEntries, ...relatedEntries];
     const seen = new Set<string>();
-    const uniqueEntries = allEntries.filter((e: any) => {
-      if (seen.has(e.id)) return false;
-      seen.add(e.id);
+    const uniqueEntries = allEntries.filter((entry) => {
+      if (!entry.id || seen.has(entry.id)) return false;
+      seen.add(entry.id);
       return true;
     });
 
@@ -151,10 +241,10 @@ export async function handleIntelligenceTool(
       .get();
     const subjectLower = (args.subject as string).toLowerCase();
     const relevantActions = actionItemsSnap.docs
-      .map((d) => d.data())
-      .filter((a: any) => (a.text || "").toLowerCase().includes(subjectLower));
+      .map(toActionItemRecord)
+      .filter((actionItem) => (actionItem.text || "").toLowerCase().includes(subjectLower));
 
-    const synthesisPrompt = `Synthesize a ${args.type || "general"} briefing about "${args.subject}".\n\nEntries found (${uniqueEntries.length}):\n${uniqueEntries.map((e: any) => `- ${e.title}: ${e.summary || e.content || "(no summary)"}`).join("\n")}\n\nMemories about this:\n${memories.length ? memories.map((m: any) => `- ${m.content}`).join("\n") : "None"}\n\nOpen action items:\n${relevantActions.length ? relevantActions.map((a: any) => `- ${a.text} [${a.priority || "medium"}]${a.due_date ? " due: " + a.due_date : ""}`).join("\n") : "None"}\n\nWrite a concise briefing (2-4 sentences) suitable for voice. Mention key facts, open tasks, and anything time-sensitive.`;
+    const synthesisPrompt = `Synthesize a ${args.type || "general"} briefing about "${args.subject}".\n\nEntries found (${uniqueEntries.length}):\n${uniqueEntries.map((entry) => `- ${entry.title}: ${entry.summary || entry.content || "(no summary)"}`).join("\n")}\n\nMemories about this:\n${memories.length ? memories.map((memory) => `- ${memory.content}`).join("\n") : "None"}\n\nOpen action items:\n${relevantActions.length ? relevantActions.map((actionItem) => `- ${actionItem.text} [${actionItem.priority || "medium"}]${actionItem.due_date ? " due: " + String(actionItem.due_date) : ""}`).join("\n") : "None"}\n\nWrite a concise briefing (2-4 sentences) suitable for voice. Mention key facts, open tasks, and anything time-sensitive.`;
 
     const briefingRes = await fetchWithRetry(`${GEMINI_API}?key=${geminiKey}`, {
       method: "POST",
@@ -193,21 +283,21 @@ export async function handleIntelligenceTool(
       .limit(30)
       .get();
 
-    const entries = snap.docs.map((d) => ({id: d.id, ...(d.data() as any)}));
+    const entries = snap.docs.map((d) => toRelatedEntryRecord(d, d.id));
     const categoryCounts: Record<string, number> = {};
-    const allActionItems: any[] = [];
+    const allActionItems: Array<{ status?: string }> = [];
 
-    entries.forEach((e: any) => {
-      const cat = e.category || e.fields?.category || "Uncategorized";
+    entries.forEach((entry) => {
+      const cat = entry.category || "Uncategorized";
       categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-      if (e.action_items) allActionItems.push(...e.action_items);
+      if (entry.action_items) allActionItems.push(...entry.action_items);
     });
 
     return ok({
       totalEntries: entries.length,
       categoryCounts,
-      recentTitles: entries.slice(0, 7).map((e: any) => e.title),
-      openActionItems: allActionItems.filter((a: any) => a.status !== "completed").length,
+      recentTitles: entries.slice(0, 7).map((entry) => entry.title || "Untitled"),
+      openActionItems: allActionItems.filter((actionItem) => actionItem.status !== "completed").length,
       timeframe: args.timeframe,
     });
   }
@@ -230,22 +320,23 @@ export async function handleIntelligenceTool(
     const snap = await q.orderBy("created_at", "desc").limit(30).get();
 
     const items = snap.docs
-      .map((d) => ({id: d.id, ...(d.data() as any)}))
-      .filter((item: any) => {
+      .map(toActionItemRecord)
+      .filter((item) => {
         if (!item.due_date) return true;
-        const dueDate = item.due_date.toDate ? item.due_date.toDate() : new Date(item.due_date);
+        const dueDate = getDueDate(item.due_date);
+        if (!dueDate) return true;
         return dueDate <= until;
       })
       .slice(0, 10);
 
     return ok({
-      items: items.map((i: any) => ({
-        id: i.id,
-        text: i.text,
-        priority: i.priority,
-        status: i.status,
-        due_date: i.due_date ? (i.due_date.toDate ? i.due_date.toDate().toISOString() : i.due_date) : null,
-        entry_id: i.entry_id,
+      items: items.map((item) => ({
+        id: item.id,
+        text: item.text,
+        priority: item.priority,
+        status: item.status,
+        due_date: getDueDate(item.due_date)?.toISOString() || null,
+        entry_id: item.entry_id,
       })),
       count: items.length,
       timeframe: args.timeframe,
@@ -263,7 +354,7 @@ export async function handleIntelligenceTool(
     const query = (args.query as string).toLowerCase();
     const queryWords = query.split(/\s+/).filter((w) => w.length > 2);
 
-    let bestMatch: any = null;
+    let bestMatch: ActionItemRecord | null = null;
     let bestScore = 0;
     for (const d of snap.docs) {
       const text = (d.data().text || "").toLowerCase();
@@ -275,7 +366,7 @@ export async function handleIntelligenceTool(
       }
       if (score > bestScore) {
         bestScore = score;
-        bestMatch = {id: d.id, ref: d.ref, ...d.data()};
+        bestMatch = { ...toActionItemRecord(d), ref: d.ref };
       }
     }
 
@@ -283,13 +374,17 @@ export async function handleIntelligenceTool(
       return fail("No matching action item found");
     }
 
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       status: args.status,
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     };
     if (args.status === "completed") {
       updateData.completed_at = admin.firestore.FieldValue.serverTimestamp();
     }
+    if (!bestMatch.ref) {
+      return fail("Matched action item is missing a document reference");
+    }
+
     await bestMatch.ref.update(updateData);
 
     return novaAction("update_task", { text: bestMatch.text, status: args.status }, {
@@ -301,7 +396,7 @@ export async function handleIntelligenceTool(
 
   case "setReminder": {
     const whenStr = (args.when as string).toLowerCase();
-    let triggerAt = new Date();
+    const triggerAt = new Date();
 
     if (whenStr.includes("tomorrow")) {
       triggerAt.setDate(triggerAt.getDate() + 1);

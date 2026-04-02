@@ -82,7 +82,7 @@ const Subscription = () => {
     }
 
     if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Subscription upgrades are coming soon! Stay tuned.");
+      toast.info("Billing is not configured in this environment yet.");
       return;
     }
 
@@ -137,7 +137,7 @@ const Subscription = () => {
 
   const handleManageBilling = async () => {
     if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Billing management is coming soon! Stay tuned.");
+      toast.info("Billing is not configured in this environment yet.");
       return;
     }
 
@@ -232,7 +232,7 @@ const Subscription = () => {
                     Loading...
                   </>
                 ) : (
-                  'Manage Billing'
+                  'Open Billing Portal'
                 )}
               </Button>
             </div>
@@ -282,15 +282,15 @@ const Subscription = () => {
                   {loadingPlan === plan.name ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
+                      Opening...
                     </>
                   ) : plan.current ? (
                     'Current Plan'
                   ) : plan.name === "Free" ? (
                     'Free Plan'
                   ) : (
-                    `Upgrade to ${plan.name}`
-                  )}
+                  `Open ${plan.name}`
+                )}
                 </Button>
                 {!plan.current && plan.name !== "Free" && (
                   <p className="text-xs text-gray-600 text-center mt-2">

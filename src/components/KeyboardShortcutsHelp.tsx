@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useKeyboardShortcuts } from '@/contexts/KeyboardShortcutsContext';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcutsContext';
 import { Keyboard } from 'lucide-react';
 
 const formatKey = (shortcut: { key: string; ctrl?: boolean; shift?: boolean; alt?: boolean }) => {

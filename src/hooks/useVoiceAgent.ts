@@ -15,8 +15,8 @@ export type AgentStatus = "idle" | "listening" | "thinking" | "acting" | "speaki
 
 export interface ActionEvent {
   tool: string;
-  args: Record<string, any>;
-  result: Record<string, any>;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
   label: string;
   status: "running" | "done" | "error";
 }
@@ -28,7 +28,7 @@ export interface ConversationTurn {
 
 export interface NovaActionPayload {
   actionType: string;
-  actionData: Record<string, any>;
+  actionData: Record<string, unknown>;
 }
 
 /**
@@ -52,13 +52,13 @@ export interface AppCommand {
   title?: string | null;
   theme?: string;
   setting?: string;
-  value?: any;
-  updates?: Record<string, any>;
+  value?: unknown;
+  updates?: Record<string, unknown>;
   format?: string;
-  entries?: any[];
+  entries?: Record<string, unknown>[];
   direction?: string;
   actionType?: string;
-  actionData?: Record<string, any>;
+  actionData?: Record<string, unknown>;
   error?: string;
 }
 
@@ -72,9 +72,9 @@ export interface UseVoiceAgentOptions {
   onProcessBrainDump?: () => void;
   onSaveBrainDump?: (category?: string | null) => void;
   onUpdateTheme?: (theme: string) => void;
-  onSettingsUpdated?: (setting: string, value?: any, updates?: Record<string, any>) => void;
+  onSettingsUpdated?: (setting: string, value?: unknown, updates?: Record<string, unknown>) => void;
   onExportData?: (format: string) => void;
-  onPrintEntry?: (entries: any[]) => void;
+  onPrintEntry?: (entries: Record<string, unknown>[]) => void;
   onNovaAction?: (payload: NovaActionPayload) => void;
   continuous?: boolean;
 }
@@ -99,7 +99,7 @@ interface UseVoiceAgentReturn {
 }
 
 // Human-readable labels for tool calls
-const toolLabel = (name: string, args: Record<string, any>): string => {
+const toolLabel = (name: string, args: Record<string, unknown>): string => {
   switch (name) {
     case "saveEntry":        return `Saving "${args.title || "entry"}"...`;
     case "searchEntries":    return `Searching for "${args.query}"...`;
@@ -299,12 +299,13 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
         }
       }, 10000);
 
-    } catch (err: any) {
-      const msg = (err.message || "").toLowerCase();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      const msg = message.toLowerCase();
       setError(
         msg.includes("permission") || msg.includes("denied") || msg.includes("notallowed")
           ? "Mic permission denied. Please allow microphone access in your browser."
-          : `Mic error: ${err.message}`
+          : `Mic error: ${message}`
       );
       setStatus("idle");
     }
@@ -405,12 +406,12 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
         if (continuousRef.current) startListening();
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useVoiceAgent]", err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : String(err));
       setStatus("idle");
     }
-  }, [conversationHistory, sessionId]);
+  }, [conversationHistory, sessionId, playAudio, startListening]);
 
   // ── Audio playback + auto-restart ─────────────────────────────────────────
   const playAudio = useCallback(async (base64Audio: string, mimeType = "audio/pcm") => {

@@ -16,7 +16,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Sparkles, X, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
-import { useKeyboardShortcuts } from "@/contexts/KeyboardShortcutsContext";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcutsContext";
 
 const QUICK_SAVE_URL = `${import.meta.env.VITE_CLOUD_FUNCTIONS_URL}/quickSave`;
 

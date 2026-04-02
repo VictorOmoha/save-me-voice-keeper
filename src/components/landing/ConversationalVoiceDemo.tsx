@@ -45,6 +45,12 @@ const CATEGORIES: Record<string, { keywords: string[]; icon: string }> = {
 
 const ACTION_VERBS = ['remind', 'call', 'email', 'send', 'schedule', 'book', 'meet', 'buy', 'pick up', 'get', 'do', 'finish', 'complete', 'submit', 'check', 'follow up', 'contact', 'text', 'pay'];
 
+const debugVoiceDemo = (...args: unknown[]) => {
+  if (import.meta.env.DEV) {
+    console.log(...args);
+  }
+};
+
 export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = ({ onSignupClick, theme }) => {
   const [state, setState] = useState<ConversationState>('idle');
   const [transcript, setTranscript] = useState("");
@@ -178,11 +184,11 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
   // Start listening helper
   const doStartListening = useCallback(() => {
     if (!recognitionRef.current) {
-      console.log('[VoiceDemo] No recognition ref');
+      debugVoiceDemo('[VoiceDemo] No recognition ref');
       return;
     }
     if (demoIsSpeaking()) {
-      console.log('[VoiceDemo] TTS is speaking, not starting recognition');
+      debugVoiceDemo('[VoiceDemo] TTS is speaking, not starting recognition');
       return;
     }
     
@@ -192,9 +198,9 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     transcriptRef.current = "";
 
     try {
-      console.log('[VoiceDemo] Starting recognition...');
+      debugVoiceDemo('[VoiceDemo] Starting recognition...');
       recognitionRef.current.start();
-      console.log('[VoiceDemo] Recognition started');
+      debugVoiceDemo('[VoiceDemo] Recognition started');
     } catch (e) {
       console.error('[VoiceDemo] Failed to start recognition:', e);
     }
@@ -202,7 +208,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
 
   // Process the user's voice input
   const processInput = useCallback((text: string) => {
-    console.log('[VoiceDemo] Processing input:', text);
+    debugVoiceDemo('[VoiceDemo] Processing input:', text);
     setState('processing');
     addMessage('user', text);
 
@@ -239,7 +245,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
   const handleResponse = useCallback((text: string) => {
     const lower = text.toLowerCase().trim();
     const currentState = stateRef.current;
-    console.log('[VoiceDemo] Handling response:', text, 'state:', currentState);
+    debugVoiceDemo('[VoiceDemo] Handling response:', text, 'state:', currentState);
     addMessage('user', text);
 
     if (currentState === 'waiting_response') {
@@ -310,7 +316,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
   useEffect(() => {
     if (!isSupported) return;
 
-    console.log('[VoiceDemo] Initializing speech recognition');
+    debugVoiceDemo('[VoiceDemo] Initializing speech recognition');
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
@@ -319,11 +325,11 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
-      console.log('[VoiceDemo] Recognition onstart fired');
+      debugVoiceDemo('[VoiceDemo] Recognition onstart fired');
     };
 
     recognition.onresult = (event) => {
-      console.log('[VoiceDemo] Recognition onresult', event.results);
+      debugVoiceDemo('[VoiceDemo] Recognition onresult', event.results);
       let finalTranscript = '';
       let interimText = '';
       
@@ -338,14 +344,14 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
       
       setInterimTranscript(interimText);
       if (finalTranscript) {
-        console.log('[VoiceDemo] Final transcript:', finalTranscript);
+        debugVoiceDemo('[VoiceDemo] Final transcript:', finalTranscript);
         setTranscript(finalTranscript);
         transcriptRef.current = finalTranscript; // Sync ref immediately for onend handler
       }
     };
 
     recognition.onend = () => {
-      console.log('[VoiceDemo] Recognition onend, state:', stateRef.current, 'transcript:', transcriptRef.current);
+      debugVoiceDemo('[VoiceDemo] Recognition onend, state:', stateRef.current, 'transcript:', transcriptRef.current);
       setInterimTranscript("");
 
       const currentTranscript = transcriptRef.current;
@@ -369,7 +375,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
         setState('idle');
       } else if (event.error === 'no-speech' || event.error === 'aborted') {
         // no-speech and aborted are expected during conversation flow — don't reset state
-        console.log('[VoiceDemo] Benign error (no-speech/aborted), keeping current state');
+        debugVoiceDemo('[VoiceDemo] Benign error (no-speech/aborted), keeping current state');
       } else {
         setError(`Speech recognition error: ${event.error}`);
         setState('idle');
@@ -380,7 +386,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     recognitionRef.current = recognition;
 
     return () => {
-      console.log('[VoiceDemo] Cleanup: stopping recognition');
+      debugVoiceDemo('[VoiceDemo] Cleanup: stopping recognition');
       recognition.stop();
       demoStopSpeaking();
     };
@@ -391,7 +397,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
     if (!recognitionRef.current) return;
 
     recognitionRef.current.onend = () => {
-      console.log('[VoiceDemo] Recognition onend (updated), state:', stateRef.current, 'transcript:', transcriptRef.current);
+      debugVoiceDemo('[VoiceDemo] Recognition onend (updated), state:', stateRef.current, 'transcript:', transcriptRef.current);
       setInterimTranscript("");
 
       const currentTranscript = transcriptRef.current;
@@ -410,12 +416,12 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
   }, [processInput, handleResponse]);
 
   const stopListening = useCallback(() => {
-    console.log('[VoiceDemo] Stopping listening');
+    debugVoiceDemo('[VoiceDemo] Stopping listening');
     recognitionRef.current?.stop();
   }, []);
 
   const startConversation = () => {
-    console.log('[VoiceDemo] Starting conversation');
+    debugVoiceDemo('[VoiceDemo] Starting conversation');
     setConversationHistory([]);
     setDetectedEntry(null);
     setState('listening');
@@ -423,7 +429,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
   };
 
   const resetConversation = () => {
-    console.log('[VoiceDemo] Resetting conversation');
+    debugVoiceDemo('[VoiceDemo] Resetting conversation');
     setState('idle');
     setConversationHistory([]);
     setDetectedEntry(null);

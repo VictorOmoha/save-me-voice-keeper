@@ -28,12 +28,9 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  console.log('ThemeProvider: Initializing with defaultTheme:', defaultTheme);
-  
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const stored = localStorage.getItem(storageKey) as Theme;
-      console.log('ThemeProvider: Stored theme:', stored);
       return stored || defaultTheme;
     } catch (error) {
       console.error('ThemeProvider: Error accessing localStorage:', error);

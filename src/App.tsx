@@ -15,7 +15,7 @@ import { useExtensionBridge } from "./hooks/useExtensionBridge";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useOfflineSync } from "./hooks/useOfflineSync";
 import { KeyboardShortcutsProvider } from "./contexts/KeyboardShortcutsContext";
-import { PwaInstallBanner } from "./components/PwaInstallBanner";
+
 import { QuickCaptureOverlay } from "./components/QuickCaptureOverlay";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import PrivateRoute from "./components/PrivateRoute";
@@ -75,7 +75,6 @@ const App = () => (
                     <VoiceNavigationListener />
                     <NovaFloat />
                     <QuickCaptureOverlay />
-                    <PwaInstallBanner />
                     <OfflineIndicator />
 
                     <Suspense fallback={<PageLoader />}>

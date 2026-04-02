@@ -23,8 +23,7 @@
   ],
   "share_target": {
     "action": "/#/share",
-    "method": "POST",
-    "encoding": "application/json",
+    "method": "GET",
     "params": {
       "title": "title",
       "text": "text",

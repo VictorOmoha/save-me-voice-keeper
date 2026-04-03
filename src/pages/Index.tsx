@@ -73,24 +73,24 @@ const Index = () => {
         <nav className={`grid grid-cols-2 md:grid-cols-3 items-center h-20 text-sm ${theme === 'dark' ? 'border-b border-zinc-800/50' : 'border-b border-zinc-200'}`}>
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="SaveMe.Space" className="w-8 h-8 object-contain" />
-            <span className={`font-semibold hidden sm:inline ${theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900'}`}>SaveMe.Space</span>
+            <span className={`hidden sm:inline font-semibold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>SaveMe.Space</span>
           </div>
-          <div className={`hidden md:flex justify-center text-xs ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400'}`}>Voice-first external memory, powered by AI</div>
-          <div className={`flex items-center justify-end gap-4 ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-600'}`}>
-            <button onClick={toggleTheme} className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200' : 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900'}`} aria-label="Toggle theme">
+          <div className={`hidden md:flex justify-center text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Voice-first external memory, powered by AI</div>
+          <div className={`flex items-center justify-end gap-4 ${theme === 'dark' ? 'text-zinc-200' : 'text-zinc-600'}`}>
+            <button onClick={toggleTheme} className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-300 hover:text-white' : 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900'}`} aria-label="Toggle theme">
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             {isAuthenticated ? (
               <Link to="/dashboard" className={`px-5 py-2.5 rounded-lg font-medium transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>Dashboard</Link>
             ) : (
-              <Link to="/login" className={`px-5 py-2.5 rounded-lg font-medium transition-all ${theme === 'dark' ? 'border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}>Sign In</Link>
+              <Link to="/login" className={`px-5 py-2.5 rounded-lg font-medium transition-all ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}>Sign In</Link>
             )}
           </div>
         </nav>
 
         {/* Hero Section */}
         <section className="py-16 md:py-24 lg:py-32 flex flex-col items-center justify-center text-center">
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-8 reveal ${theme === 'dark' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-wide mb-8 reveal ${theme === 'dark' ? 'bg-primary/12 text-primary border border-primary/30' : 'bg-primary/10 text-primary border border-primary/20'}`}>
             <Mic className="w-3 h-3" />
             Capture voice. Get structured memory.
           </div>
@@ -98,28 +98,28 @@ const Index = () => {
             Your brain wasn't built<br />
             <span className="text-primary">to remember everything.</span>
           </h1>
-          <p className={`text-lg md:text-xl max-w-2xl mb-12 reveal stagger-2 leading-relaxed ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+          <p className={`text-lg md:text-xl max-w-2xl mb-12 reveal stagger-2 leading-relaxed ${theme === 'dark' ? 'text-zinc-200 md:text-zinc-300' : 'text-zinc-600'}`}>
             Speak your thoughts out loud. SaveMe captures, categorizes, and organizes them automatically — so you never lose an idea, task, or insight again.
           </p>
           <div className="w-full max-w-lg mb-8 reveal stagger-3">
             <ConversationalVoiceDemo onSignupClick={() => navigate("/signup")} theme={theme} />
           </div>
-          <p className={`text-xs mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400'}`}>Try the demo above — no signup needed</p>
+          <p className={`text-sm font-medium mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Try the demo above — no signup needed</p>
           <div className="flex flex-wrap items-center justify-center gap-4 reveal stagger-4">
             <button 
-              className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
+              className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
               onClick={() => setIsVideoModalOpen(true)} 
               disabled={!activeDemoVideo}
             >
               {activeDemoVideo ? "Watch Demo" : "Demo Coming Soon"}
             </button>
             {isAuthenticated ? (
-              <Link to="/dashboard" className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+              <Link to="/dashboard" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                 Go to Dashboard
                 <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
-              <Link to="/signup" className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+              <Link to="/signup" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                 Start Free
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -138,7 +138,7 @@ const Index = () => {
             <div key={i} className={`p-10 border-b md:border-b-0 md:border-r last:border-r-0 transition-all group reveal ${theme === 'dark' ? 'border-zinc-800/50 hover:bg-zinc-900/40' : 'border-zinc-200 hover:bg-zinc-50'}`} style={{ animationDelay: `${0.5 + i * 0.1}s` }}>
               <span className="text-primary text-2xl font-bold mb-6 block">{feature.num}</span>
               <h3 className={`font-semibold text-base mb-4 ${theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900'}`}>{feature.title}</h3>
-              <p className={`text-sm leading-relaxed transition-colors ${theme === 'dark' ? 'text-zinc-500 group-hover:text-zinc-400' : 'text-zinc-600 group-hover:text-zinc-700'}`}>{feature.desc}</p>
+              <p className={`text-sm leading-relaxed transition-colors ${theme === 'dark' ? 'text-zinc-300 group-hover:text-zinc-200' : 'text-zinc-600 group-hover:text-zinc-700'}`}>{feature.desc}</p>
             </div>
           ))}
         </section>
@@ -150,7 +150,7 @@ const Index = () => {
               Pure voice. Zero friction.
             </div>
             <h2 className={`text-3xl md:text-5xl font-bold mb-8 reveal stagger-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>See It in Action</h2>
-            <p className={`mb-16 max-w-2xl mx-auto text-lg reveal stagger-2 ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>Watch how SaveMe transforms your voice into organized, searchable knowledge — in seconds</p>
+            <p className={`mb-16 max-w-2xl mx-auto text-lg reveal stagger-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Watch how SaveMe transforms your voice into organized, searchable knowledge — in seconds</p>
             <div className={`p-2 reveal stagger-3 relative group rounded-2xl overflow-hidden border ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
               {activeCanvidVideo ? (
                 <video src={activeCanvidVideo.url} autoPlay loop muted playsInline className="w-full h-auto rounded-xl opacity-90 group-hover:opacity-100 transition-opacity" poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" />
@@ -179,13 +179,13 @@ const Index = () => {
                     <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0"></div>
                     <div>
                       <span className="text-sm font-semibold text-primary block mb-1">{pain.title}</span>
-                      <p className={`text-sm transition-colors ${theme === 'dark' ? 'text-zinc-500 group-hover:text-zinc-400' : 'text-zinc-600 group-hover:text-zinc-700'}`}>{pain.desc}</p>
+                      <p className={`text-sm transition-colors ${theme === 'dark' ? 'text-zinc-300 group-hover:text-zinc-200' : 'text-zinc-600 group-hover:text-zinc-700'}`}>{pain.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
               <div className={`text-center mt-20 pt-12 border-t ${theme === 'dark' ? 'border-zinc-800/20' : 'border-zinc-200'}`}>
-                <p className={`text-sm mb-8 ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>If this is you — just start talking</p>
+                <p className={`text-sm mb-8 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>If this is you — just start talking</p>
                 <button className={`px-8 py-3 rounded-lg font-medium transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Try Voice Capture Now</button>
               </div>
             </div>
@@ -200,7 +200,7 @@ const Index = () => {
                 Simple Pricing
               </div>
               <h2 className={`text-3xl md:text-5xl font-bold mb-8 reveal stagger-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Choose your plan</h2>
-              <p className={`text-sm reveal stagger-2 ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-600'}`}>Start free. Upgrade when you're ready. No lock-in.</p>
+              <p className={`text-sm reveal stagger-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Start free. Upgrade when you're ready. No lock-in.</p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {plans.map((plan, i) => (
@@ -210,18 +210,18 @@ const Index = () => {
                     <h3 className={`text-sm font-semibold mb-4 ${theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900'}`}>{plan.name}</h3>
                     <div className="flex items-baseline justify-center gap-1 mb-4">
                       <span className="text-5xl font-bold tracking-tight text-primary">{plan.price}</span>
-                      <span className={`text-sm ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-600'}`}>/{plan.period === "Forever" ? "free" : "mo"}</span>
+                      <span className={`text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>/{plan.period === "Forever" ? "free" : "mo"}</span>
                     </div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-600'}`}>{plan.description}</p>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>{plan.description}</p>
                   </div>
                   <ul className={`space-y-4 mb-10 border-t pt-8 ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
                     {plan.features.map((feature, j) => (
-                      <li key={j} className={`flex items-center gap-3 text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                      <li key={j} className={`flex items-center gap-3 text-sm ${theme === 'dark' ? 'text-zinc-200' : 'text-zinc-600'}`}>
                         <Check className="w-4 h-4 text-primary shrink-0" />{feature}
                       </li>
                     ))}
                   </ul>
-                  <Link to={getPlanHref(plan.name)} className={`block w-full px-6 py-3 rounded-lg font-medium text-center transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`}>
+                  <Link to={getPlanHref(plan.name)} className={`block w-full px-6 py-3 rounded-lg font-medium text-center transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`}>
                     {plan.price === "$0" ? "Start Free" : "Get Started"}
                   </Link>
                 </div>
@@ -233,22 +233,22 @@ const Index = () => {
         {/* Final CTA */}
         <section className={`py-24 px-8 border-t text-center ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
           <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Ready to <span className="text-primary">offload your brain?</span></h2>
-          <p className={`text-lg mb-8 max-w-xl mx-auto ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>Your external memory is one voice command away.</p>
-          <Link to="/signup" className={`inline-flex items-center gap-2 px-8 py-4 text-lg rounded-lg font-medium transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+          <p className={`text-lg mb-8 max-w-xl mx-auto ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Your external memory is one voice command away.</p>
+          <Link to="/signup" className={`inline-flex items-center gap-2 px-8 py-4 text-lg rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
             <Mic className="w-5 h-5" />
             Start Free — No Card Needed
           </Link>
         </section>
 
         {/* Footer */}
-        <footer className={`mt-auto border-t py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-8 text-sm ${theme === 'dark' ? 'border-zinc-800/50 text-zinc-600' : 'border-zinc-200 text-zinc-500'}`}>
+        <footer className={`mt-auto border-t py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-8 text-sm ${theme === 'dark' ? 'border-zinc-800/50 text-zinc-300' : 'border-zinc-200 text-zinc-500'}`}>
           <div>© 2026 SaveMe.Space — Your External Memory</div>
           <div className="flex items-center gap-8">
-            <a href="mailto:info@saveme.space" className="hover:text-primary transition-colors flex items-center gap-2"><Mail className="w-4 h-4" />Contact</a>
-            <Link to="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
-            <Link to="/terms" className="hover:text-primary transition-colors">Terms</Link>
+            <a href="mailto:info@saveme.space" className={`hover:text-primary transition-colors flex items-center gap-2 ${theme === 'dark' ? 'text-zinc-200' : ''}`}><Mail className="w-4 h-4" />Contact</a>
+            <Link to="/privacy" className={`hover:text-primary transition-colors ${theme === 'dark' ? 'text-zinc-200' : ''}`}>Privacy</Link>
+            <Link to="/terms" className={`hover:text-primary transition-colors ${theme === 'dark' ? 'text-zinc-200' : ''}`}>Terms</Link>
           </div>
-          <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>Secure & Encrypted</div>
+          <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-zinc-200' : ''}`}><span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>Secure & Encrypted</div>
         </footer>
       </div>
 

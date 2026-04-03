@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Check, Mic, Mail, ArrowRight, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { WaitingListModal } from "@/components/WaitingListModal";
 import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
@@ -12,11 +11,23 @@ import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoic
 const Index = () => {
   const [isComponentReady, setIsComponentReady] = useState(false);
   const { isAuthenticated } = useAuth();
-  const [isWaitingListModalOpen, setIsWaitingListModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const navigate = useNavigate();
   const [activeDemoVideo, setActiveDemoVideo] = useState<{ url: string; title: string } | null>(null);
   const [activeCanvidVideo, setActiveCanvidVideo] = useState<{ url: string; title: string } | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  const getPlanHref = (planName: string) => {
+    const normalizedPlan = planName.toLowerCase();
+
+    if (normalizedPlan === 'free') {
+      return isAuthenticated ? '/dashboard' : '/signup?plan=free';
+    }
+
+    return isAuthenticated
+      ? `/subscription?plan=${normalizedPlan}`
+      : `/signup?plan=${normalizedPlan}`;
+  };
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
@@ -91,7 +102,7 @@ const Index = () => {
             Speak your thoughts out loud. SaveMe captures, categorizes, and organizes them automatically — so you never lose an idea, task, or insight again.
           </p>
           <div className="w-full max-w-lg mb-8 reveal stagger-3">
-            <ConversationalVoiceDemo onSignupClick={() => setIsWaitingListModalOpen(true)} theme={theme} />
+            <ConversationalVoiceDemo onSignupClick={() => navigate("/signup")} theme={theme} />
           </div>
           <p className={`text-xs mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-400'}`}>Try the demo above — no signup needed</p>
           <div className="flex flex-wrap items-center justify-center gap-4 reveal stagger-4">
@@ -210,9 +221,9 @@ const Index = () => {
                       </li>
                     ))}
                   </ul>
-                  <button className={`w-full px-6 py-3 rounded-lg font-medium transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`} onClick={() => setIsWaitingListModalOpen(true)}>
+                  <Link to={getPlanHref(plan.name)} className={`block w-full px-6 py-3 rounded-lg font-medium text-center transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`}>
                     {plan.price === "$0" ? "Start Free" : "Get Started"}
-                  </button>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -241,7 +252,6 @@ const Index = () => {
         </footer>
       </div>
 
-      <WaitingListModal open={isWaitingListModalOpen} onOpenChange={setIsWaitingListModalOpen} />
       {activeDemoVideo && <VideoModal open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen} videoUrl={activeDemoVideo.url} title={activeDemoVideo.title} />}
     </div>
   );

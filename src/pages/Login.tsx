@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,12 +12,20 @@ const Login = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { login, signInWithGoogle, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedPlan = searchParams.get("plan");
+  const nextDestination = searchParams.get("next");
+  const postAuthDestination = nextDestination
+    ? nextDestination
+    : requestedPlan === "basic" || requestedPlan === "premium"
+      ? `/subscription?plan=${requestedPlan}`
+      : "/dashboard";
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/dashboard", { replace: true });
+      navigate(postAuthDestination, { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, postAuthDestination]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +35,7 @@ const Login = () => {
       toast.error(result.error);
     } else {
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      navigate(postAuthDestination);
     }
   };
 
@@ -166,7 +173,7 @@ const Login = () => {
 
             <div className="mt-8 pt-6 border-t border-galvanized text-center">
               <span className="text-sm text-muted-foreground">No archive yet? </span>
-              <Link to="/signup" className="mono text-sm text-primary hover:underline">
+              <Link to={nextDestination ? `/signup?next=${encodeURIComponent(nextDestination)}` : requestedPlan ? `/signup?plan=${requestedPlan}` : "/signup"} className="mono text-sm text-primary hover:underline">
                 CREATE_ACCOUNT
               </Link>
             </div>

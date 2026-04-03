@@ -18,7 +18,11 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const hashPath = typeof window !== "undefined" && window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : "/login";
+    const next = hashPath || "/login";
+    return <Navigate to={next === "/login" ? "/login" : `/login?next=${encodeURIComponent(next)}`} replace />;
   }
 
   return <>{children}</>;

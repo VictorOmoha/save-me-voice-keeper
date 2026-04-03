@@ -321,6 +321,35 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     }
   }, []);
 
+  // ── Audio playback + auto-restart ─────────────────────────────────────────
+  const playAudio = useCallback(async (base64Audio: string, mimeType = "audio/pcm") => {
+    setStatus("speaking");
+    audioRef.current?.pause();
+
+    const binary = atob(base64Audio);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const blob = mimeType.includes("pcm")
+      ? new Blob([pcmToWav(bytes, 24000, 1, 16)], { type: "audio/wav" })
+      : new Blob([bytes], { type: mimeType });
+
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audioRef.current = audio;
+
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      setStatus("idle");
+      if (continuousRef.current) {
+        setTimeout(() => startListening(), 300);
+      }
+    };
+    audio.onerror = () => { URL.revokeObjectURL(url); setStatus("idle"); };
+
+    await audio.play();
+  }, [startListening]);
+
   // ── Core agent call ───────────────────────────────────────────────────────
   const callAgent = useCallback(async (input: AgentInput) => {
     setStatus("thinking");
@@ -328,7 +357,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     setActions([]);
 
     try {
-      const token = await getFirebaseIdToken();
+      const token=await getFirebaseIdToken();
       if (!token) throw new Error("Not authenticated");
 
       const base = { conversationHistory, sessionId };
@@ -412,35 +441,6 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       setStatus("idle");
     }
   }, [conversationHistory, sessionId, playAudio, startListening]);
-
-  // ── Audio playback + auto-restart ─────────────────────────────────────────
-  const playAudio = useCallback(async (base64Audio: string, mimeType = "audio/pcm") => {
-    setStatus("speaking");
-    audioRef.current?.pause();
-
-    const binary = atob(base64Audio);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-    const blob = mimeType.includes("pcm")
-      ? new Blob([pcmToWav(bytes, 24000, 1, 16)], { type: "audio/wav" })
-      : new Blob([bytes], { type: mimeType });
-
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audioRef.current = audio;
-
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      setStatus("idle");
-      if (continuousRef.current) {
-        setTimeout(() => startListening(), 300);
-      }
-    };
-    audio.onerror = () => { URL.revokeObjectURL(url); setStatus("idle"); };
-
-    await audio.play();
-  }, [startListening]);
 
   // Keep callAgentRef pointing to latest callAgent
   useEffect(() => { callAgentRef.current = callAgent; }, [callAgent]);

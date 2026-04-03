@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,10 +23,9 @@ const Subscription = () => {
   const { user, isAuthenticated, session } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  const [searchParams] = useSearchParams();
+  const autoOpenedPlanRef = useRef<string | null>(null);
+  const requestedPlan = searchParams.get('plan');
 
   const plans = [
     {
@@ -181,6 +180,35 @@ const Subscription = () => {
       setLoadingPortal(false);
     }
   };
+
+  useEffect(() => {
+    if (!requestedPlan || autoOpenedPlanRef.current === requestedPlan) {
+      return;
+    }
+
+    if (requestedPlan === 'free' || requestedPlan === user?.subscriptionTier) {
+      autoOpenedPlanRef.current = requestedPlan;
+      return;
+    }
+
+    const matchedPlanName = requestedPlan === 'basic'
+      ? 'Basic'
+      : requestedPlan === 'premium'
+        ? 'Premium'
+        : null;
+
+    if (!matchedPlanName) {
+      autoOpenedPlanRef.current = requestedPlan;
+      return;
+    }
+
+    autoOpenedPlanRef.current = requestedPlan;
+    void handleUpgrade(matchedPlanName);
+  }, [requestedPlan, user?.subscriptionTier]);
+
+  if (!isAuthenticated) {
+    return <Navigate to={requestedPlan ? `/login?next=${encodeURIComponent(`/subscription?plan=${requestedPlan}`)}` : "/login"} replace />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

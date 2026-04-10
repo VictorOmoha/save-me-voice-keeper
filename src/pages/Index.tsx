@@ -8,6 +8,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { CanvidVideoPlayer } from "@/components/CanvidVideoPlayer";
 import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoiceDemo";
 
+const SAVEME_DEMO_VIDEO = "/videos/saveme-demo.mp4";
+
 const Index = () => {
   const [isComponentReady, setIsComponentReady] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -151,12 +153,23 @@ const Index = () => {
             </div>
             <h2 className={`text-3xl md:text-5xl font-bold mb-8 reveal stagger-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>See It in Action</h2>
             <p className={`mb-16 max-w-2xl mx-auto text-lg reveal stagger-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Watch how SaveMe transforms your voice into organized, searchable knowledge — in seconds</p>
-            <div className={`p-2 reveal stagger-3 relative group rounded-2xl overflow-hidden border ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
-              {activeCanvidVideo ? (
-                <video src={activeCanvidVideo.url} autoPlay loop muted playsInline className="w-full h-auto rounded-xl opacity-90 group-hover:opacity-100 transition-opacity" poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" />
-              ) : (
-                <CanvidVideoPlayer canvidUrl="https://app.canvid.com/" title="Interactive Demo" loading={false} />
-              )}
+            <div className={`p-3 md:p-4 reveal stagger-3 relative group rounded-3xl overflow-hidden border shadow-2xl ${theme === 'dark' ? 'bg-zinc-900/50 border-zinc-800/50 shadow-black/30' : 'bg-white border-zinc-200 shadow-zinc-200/60'}`}>
+              <div className={`absolute inset-0 pointer-events-none opacity-60 ${theme === 'dark' ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_45%)]' : 'bg-[radial-gradient(circle_at_top,rgba(24,24,27,0.05),transparent_45%)]'}`} />
+              <div className={`relative overflow-hidden rounded-2xl border ${theme === 'dark' ? 'border-zinc-800/70 bg-black' : 'border-zinc-200 bg-zinc-950'}`}>
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full h-auto rounded-2xl bg-black"
+                  poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png"
+                >
+                  <source src={SAVEME_DEMO_VIDEO} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <p className={`relative mt-4 text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                If the video does not load immediately, use the play controls to start the SaveMe.Space demo.
+              </p>
             </div>
           </div>
         </section>

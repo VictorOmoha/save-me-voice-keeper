@@ -1,5 +1,5 @@
 import { OnboardingStep } from "../OnboardingStep";
-import { Rocket, BookOpen } from "lucide-react";
+import { Rocket, BookOpen, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -10,30 +10,34 @@ export function CompleteStep() {
     <OnboardingStep
       icon={<Rocket className="w-20 h-20 text-primary" />}
       title="You're Ready!"
-      description="Your second brain is set up. Let's fill it."
+      description="Now get your first win with one Brain Dump."
     >
       <div className="space-y-6">
         <div className="p-6 rounded-xl bg-gradient-to-b from-green-500/10 to-transparent border border-green-500/20">
           <h3 className="font-semibold text-green-600 dark:text-green-400 mb-4 text-center">
-            🎯 Quick Start Challenge
+            🎯 First Brain Dump Challenge
           </h3>
           <p className="text-center text-muted-foreground mb-4">
-            Try saving one thing right now:
+            Start with one of these and let SaveMe organize it for you:
           </p>
           <div className="grid gap-2 text-sm">
             <div className="p-3 rounded-lg bg-background/50 text-center">
-              🎤 "Save my wifi password: [your password]"
+              🎤 "Here’s everything I need to do tomorrow..."
             </div>
             <div className="p-3 rounded-lg bg-background/50 text-center">
-              🎤 "My emergency contact is [name], [number]"
+              🎤 "I need to remember these life admin tasks..."
             </div>
             <div className="p-3 rounded-lg bg-background/50 text-center">
-              🎤 "Remember: [anything on your mind]"
+              🎤 "Here’s what’s been on my mind lately..."
             </div>
           </div>
         </div>
-        
-        <div className="flex justify-center">
+
+        <div className="flex flex-col sm:flex-row justify-center gap-3">
+          <Button onClick={() => navigate('/brain-dump')} className="gap-2">
+            <Mic className="w-4 h-4" />
+            Start Brain Dump
+          </Button>
           <Button
             variant="outline"
             size="sm"

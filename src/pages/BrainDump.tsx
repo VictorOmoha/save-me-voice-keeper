@@ -11,13 +11,21 @@ import { BrainDumpProcessor, ActionItem, actionItemsToStrings } from "@/utils/br
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
-import { auth } from "@/lib/firebase";
-import { ArrowLeft, LayoutDashboard, Sparkles, Loader2, Users, Tag, Zap, Keyboard } from "lucide-react";
+import { analytics, auth } from "@/lib/firebase";
+import { ArrowLeft, CheckCircle2, LayoutDashboard, Sparkles, Loader2, Users, Tag, Zap, Keyboard } from "lucide-react";
 import { ShareButtons } from "@/components/braindump/ShareButtons";
 import { KeyboardShortcuts } from "@/components/braindump/KeyboardShortcuts";
 import { openEmailClient, generateLinkedInPost, exportToClipboard, downloadAsText } from "@/utils/shareUtils";
+import { logEvent } from "firebase/analytics";
 
 const processor = new BrainDumpProcessor();
+
+const starterPrompts = [
+  "Here’s everything I need to do this week, including the small stuff I keep forgetting.",
+  "Let me dump all the ideas in my head about this project before I lose them.",
+  "I need to remember these errands, follow-ups, and random reminders.",
+  "Here’s what happened today and what I need to act on next.",
+];
 
 // Helper to determine confidence color
 const getConfidenceColor = (confidence: number): string => {
@@ -101,7 +109,8 @@ const BrainDumpPage: React.FC = () => {
   
   // TAP-TO-FIX: Track which field is being edited
   const [editingField, setEditingField] = useState<string | null>(null);
-const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [justSaved, setJustSaved] = useState<{ title: string; category: string } | null>(null);
 
   const hasStructured = useMemo(() => !!title || actionItems.length || keyPoints.length || notes.length, [title, actionItems, keyPoints, notes]);
 
@@ -114,6 +123,11 @@ const [showShortcuts, setShowShortcuts] = useState(false);
 
   useEffect(() => {
     document.title = "Brain Dump | Fast voice capture";
+    try {
+      logEvent(analytics, "brain_dump_view");
+    } catch (error) {
+      console.debug("Analytics event failed:", error);
+    }
     const metaDescId = "meta-brain-dump-desc";
     let meta = document.querySelector(`meta[name='description']#${metaDescId}`) as HTMLMetaElement | null;
     if (!meta) {
@@ -235,6 +249,15 @@ const [showShortcuts, setShowShortcuts] = useState(false);
     setTags(result.tags || []);
     setPeople(result.people || []);
     setLivePreview(null);
+    try {
+      logEvent(analytics, "brain_dump_processed", {
+        has_action_items: (result.actionItems || []).length > 0,
+        has_key_points: (result.keyPoints || []).length > 0,
+        source: rawText ? "typed" : "voice",
+      });
+    } catch (error) {
+      console.debug("Analytics event failed:", error);
+    }
     toast.success("Brain dump structured");
   };
 
@@ -324,6 +347,18 @@ const [showShortcuts, setShowShortcuts] = useState(false);
         fieldDefinitions,
         category,
       });
+      try {
+        logEvent(analytics, "brain_dump_saved", {
+          category,
+          has_summary: Boolean(summary),
+          action_item_count: actionItems.length,
+          key_point_count: keyPoints.length,
+          source: rawText ? "typed" : "voice",
+        });
+      } catch (error) {
+        console.debug("Analytics event failed:", error);
+      }
+      setJustSaved({ title: title || `Brain Dump - ${new Date().toLocaleString()}`, category });
       toast.success("Saved structured brain dump");
       setRawText("");
       setTitle("");
@@ -492,18 +527,111 @@ const [showShortcuts, setShowShortcuts] = useState(false);
 
       <main className="container mx-auto px-4 py-8">
         <article className="space-y-6">
-          <header>
-            <h1 className="text-3xl font-bold">Brain Dump</h1>
-            <p className="text-muted-foreground mt-1">Capture a quick brain dump and turn it into structured notes and action items.</p>
+          <header className="space-y-4">
+            <div>
+              <h1 className="text-3xl font-bold">Brain Dump</h1>
+              <p className="text-muted-foreground mt-1">The fastest way to get value from SaveMe. Dump your thoughts, structure them, and save them in one flow.</p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border bg-card p-4">
+                <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 1</p>
+                <p className="text-sm font-semibold mt-1">Capture fast</p>
+                <p className="text-xs text-muted-foreground mt-1">Speak naturally or paste messy thoughts. No need to organize first.</p>
+              </div>
+              <div className="rounded-xl border bg-card p-4">
+                <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 2</p>
+                <p className="text-sm font-semibold mt-1">Process into structure</p>
+                <p className="text-xs text-muted-foreground mt-1">Turn the dump into a title, category, notes, and action items.</p>
+              </div>
+              <div className="rounded-xl border bg-card p-4">
+                <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 3</p>
+                <p className="text-sm font-semibold mt-1">Save and move on</p>
+                <p className="text-xs text-muted-foreground mt-1">Store it in your vault so you can find it later without friction.</p>
+              </div>
+            </div>
           </header>
+
+          {justSaved && (
+            <section className="rounded-2xl border border-green-200 bg-green-50 p-4 md:p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-green-900">Saved to your vault</p>
+                    <p className="text-sm text-green-800 mt-1">
+                      <span className="font-medium">{justSaved.title}</span> was filed under <span className="font-medium">{justSaved.category}</span>.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => navigate('/all-entries')}>
+                    View entries
+                  </Button>
+                  <Button onClick={() => setJustSaved(null)}>
+                    Start another dump
+                  </Button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section className="grid gap-4 md:grid-cols-3">
+            <Card className="md:col-span-2 border-primary/20 bg-primary/5">
+              <CardContent className="p-4 md:p-5">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Recommended first use</p>
+                    <p className="text-sm text-muted-foreground mt-1">Do a 30 to 60 second brain dump, process it, then save it. That is the fastest path to value.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span className="rounded-full border bg-background px-3 py-1">Best for tasks</span>
+                    <span className="rounded-full border bg-background px-3 py-1">Ideas</span>
+                    <span className="rounded-full border bg-background px-3 py-1">Life admin</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 md:p-5 space-y-2">
+                <p className="text-sm font-semibold text-foreground">Good prompts</p>
+                <ul className="space-y-2 text-xs text-muted-foreground">
+                  <li>• Here’s everything I need to do this week</li>
+                  <li>• These are the ideas I don’t want to lose</li>
+                  <li>• Let me dump all my errands and reminders</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </section>
 
           <section aria-labelledby="capture" className="grid gap-6 md:grid-cols-2">
             {/* CAPTURE CARD */}
             <Card>
               <CardHeader>
                 <CardTitle id="capture">Capture</CardTitle>
+                <p className="text-sm text-muted-foreground">Start talking or typing right away. When you're done, hit Process to structure it.</p>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-3">
+                  <div>
+                    Try this: <span className="font-medium text-foreground">"I need to follow up with Daniel, redesign the homepage CTA, and remember to test onboarding tonight."</span>
+                  </div>
+                  <div>
+                    <p className="mb-2 font-medium text-foreground">Or start from a prompt:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {starterPrompts.map((prompt) => (
+                        <button
+                          key={prompt}
+                          type="button"
+                          onClick={() => setRawText(prompt)}
+                          className="rounded-full border bg-background px-3 py-1 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {!isListening ? (
                     <Button onClick={start} aria-label="Start recording">Start</Button>
@@ -536,13 +664,16 @@ const [showShortcuts, setShowShortcuts] = useState(false);
                 <Textarea
                   value={rawText || transcript}
                   onChange={(e) => setRawText(e.target.value)}
-                  placeholder="Speak or paste your brain dump here..."
-                  className="min-h-[180px]"
+                  placeholder="What's on your mind right now? Dump tasks, ideas, reminders, meeting notes, or half-formed thoughts here..."
+                  className="min-h-[220px] text-base"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Status: {isListening ? '🎤 Listening…' : 'Idle'}
-                  {livePreview && livePreview.isProcessing && ' | ⚡ Processing live preview...'}
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <p>
+                    Status: {isListening ? '🎤 Listening…' : 'Idle'}
+                    {livePreview && livePreview.isProcessing && ' | ⚡ Processing live preview...'}
+                  </p>
+                  <p>Tip: messy is fine. Capture first, clean up second.</p>
+                </div>
               </CardContent>
             </Card>
 
@@ -787,7 +918,7 @@ const [showShortcuts, setShowShortcuts] = useState(false);
 
                       {/* SAVE BUTTON - only show if not in live preview or if live preview has data */}
                       {(!livePreview || hasStructured) && (
-                        <div className="pt-2">
+                        <div className="pt-2 space-y-3">
                           <Button 
                             onClick={handleSave} 
                             disabled={!hasStructured && !livePreview}
@@ -796,6 +927,10 @@ const [showShortcuts, setShowShortcuts] = useState(false);
                           >
                             Save to Entries
                           </Button>
+                          <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+                            <p className="font-medium text-foreground mb-1">What happens after you save?</p>
+                            <p>Your brain dump is stored in your vault with structure, so you can search it, revisit it, and act on it later.</p>
+                          </div>
                         </div>
                       )}
                     </>

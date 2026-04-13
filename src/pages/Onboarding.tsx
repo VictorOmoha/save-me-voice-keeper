@@ -69,7 +69,7 @@ export default function Onboarding() {
       console.error("Error completing onboarding:", err);
     } finally {
       setIsCompleting(false);
-      navigate("/dashboard");
+      navigate("/brain-dump");
     }
   };
 
@@ -140,7 +140,7 @@ export default function Onboarding() {
 
             {isLastStep ? (
               <Button onClick={handleComplete} disabled={isCompleting}>
-                {isCompleting ? "Starting..." : "Get Started"}
+                {isCompleting ? "Starting..." : "Start Brain Dump"}
               </Button>
             ) : (
               <Button onClick={handleNext} disabled={isCompleting}>

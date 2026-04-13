@@ -2,21 +2,21 @@ import { OnboardingStep } from "../OnboardingStep";
 import { Mic } from "lucide-react";
 
 const examples = [
-  { 
-    say: "Save my doctor's number: 555-1234", 
-    result: "→ Saved to Contacts" 
+  {
+    say: "I need to follow up with Daniel tomorrow, redesign the homepage CTA, and test onboarding tonight",
+    result: "→ Turned into action items and organized notes"
   },
-  { 
-    say: "My passport expires December 2025", 
-    result: "→ Saved to Documents" 
+  {
+    say: "Remember that my passport expires December 2025 and I need to renew it this fall",
+    result: "→ Saved with useful context"
   },
-  { 
-    say: "Find my wifi password", 
-    result: "→ Searches all entries" 
+  {
+    say: "I have an idea for SaveMe: make Brain Dump the main entry point",
+    result: "→ Saved as an idea you can find later"
   },
-  { 
-    say: "What's my dentist's address?", 
-    result: "→ Finds matching entry" 
+  {
+    say: "What was that note about my dentist?",
+    result: "→ Searches your vault for the match"
   },
 ];
 
@@ -24,10 +24,17 @@ export function VoiceStep() {
   return (
     <OnboardingStep
       icon={<Mic className="w-20 h-20 text-primary" />}
-      title="Just Talk"
-      description="No buttons. No menus. Just say what you need."
+      title="Start with a Brain Dump"
+      description="Don’t worry about saying it perfectly. Just get it out."
     >
       <div className="space-y-6">
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-left">
+          <p className="text-sm font-medium text-foreground mb-2">Your first win should feel like this:</p>
+          <p className="text-sm text-muted-foreground">
+            unload a messy thought, let SaveMe structure it, then save it without breaking your flow.
+          </p>
+        </div>
+
         <div className="grid gap-3">
           {examples.map((item, index) => (
             <div
@@ -49,7 +56,7 @@ export function VoiceStep() {
           <p className="text-sm text-center">
             <span className="font-semibold text-primary">💡 Pro tip:</span>{" "}
             <span className="text-muted-foreground">
-              Talk naturally — SaveMe understands context, not just keywords.
+              Messy is fine. Brain Dump works best when you stop editing yourself and capture first.
             </span>
           </p>
         </div>

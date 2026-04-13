@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Mic, Mail, ArrowRight, Sun, Moon } from "lucide-react";
+import { Check, Mic, Mail, ArrowRight, Sun, Moon, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
@@ -100,13 +100,24 @@ const Index = () => {
             Your brain wasn't built<br />
             <span className="text-primary">to remember everything.</span>
           </h1>
-          <p className={`text-lg md:text-xl max-w-2xl mb-12 reveal stagger-2 leading-relaxed ${theme === 'dark' ? 'text-zinc-200 md:text-zinc-300' : 'text-zinc-600'}`}>
-            Speak your thoughts out loud. SaveMe captures, categorizes, and organizes them automatically — so you never lose an idea, task, or insight again.
+          <p className={`text-lg md:text-xl max-w-2xl mb-8 reveal stagger-2 leading-relaxed ${theme === 'dark' ? 'text-zinc-200 md:text-zinc-300' : 'text-zinc-600'}`}>
+            Speak your thoughts out loud. SaveMe captures, categorizes, and organizes them automatically, so you never lose an idea, task, or insight again.
           </p>
+          <div className={`mb-10 max-w-2xl rounded-2xl border p-4 text-left reveal stagger-3 ${theme === 'dark' ? 'border-zinc-800/70 bg-zinc-900/40' : 'border-zinc-200 bg-zinc-50'}`}>
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+              <div>
+                <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Best place to start: Brain Dump</p>
+                <p className={`text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                  Just unload what is in your head. SaveMe will turn it into structured notes, action items, and searchable memory in one flow.
+                </p>
+              </div>
+            </div>
+          </div>
           <div className="w-full max-w-lg mb-8 reveal stagger-3">
             <ConversationalVoiceDemo onSignupClick={() => navigate("/signup")} theme={theme} />
           </div>
-          <p className={`text-sm font-medium mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Try the demo above — no signup needed</p>
+          <p className={`text-sm font-medium mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Try the demo above, then start with a Brain Dump. No signup needed for the demo.</p>
           <div className="flex flex-wrap items-center justify-center gap-4 reveal stagger-4">
             <button 
               className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
@@ -116,8 +127,8 @@ const Index = () => {
               {activeDemoVideo ? "Watch Demo" : "Demo Coming Soon"}
             </button>
             {isAuthenticated ? (
-              <Link to="/dashboard" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                Go to Dashboard
+              <Link to="/brain-dump" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                Start Brain Dump
                 <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (

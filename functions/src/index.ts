@@ -2,6 +2,13 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import cors from "cors";
 import {GoogleAuth} from "google-auth-library";
+import {createSharedMemory} from "./sharedMemory/create";
+import {searchSharedMemories} from "./sharedMemory/search";
+import {getSharedMemory} from "./sharedMemory/get";
+import {listSharedMemories} from "./sharedMemory/list";
+import {updateSharedMemory} from "./sharedMemory/update";
+import {batchCreateSharedMemories} from "./sharedMemory/batchCreate";
+import {SharedMemoryCreateInput, SharedMemorySearchInput} from "./sharedMemory/types";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -20,7 +27,7 @@ const withCors = (
   };
 };
 
-// Verify Firebase Auth token
+// Verify Firebase Auth token OR agent API key
 const verifyAuth = async (req: functions.https.Request): Promise<admin.auth.DecodedIdToken | null> => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -28,6 +35,24 @@ const verifyAuth = async (req: functions.https.Request): Promise<admin.auth.Deco
   }
 
   const token = authHeader.split("Bearer ")[1];
+
+  // Agent API key path — allows OpenClaw / Hermes to call shared-memory endpoints
+  // without a Firebase ID token. Key is stored in AGENT_API_KEY env var.
+  const agentApiKey = process.env.AGENT_API_KEY;
+  if (agentApiKey && token === agentApiKey) {
+    const agentUserId = process.env.AGENT_USER_ID || "nia-openclaw-agent";
+    return {
+      uid: agentUserId,
+      aud: "saveme-f5af0",
+      auth_time: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iat: Math.floor(Date.now() / 1000),
+      iss: "agent-key",
+      sub: agentUserId,
+      firebase: { identities: {}, sign_in_provider: "agent-key" },
+    } as admin.auth.DecodedIdToken;
+  }
+
   try {
     return await admin.auth().verifyIdToken(token);
   } catch (error) {
@@ -58,6 +83,191 @@ const fetchWithRetry = async (
   }
   throw lastError!;
 };
+
+export const sharedMemoryCreate = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const input = req.body as SharedMemoryCreateInput;
+    if (!input?.title || !input?.content || !input?.type || !input?.source) {
+      res.status(400).json({error: "title, content, type, and source are required"});
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const result = await createSharedMemory(user.uid, input, db);
+      res.json({ok: true, ...result});
+    } catch (error) {
+      console.error("sharedMemoryCreate error:", error);
+      res.status(500).json({error: "Failed to create shared memory"});
+    }
+  })
+);
+
+export const sharedMemorySearch = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const input = (req.body || {}) as SharedMemorySearchInput;
+
+    try {
+      const db = admin.firestore();
+      const results = await searchSharedMemories(user.uid, input, db);
+      res.json({ok: true, results});
+    } catch (error) {
+      console.error("sharedMemorySearch error:", error);
+      res.status(500).json({error: "Failed to search shared memories"});
+    }
+  })
+);
+
+export const sharedMemoryGet = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const id = req.body?.id;
+    if (!id) {
+      res.status(400).json({error: "id is required"});
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const memory = await getSharedMemory(user.uid, id, db);
+      if (!memory) {
+        res.status(404).json({error: "Memory not found"});
+        return;
+      }
+      res.json({ok: true, memory});
+    } catch (error) {
+      console.error("sharedMemoryGet error:", error);
+      res.status(500).json({error: "Failed to get shared memory"});
+    }
+  })
+);
+
+export const sharedMemoryList = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const input = (req.body || {}) as SharedMemorySearchInput;
+
+    try {
+      const db = admin.firestore();
+      const memories = await listSharedMemories(user.uid, input, db);
+      res.json({ok: true, memories});
+    } catch (error) {
+      console.error("sharedMemoryList error:", error);
+      res.status(500).json({error: "Failed to list shared memories"});
+    }
+  })
+);
+
+export const sharedMemoryUpdate = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const id = req.body?.id;
+    const patch = req.body?.patch;
+    if (!id || !patch) {
+      res.status(400).json({error: "id and patch are required"});
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const result = await updateSharedMemory(user.uid, id, patch, db);
+      if (!result.ok && result.reason === "not_found") {
+        res.status(404).json({error: "Memory not found"});
+        return;
+      }
+      if (!result.ok) {
+        res.status(403).json({error: "Forbidden"});
+        return;
+      }
+      res.json({ok: true});
+    } catch (error) {
+      console.error("sharedMemoryUpdate error:", error);
+      res.status(500).json({error: "Failed to update shared memory"});
+    }
+  })
+);
+
+export const sharedMemoryBatchCreate = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const memories = req.body?.memories as SharedMemoryCreateInput[] | undefined;
+    if (!Array.isArray(memories) || memories.length === 0) {
+      res.status(400).json({error: "memories array is required"});
+      return;
+    }
+
+    try {
+      const db = admin.firestore();
+      const result = await batchCreateSharedMemories(user.uid, memories, db);
+      res.json({ok: true, ...result});
+    } catch (error) {
+      console.error("sharedMemoryBatchCreate error:", error);
+      res.status(500).json({error: "Failed to batch create shared memories"});
+    }
+  })
+);
 
 /**
  * ElevenLabs Text-to-Speech Cloud Function
@@ -1207,6 +1417,40 @@ async function rebuildMemoryProfile(userId: string, db: admin.firestore.Firestor
   }, {merge: true});
 }
 
+async function mirrorFactToSharedMemory(
+  userId: string,
+  fact: {content: string; category?: string},
+  db: admin.firestore.Firestore
+) {
+  const existing = await db.collection("shared_memories")
+    .where("user_id", "==", userId)
+    .where("content", "==", fact.content)
+    .where("status", "==", "active")
+    .limit(1)
+    .get();
+
+  if (!existing.empty) return;
+
+  await createSharedMemory(userId, {
+    title: fact.content.length > 80 ? `${fact.content.slice(0, 77)}...` : fact.content,
+    content: fact.content,
+    summary: fact.content,
+    type: "fact",
+    source: "system",
+    sourceAgent: "nova",
+    createdBy: "nova_memory_extraction",
+    tags: fact.category ? [fact.category, "auto-memory"] : ["auto-memory"],
+    project: "save-me",
+    confidence: 0.75,
+    verification: "agent_suggested",
+    visibility: "shared_with_agents",
+    metadata: {
+      pipeline: "extractAndStoreMemories",
+      category: fact.category || null,
+    },
+  }, db);
+}
+
 async function extractAndStoreMemories(
   userText: string,
   userId: string,
@@ -1284,6 +1528,13 @@ Rules:
           superseded_by: null,
           active: true,
         });
+
+        try {
+          await mirrorFactToSharedMemory(userId, fact, db);
+        } catch (mirrorErr) {
+          console.warn("[extractAndStoreMemories] Shared memory mirror failed:", mirrorErr);
+        }
+
         memoryAdded = true;
       }
     }

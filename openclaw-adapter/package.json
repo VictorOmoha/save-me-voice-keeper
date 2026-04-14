@@ -1,0 +1,11 @@
+{
+  "name": "saveme-openclaw-adapter",
+  "version": "1.0.0",
+  "description": "OpenClaw adapter for SaveMe.Space shared memory",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "dependencies": {}
+}

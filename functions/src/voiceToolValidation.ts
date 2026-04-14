@@ -42,6 +42,8 @@ function sanitizeString(value: unknown, max = MAX_STRING_LENGTH): string | undef
 }
 
 export function validateToolArgs(toolName: string, args: Record<string, unknown>): ToolValidationResult {
+  const sanitized: Record<string, any> = {};
+
   switch (toolName) {
   case "navigateApp": {
     if (!isNonEmptyString(args.route)) return { valid: false, error: "navigateApp requires route" };
@@ -60,17 +62,17 @@ export function validateToolArgs(toolName: string, args: Record<string, unknown>
 
   case "openEntry":
     if (!isNonEmptyString(args.id) && !isNonEmptyString(args.title)) return { valid: false, error: "openEntry requires id or title" };
-    if (args.id) sanitized.id = truncate(args.id.trim(), 200);
-    if (args.title) sanitized.title = truncate(args.title.trim(), 500);
+    if (isNonEmptyString(args.id)) sanitized.id = truncate(args.id.trim(), 200);
+    if (isNonEmptyString(args.title)) sanitized.title = truncate(args.title.trim(), 500);
     return { valid: true, sanitizedArgs: sanitized };
 
   case "printEntry":
     if (!isNonEmptyString(args.id) && !isNonEmptyString(args.title) && !isNonEmptyString(args.category)) {
       return { valid: false, error: "printEntry requires id, title, or category" };
     }
-    if (args.id) sanitized.id = truncate(args.id.trim(), 200);
-    if (args.title) sanitized.title = truncate(args.title.trim(), 500);
-    if (args.category) sanitized.category = truncate(args.category.trim(), 100);
+    if (isNonEmptyString(args.id)) sanitized.id = truncate(args.id.trim(), 200);
+    if (isNonEmptyString(args.title)) sanitized.title = truncate(args.title.trim(), 500);
+    if (isNonEmptyString(args.category)) sanitized.category = truncate(args.category.trim(), 100);
     return { valid: true, sanitizedArgs: sanitized };
 
   case "saveEntry":
@@ -102,7 +104,7 @@ export function validateToolArgs(toolName: string, args: Record<string, unknown>
   case "updateEntry":
     if (!isNonEmptyString(args.id)) return { valid: false, error: "updateEntry requires id" };
     sanitized.id = truncate(args.id.trim(), 200);
-    if (args.title) sanitized.title = truncate(args.title.trim(), 500);
+    if (isNonEmptyString(args.title)) sanitized.title = truncate(args.title.trim(), 500);
     if (args.content) sanitized.content = sanitizeString(args.content, MAX_CONTENT_LENGTH);
     return { valid: true, sanitizedArgs: sanitized };
 
@@ -138,8 +140,8 @@ export function validateToolArgs(toolName: string, args: Record<string, unknown>
     if (!isNonEmptyString(args.topic) && !isNonEmptyString(args.entryId)) {
       return { valid: false, error: "getRelatedEntries requires topic or entryId" };
     }
-    if (args.topic) sanitized.topic = truncate(args.topic.trim(), MAX_QUERY_LENGTH);
-    if (args.entryId) sanitized.entryId = truncate(args.entryId.trim(), 200);
+    if (isNonEmptyString(args.topic)) sanitized.topic = truncate(args.topic.trim(), MAX_QUERY_LENGTH);
+    if (isNonEmptyString(args.entryId)) sanitized.entryId = truncate(args.entryId.trim(), 200);
     return { valid: true, sanitizedArgs: sanitized };
 
   case "getActivitySummary":

@@ -8,6 +8,8 @@ import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { SavedEntry } from "@/types/dashboard";
 import { DashboardIntelligencePanel } from "@/components/dashboard/DashboardIntelligencePanel";
+import { SharedMemoryPanel } from "@/components/dashboard/SharedMemoryPanel";
+import { SharedMemoryDevPanel } from "@/components/dev/SharedMemoryDevPanel";
 
 interface DashboardMainContentProps {
   userName?: string;
@@ -181,6 +183,9 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
 
       {/* Intelligence Layer */}
       <DashboardIntelligencePanel entries={savedEntries} />
+
+      <SharedMemoryPanel />
+      {import.meta.env.DEV && <SharedMemoryDevPanel />}
 
       {/* View All Entries */}
       {savedEntries.length > 0 && (

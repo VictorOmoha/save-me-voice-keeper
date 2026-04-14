@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { novaAction, ok, VoiceToolResult } from "../voiceToolResults";
+import { createSharedMemory } from "../sharedMemory/create";
 
 interface StoredMemoryRecord {
   id: string;
@@ -67,6 +68,33 @@ export async function handleMemoryTool(
     });
 
     await rebuildMemoryProfile(userId, db);
+
+    // Mirror to shared_memories so other agents (Nia, Hermes) can access it
+    try {
+      const titleStr = typeof args.content === "string" ? args.content : String(args.content);
+      await createSharedMemory(userId, {
+        title: titleStr.length > 80 ? `${titleStr.slice(0, 77)}...` : titleStr,
+        content: titleStr,
+        summary: titleStr,
+        type: "fact",
+        source: "human",
+        sourceAgent: "nova",
+        createdBy: "rememberFact",
+        tags: args.category ? [String(args.category), "explicit-memory"] : ["explicit-memory"],
+        project: "save-me",
+        confidence: 0.9,
+        verification: "agent_suggested",
+        visibility: "shared_with_agents",
+        metadata: {
+          pipeline: "rememberFact",
+          nova_memory_id: memDoc.id,
+          category: args.category || null,
+        },
+      }, db);
+    } catch (mirrorErr) {
+      console.warn("[rememberFact] Shared memory mirror failed:", mirrorErr);
+    }
+
     return novaAction("remember", { content: args.content, category: args.category || null }, {
       memoryId: memDoc.id,
       content: args.content,

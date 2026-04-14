@@ -1,0 +1,11 @@
+{
+  "name": "saveme-hermes-adapter",
+  "version": "1.0.0",
+  "description": "Hermes/Cognibrowse adapter for SaveMe.Space shared memory",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "dependencies": {}
+}

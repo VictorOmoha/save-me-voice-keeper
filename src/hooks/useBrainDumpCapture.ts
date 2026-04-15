@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getCloudFunctionUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 
-const VOICE_AGENT_URL = getCloudFunctionUrl("voiceAgent");
+const TRANSCRIBE_URL = getCloudFunctionUrl("transcribeAudio");
 
 export const useBrainDumpCapture = () => {
   const [isListening, setIsListening] = useState(false);
@@ -120,9 +120,11 @@ export const useBrainDumpCapture = () => {
         }
 
         setIsProcessingVoice(true);
+        console.log("[useBrainDumpCapture] blob OK, starting voiceAgent call...");
 
         try {
           const token = await getFirebaseIdToken();
+          console.log("[useBrainDumpCapture] got auth token:", !!token);
           if (!token) throw new Error("Not authenticated");
 
           const base64 = await new Promise<string>((resolve, reject) => {
@@ -139,9 +141,11 @@ export const useBrainDumpCapture = () => {
           abortControllerRef.current = controller;
           requestTimeoutRef.current = window.setTimeout(() => controller.abort(), 45_000);
 
+          console.log("[useBrainDumpCapture] base64 length:", base64.length, "sending to", TRANSCRIBE_URL);
+
           let response: Response;
           try {
-            response = await fetch(VOICE_AGENT_URL, {
+            response = await fetch(TRANSCRIBE_URL, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -150,8 +154,6 @@ export const useBrainDumpCapture = () => {
               body: JSON.stringify({
                 audioData: base64,
                 audioMimeType: resolvedMimeType,
-                conversationHistory: [],
-                sessionId: null,
               }),
               signal: controller.signal,
             });
@@ -160,11 +162,12 @@ export const useBrainDumpCapture = () => {
           }
 
           const data = await response.json();
+          console.log("[useBrainDumpCapture] transcribeAudio response:", { ok: response.ok, status: response.status, transcript: data.transcript, detected: data.detected });
           if (!response.ok) {
             throw new Error(data.error || "Voice transcription failed");
           }
 
-          if (data.transcript?.trim()) {
+          if (data.detected && data.transcript?.trim()) {
             setTranscript(data.transcript.trim());
             toast.success("Nova heard your voice dump.");
           } else {

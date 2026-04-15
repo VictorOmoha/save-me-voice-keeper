@@ -270,6 +270,76 @@ export const sharedMemoryBatchCreate = functions.https.onRequest(
 );
 
 /**
+ * Transcribe audio to text using Gemini — lightweight, no agent logic.
+ * Used by Brain Dump capture to get a raw transcript from recorded audio.
+ */
+export const transcribeAudio = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const {audioData, audioMimeType} = req.body;
+    if (!audioData) {
+      res.status(400).json({error: "audioData is required"});
+      return;
+    }
+
+    const geminiKey = process.env.GEMINI_API_KEY;
+    if (!geminiKey) {
+      res.status(500).json({error: "Gemini API key not configured"});
+      return;
+    }
+
+    try {
+      const transcribeRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            systemInstruction: {parts: [{text: "You are a precise audio transcription service. Your ONLY job is to listen to audio and output the exact words spoken. Never add commentary, labels, timestamps, or formatting. If multiple sentences are spoken, write them all. If no speech is detected, return exactly: [NO_SPEECH]"}]},
+            contents: [{
+              parts: [
+                {inlineData: {mimeType: audioMimeType || "audio/webm", data: audioData}},
+                {text: "Transcribe this audio."},
+              ],
+            }],
+            generationConfig: {maxOutputTokens: 2048, temperature: 0},
+          }),
+        }
+      );
+
+      if (!transcribeRes.ok) {
+        const errText = await transcribeRes.text();
+        console.error("[transcribeAudio] Gemini error:", transcribeRes.status, errText.substring(0, 200));
+        res.status(500).json({error: "Transcription failed"});
+        return;
+      }
+
+      const data = await transcribeRes.json();
+      const transcript = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      console.log("[transcribeAudio] Result:", JSON.stringify(transcript).substring(0, 200));
+
+      if (!transcript || transcript === "[NO_SPEECH]" || transcript === ".") {
+        res.json({transcript: "", detected: false});
+      } else {
+        res.json({transcript, detected: true});
+      }
+    } catch (error) {
+      console.error("[transcribeAudio] Exception:", error);
+      res.status(500).json({error: "Transcription failed"});
+    }
+  })
+);
+
+/**
  * ElevenLabs Text-to-Speech Cloud Function
  */
 export const elevenlabsTts = functions.https.onRequest(
@@ -2095,7 +2165,10 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
     }
 
     try {
-      const userText: string = transcript?.trim() || "";
+      let userText: string = transcript?.trim() || "";
+
+      // ── Transcribe audio if no text transcript provided ──────────────────
+      // Note: For audio transcription in BrainDump, use the dedicated transcribeAudio function instead
 
       // Build user message parts — audio or text
       const userParts: ConversationPart[] = audioData

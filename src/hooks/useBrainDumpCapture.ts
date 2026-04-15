@@ -10,6 +10,7 @@ export const useBrainDumpCapture = () => {
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [novaResponseText, setNovaResponseText] = useState("");
+  const [savedEntry, setSavedEntry] = useState<{ title: string; category: string } | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<number | null>(null);
 
@@ -116,6 +117,7 @@ export const useBrainDumpCapture = () => {
     setVoiceError(null);
     setTranscript("");
     setNovaResponseText("");
+    setSavedEntry(null);
     console.log("[useBrainDumpCapture] start clicked");
 
     if (isListening || isProcessingVoice) {
@@ -264,10 +266,12 @@ export const useBrainDumpCapture = () => {
           }
 
           const agentData = await agentResponse.json();
-          console.log("[useBrainDumpCapture] voiceAgent response:", {
+          console.log("[useBrainDumpCapture] voiceAgent full response:", {
             ok: agentResponse.ok,
             responseText: agentData.responseText?.substring(0, 100),
             hasAudio: !!agentData.audioContent,
+            actionsExecuted: agentData.actionsExecuted,
+            appCommands: agentData.appCommands,
           });
 
           if (agentResponse.ok) {
@@ -275,6 +279,19 @@ export const useBrainDumpCapture = () => {
             const novaText = (agentData.responseText || "").replace(/^__nova_greet__:\w+\s*/i, "").trim();
             if (novaText) {
               setNovaResponseText(novaText);
+            }
+
+            // Extract saved entry info from actionsExecuted
+            if (agentData.actionsExecuted?.length) {
+              const saveAction = agentData.actionsExecuted.find(
+                (a: { tool: string; args: Record<string, unknown>; result: Record<string, unknown> }) => a.tool === "saveEntry"
+              );
+              if (saveAction?.result?.success) {
+                setSavedEntry({
+                  title: (saveAction.args?.title as string) || "",
+                  category: (saveAction.args?.category as string) || "Personal",
+                });
+              }
             }
 
             // Play Nova's voice response
@@ -357,6 +374,7 @@ export const useBrainDumpCapture = () => {
     setIsProcessingVoice(false);
     setTranscript("");
     setNovaResponseText("");
+    setSavedEntry(null);
     setVoiceError(null);
     audioChunksRef.current = [];
     stopTracks();
@@ -368,6 +386,7 @@ export const useBrainDumpCapture = () => {
     isProcessingVoice,
     transcript,
     novaResponseText,
+    savedEntry,
     voiceError,
     lastStartAttemptAt,
     start,

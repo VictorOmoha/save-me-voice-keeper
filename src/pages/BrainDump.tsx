@@ -42,7 +42,7 @@ const getConfidenceBadgeColor = (confidence: number): 'default' | 'secondary' | 
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
-  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, voiceError, lastStartAttemptAt, start, stop, reset } = useBrainDumpCapture();
+  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, savedEntry: novaSavedEntry, voiceError, lastStartAttemptAt, start, stop, reset } = useBrainDumpCapture();
   const navigate = useNavigate();
   
   const safeStop = () => {
@@ -116,6 +116,27 @@ const BrainDumpPage: React.FC = () => {
 
   // Convert ActionItem[] to string[] for display
   const actionItemStrings = useMemo(() => actionItemsToStrings(actionItems), [actionItems]);
+
+  // When Nova saves an entry via voice, show the saved confirmation and process the transcript
+  useEffect(() => {
+    if (novaSavedEntry) {
+      setJustSaved(novaSavedEntry);
+      // Also process the transcript into structured fields for the preview
+      const content = transcript.trim();
+      if (content) {
+        const result = processor.processBrainDump(content);
+        setTitle(result.title || novaSavedEntry.title);
+        setCategory(result.category || novaSavedEntry.category);
+        setActionItems(result.actionItems || []);
+        setKeyPoints(result.keyPoints || []);
+        setNotes(result.notes || []);
+        setStructuredFields(result.structuredFields || {});
+        setConfidence(result.confidence || null);
+        setTags(result.tags || []);
+        setPeople(result.people || []);
+      }
+    }
+  }, [novaSavedEntry, transcript]);
 
   // Dedupe guards
   const introSpokenRef = useRef(false);

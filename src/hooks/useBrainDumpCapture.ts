@@ -3,11 +3,13 @@ import { toast } from "sonner";
 import { getCloudFunctionUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 
 const TRANSCRIBE_URL = getCloudFunctionUrl("transcribeAudio");
+const VOICE_AGENT_URL = getCloudFunctionUrl("voiceAgent");
 
 export const useBrainDumpCapture = () => {
   const [isListening, setIsListening] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [novaResponseText, setNovaResponseText] = useState("");
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<number | null>(null);
 
@@ -17,6 +19,7 @@ export const useBrainDumpCapture = () => {
   const mimeTypeRef = useRef("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestTimeoutRef = useRef<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const clearPendingRequest = () => {
     if (requestTimeoutRef.current !== null) {
@@ -36,10 +39,67 @@ export const useBrainDumpCapture = () => {
     streamRef.current = null;
   };
 
+  /** Play base64 audio from voiceAgent TTS response */
+  const playAudio = useCallback(async (base64Audio: string, mimeType: string) => {
+    try {
+      // Decode base64 to raw bytes
+      const raw = atob(base64Audio);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+
+      // PCM L16 needs manual conversion to WAV
+      if (mimeType.includes("pcm") || mimeType.includes("L16")) {
+        const sampleRate = 24000;
+        const numChannels = 1;
+        const bitsPerSample = 16;
+        const wavHeader = new ArrayBuffer(44);
+        const view = new DataView(wavHeader);
+        const dataSize = bytes.length;
+
+        // RIFF header
+        view.setUint32(0, 0x52494646, false); // "RIFF"
+        view.setUint32(4, 36 + dataSize, true);
+        view.setUint32(8, 0x57415645, false); // "WAVE"
+        // fmt chunk
+        view.setUint32(12, 0x666d7420, false); // "fmt "
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * numChannels * (bitsPerSample / 8), true);
+        view.setUint16(32, numChannels * (bitsPerSample / 8), true);
+        view.setUint16(34, bitsPerSample, true);
+        // data chunk
+        view.setUint32(36, 0x64617461, false); // "data"
+        view.setUint32(40, dataSize, true);
+
+        const wavBlob = new Blob([wavHeader, bytes], { type: "audio/wav" });
+        const url = URL.createObjectURL(wavBlob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.volume = parseFloat(localStorage.getItem("speech_volume") || "0.8");
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+      } else {
+        // MP3 or other standard format
+        const blob = new Blob([bytes], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.volume = parseFloat(localStorage.getItem("speech_volume") || "0.8");
+        audio.onended = () => URL.revokeObjectURL(url);
+        await audio.play();
+      }
+    } catch (err) {
+      console.warn("[useBrainDumpCapture] Audio playback failed:", err);
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       abortPendingRequest();
+      audioRef.current?.pause();
       if (mediaRecorderRef.current?.state === "recording") {
         try {
           mediaRecorderRef.current.stop();
@@ -55,6 +115,7 @@ export const useBrainDumpCapture = () => {
     setLastStartAttemptAt(Date.now());
     setVoiceError(null);
     setTranscript("");
+    setNovaResponseText("");
     console.log("[useBrainDumpCapture] start clicked");
 
     if (isListening || isProcessingVoice) {
@@ -120,11 +181,10 @@ export const useBrainDumpCapture = () => {
         }
 
         setIsProcessingVoice(true);
-        console.log("[useBrainDumpCapture] blob OK, starting voiceAgent call...");
+        console.log("[useBrainDumpCapture] blob OK, starting transcription...");
 
         try {
           const token = await getFirebaseIdToken();
-          console.log("[useBrainDumpCapture] got auth token:", !!token);
           if (!token) throw new Error("Not authenticated");
 
           const base64 = await new Promise<string>((resolve, reject) => {
@@ -137,15 +197,15 @@ export const useBrainDumpCapture = () => {
             reader.readAsDataURL(blob);
           });
 
+          // ── Step 1: Transcribe audio ──────────────────────────────────────
           const controller = new AbortController();
           abortControllerRef.current = controller;
           requestTimeoutRef.current = window.setTimeout(() => controller.abort(), 45_000);
 
-          console.log("[useBrainDumpCapture] base64 length:", base64.length, "sending to", TRANSCRIBE_URL);
-
-          let response: Response;
+          console.log("[useBrainDumpCapture] Step 1: transcribing audio...");
+          let transcribeResponse: Response;
           try {
-            response = await fetch(TRANSCRIBE_URL, {
+            transcribeResponse = await fetch(TRANSCRIBE_URL, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -161,18 +221,66 @@ export const useBrainDumpCapture = () => {
             clearPendingRequest();
           }
 
-          const data = await response.json();
-          console.log("[useBrainDumpCapture] transcribeAudio response:", { ok: response.ok, status: response.status, transcript: data.transcript, detected: data.detected });
-          if (!response.ok) {
-            throw new Error(data.error || "Voice transcription failed");
+          const transcribeData = await transcribeResponse.json();
+          console.log("[useBrainDumpCapture] transcription result:", { transcript: transcribeData.transcript, detected: transcribeData.detected });
+
+          if (!transcribeResponse.ok) {
+            throw new Error(transcribeData.error || "Voice transcription failed");
           }
 
-          if (data.detected && data.transcript?.trim()) {
-            setTranscript(data.transcript.trim());
-            toast.success("Nova heard your voice dump.");
-          } else {
+          if (!transcribeData.detected || !transcribeData.transcript?.trim()) {
             setVoiceError("Nova didn't catch any speech. Try again, or type your brain dump instead.");
             toast.error("The recording uploaded, but no speech was detected.");
+            return;
+          }
+
+          const spokenText = transcribeData.transcript.trim();
+          setTranscript(spokenText);
+          toast.success("Nova heard your voice dump.");
+
+          // ── Step 2: Send transcript to voiceAgent for Nova's response ─────
+          console.log("[useBrainDumpCapture] Step 2: sending to voiceAgent for Nova response...");
+          const agentController = new AbortController();
+          abortControllerRef.current = agentController;
+          requestTimeoutRef.current = window.setTimeout(() => agentController.abort(), 45_000);
+
+          let agentResponse: Response;
+          try {
+            agentResponse = await fetch(VOICE_AGENT_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                transcript: spokenText,
+                conversationHistory: [],
+                sessionId: null,
+              }),
+              signal: agentController.signal,
+            });
+          } finally {
+            clearPendingRequest();
+          }
+
+          const agentData = await agentResponse.json();
+          console.log("[useBrainDumpCapture] voiceAgent response:", {
+            ok: agentResponse.ok,
+            responseText: agentData.responseText?.substring(0, 100),
+            hasAudio: !!agentData.audioContent,
+          });
+
+          if (agentResponse.ok) {
+            // Show Nova's text response
+            const novaText = (agentData.responseText || "").replace(/^__nova_greet__:\w+\s*/i, "").trim();
+            if (novaText) {
+              setNovaResponseText(novaText);
+            }
+
+            // Play Nova's voice response
+            if (agentData.audioContent) {
+              await playAudio(agentData.audioContent, agentData.audioMimeType || "audio/pcm");
+            }
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -199,7 +307,7 @@ export const useBrainDumpCapture = () => {
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start(250); // collect data every 250ms
+      recorder.start(250);
       setIsListening(true);
       toast.success("Nova is recording. Speak freely.");
     } catch (error) {
@@ -215,11 +323,12 @@ export const useBrainDumpCapture = () => {
       setIsListening(false);
       stopTracks();
     }
-  }, [isListening, isProcessingVoice]);
+  }, [isListening, isProcessingVoice, playAudio]);
 
   const stop = useCallback(() => {
     if (isProcessingVoice) {
       abortPendingRequest();
+      audioRef.current?.pause();
       setIsProcessingVoice(false);
       setVoiceError("Voice upload canceled. You can try again, or type your brain dump below.");
       toast.info("Voice upload canceled");
@@ -240,12 +349,14 @@ export const useBrainDumpCapture = () => {
 
   const reset = useCallback(() => {
     abortPendingRequest();
+    audioRef.current?.pause();
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
     setIsListening(false);
     setIsProcessingVoice(false);
     setTranscript("");
+    setNovaResponseText("");
     setVoiceError(null);
     audioChunksRef.current = [];
     stopTracks();
@@ -256,6 +367,7 @@ export const useBrainDumpCapture = () => {
     isListening,
     isProcessingVoice,
     transcript,
+    novaResponseText,
     voiceError,
     lastStartAttemptAt,
     start,

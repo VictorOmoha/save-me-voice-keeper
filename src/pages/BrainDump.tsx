@@ -42,7 +42,7 @@ const getConfidenceBadgeColor = (confidence: number): 'default' | 'secondary' | 
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
-  const { isSupported, isListening, isProcessingVoice, transcript, voiceError, lastStartAttemptAt, start, stop, reset } = useBrainDumpCapture();
+  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, voiceError, lastStartAttemptAt, start, stop, reset } = useBrainDumpCapture();
   const navigate = useNavigate();
   
   const safeStop = () => {
@@ -660,6 +660,13 @@ const BrainDumpPage: React.FC = () => {
                     )}
                   </Button>
                 </div>
+
+                {novaResponseText && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+                    <p className="text-xs font-medium text-primary mb-1">Nova</p>
+                    <p className="text-foreground">{novaResponseText}</p>
+                  </div>
+                )}
 
                 {voiceError && (
                   <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

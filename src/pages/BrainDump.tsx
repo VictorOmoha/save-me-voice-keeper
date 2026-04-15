@@ -42,7 +42,7 @@ const getConfidenceBadgeColor = (confidence: number): 'default' | 'secondary' | 
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
-  const { isSupported, isListening, transcript, start, stop, reset } = useBrainDumpCapture();
+  const { isSupported, isListening, isProcessingVoice, transcript, voiceError, lastStartAttemptAt, start, stop, reset } = useBrainDumpCapture();
   const navigate = useNavigate();
   
   const safeStop = () => {
@@ -661,6 +661,14 @@ const BrainDumpPage: React.FC = () => {
                   </Button>
                 </div>
 
+                {voiceError && (
+                  <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                    <p className="font-medium">Voice capture issue</p>
+                    <p className="text-xs mt-1">{voiceError}</p>
+                    <p className="text-xs mt-2 text-muted-foreground">You can keep going by typing below, then Nova will organize and save it.</p>
+                  </div>
+                )}
+
                 <Textarea
                   value={rawText || transcript}
                   onChange={(e) => setRawText(e.target.value)}
@@ -669,8 +677,11 @@ const BrainDumpPage: React.FC = () => {
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <p>
-                    Status: {isListening ? '🎤 Nova is recording. Speak freely.' : 'Nova is ready'}
+                    Status: {isProcessingVoice ? '⏳ Nova is processing your voice...' : isListening ? '🎤 Nova is recording. Speak freely.' : voiceError ? 'Voice unavailable, typing is ready' : 'Nova is ready'}
                     {livePreview && livePreview.isProcessing && ' | ⚡ Nova is organizing your thoughts...'}
+                    {lastStartAttemptAt && !isListening && !isProcessingVoice && (
+                      <span className="ml-2">Last voice start attempt: {new Date(lastStartAttemptAt).toLocaleTimeString()}</span>
+                    )}
                   </p>
                   <p>Tip: messy is fine. Nova can clean it up for you.</p>
                 </div>

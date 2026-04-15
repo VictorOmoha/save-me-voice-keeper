@@ -2,8 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getCloudFunctionUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 
-const TRANSCRIBE_URL = getCloudFunctionUrl("transcribeAudio");
 const VOICE_AGENT_URL = getCloudFunctionUrl("voiceAgent");
+
+export interface VoiceAgentAction {
+  tool: string;
+  args: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
 
 export const useBrainDumpCapture = () => {
   const [isListening, setIsListening] = useState(false);
@@ -11,6 +16,8 @@ export const useBrainDumpCapture = () => {
   const [transcript, setTranscript] = useState("");
   const [novaResponseText, setNovaResponseText] = useState("");
   const [savedEntry, setSavedEntry] = useState<{ title: string; category: string } | null>(null);
+  const [actionsExecuted, setActionsExecuted] = useState<VoiceAgentAction[]>([]);
+  const [appCommands, setAppCommands] = useState<Record<string, unknown>[]>([]);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<number | null>(null);
 
@@ -43,37 +50,28 @@ export const useBrainDumpCapture = () => {
   /** Play base64 audio from voiceAgent TTS response */
   const playAudio = useCallback(async (base64Audio: string, mimeType: string) => {
     try {
-      // Decode base64 to raw bytes
       const raw = atob(base64Audio);
       const bytes = new Uint8Array(raw.length);
       for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
 
-      // PCM L16 needs manual conversion to WAV
       if (mimeType.includes("pcm") || mimeType.includes("L16")) {
         const sampleRate = 24000;
-        const numChannels = 1;
-        const bitsPerSample = 16;
         const wavHeader = new ArrayBuffer(44);
         const view = new DataView(wavHeader);
         const dataSize = bytes.length;
-
-        // RIFF header
-        view.setUint32(0, 0x52494646, false); // "RIFF"
+        view.setUint32(0, 0x52494646, false);
         view.setUint32(4, 36 + dataSize, true);
-        view.setUint32(8, 0x57415645, false); // "WAVE"
-        // fmt chunk
-        view.setUint32(12, 0x666d7420, false); // "fmt "
+        view.setUint32(8, 0x57415645, false);
+        view.setUint32(12, 0x666d7420, false);
         view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true); // PCM
-        view.setUint16(22, numChannels, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
         view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * numChannels * (bitsPerSample / 8), true);
-        view.setUint16(32, numChannels * (bitsPerSample / 8), true);
-        view.setUint16(34, bitsPerSample, true);
-        // data chunk
-        view.setUint32(36, 0x64617461, false); // "data"
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        view.setUint32(36, 0x64617461, false);
         view.setUint32(40, dataSize, true);
-
         const wavBlob = new Blob([wavHeader, bytes], { type: "audio/wav" });
         const url = URL.createObjectURL(wavBlob);
         const audio = new Audio(url);
@@ -82,7 +80,6 @@ export const useBrainDumpCapture = () => {
         audio.onended = () => URL.revokeObjectURL(url);
         await audio.play();
       } else {
-        // MP3 or other standard format
         const blob = new Blob([bytes], { type: mimeType });
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
@@ -102,11 +99,7 @@ export const useBrainDumpCapture = () => {
       abortPendingRequest();
       audioRef.current?.pause();
       if (mediaRecorderRef.current?.state === "recording") {
-        try {
-          mediaRecorderRef.current.stop();
-        } catch (error) {
-          console.debug("[useBrainDumpCapture] recorder stop during cleanup failed:", error);
-        }
+        try { mediaRecorderRef.current.stop(); } catch (_) { /* */ }
       }
       stopTracks();
     };
@@ -118,6 +111,8 @@ export const useBrainDumpCapture = () => {
     setTranscript("");
     setNovaResponseText("");
     setSavedEntry(null);
+    setActionsExecuted([]);
+    setAppCommands([]);
     console.log("[useBrainDumpCapture] start clicked");
 
     if (isListening || isProcessingVoice) {
@@ -128,13 +123,7 @@ export const useBrainDumpCapture = () => {
     abortPendingRequest();
     audioChunksRef.current = [];
 
-    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setVoiceError("Voice capture is not available in this browser. Type your brain dump instead.");
-      toast.error("Voice capture is not available in this browser. Type your brain dump instead.");
-      return;
-    }
-
-    if (typeof window.MediaRecorder === "undefined") {
+    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder === "undefined") {
       setVoiceError("Voice capture is not available in this browser. Type your brain dump instead.");
       toast.error("Voice capture is not available in this browser. Type your brain dump instead.");
       return;
@@ -152,10 +141,7 @@ export const useBrainDumpCapture = () => {
             ? "audio/mp4"
             : "";
 
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
-
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mimeTypeRef.current = mimeType || recorder.mimeType || "audio/webm";
       audioChunksRef.current = [];
 
@@ -183,7 +169,6 @@ export const useBrainDumpCapture = () => {
         }
 
         setIsProcessingVoice(true);
-        console.log("[useBrainDumpCapture] blob OK, starting transcription...");
 
         try {
           const token = await getFirebaseIdToken();
@@ -191,23 +176,20 @@ export const useBrainDumpCapture = () => {
 
           const base64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
-            reader.onloadend = () => {
-              const result = reader.result as string;
-              resolve(result.split(",")[1]);
-            };
+            reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
             reader.onerror = () => reject(reader.error);
             reader.readAsDataURL(blob);
           });
 
-          // ── Step 1: Transcribe audio ──────────────────────────────────────
           const controller = new AbortController();
           abortControllerRef.current = controller;
-          requestTimeoutRef.current = window.setTimeout(() => controller.abort(), 45_000);
+          requestTimeoutRef.current = window.setTimeout(() => controller.abort(), 55_000);
 
-          console.log("[useBrainDumpCapture] Step 1: transcribing audio...");
-          let transcribeResponse: Response;
+          console.log("[useBrainDumpCapture] sending audio directly to voiceAgent...");
+
+          let response: Response;
           try {
-            transcribeResponse = await fetch(TRANSCRIBE_URL, {
+            response = await fetch(VOICE_AGENT_URL, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -216,6 +198,8 @@ export const useBrainDumpCapture = () => {
               body: JSON.stringify({
                 audioData: base64,
                 audioMimeType: resolvedMimeType,
+                conversationHistory: [],
+                sessionId: null,
               }),
               signal: controller.signal,
             });
@@ -223,81 +207,63 @@ export const useBrainDumpCapture = () => {
             clearPendingRequest();
           }
 
-          const transcribeData = await transcribeResponse.json();
-          console.log("[useBrainDumpCapture] transcription result:", { transcript: transcribeData.transcript, detected: transcribeData.detected });
-
-          if (!transcribeResponse.ok) {
-            throw new Error(transcribeData.error || "Voice transcription failed");
-          }
-
-          if (!transcribeData.detected || !transcribeData.transcript?.trim()) {
-            setVoiceError("Nova didn't catch any speech. Try again, or type your brain dump instead.");
-            toast.error("The recording uploaded, but no speech was detected.");
-            return;
-          }
-
-          const spokenText = transcribeData.transcript.trim();
-          setTranscript(spokenText);
-          toast.success("Nova heard your voice dump.");
-
-          // ── Step 2: Send transcript to voiceAgent for Nova's response ─────
-          console.log("[useBrainDumpCapture] Step 2: sending to voiceAgent for Nova response...");
-          const agentController = new AbortController();
-          abortControllerRef.current = agentController;
-          requestTimeoutRef.current = window.setTimeout(() => agentController.abort(), 45_000);
-
-          let agentResponse: Response;
-          try {
-            agentResponse = await fetch(VOICE_AGENT_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                transcript: spokenText,
-                conversationHistory: [],
-                sessionId: null,
-              }),
-              signal: agentController.signal,
-            });
-          } finally {
-            clearPendingRequest();
-          }
-
-          const agentData = await agentResponse.json();
-          console.log("[useBrainDumpCapture] voiceAgent full response:", {
-            ok: agentResponse.ok,
-            responseText: agentData.responseText?.substring(0, 100),
-            hasAudio: !!agentData.audioContent,
-            actionsExecuted: agentData.actionsExecuted,
-            appCommands: agentData.appCommands,
+          const data = await response.json();
+          console.log("[useBrainDumpCapture] voiceAgent response:", {
+            ok: response.ok,
+            status: response.status,
+            transcript: data.transcript,
+            responseText: data.responseText?.substring(0, 100),
+            hasAudio: !!data.audioContent,
+            actionsCount: data.actionsExecuted?.length || 0,
+            appCommandsCount: data.appCommands?.length || 0,
           });
 
-          if (agentResponse.ok) {
-            // Show Nova's text response
-            const novaText = (agentData.responseText || "").replace(/^__nova_greet__:\w+\s*/i, "").trim();
-            if (novaText) {
-              setNovaResponseText(novaText);
-            }
+          if (!response.ok) {
+            throw new Error(data.error || "Voice agent failed");
+          }
 
-            // Extract saved entry info from actionsExecuted
-            if (agentData.actionsExecuted?.length) {
-              const saveAction = agentData.actionsExecuted.find(
-                (a: { tool: string; args: Record<string, unknown>; result: Record<string, unknown> }) => a.tool === "saveEntry"
-              );
-              if (saveAction?.result?.success) {
-                setSavedEntry({
-                  title: (saveAction.args?.title as string) || "",
-                  category: (saveAction.args?.category as string) || "Personal",
-                });
-              }
-            }
+          // Set transcript (user's spoken words)
+          if (data.transcript?.trim()) {
+            setTranscript(data.transcript.trim());
+          }
 
-            // Play Nova's voice response
-            if (agentData.audioContent) {
-              await playAudio(agentData.audioContent, agentData.audioMimeType || "audio/pcm");
+          // Set Nova's response text (strip greeting prefix)
+          const novaText = (data.responseText || "").replace(/^__nova_greet__:\w+\s*/i, "").trim();
+          if (novaText) {
+            setNovaResponseText(novaText);
+          }
+
+          // Track actions executed
+          if (data.actionsExecuted?.length) {
+            setActionsExecuted(data.actionsExecuted);
+            // Check if Nova saved an entry
+            const saveAction = data.actionsExecuted.find(
+              (a: VoiceAgentAction) => a.tool === "saveEntry" && a.result?.success
+            );
+            if (saveAction) {
+              setSavedEntry({
+                title: (saveAction.args?.title as string) || "",
+                category: (saveAction.args?.category as string) || "Personal",
+              });
             }
+          }
+
+          // Track app commands for the page to execute
+          if (data.appCommands?.length) {
+            setAppCommands(data.appCommands);
+          }
+
+          // Play Nova's voice response
+          if (data.audioContent) {
+            await playAudio(data.audioContent, data.audioMimeType || "audio/pcm");
+          }
+
+          // Show toast based on result
+          if (data.transcript?.trim()) {
+            toast.success("Nova heard your voice dump.");
+          } else {
+            setVoiceError("Nova didn't catch any speech. Try again, or type your brain dump instead.");
+            toast.error("The recording uploaded, but no speech was detected.");
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -352,11 +318,7 @@ export const useBrainDumpCapture = () => {
       return;
     }
     if (mediaRecorderRef.current?.state === "recording") {
-      try {
-        mediaRecorderRef.current.requestData();
-      } catch (error) {
-        console.debug("[useBrainDumpCapture] requestData failed before stop:", error);
-      }
+      try { mediaRecorderRef.current.requestData(); } catch (_) { /* */ }
       mediaRecorderRef.current.stop();
     } else {
       setIsListening(false);
@@ -375,6 +337,8 @@ export const useBrainDumpCapture = () => {
     setTranscript("");
     setNovaResponseText("");
     setSavedEntry(null);
+    setActionsExecuted([]);
+    setAppCommands([]);
     setVoiceError(null);
     audioChunksRef.current = [];
     stopTracks();
@@ -387,6 +351,8 @@ export const useBrainDumpCapture = () => {
     transcript,
     novaResponseText,
     savedEntry,
+    actionsExecuted,
+    appCommands,
     voiceError,
     lastStartAttemptAt,
     start,

@@ -29,7 +29,7 @@ export const useGlobalShortcuts = () => {
         key: 'b',
         ctrl: true,
         shift: true,
-        description: 'Go to Brain Dump',
+        description: 'Go to voice dump',
         action: () => navigate('/brain-dump'),
         category: 'Navigation',
       },

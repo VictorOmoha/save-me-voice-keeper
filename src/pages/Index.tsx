@@ -109,7 +109,7 @@ const Index = () => {
               <div>
                 <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Best place to start: Brain Dump</p>
                 <p className={`text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                  Just unload what is in your head. SaveMe will turn it into structured notes, action items, and searchable memory in one flow.
+                  Speak freely. Nova will organize your thoughts into structured notes, action items, and searchable memory.
                 </p>
               </div>
             </div>
@@ -117,7 +117,7 @@ const Index = () => {
           <div className="w-full max-w-lg mb-8 reveal stagger-3">
             <ConversationalVoiceDemo onSignupClick={() => navigate("/signup")} theme={theme} />
           </div>
-          <p className={`text-sm font-medium mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Try the demo above, then start with a Brain Dump. No signup needed for the demo.</p>
+          <p className={`text-sm font-medium mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Try the demo above, then start a voice dump. No signup needed for the demo.</p>
           <div className="flex flex-wrap items-center justify-center gap-4 reveal stagger-4">
             <button 
               className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
@@ -128,12 +128,12 @@ const Index = () => {
             </button>
             {isAuthenticated ? (
               <Link to="/brain-dump" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                Start Brain Dump
+                Start voice dump
                 <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
               <Link to="/signup" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                Start Free
+                Start voice dump
                 <ArrowRight className="w-4 h-4" />
               </Link>
             )}

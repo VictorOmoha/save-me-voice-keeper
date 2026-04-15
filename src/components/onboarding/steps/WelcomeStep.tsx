@@ -6,7 +6,7 @@ export function WelcomeStep() {
     <OnboardingStep
       icon={<Sparkles className="w-20 h-20 text-primary" />}
       title="Welcome to SaveMe"
-      description="The fastest way to get value here is one Brain Dump."
+      description="The fastest way to get value here is one voice dump."
     >
       <div className="space-y-8">
         <div className="space-y-4 text-center">
@@ -17,9 +17,9 @@ export function WelcomeStep() {
 
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-left">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">Best first action</p>
-          <h3 className="text-lg font-semibold text-foreground mb-2">Do a Brain Dump</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Start with a voice dump</h3>
           <p className="text-sm text-muted-foreground">
-            Say or type whatever is on your mind. SaveMe will turn it into structured notes, action items, and searchable memory.
+            Say or type whatever is on your mind. Nova will organize your thoughts into structured notes, action items, and searchable memory.
           </p>
         </div>
 

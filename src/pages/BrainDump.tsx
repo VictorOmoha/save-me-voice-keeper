@@ -258,7 +258,7 @@ const BrainDumpPage: React.FC = () => {
     } catch (error) {
       console.debug("Analytics event failed:", error);
     }
-    toast.success("Brain dump structured");
+    toast.success("Nova organized your thoughts");
   };
 
   const handleEnhanceWithAI = async () => {
@@ -300,7 +300,7 @@ const BrainDumpPage: React.FC = () => {
         setTags(result.tags || []);
         setPeople(result.people || []);
         setLivePreview(null);
-        toast.success("AI enhanced and structured your brain dump");
+        toast.success("Nova enhanced and organized your brain dump.");
       }
     } catch (err) {
       console.error('AI enhance exception:', err);
@@ -359,7 +359,7 @@ const BrainDumpPage: React.FC = () => {
         console.debug("Analytics event failed:", error);
       }
       setJustSaved({ title: title || `Brain Dump - ${new Date().toLocaleString()}`, category });
-      toast.success("Saved structured brain dump");
+      toast.success("Nova saved this to your vault");
       setRawText("");
       setTitle("");
       setSummary("");
@@ -463,7 +463,7 @@ const BrainDumpPage: React.FC = () => {
 
     if (isProcessCommand(lower)) {
       handleProcess();
-      speak('Processed your brain dump.');
+      speak('Nova heard your voice dump.');
       lastHandledRef.current = t;
       return;
     }
@@ -485,7 +485,7 @@ const BrainDumpPage: React.FC = () => {
   useEffect(() => {
     const onProcess = () => {
       handleProcess();
-      speak('Processed your brain dump.');
+      speak('Nova heard your voice dump.');
     };
     const onSave = (e: Event) => {
       const ce = e as CustomEvent<{ category?: string }>;
@@ -530,23 +530,23 @@ const BrainDumpPage: React.FC = () => {
           <header className="space-y-4">
             <div>
               <h1 className="text-3xl font-bold">Brain Dump</h1>
-              <p className="text-muted-foreground mt-1">The fastest way to get value from SaveMe. Dump your thoughts, structure them, and save them in one flow.</p>
+              <p className="text-muted-foreground mt-1">Speak freely. Nova will organize your thoughts and save what matters.</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-xl border bg-card p-4">
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 1</p>
-                <p className="text-sm font-semibold mt-1">Capture fast</p>
+                <p className="text-sm font-semibold mt-1">Nova capture</p>
                 <p className="text-xs text-muted-foreground mt-1">Speak naturally or paste messy thoughts. No need to organize first.</p>
               </div>
               <div className="rounded-xl border bg-card p-4">
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 2</p>
-                <p className="text-sm font-semibold mt-1">Process into structure</p>
-                <p className="text-xs text-muted-foreground mt-1">Turn the dump into a title, category, notes, and action items.</p>
+                <p className="text-sm font-semibold mt-1">Nova is organizing</p>
+                <p className="text-xs text-muted-foreground mt-1">Nova will organize and save this for you.</p>
               </div>
               <div className="rounded-xl border bg-card p-4">
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 3</p>
-                <p className="text-sm font-semibold mt-1">Save and move on</p>
+                <p className="text-sm font-semibold mt-1">Saved to vault</p>
                 <p className="text-xs text-muted-foreground mt-1">Store it in your vault so you can find it later without friction.</p>
               </div>
             </div>
@@ -581,8 +581,8 @@ const BrainDumpPage: React.FC = () => {
               <CardContent className="p-4 md:p-5">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Recommended first use</p>
-                    <p className="text-sm text-muted-foreground mt-1">Do a 30 to 60 second brain dump, process it, then save it. That is the fastest path to value.</p>
+                    <p className="text-sm font-semibold text-foreground">How this works</p>
+                    <p className="text-sm text-muted-foreground mt-1">Say everything in one pass. Nova will organize it and save it unless you want manual review.</p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <span className="rounded-full border bg-background px-3 py-1">Best for tasks</span>
@@ -609,7 +609,7 @@ const BrainDumpPage: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle id="capture">Capture</CardTitle>
-                <p className="text-sm text-muted-foreground">Start talking or typing right away. When you're done, hit Process to structure it.</p>
+                <p className="text-sm text-muted-foreground">Speak or type freely. Nova will organize your thoughts and get them ready to save.</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-3">
@@ -634,12 +634,12 @@ const BrainDumpPage: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!isListening ? (
-                    <Button onClick={start} aria-label="Start recording">Start</Button>
+                    <Button onClick={start} aria-label="Start recording">Talk to Nova</Button>
                   ) : (
-                    <Button variant="secondary" onClick={stop} aria-label="Stop recording">Stop</Button>
+                    <Button variant="secondary" onClick={stop} aria-label="Stop recording">Finish dump</Button>
                   )}
                   <Button variant="outline" onClick={reset} aria-label="Reset transcript">Reset</Button>
-                  <Button variant="outline" onClick={handleProcess} aria-label="Process brain dump">Process</Button>
+                  <Button variant="outline" onClick={handleProcess} aria-label="Organize with Nova">Organize with Nova</Button>
                   <Button
                     variant="default"
                     onClick={handleEnhanceWithAI}
@@ -655,7 +655,7 @@ const BrainDumpPage: React.FC = () => {
                     ) : (
                       <>
                         <Sparkles className="h-4 w-4 mr-2" />
-                        AI Enhance
+                        Enhance with AI
                       </>
                     )}
                   </Button>
@@ -669,10 +669,10 @@ const BrainDumpPage: React.FC = () => {
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <p>
-                    Status: {isListening ? '🎤 Listening…' : 'Idle'}
-                    {livePreview && livePreview.isProcessing && ' | ⚡ Processing live preview...'}
+                    Status: {isListening ? '🎤 Nova is recording. Speak freely.' : 'Nova is ready'}
+                    {livePreview && livePreview.isProcessing && ' | ⚡ Nova is organizing your thoughts...'}
                   </p>
-                  <p>Tip: messy is fine. Capture first, clean up second.</p>
+                  <p>Tip: messy is fine. Nova can clean it up for you.</p>
                 </div>
               </CardContent>
             </Card>
@@ -685,10 +685,10 @@ const BrainDumpPage: React.FC = () => {
                     {isListening && livePreview ? (
                       <>
                         <Zap className="inline h-4 w-4 mr-2 text-yellow-500" />
-                        Live Preview
+                        Nova preview
                       </>
                     ) : (
-                      'Structured Preview'
+                      'Nova capture'
                     )}
                   </CardTitle>
                   {livePreview && (
@@ -919,13 +919,13 @@ const BrainDumpPage: React.FC = () => {
                       {/* SAVE BUTTON - only show if not in live preview or if live preview has data */}
                       {(!livePreview || hasStructured) && (
                         <div className="pt-2 space-y-3">
-                          <Button 
-                            onClick={handleSave} 
+                          <Button
+                            onClick={handleSave}
                             disabled={!hasStructured && !livePreview}
                             aria-label="Save structured entry"
                             className="w-full"
                           >
-                            Save to Entries
+                            Save structured entry
                           </Button>
                           <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
                             <p className="font-medium text-foreground mb-1">What happens after you save?</p>

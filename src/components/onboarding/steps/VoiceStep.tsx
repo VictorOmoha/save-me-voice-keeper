@@ -24,7 +24,7 @@ export function VoiceStep() {
   return (
     <OnboardingStep
       icon={<Mic className="w-20 h-20 text-primary" />}
-      title="Start with a Brain Dump"
+      title="Start with a voice dump"
       description="Don’t worry about saying it perfectly. Just get it out."
     >
       <div className="space-y-6">
@@ -56,7 +56,7 @@ export function VoiceStep() {
           <p className="text-sm text-center">
             <span className="font-semibold text-primary">💡 Pro tip:</span>{" "}
             <span className="text-muted-foreground">
-              Messy is fine. Brain Dump works best when you stop editing yourself and capture first.
+              Messy is fine. Voice dump works best when you stop editing yourself and capture first.
             </span>
           </p>
         </div>

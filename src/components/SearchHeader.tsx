@@ -117,7 +117,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
           <Link
             to="/brain-dump"
             className="btn-galvanized btn-galvanized-secondary"
-            aria-label="Open Brain Dump"
+            aria-label="Open voice dump"
           >
             <Brain className="w-4 h-4" />
             <span className="hidden sm:inline">BRAIN_DUMP</span>

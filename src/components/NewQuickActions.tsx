@@ -42,16 +42,16 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
               Fastest way to use SaveMe
             </div>
-            <h3 className="text-lg md:text-xl font-semibold text-card-foreground">Start with a Brain Dump</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-card-foreground">Start with a voice dump</h3>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              Speak or type whatever is in your head, then let SaveMe turn it into organized notes, action items, and searchable memory.
+              Speak freely. Nova will organize your thoughts.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 md:min-w-[320px]">
             <Button onClick={handleStartBrainDump} className="flex items-center justify-center gap-2 flex-1">
               <Mic className="w-4 h-4" />
-              Start Brain Dump
+              Start voice dump
             </Button>
             <Button onClick={handleQuickCapture} variant="outline" className="flex items-center justify-center gap-2 flex-1">
               <Plus className="w-4 h-4" />
@@ -80,7 +80,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             size="sm"
           >
             <Mic className="w-4 h-4" />
-            <span>Brain Dump</span>
+            <span>Voice Dump</span>
           </Button>
 
           <Button

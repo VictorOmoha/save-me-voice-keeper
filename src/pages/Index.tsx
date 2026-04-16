@@ -119,13 +119,14 @@ const Index = () => {
           </div>
           <p className={`text-sm font-medium mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Try the demo above, then start a voice dump. No signup needed for the demo.</p>
           <div className="flex flex-wrap items-center justify-center gap-4 reveal stagger-4">
-            <button 
-              className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
-              onClick={() => setIsVideoModalOpen(true)} 
-              disabled={!activeDemoVideo}
-            >
-              {activeDemoVideo ? "Watch Demo" : "Demo Coming Soon"}
-            </button>
+            {activeDemoVideo && (
+              <button
+                className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
+                onClick={() => setIsVideoModalOpen(true)}
+              >
+                Watch Demo
+              </button>
+            )}
             {isAuthenticated ? (
               <Link to="/brain-dump" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                 Start voice dump

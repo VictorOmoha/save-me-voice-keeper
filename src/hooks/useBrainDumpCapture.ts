@@ -43,6 +43,18 @@ export const useBrainDumpCapture = () => {
   const continuousRef = useRef(continuous);
   const manualStopRef = useRef(false);
   const startRef = useRef<(() => Promise<void>) | null>(null);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Silence detection (VAD) refs
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const silenceCheckTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastSoundAtRef = useRef<number>(0);
+
+  // Max recording duration per turn (matches floating Nova)
+  const MAX_RECORDING_MS = 20_000; // 20 seconds max per turn
+  const SILENCE_THRESHOLD_MS = 2500; // stop after 2.5s of silence
+  const MIN_RECORDING_MS = 1500; // don't auto-stop in the first 1.5s
 
   useEffect(() => {
     continuousRef.current = continuous;
@@ -54,6 +66,25 @@ export const useBrainDumpCapture = () => {
       requestTimeoutRef.current = null;
     }
     abortControllerRef.current = null;
+  };
+
+  const clearAutoStopTimer = () => {
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
+    }
+  };
+
+  const clearSilenceDetection = () => {
+    if (silenceCheckTimerRef.current) {
+      clearInterval(silenceCheckTimerRef.current);
+      silenceCheckTimerRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => { /* */ });
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
   };
 
   const abortPendingRequest = () => {
@@ -122,6 +153,8 @@ export const useBrainDumpCapture = () => {
     return () => {
       manualStopRef.current = true;
       abortPendingRequest();
+      clearAutoStopTimer();
+      clearSilenceDetection();
       audioRef.current?.pause();
       if (mediaRecorderRef.current?.state === "recording") {
         try { mediaRecorderRef.current.stop(); } catch (_) { /* */ }
@@ -171,6 +204,8 @@ export const useBrainDumpCapture = () => {
       };
 
       recorder.onstop = async () => {
+        clearAutoStopTimer();
+        clearSilenceDetection();
         setIsListening(false);
         stopTracks();
 
@@ -333,6 +368,58 @@ export const useBrainDumpCapture = () => {
       mediaRecorderRef.current = recorder;
       recorder.start(250);
       setIsListening(true);
+
+      // ── Set up silence detection (VAD) ──────────────────────────────────
+      try {
+        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const ctx = new AudioCtx();
+        audioContextRef.current = ctx;
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.3;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const recordStartTime = Date.now();
+        lastSoundAtRef.current = recordStartTime;
+
+        silenceCheckTimerRef.current = setInterval(() => {
+          if (!analyserRef.current || mediaRecorderRef.current?.state !== "recording") return;
+          analyserRef.current.getByteFrequencyData(dataArray);
+          // Compute RMS-ish volume level
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+          const rms = Math.sqrt(sum / dataArray.length);
+          const now = Date.now();
+          const elapsedSinceStart = now - recordStartTime;
+
+          // Threshold: ~15 feels right for "speaking detected"
+          if (rms > 15) {
+            lastSoundAtRef.current = now;
+          }
+
+          // Auto-stop conditions
+          const silentMs = now - lastSoundAtRef.current;
+          if (elapsedSinceStart >= MIN_RECORDING_MS && silentMs >= SILENCE_THRESHOLD_MS) {
+            console.log("[useBrainDumpCapture] VAD: silence detected, stopping", { elapsedSinceStart, silentMs });
+            if (mediaRecorderRef.current?.state === "recording") {
+              mediaRecorderRef.current.stop();
+            }
+          }
+        }, 150);
+      } catch (vadErr) {
+        console.warn("[useBrainDumpCapture] VAD setup failed, falling back to timeout only:", vadErr);
+      }
+
+      // Max recording safety cap
+      autoStopTimerRef.current = setTimeout(() => {
+        if (mediaRecorderRef.current?.state === "recording") {
+          console.log("[useBrainDumpCapture] Max duration reached, stopping");
+          mediaRecorderRef.current.stop();
+        }
+      }, MAX_RECORDING_MS);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("Permission denied") || message.includes("NotAllowedError")) {
@@ -355,6 +442,8 @@ export const useBrainDumpCapture = () => {
 
   const stop = useCallback(() => {
     manualStopRef.current = true;
+    clearAutoStopTimer();
+    clearSilenceDetection();
     if (isProcessingVoice) {
       abortPendingRequest();
       audioRef.current?.pause();
@@ -375,6 +464,8 @@ export const useBrainDumpCapture = () => {
   const reset = useCallback(() => {
     manualStopRef.current = true;
     abortPendingRequest();
+    clearAutoStopTimer();
+    clearSilenceDetection();
     audioRef.current?.pause();
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();

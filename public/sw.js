@@ -1,5 +1,5 @@
 // Bump this on every deploy to force cache invalidation
-const CACHE_VERSION = 'saveme-v3-2026-04-15';
+const CACHE_VERSION = 'saveme-v4-2026-04-15-transcribe-first';
 const CACHE_NAME = CACHE_VERSION;
 
 // Only cache the shell — everything else goes to network-first

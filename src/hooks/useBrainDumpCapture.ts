@@ -277,10 +277,9 @@ export const useBrainDumpCapture = () => {
           abortControllerRef.current = controller;
           requestTimeoutRef.current = window.setTimeout(() => controller.abort(), 55_000);
 
-          // ── Fire transcribe + voiceAgent in PARALLEL for fastest response ─────
-          console.log("[useBrainDumpCapture] firing parallel transcribe + voiceAgent...");
-
-          const transcribePromise = fetch(TRANSCRIBE_URL, {
+          // ── Step 1: Transcribe audio first (fast, reliable ~1-2s) ─────────
+          console.log("[useBrainDumpCapture] Step 1: transcribing audio...");
+          const transcribeData = await fetch(TRANSCRIBE_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -291,71 +290,90 @@ export const useBrainDumpCapture = () => {
               audioMimeType: resolvedMimeType,
             }),
             signal: controller.signal,
-          }).then((r) => r.json()).catch((e) => ({ error: e.message }));
+          }).then((r) => r.json());
 
-          const agentPromise = fetch(VOICE_AGENT_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              audioData: base64,
-              audioMimeType: resolvedMimeType,
-              conversationHistory: [],
-              sessionId: null,
-            }),
-            signal: controller.signal,
-          }).then((r) => r.json()).catch((e) => ({ error: e.message }));
+          const heardText = (transcribeData?.detected && transcribeData?.transcript?.trim()) || "";
+          console.log("[useBrainDumpCapture] transcript:", heardText || "(none)");
 
-          // Show transcript as SOON as it's ready (usually 1-2s)
-          transcribePromise.then((transcribeData) => {
-            if (transcribeData?.detected && transcribeData?.transcript?.trim()) {
-              console.log("[useBrainDumpCapture] transcript ready:", transcribeData.transcript);
-              setTranscript(transcribeData.transcript.trim());
-            }
-          }).catch((err) => {
-            console.warn("[useBrainDumpCapture] transcribe error:", err);
-          });
-
-          // Wait for agent response (includes Nova's reply + TTS audio)
-          const agentData = await agentPromise;
-          clearPendingRequest();
-
-          // ── Echo/hallucination guard ──────────────────────────────────────
-          const heardText = (await transcribePromise)?.transcript?.trim() || agentData.transcript?.trim() || "";
+          // ── Echo / hallucination guard BEFORE calling voiceAgent ──────────
           const heardNormalized = normalizeForCompare(heardText);
           const lastNormalized = normalizeForCompare(lastTranscriptRef.current);
           const novaLastNormalized = normalizeForCompare(lastNovaResponseRef.current);
 
-          // Detect hallucinated / repeated transcripts
-          if (heardText && isLikelyHallucination(heardText)) {
-            console.log("[useBrainDumpCapture] skipping: likely hallucination/silence:", heardText);
+          const restartIfContinuous = () => {
+            setIsProcessingVoice(false);
+            if (continuousRef.current && !manualStopRef.current) {
+              setTimeout(() => {
+                if (!manualStopRef.current && startRef.current) startRef.current();
+              }, 500);
+            }
+          };
+
+          if (!heardText) {
+            console.log("[useBrainDumpCapture] no speech detected — skipping voiceAgent");
             repeatCountRef.current += 1;
             if (repeatCountRef.current >= 2) {
-              console.log("[useBrainDumpCapture] 2+ hallucinations — stopping continuous mode");
               manualStopRef.current = true;
               toast.info("Nova didn't catch anything. Tap the mic to try again.");
               setIsProcessingVoice(false);
               return;
             }
-          } else if (heardNormalized && heardNormalized === lastNormalized) {
-            console.log("[useBrainDumpCapture] skipping: duplicate transcript (echo loop)");
+            restartIfContinuous();
+            return;
+          }
+
+          if (isLikelyHallucination(heardText)) {
+            console.log("[useBrainDumpCapture] skipping: likely hallucination/silence:", heardText);
+            repeatCountRef.current += 1;
+            if (repeatCountRef.current >= 2) {
+              manualStopRef.current = true;
+              toast.info("Nova didn't catch anything clear. Tap the mic to try again.");
+              setIsProcessingVoice(false);
+              return;
+            }
+            restartIfContinuous();
+            return;
+          }
+
+          if (heardNormalized === lastNormalized) {
+            console.log("[useBrainDumpCapture] skipping: duplicate transcript (echo)");
             manualStopRef.current = true;
             toast.info("Mic echo detected — paused. Tap to resume.");
             setIsProcessingVoice(false);
             return;
-          } else if (heardNormalized && heardNormalized.includes(novaLastNormalized.substring(0, 20)) && novaLastNormalized.length > 10) {
-            console.log("[useBrainDumpCapture] skipping: transcript matches Nova's last response (echo)");
+          }
+
+          if (novaLastNormalized.length > 10 && heardNormalized.includes(novaLastNormalized.substring(0, 20))) {
+            console.log("[useBrainDumpCapture] skipping: transcript matches Nova's last response");
             manualStopRef.current = true;
             toast.info("Nova heard herself — paused to avoid echo. Tap to resume.");
             setIsProcessingVoice(false);
             return;
-          } else if (heardText) {
-            // Valid speech detected — reset counters
-            repeatCountRef.current = 0;
-            lastTranscriptRef.current = heardText;
           }
+
+          // Real speech detected — show it, reset counters, proceed to agent
+          repeatCountRef.current = 0;
+          lastTranscriptRef.current = heardText;
+          setTranscript(heardText);
+          toast.success("Nova heard your voice dump.");
+
+          // ── Step 2: Send TEXT to voiceAgent (faster + reliable) ───────────
+          console.log("[useBrainDumpCapture] Step 2: sending text to voiceAgent...");
+          const agentData = await fetch(VOICE_AGENT_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              transcript: heardText,
+              conversationHistory: [],
+              sessionId: null,
+            }),
+            signal: controller.signal,
+          }).then((r) => r.json());
+
+          clearPendingRequest();
 
           console.log("[useBrainDumpCapture] voiceAgent response:", {
             transcript: agentData.transcript,
@@ -366,11 +384,6 @@ export const useBrainDumpCapture = () => {
 
           if (agentData.error) {
             throw new Error(agentData.error);
-          }
-
-          // Set transcript from agent if not already set by transcribe call
-          if (agentData.transcript?.trim()) {
-            setTranscript((prev) => prev || agentData.transcript.trim());
           }
 
           // Clean and set Nova's response text

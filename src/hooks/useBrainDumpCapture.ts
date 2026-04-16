@@ -21,6 +21,31 @@ const cleanResponseText = (text: string): string => {
     .trim();
 };
 
+/** Common phrases Gemini hallucinates when there's no real speech (silence/echo) */
+const HALLUCINATED_PHRASES = [
+  /^i'?m ready\.?$/i,
+  /^ready\.?$/i,
+  /^okay\.?$/i,
+  /^ok\.?$/i,
+  /^yes\.?$/i,
+  /^no\.?$/i,
+  /^thank you\.?$/i,
+  /^thanks\.?$/i,
+  /^go ahead\.?$/i,
+  /^uh\.?$/i,
+  /^um\.?$/i,
+];
+
+const isLikelyHallucination = (text: string): boolean => {
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+  if (trimmed.length < 4) return true;
+  return HALLUCINATED_PHRASES.some((re) => re.test(trimmed));
+};
+
+const normalizeForCompare = (s: string): string =>
+  s.toLowerCase().replace(/[.,!?;:'"]/g, "").trim();
+
 export const useBrainDumpCapture = () => {
   const [isListening, setIsListening] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
@@ -44,6 +69,11 @@ export const useBrainDumpCapture = () => {
   const manualStopRef = useRef(false);
   const startRef = useRef<(() => Promise<void>) | null>(null);
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Echo detection
+  const lastTranscriptRef = useRef<string>("");
+  const repeatCountRef = useRef(0);
+  const lastNovaResponseRef = useRef<string>("");
 
   // Silence detection (VAD) refs
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -166,6 +196,12 @@ export const useBrainDumpCapture = () => {
   const start = useCallback(async () => {
     setLastStartAttemptAt(Date.now());
     setVoiceError(null);
+    // If this is a manual (re)start after user action, reset echo counters
+    if (manualStopRef.current) {
+      repeatCountRef.current = 0;
+      lastTranscriptRef.current = "";
+      lastNovaResponseRef.current = "";
+    }
     manualStopRef.current = false;
     console.log("[useBrainDumpCapture] start clicked");
 
@@ -277,7 +313,6 @@ export const useBrainDumpCapture = () => {
             if (transcribeData?.detected && transcribeData?.transcript?.trim()) {
               console.log("[useBrainDumpCapture] transcript ready:", transcribeData.transcript);
               setTranscript(transcribeData.transcript.trim());
-              toast.success("Nova heard your voice dump.");
             }
           }).catch((err) => {
             console.warn("[useBrainDumpCapture] transcribe error:", err);
@@ -286,6 +321,41 @@ export const useBrainDumpCapture = () => {
           // Wait for agent response (includes Nova's reply + TTS audio)
           const agentData = await agentPromise;
           clearPendingRequest();
+
+          // ── Echo/hallucination guard ──────────────────────────────────────
+          const heardText = (await transcribePromise)?.transcript?.trim() || agentData.transcript?.trim() || "";
+          const heardNormalized = normalizeForCompare(heardText);
+          const lastNormalized = normalizeForCompare(lastTranscriptRef.current);
+          const novaLastNormalized = normalizeForCompare(lastNovaResponseRef.current);
+
+          // Detect hallucinated / repeated transcripts
+          if (heardText && isLikelyHallucination(heardText)) {
+            console.log("[useBrainDumpCapture] skipping: likely hallucination/silence:", heardText);
+            repeatCountRef.current += 1;
+            if (repeatCountRef.current >= 2) {
+              console.log("[useBrainDumpCapture] 2+ hallucinations — stopping continuous mode");
+              manualStopRef.current = true;
+              toast.info("Nova didn't catch anything. Tap the mic to try again.");
+              setIsProcessingVoice(false);
+              return;
+            }
+          } else if (heardNormalized && heardNormalized === lastNormalized) {
+            console.log("[useBrainDumpCapture] skipping: duplicate transcript (echo loop)");
+            manualStopRef.current = true;
+            toast.info("Mic echo detected — paused. Tap to resume.");
+            setIsProcessingVoice(false);
+            return;
+          } else if (heardNormalized && heardNormalized.includes(novaLastNormalized.substring(0, 20)) && novaLastNormalized.length > 10) {
+            console.log("[useBrainDumpCapture] skipping: transcript matches Nova's last response (echo)");
+            manualStopRef.current = true;
+            toast.info("Nova heard herself — paused to avoid echo. Tap to resume.");
+            setIsProcessingVoice(false);
+            return;
+          } else if (heardText) {
+            // Valid speech detected — reset counters
+            repeatCountRef.current = 0;
+            lastTranscriptRef.current = heardText;
+          }
 
           console.log("[useBrainDumpCapture] voiceAgent response:", {
             transcript: agentData.transcript,
@@ -305,7 +375,10 @@ export const useBrainDumpCapture = () => {
 
           // Clean and set Nova's response text
           const novaText = cleanResponseText(agentData.responseText || "");
-          if (novaText) setNovaResponseText(novaText);
+          if (novaText) {
+            setNovaResponseText(novaText);
+            lastNovaResponseRef.current = novaText;
+          }
 
           // Track actions executed
           if (agentData.actionsExecuted?.length) {
@@ -333,13 +406,14 @@ export const useBrainDumpCapture = () => {
           setIsProcessingVoice(false);
 
           // ── Continuous mode: auto-restart recording after Nova finishes ─────
+          // 800ms delay to let speakers settle and avoid mic echo of Nova's audio
           if (continuousRef.current && !manualStopRef.current) {
-            console.log("[useBrainDumpCapture] continuous mode: restarting recording");
+            console.log("[useBrainDumpCapture] continuous mode: restarting recording in 800ms");
             setTimeout(() => {
               if (!manualStopRef.current && startRef.current) {
                 startRef.current();
               }
-            }, 300);
+            }, 800);
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -479,6 +553,9 @@ export const useBrainDumpCapture = () => {
     setAppCommands([]);
     setVoiceError(null);
     audioChunksRef.current = [];
+    repeatCountRef.current = 0;
+    lastTranscriptRef.current = "";
+    lastNovaResponseRef.current = "";
     stopTracks();
   }, []);
 

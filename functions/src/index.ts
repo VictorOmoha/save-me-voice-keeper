@@ -2168,12 +2168,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
       let userText: string = transcript?.trim() || "";
 
       // ── Transcribe audio if no text transcript provided ──────────────────
-      // When audio is sent, add a transcription hint so Gemini echoes back what was said
+      // Build user message parts — audio or text
       const userParts: ConversationPart[] = audioData
-        ? [
-            {inlineData: {mimeType: inputAudioMimeType || "audio/webm", data: audioData}},
-            {text: "IMPORTANT: Start your response with [TRANSCRIPT]exact words the user said[/TRANSCRIPT] on its own line, then respond normally. Always include the transcript tags even if the message is short."},
-          ]
+        ? [{inlineData: {mimeType: inputAudioMimeType || "audio/webm", data: audioData}}]
         : [{text: userText}];
 
       // Cap history to last 10 turns to prevent large payloads
@@ -2380,15 +2377,13 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         }
       }
 
-      // ── Extract transcript from response if audio was sent ──────────────────
-      if (audioData && !userText && responseText) {
-        const transcriptMatch = responseText.match(/\[TRANSCRIPT\]([\s\S]*?)\[\/TRANSCRIPT\]/);
-        if (transcriptMatch?.[1]?.trim()) {
-          userText = transcriptMatch[1].trim();
-          // Strip the transcript tags from the response text
-          responseText = responseText.replace(/\[TRANSCRIPT\][\s\S]*?\[\/TRANSCRIPT\]\s*/m, "").trim();
-          console.log("[VoiceAgent] Extracted transcript from response:", userText.substring(0, 100));
-        }
+      // ── Clean up response: strip any leaked tags or greeting prefix ─────────
+      if (responseText) {
+        responseText = responseText
+          .replace(/\[\/?TRANSCRIPT\][\s\S]*?\[\/TRANSCRIPT\]/g, "")
+          .replace(/\[\/?TRANSCRIPT\]/g, "")
+          .replace(/^__nova_greet__:\S+\s*/i, "")
+          .trim();
       }
 
       // ── Auto-extract memories from user input (fire-and-forget) ────────────

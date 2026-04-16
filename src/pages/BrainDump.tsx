@@ -42,7 +42,7 @@ const getConfidenceBadgeColor = (confidence: number): 'default' | 'secondary' | 
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
-  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, savedEntry: novaSavedEntry, voiceError, lastStartAttemptAt, start, stop, reset } = useBrainDumpCapture();
+  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, savedEntry: novaSavedEntry, voiceError, lastStartAttemptAt, continuous, setContinuous, start, stop, reset } = useBrainDumpCapture();
   const navigate = useNavigate();
   
   const safeStop = () => {
@@ -685,7 +685,13 @@ const BrainDumpPage: React.FC = () => {
                 {novaResponseText && (
                   <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
                     <p className="text-xs font-medium text-primary mb-1">Nova</p>
-                    <p className="text-foreground">{novaResponseText}</p>
+                    <p className="text-foreground">
+                      {novaResponseText
+                        .replace(/\[\/?TRANSCRIPT\][\s\S]*?\[\/TRANSCRIPT\]/g, '')
+                        .replace(/\[\/?TRANSCRIPT\]/g, '')
+                        .replace(/^__nova_greet__:\S+\s*/i, '')
+                        .trim()}
+                    </p>
                   </div>
                 )}
 
@@ -705,13 +711,21 @@ const BrainDumpPage: React.FC = () => {
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <p>
-                    Status: {isProcessingVoice ? '⏳ Nova is processing your voice...' : isListening ? '🎤 Nova is recording. Speak freely.' : voiceError ? 'Voice unavailable, typing is ready' : 'Nova is ready'}
+                    Status: {isProcessingVoice ? '⏳ Nova is processing your voice...' : isListening ? (continuous ? '🎤 Nova is listening (continuous). Speak freely.' : '🎤 Nova is recording. Speak freely.') : voiceError ? 'Voice unavailable, typing is ready' : 'Nova is ready'}
                     {livePreview && livePreview.isProcessing && ' | ⚡ Nova is organizing your thoughts...'}
-                    {lastStartAttemptAt && !isListening && !isProcessingVoice && (
-                      <span className="ml-2">Last voice start attempt: {new Date(lastStartAttemptAt).toLocaleTimeString()}</span>
-                    )}
                   </p>
-                  <p>Tip: messy is fine. Nova can clean it up for you.</p>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={continuous}
+                        onChange={(e) => setContinuous(e.target.checked)}
+                        className="h-3 w-3"
+                      />
+                      <span>Continuous mode</span>
+                    </label>
+                    <p>Tip: messy is fine. Nova can clean it up for you.</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

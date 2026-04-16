@@ -1,4 +1,8 @@
-const CACHE_NAME = 'saveme-v1';
+// Bump this on every deploy to force cache invalidation
+const CACHE_VERSION = 'saveme-v3-2026-04-15';
+const CACHE_NAME = CACHE_VERSION;
+
+// Only cache the shell — everything else goes to network-first
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,61 +11,85 @@ const STATIC_ASSETS = [
   '/manifest.json'
 ];
 
-// Install: cache static assets
+// Install: cache the shell and skip waiting so new SW takes over immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: delete all old caches and claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for static
+// Fetch strategy:
+// - API / Firebase / Google calls → network-only (no caching)
+// - Hashed JS/CSS assets → network-first (always get latest, fallback to cache offline)
+// - Everything else → cache-first with background revalidation
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET requests
+  // Skip non-GET and non-HTTP requests
   if (event.request.method !== 'GET') return;
-
-  // Skip Chrome extension and other non-http URLs
   if (!url.protocol.startsWith('http')) return;
 
-  // Network-first for API calls and dynamic content
+  // Never cache API/backend calls
   if (
     url.hostname.includes('firestore.googleapis.com') ||
     url.hostname.includes('cloudfunctions.net') ||
-    url.hostname.includes('googleapis.com')
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('firebaseio.com') ||
+    url.hostname.includes('identitytoolkit') ||
+    url.hostname.includes('securetoken')
   ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Network-first for JS/CSS/HTML so new deploys take effect immediately
+  const isCodeAsset = url.pathname.endsWith('.js') ||
+                      url.pathname.endsWith('.css') ||
+                      url.pathname.endsWith('.html') ||
+                      url.pathname === '/' ||
+                      url.pathname.includes('/assets/');
+
+  if (isCodeAsset) {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
+      fetch(event.request).then((response) => {
+        // Cache successful full responses only (skip 206 partial content)
+        if (response.ok && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            try { cache.put(event.request, clone); } catch (_) { /* */ }
+          });
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        if (event.request.mode === 'navigate') return caches.match('/index.html');
+        return new Response('Offline', { status: 503 });
+      }))
     );
     return;
   }
 
-  // Cache-first for static assets
+  // Cache-first for images/other static (with safe caching)
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) {
         // Revalidate in background
         fetch(event.request).then((response) => {
-          if (response.ok) {
+          if (response.ok && response.status === 200 && response.type === 'basic') {
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, response);
+              try { cache.put(event.request, response.clone()); } catch (_) { /* */ }
             });
           }
         }).catch(() => {});
@@ -69,15 +97,15 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(event.request).then((response) => {
-        if (response.ok && response.type === 'basic') {
+        // Only cache successful full responses (NOT 206 partial content for media)
+        if (response.ok && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clone);
+            try { cache.put(event.request, clone); } catch (_) { /* */ }
           });
         }
         return response;
       }).catch(() => {
-        // Offline fallback for navigation
         if (event.request.mode === 'navigate') {
           return caches.match('/index.html');
         }
@@ -87,86 +115,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Handle background sync for offline entry queue
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-entries') {
-    event.waitUntil(syncOfflineEntries());
-  }
-});
-
-async function syncOfflineEntries() {
-  // This triggers the client-side sync via message
-  const clients = await self.clients.matchAll();
-  clients.forEach((client) => {
-    client.postMessage({ type: 'SYNC_OFFLINE_ENTRIES' });
-  });
-}
-
-// Listen for messages from the client
+// Listen for skipWaiting message from page
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// ── Push notifications ─────────────────────────────────────────────────────
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: 'Nova', body: event.data.text() };
-  }
-
-  const {
-    title = 'Nova',
-    body = '',
-    url = '/',
-    icon = '/logo.png',
-    badge = '/logo.png',
-  } = payload;
-
-  event.waitUntil(
-    self.registration.showNotification(title, {
-      body,
-      icon,
-      badge,
-      data: { url },
-      vibrate: [100, 50, 100],
-      actions: [
-        { action: 'open', title: 'Open' },
-        { action: 'dismiss', title: 'Dismiss' },
-      ],
-    })
-  );
-});
-
-// ── Notification click ─────────────────────────────────────────────────────
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  if (event.action === 'dismiss') return;
-
-  const targetUrl = event.notification.data?.url || '/';
-
-  event.waitUntil(
-    clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Focus existing tab if already open
-        for (const client of clientList) {
-          if ('focus' in client) {
-            client.focus();
-            client.postMessage({ type: 'NOVA_NOTIFICATION_CLICK', url: targetUrl });
-            return;
-          }
-        }
-        // Open new tab
-        if (clients.openWindow) {
-          return clients.openWindow(targetUrl);
-        }
-      })
-  );
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });

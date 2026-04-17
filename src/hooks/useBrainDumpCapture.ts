@@ -76,6 +76,10 @@ export const useBrainDumpCapture = () => {
   const repeatCountRef = useRef(0);
   const lastNovaResponseRef = useRef<string>("");
 
+  // VAD result (did user actually speak in the last recording?)
+  const hasDetectedSpeechRef = useRef(false);
+  const peakRmsRef = useRef(0);
+
   // Silence detection (VAD) refs
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -259,6 +263,28 @@ export const useBrainDumpCapture = () => {
         if (blob.size < 500) {
           setVoiceError("Nova didn't catch enough audio. Try a longer voice dump, or type your brain dump instead.");
           toast.error("Recorded audio was too short or empty.");
+          return;
+        }
+
+        // If VAD detected no speech at all, don't waste a transcribe call —
+        // Gemini will hallucinate 'Hello Nova' from silence. Just restart.
+        const heardSpeech = hasDetectedSpeechRef.current;
+        const peakRms = peakRmsRef.current;
+        if (!heardSpeech) {
+          console.log("[useBrainDumpCapture] VAD heard no speech, skipping transcribe", { peakRms: peakRms.toFixed(1) });
+          setIsProcessingVoice(false);
+          if (continuousRef.current && !manualStopRef.current) {
+            // No speech → count toward hallucination limit so we don't loop forever
+            repeatCountRef.current += 1;
+            if (repeatCountRef.current >= 3) {
+              manualStopRef.current = true;
+              toast.info("Tap the mic when you're ready to speak.");
+              return;
+            }
+            setTimeout(() => {
+              if (!manualStopRef.current && startRef.current) startRef.current();
+            }, 500);
+          }
           return;
         }
 
@@ -489,42 +515,43 @@ export const useBrainDumpCapture = () => {
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         const recordStartTime = Date.now();
         lastSoundAtRef.current = recordStartTime;
-        let hasDetectedSpeech = false;
+        hasDetectedSpeechRef.current = false;
+        peakRmsRef.current = 0;
+        // Lower threshold so quieter speech registers
+        const SPEECH_RMS_THRESHOLD = 8;
 
         silenceCheckTimerRef.current = setInterval(() => {
           if (!analyserRef.current || mediaRecorderRef.current?.state !== "recording") return;
           analyserRef.current.getByteFrequencyData(dataArray);
-          // Compute RMS-ish volume level
           let sum = 0;
           for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
           const rms = Math.sqrt(sum / dataArray.length);
           const now = Date.now();
           const elapsedSinceStart = now - recordStartTime;
 
-          // Threshold: ~15 feels right for "speaking detected"
-          if (rms > 15) {
+          if (rms > peakRmsRef.current) peakRmsRef.current = rms;
+
+          if (rms > SPEECH_RMS_THRESHOLD) {
             lastSoundAtRef.current = now;
-            if (!hasDetectedSpeech) {
-              hasDetectedSpeech = true;
-              console.log("[useBrainDumpCapture] VAD: speech detected");
+            if (!hasDetectedSpeechRef.current) {
+              hasDetectedSpeechRef.current = true;
+              console.log("[useBrainDumpCapture] VAD: speech detected (rms:", rms.toFixed(1), ")");
             }
           }
 
           if (elapsedSinceStart < MIN_RECORDING_MS) return;
 
-          if (hasDetectedSpeech) {
-            // Post-speech: stop after short silence
+          if (hasDetectedSpeechRef.current) {
             const silentMs = now - lastSoundAtRef.current;
             if (silentMs >= SILENCE_THRESHOLD_MS) {
-              console.log("[useBrainDumpCapture] VAD: silence after speech, stopping", { elapsedSinceStart, silentMs });
+              console.log("[useBrainDumpCapture] VAD: silence after speech, stopping", { elapsedSinceStart, silentMs, peakRms: peakRmsRef.current.toFixed(1) });
               if (mediaRecorderRef.current?.state === "recording") {
                 mediaRecorderRef.current.stop();
               }
             }
           } else {
-            // No speech yet: give user longer to start talking
             if (elapsedSinceStart >= NO_SPEECH_TIMEOUT_MS) {
-              console.log("[useBrainDumpCapture] VAD: no speech detected in window, stopping", { elapsedSinceStart });
+              console.log("[useBrainDumpCapture] VAD: no speech detected in window, stopping", { elapsedSinceStart, peakRms: peakRmsRef.current.toFixed(1) });
               if (mediaRecorderRef.current?.state === "recording") {
                 mediaRecorderRef.current.stop();
               }

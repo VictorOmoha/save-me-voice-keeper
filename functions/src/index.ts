@@ -304,21 +304,22 @@ export const transcribeAudio = functions.https.onRequest(
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            systemInstruction: {parts: [{text: `You are a speech transcription service. Transcribe exactly what you hear in the audio.
+            systemInstruction: {parts: [{text: `You are a speech-to-text transcription service. Your job: output the literal words spoken in the audio file, verbatim.
 
 Rules:
-- Output the exact words spoken, including short phrases ("Hi", "Hello Nova", "Yes").
-- If the audio is genuinely silent with no voice at all, respond with: [NO_SPEECH]
-- Do NOT substitute common example phrases. You have been trained on sentences like "I'm going to go to the store / I need to get some milk" — do NOT use these unless the speaker actually said those exact words. Real users will say things like "Hi Nova", "save this", "what's on my list", not store/milk examples.
-- Transcribe real speech even if it is short or quiet. Only use [NO_SPEECH] for true silence.
-- Output only the transcribed words — no commentary, no labels, no formatting.`}]},
+- Output only the words you actually hear — nothing else.
+- If the audio has no detectable speech (silence, noise only, music), output exactly: [NO_SPEECH]
+- Do NOT guess. Do NOT fill in likely content. Do NOT use any phrases from your training data unless the speaker literally said those words.
+- If you are unsure what was said, output [NO_SPEECH] rather than making something up.
+- Short phrases are fine. Partial words are fine if that's what was said.
+- No punctuation cleanup, no formatting, no commentary.`}]},
             contents: [{
               parts: [
                 {inlineData: {mimeType: audioMimeType || "audio/webm", data: audioData}},
-                {text: "What words are spoken in this audio? Transcribe them exactly, even if brief. Use [NO_SPEECH] only if the audio is truly silent."},
+                {text: "Output the literal words spoken in this audio. If unclear or silent, output [NO_SPEECH]."},
               ],
             }],
-            generationConfig: {maxOutputTokens: 2048, temperature: 0.1, topP: 0.5},
+            generationConfig: {maxOutputTokens: 2048, temperature: 0, topP: 0.1, topK: 1},
           }),
         }
       );

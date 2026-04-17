@@ -287,6 +287,13 @@ export const useBrainDumpCapture = () => {
         const peakRms = peakRmsRef.current;
         console.log("[useBrainDumpCapture] VAD summary — heardSpeech:", heardSpeech, "peakRms:", peakRms.toFixed(2), "blobSize:", blob.size);
 
+        // DEBUG: expose last audio blob on window so user can download + verify what was captured
+        try {
+          const blobUrl = URL.createObjectURL(blob);
+          (window as unknown as { __lastCapturedAudioUrl?: string }).__lastCapturedAudioUrl = blobUrl;
+          console.log("[useBrainDumpCapture] 🔊 Audio captured — download/play with: new Audio(window.__lastCapturedAudioUrl).play() OR window.open(window.__lastCapturedAudioUrl)");
+        } catch (_) { /* */ }
+
         setIsProcessingVoice(true);
 
         try {

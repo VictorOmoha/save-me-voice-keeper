@@ -226,8 +226,24 @@ export const useBrainDumpCapture = () => {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Request raw audio — disable browser processing that filters out speech
+      // (echo cancellation especially causes trouble when Nova's TTS plays).
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
+        },
+      });
       streamRef.current = stream;
+
+      // Log actual track settings applied by browser
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        console.log("[useBrainDumpCapture] audio track settings:", audioTrack.getSettings());
+      }
 
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -501,8 +517,10 @@ export const useBrainDumpCapture = () => {
         lastSoundAtRef.current = recordStartTime;
         hasDetectedSpeechRef.current = false;
         peakRmsRef.current = 0;
-        // Time-domain RMS: values are centered on 128; deviations above ~5 = sound
-        const SPEECH_RMS_THRESHOLD = 5;
+        // Auto-calibrate from baseline ambient noise. Threshold = max(1.5, 3× baseline)
+        let baselineRms = 0;
+        let baselineSamples = 0;
+        let SPEECH_RMS_THRESHOLD = 1.5;
         let logCount = 0;
 
         silenceCheckTimerRef.current = setInterval(() => {
@@ -520,10 +538,21 @@ export const useBrainDumpCapture = () => {
 
           if (rms > peakRmsRef.current) peakRmsRef.current = rms;
 
+          // First 500ms: calibrate baseline noise level
+          if (elapsedSinceStart < 500) {
+            baselineRms = (baselineRms * baselineSamples + rms) / (baselineSamples + 1);
+            baselineSamples++;
+            if (baselineSamples === 3) {
+              // Set threshold = 3× baseline, minimum 1.5
+              SPEECH_RMS_THRESHOLD = Math.max(1.5, baselineRms * 3);
+              console.log("[VAD] calibrated: baseline rms=", baselineRms.toFixed(2), "threshold=", SPEECH_RMS_THRESHOLD.toFixed(2));
+            }
+          }
+
           // Periodic logging so we can see what RMS levels we're seeing
           logCount++;
           if (logCount % 7 === 0) {
-            console.log("[VAD] rms:", rms.toFixed(2), "peak:", peakRmsRef.current.toFixed(2), "hasSpeech:", hasDetectedSpeechRef.current);
+            console.log("[VAD] rms:", rms.toFixed(2), "peak:", peakRmsRef.current.toFixed(2), "thr:", SPEECH_RMS_THRESHOLD.toFixed(2), "hasSpeech:", hasDetectedSpeechRef.current);
           }
 
           if (rms > SPEECH_RMS_THRESHOLD) {

@@ -304,14 +304,26 @@ export const transcribeAudio = functions.https.onRequest(
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            systemInstruction: {parts: [{text: "You are a precise audio transcription service. Your ONLY job is to listen to audio and output the exact words spoken. Never add commentary, labels, timestamps, or formatting. If multiple sentences are spoken, write them all. If no speech is detected, return exactly: [NO_SPEECH]"}]},
+            systemInstruction: {parts: [{text: `You are a precise speech transcription service.
+
+STRICT RULES:
+1. Output ONLY the exact words spoken in the audio.
+2. If the audio is silent, mostly silent, contains only background noise, or has no clear speech, respond with EXACTLY: [NO_SPEECH]
+3. If you cannot clearly hear and understand what was said, respond with: [NO_SPEECH]
+4. NEVER invent, imagine, guess, or fill in placeholder text.
+5. NEVER use example phrases. Do NOT output 'I'm going to go to the store', 'I need to buy milk', 'Hello, how are you', or any other common training example unless the speaker literally said those exact words.
+6. Preserve short utterances exactly: 'Hi', 'Hello Nova', 'Yes', 'No', 'Stop', etc. are all valid transcripts.
+7. Do NOT add punctuation, formatting, or clean up the speech — just the raw words.
+8. Do NOT add any commentary, labels, timestamps, or explanations.
+
+If you are uncertain: return [NO_SPEECH]. Better to return nothing than hallucinate.`}]},
             contents: [{
               parts: [
                 {inlineData: {mimeType: audioMimeType || "audio/webm", data: audioData}},
-                {text: "Transcribe this audio."},
+                {text: "Transcribe the speech in this audio. If there is no clear speech, return [NO_SPEECH]."},
               ],
             }],
-            generationConfig: {maxOutputTokens: 2048, temperature: 0},
+            generationConfig: {maxOutputTokens: 2048, temperature: 0, topP: 0.1, topK: 1},
           }),
         }
       );
@@ -327,7 +339,24 @@ export const transcribeAudio = functions.https.onRequest(
       const transcript = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       console.log("[transcribeAudio] Result:", JSON.stringify(transcript).substring(0, 200));
 
-      if (!transcript || transcript === "[NO_SPEECH]" || transcript === ".") {
+      // Detect hallucinations and explicit no-speech signals
+      const isNoSpeech = !transcript ||
+        transcript === "[NO_SPEECH]" ||
+        transcript.toUpperCase() === "[NO_SPEECH]" ||
+        transcript === "." ||
+        transcript.length < 2;
+
+      // Common Gemini hallucination patterns for silent/unclear audio
+      const HALLUCINATION_PATTERNS = [
+        /i'?m going to go to the store/i,
+        /i need to (get|buy) some milk/i,
+        /the quick brown fox/i,
+        /lorem ipsum/i,
+      ];
+      const isHallucination = HALLUCINATION_PATTERNS.some((re) => re.test(transcript));
+
+      if (isNoSpeech || isHallucination) {
+        console.log("[transcribeAudio] Filtered:", isHallucination ? "hallucination" : "no speech");
         res.json({transcript: "", detected: false});
       } else {
         res.json({transcript, detected: true});

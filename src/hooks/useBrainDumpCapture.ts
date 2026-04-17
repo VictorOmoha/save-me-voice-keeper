@@ -27,13 +27,20 @@ const HALLUCINATED_PHRASES = [
   /^ready\.?$/i,
   /^okay\.?$/i,
   /^ok\.?$/i,
-  /^yes\.?$/i,
-  /^no\.?$/i,
   /^thank you\.?$/i,
   /^thanks\.?$/i,
   /^go ahead\.?$/i,
   /^uh\.?$/i,
   /^um\.?$/i,
+  /^hello\.?$/i,
+  /^hello,? how are you\??$/i,
+  // Known Gemini training-data examples that it outputs for unclear audio:
+  /i'?m going to go to the store/i,
+  /i need to (get|buy) some milk/i,
+  /going to the store.*milk/i,
+  /the quick brown fox/i,
+  /lorem ipsum/i,
+  /\[no[_ ]speech\]/i,
 ];
 
 const isLikelyHallucination = (text: string): boolean => {

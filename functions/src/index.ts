@@ -1471,6 +1471,15 @@ ${activePatterns.join("\n")}
 ## After calling tools
 Confirm briefly: "Done — opening Books." / "Got it, saved." / "Found 3 entries about that."
 Keep responses short. This is voice — no lists, no markdown.
+
+## Conversational responses — ALWAYS respond with text
+You MUST always return a spoken text response to the user, even if no tool needs to be called.
+- If user greets ("Hi", "Hello", "Hey Nova", "Hello Nova"): respond warmly in one sentence. Example: "Hi ${displayName}! What do you want to save or find?"
+- If user asks a question that doesn't map to a tool: give a helpful short answer.
+- If user says something unclear: ask a quick clarifying question. Example: "What would you like me to do with that?"
+- If user thanks you or says bye: respond naturally.
+
+NEVER return an empty response. Every user turn must get at least one short spoken sentence back.
 `.trim();
 
 // ── Memory helpers ───────────────────────────────────────────────────────────
@@ -2412,6 +2421,25 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
           .replace(/\[\/?TRANSCRIPT\]/g, "")
           .replace(/^__nova_greet__:\S+\s*/i, "")
           .trim();
+      }
+
+      // ── Fallback response if Gemini returned nothing ────────────────────────
+      // Gemini sometimes returns empty text for conversational inputs that don't
+      // map to tools (like "Hello Nova"). Always give the user something to hear.
+      if (!responseText) {
+        const lower = userText.toLowerCase();
+        if (/^(hi|hello|hey|yo|howdy|good morning|good afternoon|good evening)\b/.test(lower)) {
+          responseText = `Hi ${displayName}! What do you want to save or find?`;
+        } else if (/thank/.test(lower)) {
+          responseText = "You got it.";
+        } else if (/^(bye|goodbye|see you|later)/.test(lower)) {
+          responseText = "Talk soon!";
+        } else if (actionsExecuted.length > 0) {
+          responseText = "Done.";
+        } else {
+          responseText = "I'm here. What would you like me to do?";
+        }
+        console.log("[VoiceAgent] Used fallback response:", responseText);
       }
 
       // ── Auto-extract memories from user input (fire-and-forget) ────────────

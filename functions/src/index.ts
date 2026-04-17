@@ -304,26 +304,21 @@ export const transcribeAudio = functions.https.onRequest(
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            systemInstruction: {parts: [{text: `You are a precise speech transcription service.
+            systemInstruction: {parts: [{text: `You are a speech transcription service. Transcribe exactly what you hear in the audio.
 
-STRICT RULES:
-1. Output ONLY the exact words spoken in the audio.
-2. If the audio is silent, mostly silent, contains only background noise, or has no clear speech, respond with EXACTLY: [NO_SPEECH]
-3. If you cannot clearly hear and understand what was said, respond with: [NO_SPEECH]
-4. NEVER invent, imagine, guess, or fill in placeholder text.
-5. NEVER use example phrases. Do NOT output 'I'm going to go to the store', 'I need to buy milk', 'Hello, how are you', or any other common training example unless the speaker literally said those exact words.
-6. Preserve short utterances exactly: 'Hi', 'Hello Nova', 'Yes', 'No', 'Stop', etc. are all valid transcripts.
-7. Do NOT add punctuation, formatting, or clean up the speech — just the raw words.
-8. Do NOT add any commentary, labels, timestamps, or explanations.
-
-If you are uncertain: return [NO_SPEECH]. Better to return nothing than hallucinate.`}]},
+Rules:
+- Output the exact words spoken, including short phrases ("Hi", "Hello Nova", "Yes").
+- If the audio is genuinely silent with no voice at all, respond with: [NO_SPEECH]
+- Do NOT substitute common example phrases. You have been trained on sentences like "I'm going to go to the store / I need to get some milk" — do NOT use these unless the speaker actually said those exact words. Real users will say things like "Hi Nova", "save this", "what's on my list", not store/milk examples.
+- Transcribe real speech even if it is short or quiet. Only use [NO_SPEECH] for true silence.
+- Output only the transcribed words — no commentary, no labels, no formatting.`}]},
             contents: [{
               parts: [
                 {inlineData: {mimeType: audioMimeType || "audio/webm", data: audioData}},
-                {text: "Transcribe the speech in this audio. If there is no clear speech, return [NO_SPEECH]."},
+                {text: "What words are spoken in this audio? Transcribe them exactly, even if brief. Use [NO_SPEECH] only if the audio is truly silent."},
               ],
             }],
-            generationConfig: {maxOutputTokens: 2048, temperature: 0, topP: 0.1, topK: 1},
+            generationConfig: {maxOutputTokens: 2048, temperature: 0.1, topP: 0.5},
           }),
         }
       );
@@ -346,12 +341,11 @@ If you are uncertain: return [NO_SPEECH]. Better to return nothing than hallucin
         transcript === "." ||
         transcript.length < 2;
 
-      // Common Gemini hallucination patterns for silent/unclear audio
+      // Block exact matches of known Gemini training-data hallucinations
       const HALLUCINATION_PATTERNS = [
-        /i'?m going to go to the store/i,
-        /i need to (get|buy) some milk/i,
-        /the quick brown fox/i,
-        /lorem ipsum/i,
+        /^i'?m going to go to the store\.?\s*i need to (get|buy) some milk\.?$/i,
+        /^the quick brown fox jumps over the lazy dog\.?$/i,
+        /^lorem ipsum/i,
       ];
       const isHallucination = HALLUCINATION_PATTERNS.some((re) => re.test(transcript));
 

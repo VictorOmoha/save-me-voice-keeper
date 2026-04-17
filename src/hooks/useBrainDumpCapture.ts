@@ -21,32 +21,26 @@ const cleanResponseText = (text: string): string => {
     .trim();
 };
 
-/** Common phrases Gemini hallucinates when there's no real speech (silence/echo) */
+/** Exact-match hallucinations only — short filler words Gemini produces for silence */
 const HALLUCINATED_PHRASES = [
   /^i'?m ready\.?$/i,
   /^ready\.?$/i,
   /^okay\.?$/i,
   /^ok\.?$/i,
-  /^thank you\.?$/i,
-  /^thanks\.?$/i,
-  /^go ahead\.?$/i,
   /^uh\.?$/i,
   /^um\.?$/i,
-  /^hello\.?$/i,
-  /^hello,? how are you\??$/i,
-  // Known Gemini training-data examples that it outputs for unclear audio:
-  /i'?m going to go to the store/i,
-  /i need to (get|buy) some milk/i,
-  /going to the store.*milk/i,
-  /the quick brown fox/i,
-  /lorem ipsum/i,
-  /\[no[_ ]speech\]/i,
+  /^\[no[_ ]?speech\]$/i,
 ];
+
+/** The specific Gemini training-example hallucination about going to the store */
+const STORE_MILK_HALLUCINATION = /^i'?m going to go to the store\.?\s*i need to (get|buy) some milk\.?$/i;
 
 const isLikelyHallucination = (text: string): boolean => {
   const trimmed = text.trim();
   if (!trimmed) return true;
-  if (trimmed.length < 4) return true;
+  if (trimmed.length < 2) return true;
+  // Block the specific store/milk hallucination exactly
+  if (STORE_MILK_HALLUCINATION.test(trimmed)) return true;
   return HALLUCINATED_PHRASES.some((re) => re.test(trimmed));
 };
 

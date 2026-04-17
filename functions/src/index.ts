@@ -1687,17 +1687,22 @@ async function predictCategory(
       })
       .join("\n");
 
-    // Fetch learned patterns from corrections/feedback
-    const patternsSnap = await db.collection("user_category_patterns")
-      .where("user_id", "==", userId)
-      .orderBy("weight", "desc")
-      .limit(30)
-      .get();
+    // Fetch learned patterns from corrections/feedback (gracefully handle missing index)
+    let learnedPatterns = "";
+    try {
+      const patternsSnap = await db.collection("user_category_patterns")
+        .where("user_id", "==", userId)
+        .orderBy("weight", "desc")
+        .limit(30)
+        .get();
 
-    const learnedPatterns = patternsSnap.docs.map((d) => {
-      const data = d.data();
-      return `"${data.signal}" → ${data.category} (strength: ${Math.round((data.weight || 1) * 10) / 10})`;
-    }).join("\n");
+      learnedPatterns = patternsSnap.docs.map((d) => {
+        const data = d.data();
+        return `"${data.signal}" → ${data.category} (strength: ${Math.round((data.weight || 1) * 10) / 10})`;
+      }).join("\n");
+    } catch (patternsErr) {
+      console.warn("[predictCategory] Could not fetch learned patterns (index building?):", patternsErr instanceof Error ? patternsErr.message : String(patternsErr));
+    }
 
     const prompt = `You are Nova, predicting the best category for a personal knowledge vault entry.
 

@@ -128,6 +128,14 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "trigger_at", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "user_category_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id", "order": "ASCENDING" },
+        { "fieldPath": "weight", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

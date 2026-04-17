@@ -376,15 +376,24 @@ export const useBrainDumpCapture = () => {
 
           clearPendingRequest();
 
-          console.log("[useBrainDumpCapture] voiceAgent response:", {
+          // Log the FULL response so we can see what Nova returned
+          console.log("[useBrainDumpCapture] voiceAgent full response:", JSON.stringify({
+            ok: !agentData.error,
             transcript: agentData.transcript,
-            responseText: agentData.responseText?.substring(0, 100),
+            responseText: agentData.responseText,
+            audioMimeType: agentData.audioMimeType,
             hasAudio: !!agentData.audioContent,
+            audioLength: agentData.audioContent?.length || 0,
             actionsCount: agentData.actionsExecuted?.length || 0,
-          });
+            error: agentData.error,
+          }));
 
           if (agentData.error) {
-            throw new Error(agentData.error);
+            console.error("[useBrainDumpCapture] voiceAgent error:", agentData.error);
+            setVoiceError(`Nova error: ${agentData.error}`);
+            toast.error(`Nova error: ${agentData.error}`);
+            setIsProcessingVoice(false);
+            return;
           }
 
           // Clean and set Nova's response text
@@ -392,6 +401,9 @@ export const useBrainDumpCapture = () => {
           if (novaText) {
             setNovaResponseText(novaText);
             lastNovaResponseRef.current = novaText;
+          } else {
+            console.warn("[useBrainDumpCapture] Nova returned no text response");
+            setNovaResponseText("(Nova did not respond — but saved your note below.)");
           }
 
           // Track actions executed
@@ -414,7 +426,11 @@ export const useBrainDumpCapture = () => {
 
           // Play Nova's voice response and wait for it to finish
           if (agentData.audioContent) {
+            console.log("[useBrainDumpCapture] playing Nova audio...", agentData.audioMimeType);
             await playAudio(agentData.audioContent, agentData.audioMimeType || "audio/pcm");
+            console.log("[useBrainDumpCapture] Nova audio finished");
+          } else {
+            console.warn("[useBrainDumpCapture] No audio content from voiceAgent — Nova is silent");
           }
 
           setIsProcessingVoice(false);

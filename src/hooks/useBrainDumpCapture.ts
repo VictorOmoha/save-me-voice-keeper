@@ -266,27 +266,10 @@ export const useBrainDumpCapture = () => {
           return;
         }
 
-        // If VAD detected no speech at all, don't waste a transcribe call —
-        // Gemini will hallucinate 'Hello Nova' from silence. Just restart.
+        // VAD diagnostics — log what we saw, but trust transcribe to decide
         const heardSpeech = hasDetectedSpeechRef.current;
         const peakRms = peakRmsRef.current;
-        if (!heardSpeech) {
-          console.log("[useBrainDumpCapture] VAD heard no speech, skipping transcribe", { peakRms: peakRms.toFixed(1) });
-          setIsProcessingVoice(false);
-          if (continuousRef.current && !manualStopRef.current) {
-            // No speech → count toward hallucination limit so we don't loop forever
-            repeatCountRef.current += 1;
-            if (repeatCountRef.current >= 3) {
-              manualStopRef.current = true;
-              toast.info("Tap the mic when you're ready to speak.");
-              return;
-            }
-            setTimeout(() => {
-              if (!manualStopRef.current && startRef.current) startRef.current();
-            }, 500);
-          }
-          return;
-        }
+        console.log("[useBrainDumpCapture] VAD summary — heardSpeech:", heardSpeech, "peakRms:", peakRms.toFixed(2), "blobSize:", blob.size);
 
         setIsProcessingVoice(true);
 
@@ -512,30 +495,42 @@ export const useBrainDumpCapture = () => {
         source.connect(analyser);
         analyserRef.current = analyser;
 
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        // Use time-domain data (raw waveform amplitude) — more accurate than FFT for volume
+        const timeData = new Uint8Array(analyser.fftSize);
         const recordStartTime = Date.now();
         lastSoundAtRef.current = recordStartTime;
         hasDetectedSpeechRef.current = false;
         peakRmsRef.current = 0;
-        // Lower threshold so quieter speech registers
-        const SPEECH_RMS_THRESHOLD = 8;
+        // Time-domain RMS: values are centered on 128; deviations above ~5 = sound
+        const SPEECH_RMS_THRESHOLD = 5;
+        let logCount = 0;
 
         silenceCheckTimerRef.current = setInterval(() => {
           if (!analyserRef.current || mediaRecorderRef.current?.state !== "recording") return;
-          analyserRef.current.getByteFrequencyData(dataArray);
+          analyserRef.current.getByteTimeDomainData(timeData);
+          // Compute RMS deviation from center (128 = silence)
           let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
-          const rms = Math.sqrt(sum / dataArray.length);
+          for (let i = 0; i < timeData.length; i++) {
+            const dev = timeData[i] - 128;
+            sum += dev * dev;
+          }
+          const rms = Math.sqrt(sum / timeData.length);
           const now = Date.now();
           const elapsedSinceStart = now - recordStartTime;
 
           if (rms > peakRmsRef.current) peakRmsRef.current = rms;
 
+          // Periodic logging so we can see what RMS levels we're seeing
+          logCount++;
+          if (logCount % 7 === 0) {
+            console.log("[VAD] rms:", rms.toFixed(2), "peak:", peakRmsRef.current.toFixed(2), "hasSpeech:", hasDetectedSpeechRef.current);
+          }
+
           if (rms > SPEECH_RMS_THRESHOLD) {
             lastSoundAtRef.current = now;
             if (!hasDetectedSpeechRef.current) {
               hasDetectedSpeechRef.current = true;
-              console.log("[useBrainDumpCapture] VAD: speech detected (rms:", rms.toFixed(1), ")");
+              console.log("[useBrainDumpCapture] VAD: speech detected (rms:", rms.toFixed(2), ")");
             }
           }
 
@@ -544,14 +539,14 @@ export const useBrainDumpCapture = () => {
           if (hasDetectedSpeechRef.current) {
             const silentMs = now - lastSoundAtRef.current;
             if (silentMs >= SILENCE_THRESHOLD_MS) {
-              console.log("[useBrainDumpCapture] VAD: silence after speech, stopping", { elapsedSinceStart, silentMs, peakRms: peakRmsRef.current.toFixed(1) });
+              console.log("[useBrainDumpCapture] VAD: silence after speech, stopping", { elapsedSinceStart, silentMs, peakRms: peakRmsRef.current.toFixed(2) });
               if (mediaRecorderRef.current?.state === "recording") {
                 mediaRecorderRef.current.stop();
               }
             }
           } else {
             if (elapsedSinceStart >= NO_SPEECH_TIMEOUT_MS) {
-              console.log("[useBrainDumpCapture] VAD: no speech detected in window, stopping", { elapsedSinceStart, peakRms: peakRmsRef.current.toFixed(1) });
+              console.log("[useBrainDumpCapture] VAD: no speech detected in window, stopping", { elapsedSinceStart, peakRms: peakRmsRef.current.toFixed(2) });
               if (mediaRecorderRef.current?.state === "recording") {
                 mediaRecorderRef.current.stop();
               }

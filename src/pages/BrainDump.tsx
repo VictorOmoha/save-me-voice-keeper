@@ -703,8 +703,15 @@ const BrainDumpPage: React.FC = () => {
                   </div>
                 )}
 
+                {transcript && !rawText && (
+                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+                    <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">✓ Nova heard</p>
+                    <p className="text-foreground whitespace-pre-wrap">{transcript}</p>
+                  </div>
+                )}
+
                 <Textarea
-                  value={rawText || transcript}
+                  value={rawText !== "" ? rawText : transcript}
                   onChange={(e) => setRawText(e.target.value)}
                   placeholder="What's on your mind right now? Dump tasks, ideas, reminders, meeting notes, or half-formed thoughts here..."
                   className="min-h-[220px] text-base"

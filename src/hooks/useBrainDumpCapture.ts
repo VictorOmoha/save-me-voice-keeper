@@ -378,10 +378,14 @@ export const useBrainDumpCapture = () => {
             return;
           }
 
-          // Real speech detected — show it, reset counters, proceed to agent
+          // Real speech detected — accumulate in transcript, reset counters, proceed to agent
           repeatCountRef.current = 0;
           lastTranscriptRef.current = heardText;
-          setTranscript(heardText);
+          // Append to previous transcript so continuous mode builds up thoughts
+          setTranscript((prev) => {
+            const combined = prev ? `${prev} ${heardText}`.trim() : heardText;
+            return combined;
+          });
           toast.success("Nova heard your voice dump.");
 
           // ── Step 2: Send TEXT to voiceAgent (faster + reliable) ───────────

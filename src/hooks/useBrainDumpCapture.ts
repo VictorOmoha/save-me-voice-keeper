@@ -83,8 +83,9 @@ export const useBrainDumpCapture = () => {
   const lastSoundAtRef = useRef<number>(0);
 
   // Max recording duration per turn (matches floating Nova)
-  const MAX_RECORDING_MS = 20_000; // 20 seconds max per turn
-  const SILENCE_THRESHOLD_MS = 2500; // stop after 2.5s of silence
+  const MAX_RECORDING_MS = 30_000; // 30 seconds max per turn
+  const SILENCE_THRESHOLD_MS = 2500; // stop after 2.5s of silence (post-speech)
+  const NO_SPEECH_TIMEOUT_MS = 8000; // give user 8s to start speaking
   const MIN_RECORDING_MS = 1500; // don't auto-stop in the first 1.5s
 
   useEffect(() => {
@@ -488,6 +489,7 @@ export const useBrainDumpCapture = () => {
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
         const recordStartTime = Date.now();
         lastSoundAtRef.current = recordStartTime;
+        let hasDetectedSpeech = false;
 
         silenceCheckTimerRef.current = setInterval(() => {
           if (!analyserRef.current || mediaRecorderRef.current?.state !== "recording") return;
@@ -502,14 +504,30 @@ export const useBrainDumpCapture = () => {
           // Threshold: ~15 feels right for "speaking detected"
           if (rms > 15) {
             lastSoundAtRef.current = now;
+            if (!hasDetectedSpeech) {
+              hasDetectedSpeech = true;
+              console.log("[useBrainDumpCapture] VAD: speech detected");
+            }
           }
 
-          // Auto-stop conditions
-          const silentMs = now - lastSoundAtRef.current;
-          if (elapsedSinceStart >= MIN_RECORDING_MS && silentMs >= SILENCE_THRESHOLD_MS) {
-            console.log("[useBrainDumpCapture] VAD: silence detected, stopping", { elapsedSinceStart, silentMs });
-            if (mediaRecorderRef.current?.state === "recording") {
-              mediaRecorderRef.current.stop();
+          if (elapsedSinceStart < MIN_RECORDING_MS) return;
+
+          if (hasDetectedSpeech) {
+            // Post-speech: stop after short silence
+            const silentMs = now - lastSoundAtRef.current;
+            if (silentMs >= SILENCE_THRESHOLD_MS) {
+              console.log("[useBrainDumpCapture] VAD: silence after speech, stopping", { elapsedSinceStart, silentMs });
+              if (mediaRecorderRef.current?.state === "recording") {
+                mediaRecorderRef.current.stop();
+              }
+            }
+          } else {
+            // No speech yet: give user longer to start talking
+            if (elapsedSinceStart >= NO_SPEECH_TIMEOUT_MS) {
+              console.log("[useBrainDumpCapture] VAD: no speech detected in window, stopping", { elapsedSinceStart });
+              if (mediaRecorderRef.current?.state === "recording") {
+                mediaRecorderRef.current.stop();
+              }
             }
           }
         }, 150);

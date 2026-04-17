@@ -504,6 +504,13 @@ export const useBrainDumpCapture = () => {
         const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
         const ctx = new AudioCtx();
         audioContextRef.current = ctx;
+        // CRITICAL: browsers auto-suspend AudioContexts — must resume to get live audio
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+          console.log("[useBrainDumpCapture] AudioContext resumed, state:", ctx.state);
+        } else {
+          console.log("[useBrainDumpCapture] AudioContext state:", ctx.state);
+        }
         const source = ctx.createMediaStreamSource(stream);
         const analyser = ctx.createAnalyser();
         analyser.fftSize = 512;
@@ -564,6 +571,14 @@ export const useBrainDumpCapture = () => {
           }
 
           if (elapsedSinceStart < MIN_RECORDING_MS) return;
+
+          // If VAD appears broken (peak stuck near 0 for >3s), mark as "detected"
+          // and just rely on MAX_RECORDING_MS — trust transcribe to reject silence.
+          if (!hasDetectedSpeechRef.current && elapsedSinceStart > 3000 && peakRmsRef.current < 1.5) {
+            console.warn("[useBrainDumpCapture] VAD appears broken (peak rms <1.5), disabling auto-stop. Will record until MAX_RECORDING_MS or user stops.");
+            hasDetectedSpeechRef.current = true; // treat as if speech detected so we don't hit no-speech timeout
+            lastSoundAtRef.current = now; // reset so silence timer doesn't fire immediately
+          }
 
           if (hasDetectedSpeechRef.current) {
             const silentMs = now - lastSoundAtRef.current;

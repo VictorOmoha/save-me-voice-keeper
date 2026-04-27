@@ -133,6 +133,54 @@ export const useBrainDumpCapture = () => {
     streamRef.current = null;
   };
 
+  /** Convert raw PCM/L16 bytes into a browser-playable WAV file.
+   *
+   * `audio/L16` is network byte-order (big-endian) 16-bit PCM. WAV expects
+   * little-endian PCM, so we swap byte pairs before writing the WAV payload.
+   * Without this, Chrome may appear to "play" Nova's response but output
+   * silence/corrupt audio.
+   */
+  const pcmToWav = (pcmBytes: Uint8Array, sampleRate = 24000, channels = 1, sourceIsBigEndian = false): ArrayBuffer => {
+    const bytesPerSample = 2;
+    const dataBytes = sourceIsBigEndian ? new Uint8Array(pcmBytes.length) : pcmBytes;
+
+    if (sourceIsBigEndian) {
+      for (let i = 0; i < pcmBytes.length; i += 2) {
+        dataBytes[i] = pcmBytes[i + 1] ?? 0;
+        dataBytes[i + 1] = pcmBytes[i] ?? 0;
+      }
+    }
+
+    const dataSize = dataBytes.length;
+    const wavSize = 44 + dataSize;
+    const buffer = new ArrayBuffer(wavSize);
+    const view = new DataView(buffer);
+    const writeStr = (offset: number, value: string) => {
+      for (let i = 0; i < value.length; i++) view.setUint8(offset + i, value.charCodeAt(i));
+    };
+
+    writeStr(0, "RIFF");
+    view.setUint32(4, wavSize - 8, true);
+    writeStr(8, "WAVE");
+    writeStr(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * channels * bytesPerSample, true);
+    view.setUint16(32, channels * bytesPerSample, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, "data");
+    view.setUint32(40, dataSize, true);
+    new Uint8Array(buffer).set(dataBytes, 44);
+    return buffer;
+  };
+
+  const getPcmSampleRate = (mimeType: string): number => {
+    const match = mimeType.match(/rate=(\d+)/i);
+    return match ? Number(match[1]) : 24000;
+  };
+
   /** Play base64 audio (PCM or standard) and return a promise that resolves when playback ends */
   const playAudio = useCallback(async (base64Audio: string, mimeType: string): Promise<void> => {
     return new Promise((resolve) => {
@@ -143,24 +191,8 @@ export const useBrainDumpCapture = () => {
 
         let url: string;
         if (mimeType.includes("pcm") || mimeType.includes("L16")) {
-          const sampleRate = 24000;
-          const wavHeader = new ArrayBuffer(44);
-          const view = new DataView(wavHeader);
-          const dataSize = bytes.length;
-          view.setUint32(0, 0x52494646, false);
-          view.setUint32(4, 36 + dataSize, true);
-          view.setUint32(8, 0x57415645, false);
-          view.setUint32(12, 0x666d7420, false);
-          view.setUint32(16, 16, true);
-          view.setUint16(20, 1, true);
-          view.setUint16(22, 1, true);
-          view.setUint32(24, sampleRate, true);
-          view.setUint32(28, sampleRate * 2, true);
-          view.setUint16(32, 2, true);
-          view.setUint16(34, 16, true);
-          view.setUint32(36, 0x64617461, false);
-          view.setUint32(40, dataSize, true);
-          const wavBlob = new Blob([wavHeader, bytes], { type: "audio/wav" });
+          const sampleRate = getPcmSampleRate(mimeType);
+          const wavBlob = new Blob([pcmToWav(bytes, sampleRate, 1, mimeType.includes("L16"))], { type: "audio/wav" });
           url = URL.createObjectURL(wavBlob);
         } else {
           const blob = new Blob([bytes], { type: mimeType });
@@ -175,8 +207,14 @@ export const useBrainDumpCapture = () => {
           resolve();
         };
         audio.onended = cleanup;
-        audio.onerror = cleanup;
-        audio.play().catch(cleanup);
+        audio.onerror = (event) => {
+          console.warn("[useBrainDumpCapture] Audio element failed to play Nova response", event);
+          cleanup();
+        };
+        audio.play().catch((err) => {
+          console.warn("[useBrainDumpCapture] Browser blocked/failed Nova audio playback", err);
+          cleanup();
+        });
       } catch (err) {
         console.warn("[useBrainDumpCapture] Audio playback failed:", err);
         resolve();

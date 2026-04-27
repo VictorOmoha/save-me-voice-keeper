@@ -330,8 +330,10 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-    const blob = mimeType.includes("pcm")
-      ? new Blob([pcmToWav(bytes, 24000, 1, 16)], { type: "audio/wav" })
+    const sampleRate = getPcmSampleRate(mimeType);
+    const isRawPcm = mimeType.includes("pcm") || mimeType.includes("L16");
+    const blob = isRawPcm
+      ? new Blob([pcmToWav(bytes, sampleRate, 1, 16, mimeType.includes("L16"))], { type: "audio/wav" })
       : new Blob([bytes], { type: mimeType });
 
     const url = URL.createObjectURL(blob);
@@ -345,7 +347,11 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
         setTimeout(() => startListening(), 300);
       }
     };
-    audio.onerror = () => { URL.revokeObjectURL(url); setStatus("idle"); };
+    audio.onerror = (event) => {
+      console.warn("[useVoiceAgent] Audio element failed to play Nova response", event);
+      URL.revokeObjectURL(url);
+      setStatus("idle");
+    };
 
     await audio.play();
   }, [startListening]);
@@ -472,10 +478,25 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 };
 
 // ── PCM → WAV ─────────────────────────────────────────────────────────────────
-function pcmToWav(pcmData: Uint8Array, sampleRate: number, channels: number, bitDepth: number): ArrayBuffer {
+function getPcmSampleRate(mimeType: string): number {
+  const match = mimeType.match(/rate=(\d+)/i);
+  return match ? Number(match[1]) : 24000;
+}
+
+function pcmToWav(pcmData: Uint8Array, sampleRate: number, channels: number, bitDepth: number, sourceIsBigEndian = false): ArrayBuffer {
   const byteRate = (sampleRate * channels * bitDepth) / 8;
   const blockAlign = (channels * bitDepth) / 8;
-  const wavSize = 44 + pcmData.length;
+  const wavPcmData = sourceIsBigEndian ? new Uint8Array(pcmData.length) : pcmData;
+
+  // audio/L16 is big-endian/network byte order; WAV PCM is little-endian.
+  if (sourceIsBigEndian) {
+    for (let i = 0; i < pcmData.length; i += 2) {
+      wavPcmData[i] = pcmData[i + 1] ?? 0;
+      wavPcmData[i + 1] = pcmData[i] ?? 0;
+    }
+  }
+
+  const wavSize = 44 + wavPcmData.length;
   const buffer = new ArrayBuffer(wavSize);
   const view = new DataView(buffer);
   const writeStr = (offset: number, str: string) => {
@@ -485,7 +506,7 @@ function pcmToWav(pcmData: Uint8Array, sampleRate: number, channels: number, bit
   writeStr(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
   view.setUint16(22, channels, true); view.setUint32(24, sampleRate, true);
   view.setUint32(28, byteRate, true); view.setUint16(32, blockAlign, true);
-  view.setUint16(34, bitDepth, true); writeStr(36, "data"); view.setUint32(40, pcmData.length, true);
-  new Uint8Array(buffer).set(pcmData, 44);
+  view.setUint16(34, bitDepth, true); writeStr(36, "data"); view.setUint32(40, wavPcmData.length, true);
+  new Uint8Array(buffer).set(wavPcmData, 44);
   return buffer;
 }

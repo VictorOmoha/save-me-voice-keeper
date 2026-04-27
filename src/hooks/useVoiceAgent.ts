@@ -333,7 +333,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     const sampleRate = getPcmSampleRate(mimeType);
     const isRawPcm = mimeType.includes("pcm") || mimeType.includes("L16");
     const blob = isRawPcm
-      ? new Blob([pcmToWav(bytes, sampleRate, 1, 16, mimeType.includes("L16"))], { type: "audio/wav" })
+      ? new Blob([pcmToWav(bytes, sampleRate, 1, 16)], { type: "audio/wav" })
       : new Blob([bytes], { type: mimeType });
 
     const url = URL.createObjectURL(blob);
@@ -483,18 +483,12 @@ function getPcmSampleRate(mimeType: string): number {
   return match ? Number(match[1]) : 24000;
 }
 
-function pcmToWav(pcmData: Uint8Array, sampleRate: number, channels: number, bitDepth: number, sourceIsBigEndian = false): ArrayBuffer {
+function pcmToWav(pcmData: Uint8Array, sampleRate: number, channels: number, bitDepth: number): ArrayBuffer {
   const byteRate = (sampleRate * channels * bitDepth) / 8;
   const blockAlign = (channels * bitDepth) / 8;
-  const wavPcmData = sourceIsBigEndian ? new Uint8Array(pcmData.length) : pcmData;
-
-  // audio/L16 is big-endian/network byte order; WAV PCM is little-endian.
-  if (sourceIsBigEndian) {
-    for (let i = 0; i < pcmData.length; i += 2) {
-      wavPcmData[i] = pcmData[i + 1] ?? 0;
-      wavPcmData[i + 1] = pcmData[i] ?? 0;
-    }
-  }
+  // Nova labels this as audio/L16, but the bytes are already little-endian.
+  // Do not byte-swap here; swapping creates loud static/noise in Chrome.
+  const wavPcmData = pcmData;
 
   const wavSize = 44 + wavPcmData.length;
   const buffer = new ArrayBuffer(wavSize);

@@ -70,6 +70,7 @@ export const useBrainDumpCapture = () => {
   const manualStopRef = useRef(false);
   const startRef = useRef<(() => Promise<void>) | null>(null);
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transcribeRateLimitedUntilRef = useRef<number>(0);
 
   // Echo detection
   const lastTranscriptRef = useRef<string>("");
@@ -135,21 +136,13 @@ export const useBrainDumpCapture = () => {
 
   /** Convert raw PCM/L16 bytes into a browser-playable WAV file.
    *
-   * `audio/L16` is network byte-order (big-endian) 16-bit PCM. WAV expects
-   * little-endian PCM, so we swap byte pairs before writing the WAV payload.
-   * Without this, Chrome may appear to "play" Nova's response but output
-   * silence/corrupt audio.
+   * Nova labels this as `audio/L16`, but the returned PCM payload is already
+   * in the little-endian byte order expected by WAV. Do not byte-swap here —
+   * swapping creates loud static/noise in Chrome.
    */
-  const pcmToWav = (pcmBytes: Uint8Array, sampleRate = 24000, channels = 1, sourceIsBigEndian = false): ArrayBuffer => {
+  const pcmToWav = (pcmBytes: Uint8Array, sampleRate = 24000, channels = 1): ArrayBuffer => {
     const bytesPerSample = 2;
-    const dataBytes = sourceIsBigEndian ? new Uint8Array(pcmBytes.length) : pcmBytes;
-
-    if (sourceIsBigEndian) {
-      for (let i = 0; i < pcmBytes.length; i += 2) {
-        dataBytes[i] = pcmBytes[i + 1] ?? 0;
-        dataBytes[i + 1] = pcmBytes[i] ?? 0;
-      }
-    }
+    const dataBytes = pcmBytes;
 
     const dataSize = dataBytes.length;
     const wavSize = 44 + dataSize;
@@ -192,7 +185,7 @@ export const useBrainDumpCapture = () => {
         let url: string;
         if (mimeType.includes("pcm") || mimeType.includes("L16")) {
           const sampleRate = getPcmSampleRate(mimeType);
-          const wavBlob = new Blob([pcmToWav(bytes, sampleRate, 1, mimeType.includes("L16"))], { type: "audio/wav" });
+          const wavBlob = new Blob([pcmToWav(bytes, sampleRate, 1)], { type: "audio/wav" });
           url = URL.createObjectURL(wavBlob);
         } else {
           const blob = new Blob([bytes], { type: mimeType });
@@ -238,7 +231,16 @@ export const useBrainDumpCapture = () => {
   }, []);
 
   const start = useCallback(async () => {
-    setLastStartAttemptAt(Date.now());
+    const now = Date.now();
+    if (transcribeRateLimitedUntilRef.current > now) {
+      const waitSeconds = Math.max(1, Math.ceil((transcribeRateLimitedUntilRef.current - now) / 1000));
+      manualStopRef.current = true;
+      setVoiceError(`Nova transcription is cooling down. Try again in about ${waitSeconds}s.`);
+      toast.info(`Nova is cooling down. Try again in about ${waitSeconds}s.`);
+      return;
+    }
+
+    setLastStartAttemptAt(now);
     setVoiceError(null);
     // If this is a manual (re)start after user action, reset echo counters
     if (manualStopRef.current) {
@@ -351,7 +353,7 @@ export const useBrainDumpCapture = () => {
 
           // ── Step 1: Transcribe audio first (fast, reliable ~1-2s) ─────────
           console.log("[useBrainDumpCapture] Step 1: transcribing audio...");
-          const transcribeData = await fetch(TRANSCRIBE_URL, {
+          const transcribeResponse = await fetch(TRANSCRIBE_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -362,15 +364,9 @@ export const useBrainDumpCapture = () => {
               audioMimeType: resolvedMimeType,
             }),
             signal: controller.signal,
-          }).then((r) => r.json());
+          });
 
-          const heardText = (transcribeData?.detected && transcribeData?.transcript?.trim()) || "";
-          console.log("[useBrainDumpCapture] transcript:", heardText || "(none)");
-
-          // ── Echo / hallucination guard BEFORE calling voiceAgent ──────────
-          const heardNormalized = normalizeForCompare(heardText);
-          const lastNormalized = normalizeForCompare(lastTranscriptRef.current);
-          const novaLastNormalized = normalizeForCompare(lastNovaResponseRef.current);
+          const transcribeData = await transcribeResponse.json().catch(() => ({}));
 
           const restartIfContinuous = () => {
             setIsProcessingVoice(false);
@@ -380,6 +376,36 @@ export const useBrainDumpCapture = () => {
               }, 500);
             }
           };
+
+          if (!transcribeResponse.ok) {
+            console.warn("[useBrainDumpCapture] transcribeAudio failed:", transcribeResponse.status, transcribeData);
+            if (transcribeResponse.status === 429) {
+              const retryAfterHeader = transcribeResponse.headers.get("Retry-After");
+              const retryAfterSeconds = Number(retryAfterHeader);
+              const cooldownMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+                ? retryAfterSeconds * 1000
+                : 30_000;
+              transcribeRateLimitedUntilRef.current = Date.now() + cooldownMs;
+              manualStopRef.current = true;
+              setVoiceError("Nova transcription is rate-limited right now. Please wait a bit, then try again.");
+              toast.info(`Nova is rate-limited right now. Try again in about ${Math.ceil(cooldownMs / 1000)}s.`);
+              setIsProcessingVoice(false);
+              return;
+            }
+
+            toast.error("Nova couldn't transcribe that recording. Please try again.");
+            restartIfContinuous();
+            return;
+          }
+
+          transcribeRateLimitedUntilRef.current = 0;
+          const heardText = (transcribeData?.detected && transcribeData?.transcript?.trim()) || "";
+          console.log("[useBrainDumpCapture] transcript:", heardText || "(none)");
+
+          // ── Echo / hallucination guard BEFORE calling voiceAgent ──────────
+          const heardNormalized = normalizeForCompare(heardText);
+          const lastNormalized = normalizeForCompare(lastTranscriptRef.current);
+          const novaLastNormalized = normalizeForCompare(lastNovaResponseRef.current);
 
           if (!heardText) {
             console.log("[useBrainDumpCapture] no speech detected — skipping voiceAgent");
@@ -719,6 +745,7 @@ export const useBrainDumpCapture = () => {
     repeatCountRef.current = 0;
     lastTranscriptRef.current = "";
     lastNovaResponseRef.current = "";
+    transcribeRateLimitedUntilRef.current = 0;
     stopTracks();
   }, []);
 

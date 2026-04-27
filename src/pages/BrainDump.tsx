@@ -42,7 +42,7 @@ const getConfidenceBadgeColor = (confidence: number): 'default' | 'secondary' | 
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
-  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, savedEntry: novaSavedEntry, voiceError, lastStartAttemptAt, continuous, setContinuous, start, stop, reset } = useBrainDumpCapture();
+  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, savedEntry: novaSavedEntry, voiceError, lastStartAttemptAt, lastCapturedAudioUrl, playLastRecording, continuous, setContinuous, start, stop, reset } = useBrainDumpCapture();
   const navigate = useNavigate();
   
   const safeStop = () => {
@@ -462,6 +462,12 @@ const BrainDumpPage: React.FC = () => {
       console.debug("Stop failed before dashboard navigation:", error);
     }
     speak('Opening dashboard');
+    // Hand off continuous voice to the global NovaFloat so the conversation
+    // continues after this page unmounts. NovaFloat opens its panel and
+    // auto-starts its mic on the destination page.
+    if (continuous) {
+      window.dispatchEvent(new CustomEvent('nova:voice-handoff'));
+    }
     navigate('/dashboard');
   };
 
@@ -660,6 +666,9 @@ const BrainDumpPage: React.FC = () => {
                     <Button variant="secondary" onClick={stop} aria-label="Stop recording">Finish dump</Button>
                   )}
                   <Button variant="outline" onClick={reset} aria-label="Reset transcript">Reset</Button>
+                  {lastCapturedAudioUrl && (
+                    <Button variant="outline" onClick={playLastRecording} aria-label="Play last recording">Play last recording</Button>
+                  )}
                   <Button variant="outline" onClick={handleProcess} aria-label="Organize with Nova">Organize with Nova</Button>
                   <Button
                     variant="default"

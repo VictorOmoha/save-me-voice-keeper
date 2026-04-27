@@ -57,6 +57,7 @@ export const useBrainDumpCapture = () => {
   const [appCommands, setAppCommands] = useState<Record<string, unknown>[]>([]);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<number | null>(null);
+  const [lastCapturedAudioUrl, setLastCapturedAudioUrl] = useState<string | null>(null);
   const [continuous, setContinuous] = useState(true);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -66,6 +67,7 @@ export const useBrainDumpCapture = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestTimeoutRef = useRef<number | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const capturePlaybackRef = useRef<HTMLAudioElement | null>(null);
   const continuousRef = useRef(continuous);
   const manualStopRef = useRef(false);
   const startRef = useRef<(() => Promise<void>) | null>(null);
@@ -223,6 +225,8 @@ export const useBrainDumpCapture = () => {
       clearAutoStopTimer();
       clearSilenceDetection();
       audioRef.current?.pause();
+      capturePlaybackRef.current?.pause();
+      if (lastCapturedAudioUrl) URL.revokeObjectURL(lastCapturedAudioUrl);
       if (mediaRecorderRef.current?.state === "recording") {
         try { mediaRecorderRef.current.stop(); } catch (_) { /* */ }
       }
@@ -327,11 +331,15 @@ export const useBrainDumpCapture = () => {
         const peakRms = peakRmsRef.current;
         console.log("[useBrainDumpCapture] VAD summary — heardSpeech:", heardSpeech, "peakRms:", peakRms.toFixed(2), "blobSize:", blob.size);
 
-        // DEBUG: expose last audio blob on window so user can download + verify what was captured
+        // Expose captured audio for user playback/debugging.
         try {
           const blobUrl = URL.createObjectURL(blob);
+          setLastCapturedAudioUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return blobUrl;
+          });
           (window as unknown as { __lastCapturedAudioUrl?: string }).__lastCapturedAudioUrl = blobUrl;
-          console.log("[useBrainDumpCapture] 🔊 Audio captured — download/play with: new Audio(window.__lastCapturedAudioUrl).play() OR window.open(window.__lastCapturedAudioUrl)");
+          console.log("[useBrainDumpCapture] 🔊 Audio captured — use Play last recording or run: new Audio(window.__lastCapturedAudioUrl).play()");
         } catch (_) { /* */ }
 
         setIsProcessingVoice(true);
@@ -724,12 +732,31 @@ export const useBrainDumpCapture = () => {
     }
   }, [isProcessingVoice]);
 
+  const playLastRecording = useCallback(async () => {
+    if (!lastCapturedAudioUrl) {
+      toast.info("No recording captured yet.");
+      return;
+    }
+
+    try {
+      capturePlaybackRef.current?.pause();
+      const audio = new Audio(lastCapturedAudioUrl);
+      capturePlaybackRef.current = audio;
+      audio.volume = parseFloat(localStorage.getItem("speech_volume") || "0.8");
+      await audio.play();
+    } catch (error) {
+      console.warn("[useBrainDumpCapture] Captured recording playback failed:", error);
+      toast.error("Could not play the last recording. Try a hard refresh and record again.");
+    }
+  }, [lastCapturedAudioUrl]);
+
   const reset = useCallback(() => {
     manualStopRef.current = true;
     abortPendingRequest();
     clearAutoStopTimer();
     clearSilenceDetection();
     audioRef.current?.pause();
+    capturePlaybackRef.current?.pause();
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
@@ -746,8 +773,12 @@ export const useBrainDumpCapture = () => {
     lastTranscriptRef.current = "";
     lastNovaResponseRef.current = "";
     transcribeRateLimitedUntilRef.current = 0;
+    if (lastCapturedAudioUrl) {
+      URL.revokeObjectURL(lastCapturedAudioUrl);
+      setLastCapturedAudioUrl(null);
+    }
     stopTracks();
-  }, []);
+  }, [lastCapturedAudioUrl]);
 
   return {
     isSupported: typeof window !== "undefined" && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia,
@@ -760,6 +791,8 @@ export const useBrainDumpCapture = () => {
     appCommands,
     voiceError,
     lastStartAttemptAt,
+    lastCapturedAudioUrl,
+    playLastRecording,
     continuous,
     setContinuous,
     start,

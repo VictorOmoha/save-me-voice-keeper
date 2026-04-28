@@ -76,12 +76,19 @@ const Settings = () => {
       setActiveTab('data-management');
     };
 
+    const handleOpenSettingsTab = (e: Event) => {
+      const event = e as CustomEvent<{ tab?: string }>;
+      if (event.detail?.tab) setActiveTab(event.detail.tab);
+    };
+
     window.addEventListener('nova:settings-updated', handleSettingsUpdated as EventListener);
     window.addEventListener('nova:export-data', handleNovaExport);
+    window.addEventListener('saveme:open-settings-tab', handleOpenSettingsTab as EventListener);
 
     return () => {
       window.removeEventListener('nova:settings-updated', handleSettingsUpdated as EventListener);
       window.removeEventListener('nova:export-data', handleNovaExport);
+      window.removeEventListener('saveme:open-settings-tab', handleOpenSettingsTab as EventListener);
     };
   }, []);
 

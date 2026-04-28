@@ -175,6 +175,20 @@ export const EnhancedDataManagementSettings = () => {
     }
   };
 
+  const handleOpenAgentManagement = () => {
+    const target = "/settings?tab=automation&connect=agent#connect-agent";
+    window.dispatchEvent(new CustomEvent("saveme:open-settings-tab", { detail: { tab: "automation", connect: "agent" } }));
+    navigate(target, { replace: false });
+
+    // If this component stays mounted because the settings tab state didn't
+    // respond, force a same-origin navigation instead of failing silently.
+    window.setTimeout(() => {
+      if (!window.location.search.includes("tab=automation")) {
+        window.location.href = target;
+      }
+    }, 100);
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
 
@@ -256,7 +270,7 @@ export const EnhancedDataManagementSettings = () => {
             type="button"
             variant="outline"
             className="w-full sm:w-auto"
-            onClick={() => navigate("/settings?tab=automation&connect=agent#connect-agent")}
+            onClick={handleOpenAgentManagement}
           >
             Connect or manage agents
           </Button>

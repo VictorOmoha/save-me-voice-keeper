@@ -112,6 +112,12 @@ service cloud.firestore {
         && resource.data.user_id == request.auth.uid;
     }
 
+    match /shared_memories/{docId} {
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
+      allow write: if false; // shared-memory writes go through Cloud Functions
+    }
+
     // --- User-generated content ---
     match /search_analytics/{docId} {
       allow create: if isSignedIn()

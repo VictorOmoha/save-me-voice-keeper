@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,7 @@ import { Bot, Database, Download, Trash2, Shield, Archive, RefreshCw } from "luc
 
 export const EnhancedDataManagementSettings = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [storageStats, setStorageStats] = useState({
     entries: 0,
@@ -251,8 +252,13 @@ export const EnhancedDataManagementSettings = () => {
               </p>
             </div>
           </div>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link to="/settings?tab=automation&connect=agent#connect-agent">Connect or manage agents</Link>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => navigate("/settings?tab=automation&connect=agent#connect-agent")}
+          >
+            Connect or manage agents
           </Button>
         </div>
 

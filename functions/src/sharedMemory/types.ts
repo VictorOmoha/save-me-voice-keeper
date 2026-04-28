@@ -14,6 +14,12 @@ export type SharedMemorySource =
   | "human"
   | "openclaw"
   | "hermes"
+  | "claude"
+  | "codex"
+  | "cursor"
+  | "gemini"
+  | "custom_agent"
+  | "automation"
   | "import"
   | "system";
 

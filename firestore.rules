@@ -99,11 +99,17 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    match /search_preferences/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
     match /api_keys/{docId} {
-      allow read, write: if isSignedIn()
-        && (resource == null || resource.data.user_id == request.auth.uid);
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
       allow create: if isSignedIn()
         && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
     }
 
     // --- User-generated content ---

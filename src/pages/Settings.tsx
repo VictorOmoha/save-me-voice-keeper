@@ -68,7 +68,7 @@ const Settings = () => {
       if (setting === 'profile') setActiveTab('profile');
       else if (setting === 'voice') setActiveTab('voice');
       else if (setting && setting.includes('notification')) setActiveTab('notifications');
-      else if (setting && setting.includes('automation')) setActiveTab('notifications');
+      else if (setting && setting.includes('automation')) setActiveTab('automation');
       else setActiveTab((prev) => prev || 'profile');
     };
 

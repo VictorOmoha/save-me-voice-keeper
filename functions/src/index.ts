@@ -1,6 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import cors from "cors";
+import {createHash} from "crypto";
 import {GoogleAuth} from "google-auth-library";
 import {createSharedMemory} from "./sharedMemory/create";
 import {searchSharedMemories} from "./sharedMemory/search";
@@ -27,8 +28,51 @@ const withCors = (
   };
 };
 
+type SharedMemoryPermission = "read" | "write";
+
+type AuthenticatedUser = admin.auth.DecodedIdToken & {
+  saveMeApiKey?: {
+    id?: string;
+    name?: string;
+    prefix?: string;
+    permissions: SharedMemoryPermission[];
+  };
+};
+
+const buildAgentDecodedToken = (
+  uid: string,
+  issuer: string,
+  apiKey?: AuthenticatedUser["saveMeApiKey"]
+): AuthenticatedUser => ({
+  uid,
+  aud: "saveme-f5af0",
+  auth_time: Math.floor(Date.now() / 1000),
+  exp: Math.floor(Date.now() / 1000) + 3600,
+  iat: Math.floor(Date.now() / 1000),
+  iss: issuer,
+  sub: uid,
+  firebase: {identities: {}, sign_in_provider: "agent-key"},
+  saveMeApiKey: apiKey,
+} as AuthenticatedUser);
+
+const hasPermission = (user: AuthenticatedUser, permission: SharedMemoryPermission) => {
+  // Firebase user sessions are first-party and keep full account access.
+  if (!user.saveMeApiKey) return true;
+  return user.saveMeApiKey.permissions.includes(permission);
+};
+
+const requirePermission = (
+  user: AuthenticatedUser,
+  permission: SharedMemoryPermission,
+  res: functions.Response
+) => {
+  if (hasPermission(user, permission)) return true;
+  res.status(403).json({error: `API key missing ${permission} permission`});
+  return false;
+};
+
 // Verify Firebase Auth token OR agent API key
-const verifyAuth = async (req: functions.https.Request): Promise<admin.auth.DecodedIdToken | null> => {
+const verifyAuth = async (req: functions.https.Request): Promise<AuthenticatedUser | null> => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
@@ -36,25 +80,55 @@ const verifyAuth = async (req: functions.https.Request): Promise<admin.auth.Deco
 
   const token = authHeader.split("Bearer ")[1];
 
-  // Agent API key path — allows OpenClaw / Hermes to call shared-memory endpoints
-  // without a Firebase ID token. Key is stored in AGENT_API_KEY env var.
+  // User-minted agent key path — tokens with the "sm_" prefix are looked up in
+  // the `api_keys` Firestore collection by their SHA-256 hash and resolve to
+  // the owning Firebase user's uid. Users create these from the Settings UI.
+  if (token.startsWith("sm_")) {
+    try {
+      const keyHash = createHash("sha256").update(token).digest("hex");
+      const snap = await admin.firestore()
+        .collection("api_keys")
+        .where("key_hash", "==", keyHash)
+        .where("is_active", "==", true)
+        .limit(1)
+        .get();
+      if (snap.empty) return null;
+      const doc = snap.docs[0];
+      const data = doc.data();
+      const userId = data.user_id as string | undefined;
+      if (!userId) return null;
+      const permissions: SharedMemoryPermission[] = Array.isArray(data.permissions) && data.permissions.length > 0
+        ? data.permissions.filter((p: unknown): p is SharedMemoryPermission => p === "read" || p === "write")
+        : ["read", "write"];
+      // Fire-and-forget last-used update; don't block the request on it.
+      doc.ref.update({last_used_at: admin.firestore.FieldValue.serverTimestamp()})
+        .catch((err) => console.warn("api_keys last_used_at update failed:", err));
+      return buildAgentDecodedToken(userId, "sm-api-key", {
+        id: doc.id,
+        name: data.name || undefined,
+        prefix: data.key_prefix || undefined,
+        permissions,
+      });
+    } catch (error) {
+      console.error("sm_ key verification failed:", error);
+      return null;
+    }
+  }
+
+  // Legacy global agent API key — kept for existing Nia/OpenClaw integrations
+  // that predate user-minted keys. Writes go to a shared "nia-openclaw-agent"
+  // bucket. Prefer sm_ keys for new integrations.
   const agentApiKey = process.env.AGENT_API_KEY;
   if (agentApiKey && token === agentApiKey) {
     const agentUserId = process.env.AGENT_USER_ID || "nia-openclaw-agent";
-    return {
-      uid: agentUserId,
-      aud: "saveme-f5af0",
-      auth_time: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 3600,
-      iat: Math.floor(Date.now() / 1000),
-      iss: "agent-key",
-      sub: agentUserId,
-      firebase: { identities: {}, sign_in_provider: "agent-key" },
-    } as admin.auth.DecodedIdToken;
+    return buildAgentDecodedToken(agentUserId, "agent-key", {
+      name: "Legacy OpenClaw agent key",
+      permissions: ["read", "write"],
+    });
   }
 
   try {
-    return await admin.auth().verifyIdToken(token);
+    return await admin.auth().verifyIdToken(token) as AuthenticatedUser;
   } catch (error) {
     console.error("Auth verification failed:", error);
     return null;
@@ -84,6 +158,46 @@ const fetchWithRetry = async (
   throw lastError!;
 };
 
+export const sharedMemoryAgentStatus = functions.https.onRequest(
+  withCors(async (req, res) => {
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Unauthorized"});
+      return;
+    }
+
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    res.json({
+      ok: true,
+      user_id: user.uid,
+      auth_type: user.saveMeApiKey ? "agent_api_key" : "firebase_user",
+      key: user.saveMeApiKey ? {
+        id: user.saveMeApiKey.id || null,
+        name: user.saveMeApiKey.name || null,
+        prefix: user.saveMeApiKey.prefix || null,
+        permissions: user.saveMeApiKey.permissions,
+      } : null,
+      capabilities: {
+        read: hasPermission(user, "read"),
+        write: hasPermission(user, "write"),
+        endpoints: [
+          "sharedMemoryAgentStatus",
+          "sharedMemoryCreate",
+          "sharedMemoryBatchCreate",
+          "sharedMemorySearch",
+          "sharedMemoryList",
+          "sharedMemoryGet",
+          "sharedMemoryUpdate",
+        ],
+      },
+    });
+  })
+);
+
 export const sharedMemoryCreate = functions.https.onRequest(
   withCors(async (req, res) => {
     const user = await verifyAuth(req);
@@ -91,6 +205,7 @@ export const sharedMemoryCreate = functions.https.onRequest(
       res.status(401).json({error: "Unauthorized"});
       return;
     }
+    if (!requirePermission(user, "write", res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -121,6 +236,7 @@ export const sharedMemorySearch = functions.https.onRequest(
       res.status(401).json({error: "Unauthorized"});
       return;
     }
+    if (!requirePermission(user, "read", res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -147,6 +263,7 @@ export const sharedMemoryGet = functions.https.onRequest(
       res.status(401).json({error: "Unauthorized"});
       return;
     }
+    if (!requirePermission(user, "read", res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -181,6 +298,7 @@ export const sharedMemoryList = functions.https.onRequest(
       res.status(401).json({error: "Unauthorized"});
       return;
     }
+    if (!requirePermission(user, "read", res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -207,6 +325,7 @@ export const sharedMemoryUpdate = functions.https.onRequest(
       res.status(401).json({error: "Unauthorized"});
       return;
     }
+    if (!requirePermission(user, "write", res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -246,6 +365,7 @@ export const sharedMemoryBatchCreate = functions.https.onRequest(
       res.status(401).json({error: "Unauthorized"});
       return;
     }
+    if (!requirePermission(user, "write", res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -255,6 +375,14 @@ export const sharedMemoryBatchCreate = functions.https.onRequest(
     const memories = req.body?.memories as SharedMemoryCreateInput[] | undefined;
     if (!Array.isArray(memories) || memories.length === 0) {
       res.status(400).json({error: "memories array is required"});
+      return;
+    }
+    if (memories.length > 50) {
+      res.status(400).json({error: "Maximum 50 memories per batch"});
+      return;
+    }
+    if (memories.some((memory) => !memory?.title || !memory?.content || !memory?.type || !memory?.source)) {
+      res.status(400).json({error: "Each memory requires title, content, type, and source"});
       return;
     }
 
@@ -298,7 +426,7 @@ export const transcribeAudio = functions.https.onRequest(
     }
 
     try {
-      const transcribeRes = await fetch(
+      const transcribeRes = await fetchWithRetry(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
         {
           method: "POST",
@@ -321,13 +449,23 @@ Rules:
             }],
             generationConfig: {maxOutputTokens: 2048, temperature: 0, topP: 0.1, topK: 1},
           }),
-        }
+        },
+        3,
+        600
       );
 
       if (!transcribeRes.ok) {
         const errText = await transcribeRes.text();
         console.error("[transcribeAudio] Gemini error:", transcribeRes.status, errText.substring(0, 200));
-        res.status(500).json({error: "Transcription failed"});
+        const isRateLimited = transcribeRes.status === 429;
+        if (isRateLimited) {
+          res.set("Retry-After", "30");
+        }
+        res.status(isRateLimited ? 429 : 500).json({
+          error: isRateLimited ? "Transcription rate limited" : "Transcription failed",
+          retryable: isRateLimited,
+          retryAfterSeconds: isRateLimited ? 30 : undefined,
+        });
         return;
       }
 
@@ -358,7 +496,16 @@ Rules:
       }
     } catch (error) {
       console.error("[transcribeAudio] Exception:", error);
-      res.status(500).json({error: "Transcription failed"});
+      const message = error instanceof Error ? error.message : String(error);
+      const isRateLimited = /429/.test(message);
+      if (isRateLimited) {
+        res.set("Retry-After", "30");
+      }
+      res.status(isRateLimited ? 429 : 500).json({
+        error: isRateLimited ? "Transcription rate limited" : "Transcription failed",
+        retryable: isRateLimited,
+        retryAfterSeconds: isRateLimited ? 30 : undefined,
+      });
     }
   })
 );
@@ -2450,41 +2597,56 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         });
       }
 
-      // ── TTS — Gemini TTS (Kore voice) ────────────────────────────────────────
+      // ── TTS — best-effort only; never fail the whole voice turn on speech ───
       let audioContent: string | null = null;
       let audioMimeType = "audio/mpeg";
       if (responseText) {
         try {
-          const ttsRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${geminiKey}`,
-            {
-              method: "POST",
-              headers: {"Content-Type": "application/json"},
-              body: JSON.stringify({
-                contents: [{parts: [{text: responseText}]}],
-                generationConfig: {
-                  responseModalities: ["AUDIO"],
-                  speechConfig: {voiceConfig: {prebuiltVoiceConfig: {voiceName: "Kore"}}},
-                },
-              }),
-            }
-          );
-          if (ttsRes.ok) {
-            const ttsData = await ttsRes.json();
-            const inlineData = ttsData.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-            if (inlineData?.data) {
-              audioContent = inlineData.data;
-              audioMimeType = inlineData.mimeType || "audio/pcm";
-              console.log("[VoiceAgent] Gemini TTS success, mimeType:", audioMimeType);
-            } else {
-              console.warn("[VoiceAgent] Gemini TTS: no audio data in response");
-            }
+          const auth = new GoogleAuth({scopes: ["https://www.googleapis.com/auth/cloud-platform"]});
+          const accessToken = await auth.getAccessToken();
+
+          if (!accessToken) {
+            console.warn("[VoiceAgent] Google TTS skipped: no access token available");
           } else {
-            const errText = await ttsRes.text();
-            console.warn("[VoiceAgent] Gemini TTS error:", ttsRes.status, errText);
+            const ttsRes = await fetch(
+              "https://texttospeech.googleapis.com/v1/text:synthesize",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                  input: {text: responseText},
+                  voice: {
+                    languageCode: "en-US",
+                    name: "en-US-Neural2-F",
+                  },
+                  audioConfig: {
+                    audioEncoding: "MP3",
+                    speakingRate: 1.0,
+                    pitch: 0,
+                  },
+                }),
+              }
+            );
+
+            if (ttsRes.ok) {
+              const ttsData = await ttsRes.json() as { audioContent?: string };
+              if (ttsData.audioContent) {
+                audioContent = ttsData.audioContent;
+                audioMimeType = "audio/mpeg";
+                console.log("[VoiceAgent] Google TTS success");
+              } else {
+                console.warn("[VoiceAgent] Google TTS: no audio data in response");
+              }
+            } else {
+              const errText = await ttsRes.text();
+              console.warn("[VoiceAgent] Google TTS error:", ttsRes.status, errText);
+            }
           }
         } catch (ttsErr) {
-          console.warn("[VoiceAgent] Gemini TTS exception:", ttsErr);
+          console.warn("[VoiceAgent] Google TTS exception:", ttsErr);
         }
       }
 

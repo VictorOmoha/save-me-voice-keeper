@@ -1,7 +1,7 @@
 import { getCloudFunctionUrl, getFirebaseIdToken } from '@/utils/cloudFunctions';
 
-export type SharedMemoryVerification = 'unverified' | 'verified' | 'disputed';
-export type SharedMemoryVisibility = 'private' | 'shared';
+export type SharedMemoryVerification = 'unverified' | 'agent_suggested' | 'human_confirmed' | 'system_verified';
+export type SharedMemoryVisibility = 'private' | 'shared_with_agents' | 'shared_with_selected_agents';
 export type SharedMemoryStatus = 'active' | 'archived';
 
 export interface SharedMemoryRecord {
@@ -42,7 +42,9 @@ export interface SharedMemoryCreateInput {
   confidence?: number;
   metadata?: Record<string, unknown>;
   source_agent?: string;
+  sourceAgent?: string;
   created_by?: string;
+  createdBy?: string;
   status?: SharedMemoryStatus;
 }
 
@@ -50,8 +52,10 @@ export interface SharedMemorySearchInput {
   query: string;
   limit?: number;
   type?: string | string[];
+  types?: string[];
   project?: string | string[];
   verification?: SharedMemoryVerification | SharedMemoryVerification[];
+  sources?: string[];
   source?: string | string[];
   visibility?: SharedMemoryVisibility | SharedMemoryVisibility[];
 }
@@ -59,8 +63,10 @@ export interface SharedMemorySearchInput {
 export interface SharedMemoryListInput {
   limit?: number;
   type?: string | string[];
+  types?: string[];
   project?: string | string[];
   verification?: SharedMemoryVerification | SharedMemoryVerification[];
+  sources?: string[];
   source?: string | string[];
   visibility?: SharedMemoryVisibility | SharedMemoryVisibility[];
   status?: SharedMemoryStatus;
@@ -108,7 +114,8 @@ export const sharedMemoryClient = {
     authedPost<{ ok: true; memories: SharedMemoryRecord[] }>('sharedMemoryBatchCreate', { memories }),
 
   search: (input: SharedMemorySearchInput) =>
-    authedPost<{ ok: true; memories: SharedMemoryRecord[] }>('sharedMemorySearch', input),
+    authedPost<{ ok: true; memories?: SharedMemoryRecord[]; results?: SharedMemoryRecord[] }>('sharedMemorySearch', input)
+      .then((response) => ({ ok: response.ok, memories: response.memories || response.results || [] })),
 
   get: (id: string) =>
     authedPost<{ ok: true; memory: SharedMemoryRecord }>('sharedMemoryGet', { id }),

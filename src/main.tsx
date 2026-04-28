@@ -1,6 +1,9 @@
 import { createRoot } from 'react-dom/client'
+import { installBrowserCompatibilityGuards } from './utils/browserCompatibilityGuards.ts'
 import App from './App.tsx'
 import './index.css'
+
+installBrowserCompatibilityGuards();
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {

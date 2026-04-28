@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Brain, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Brain, PlugZap, Plus, RefreshCw, Search, X } from 'lucide-react';
 import {
   sharedMemoryClient,
   SharedMemoryCreateInput,
@@ -32,6 +33,12 @@ const SOURCE_LABELS: Record<string, string> = {
   human: '👤 Human',
   openclaw: '🤖 Nia',
   hermes: '🦎 Hermes',
+  claude: '✨ Claude',
+  codex: '⌨️ Codex',
+  cursor: '🖱️ Cursor',
+  gemini: '💎 Gemini',
+  custom_agent: '🔌 Agent',
+  automation: '⚡ Automation',
   system: '⚙️ System',
   import: '📥 Import',
 };
@@ -89,8 +96,8 @@ function MemoryForm({ initial, onSave, onCancel, saving }: MemoryFormProps) {
       source: 'human',
       project: project.trim() || undefined,
       tags: tags.split(',').map((t) => t.trim()).filter(Boolean),
-      visibility: 'shared',
-      verification: 'unverified',
+      visibility: 'shared_with_agents',
+      verification: 'human_confirmed',
     });
   };
 
@@ -206,8 +213,8 @@ export function SharedMemoryPanel() {
     try {
       const result = await sharedMemoryClient.list({
         limit: 10,
-        visibility: 'shared',
-        type: filterType || undefined,
+        visibility: ['shared_with_agents'],
+        types: filterType ? [filterType] : undefined,
         project: filterProject || undefined,
       } as Parameters<typeof sharedMemoryClient.list>[0]);
       setMemories(result.memories);
@@ -235,8 +242,8 @@ export function SharedMemoryPanel() {
       const result = await sharedMemoryClient.search({
         query: trimmed,
         limit: 10,
-        visibility: 'shared',
-        type: filterType || undefined,
+        visibility: ['shared_with_agents'],
+        types: filterType ? [filterType] : undefined,
         project: filterProject || undefined,
       } as Parameters<typeof sharedMemoryClient.search>[0]);
       setMemories(result.memories);
@@ -311,12 +318,22 @@ export function SharedMemoryPanel() {
             <div>
               <h3 className="text-lg font-semibold text-foreground">Shared Memory</h3>
               <p className="text-sm text-muted-foreground">
-                Cross-agent memory — visible to Nova, Nia, and Hermes.
+                Cross-agent memory — visible to Nova, Nia, Hermes, and external agents.{' '}
+                <Link to="/settings?tab=automation&connect=agent#connect-agent" className="text-primary hover:underline">
+                  Connect an agent →
+                </Link>
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              to="/settings?tab=automation&connect=agent#connect-agent"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted"
+            >
+              <PlugZap className="w-4 h-4" />
+              Connect agent
+            </Link>
             <button
               type="button"
               onClick={() => void loadRecent()}

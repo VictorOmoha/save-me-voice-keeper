@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ interface Platform {
 }
 
 export const AutomationSettings = () => {
+  const [searchParams] = useSearchParams();
   const [platforms, setPlatforms] = useState<Platform[]>([
     { id: 'n8n', name: 'n8n', connected: false },
     { id: 'make', name: 'Make.com', connected: false },
@@ -62,6 +64,13 @@ export const AutomationSettings = () => {
   };
 
   const connectedCount = platforms.filter(p => p.connected).length;
+
+  useEffect(() => {
+    if (searchParams.get("connect") !== "agent") return;
+    requestAnimationFrame(() => {
+      document.getElementById("connect-agent")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [searchParams]);
 
   return (
     <div className="space-y-6">

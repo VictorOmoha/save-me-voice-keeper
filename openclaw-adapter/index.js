@@ -46,6 +46,13 @@ async function post(endpoint, body) {
 
 export const saveMeMemory = {
   /**
+   * Verify the adapter key and return available capabilities.
+   */
+  async status() {
+    return post('sharedMemoryAgentStatus', {});
+  },
+
+  /**
    * Write a memory into shared_memories.
    *
    * @param {object} input
@@ -101,6 +108,9 @@ export const saveMeMemory = {
       limit: options.limit || 10,
       project: options.project || undefined,
       type: options.type || undefined,
+      types: options.types || undefined,
+      visibility: options.visibility ? [options.visibility].flat() : undefined,
+      sources: options.sources || undefined,
     });
     // sharedMemorySearch returns { ok, results } — not memories
     return result.results || result.memories || [];
@@ -120,7 +130,9 @@ export const saveMeMemory = {
       limit: options.limit || 20,
       project: options.project || undefined,
       type: options.type || undefined,
-      visibility: options.visibility || 'shared_with_agents',
+      types: options.types || undefined,
+      visibility: options.visibility ? [options.visibility].flat() : ['shared_with_agents'],
+      sources: options.sources || undefined,
     });
     return result.memories || [];
   },

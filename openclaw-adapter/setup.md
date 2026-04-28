@@ -49,6 +49,7 @@ SAVEME_AGENT_API_KEY=YOUR_KEY_HERE node test.js
 
 Expected output:
 ```
+✅ status(): agent_api_key { read: true, write: true, ... }
 ✅ remember(): <memory-id>
 ✅ get(): OpenClaw adapter test ...
 ✅ search(): 1 result(s)
@@ -79,6 +80,10 @@ await saveMeMemory.remember({
 const context = await saveMeMemory.contextFor('SaveMe deploy process');
 // → inject into system prompt or tool context
 ```
+
+## Connected status
+
+Nia/OpenClaw is connected when `saveMeMemory.status()` returns `ok: true` with read/write capabilities. The live connection was verified on 2026-04-28 and wrote memory `Je52fMRfsjdwUwxOFhaq` (`Nia connected to SaveMe shared memory`).
 
 ## Notes
 

@@ -14,6 +14,10 @@ if (!process.env.SAVEME_AGENT_API_KEY) {
 console.log('Running OpenClaw adapter smoke test...\n');
 
 try {
+  // 0. Verify key/capabilities
+  const status = await saveMeMemory.status();
+  console.log('✅ status():', status.auth_type, status.capabilities);
+
   // 1. Write a memory
   const seed = Date.now();
   const created = await saveMeMemory.remember({

@@ -180,3 +180,80 @@ curl -X POST https://us-central1-saveme-f5af0.cloudfunctions.net/sharedMemorySea
   -H "Content-Type: application/json" \
   -d '{"query":"current project preferences","limit":5}'
 ```
+
+## Minimal Node helper
+
+```js
+const SAVEME_BASE_URL = process.env.SAVEME_MEMORY_BASE_URL || "https://us-central1-saveme-f5af0.cloudfunctions.net";
+const SAVEME_API_KEY = process.env.SAVEME_MEMORY_API_KEY;
+const SAVEME_SOURCE = process.env.SAVEME_MEMORY_SOURCE || "custom_agent";
+
+async function saveMe(endpoint, body = {}) {
+  const res = await fetch(`${SAVEME_BASE_URL}/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${SAVEME_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${endpoint} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+export const saveMeMemory = {
+  status: () => saveMe("sharedMemoryAgentStatus"),
+  search: (query, limit = 5) => saveMe("sharedMemorySearch", {
+    query,
+    limit,
+    visibility: ["shared_with_agents"],
+  }),
+  remember: ({ title, content, type = "fact", tags = [], project }) => saveMe("sharedMemoryCreate", {
+    title,
+    content,
+    type,
+    source: SAVEME_SOURCE,
+    sourceAgent: SAVEME_SOURCE,
+    visibility: "shared_with_agents",
+    verification: "agent_suggested",
+    tags,
+    project,
+  }),
+};
+```
+
+## Minimal Python helper
+
+```python
+import os, requests
+
+SAVEME_BASE_URL = os.getenv("SAVEME_MEMORY_BASE_URL", "https://us-central1-saveme-f5af0.cloudfunctions.net")
+SAVEME_API_KEY = os.getenv("SAVEME_MEMORY_API_KEY")
+SAVEME_SOURCE = os.getenv("SAVEME_MEMORY_SOURCE", "custom_agent")
+
+def saveme(endpoint, payload=None):
+    response = requests.post(
+        f"{SAVEME_BASE_URL}/{endpoint}",
+        headers={"Authorization": f"Bearer {SAVEME_API_KEY}", "Content-Type": "application/json"},
+        json=payload or {},
+        timeout=20,
+    )
+    response.raise_for_status()
+    return response.json()
+
+def search_memory(query, limit=5):
+    return saveme("sharedMemorySearch", {"query": query, "limit": limit, "visibility": ["shared_with_agents"]})
+
+def remember(title, content, type="fact", tags=None, project=None):
+    return saveme("sharedMemoryCreate", {
+        "title": title,
+        "content": content,
+        "type": type,
+        "source": SAVEME_SOURCE,
+        "sourceAgent": SAVEME_SOURCE,
+        "visibility": "shared_with_agents",
+        "verification": "agent_suggested",
+        "tags": tags or [],
+        "project": project,
+    })
+```

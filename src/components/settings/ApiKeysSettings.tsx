@@ -91,6 +91,8 @@ export const ApiKeysSettings = () => {
   const [newKeyName, setNewKeyName] = useState(AGENT_PRESETS[0].suggestedKeyName);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [showGeneratedKey, setShowGeneratedKey] = useState(false);
+  const [testStatus, setTestStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
+  const [testMessage, setTestMessage] = useState<string>("");
   const [selectedPreset, setSelectedPreset] = useState<AgentPresetId>("openclaw");
   const [permissions, setPermissions] = useState<AgentPermission[]>(["read", "write"]);
 
@@ -205,6 +207,8 @@ export const ApiKeysSettings = () => {
 
       setGeneratedKey(apiKey);
       setShowGeneratedKey(true);
+      setTestStatus("idle");
+      setTestMessage("");
       void fetchApiKeys();
       toast.success("Agent API key created");
     } catch (error) {
@@ -225,6 +229,37 @@ export const ApiKeysSettings = () => {
     } catch (error) {
       console.error("Error deleting API key:", error);
       toast.error("Failed to delete API key");
+    }
+  };
+
+  const testGeneratedKey = async () => {
+    if (!generatedKey) return;
+    setTestStatus("testing");
+    setTestMessage("");
+
+    try {
+      const response = await fetch(`${CLOUD_FN_BASE}/sharedMemoryAgentStatus`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${generatedKey}`,
+          "Content-Type": "application/json",
+        },
+        body: "{}",
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || `HTTP ${response.status}`);
+      }
+
+      const capabilities = data.capabilities || {};
+      setTestStatus("success");
+      setTestMessage(`Connected · read ${capabilities.read ? "on" : "off"}, write ${capabilities.write ? "on" : "off"}`);
+      toast.success("Agent key connection verified");
+    } catch (error) {
+      setTestStatus("error");
+      setTestMessage(error instanceof Error ? error.message : "Connection failed");
+      toast.error("Agent key test failed");
     }
   };
 
@@ -340,7 +375,17 @@ export const ApiKeysSettings = () => {
                         <Copy className="w-4 h-4" />
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">SaveMe stores only a SHA-256 hash. This raw key cannot be recovered later.</p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-muted-foreground">SaveMe stores only a SHA-256 hash. This raw key cannot be recovered later.</p>
+                      <Button variant="outline" size="sm" onClick={() => void testGeneratedKey()} disabled={testStatus === "testing"}>
+                        {testStatus === "testing" ? "Testing..." : "Test connection"}
+                      </Button>
+                    </div>
+                    {testMessage && (
+                      <p className={`text-xs ${testStatus === "success" ? "text-green-700 dark:text-green-300" : "text-red-600 dark:text-red-400"}`}>
+                        {testMessage}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

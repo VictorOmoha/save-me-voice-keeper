@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { VoiceFormProvider } from "./contexts/VoiceFormContext";
 import { ThemeProvider } from "./components/ThemeProvider";
@@ -91,6 +91,7 @@ const App = () => (
                         <Route path="/briefing" element={<PrivateRoute><NovaBriefing /></PrivateRoute>} />
                         <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
                         <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
+                        <Route path="/connect-agent" element={<Navigate to="/settings?tab=automation&connect=agent" replace />} />
                         <Route path="/user-guide" element={<UserGuide />} />
                         <Route path="/brain-dump" element={<PrivateRoute><BrainDump /></PrivateRoute>} />
                         <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />

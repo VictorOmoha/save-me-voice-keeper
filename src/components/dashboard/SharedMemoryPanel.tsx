@@ -319,7 +319,7 @@ export function SharedMemoryPanel() {
               <h3 className="text-lg font-semibold text-foreground">Shared Memory</h3>
               <p className="text-sm text-muted-foreground">
                 Cross-agent memory — visible to Nova, Nia, Hermes, and external agents.{' '}
-                <Link to="/settings?tab=automation&connect=agent#connect-agent" className="text-primary hover:underline">
+                <Link to="/settings?tab=automation&connect=agent" className="text-primary hover:underline">
                   Connect an agent →
                 </Link>
               </p>
@@ -328,7 +328,7 @@ export function SharedMemoryPanel() {
 
           <div className="flex items-center gap-2">
             <Link
-              to="/settings?tab=automation&connect=agent#connect-agent"
+              to="/settings?tab=automation&connect=agent"
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium hover:bg-muted"
             >
               <PlugZap className="w-4 h-4" />

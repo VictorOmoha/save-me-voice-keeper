@@ -176,7 +176,7 @@ export const EnhancedDataManagementSettings = () => {
   };
 
   const handleOpenAgentManagement = () => {
-    const target = "/settings?tab=automation&connect=agent#connect-agent";
+    const target = "/settings?tab=automation&connect=agent";
     window.dispatchEvent(new CustomEvent("saveme:open-settings-tab", { detail: { tab: "automation", connect: "agent" } }));
     navigate(target, { replace: false });
 

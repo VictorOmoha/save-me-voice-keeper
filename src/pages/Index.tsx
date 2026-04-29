@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { CanvidVideoPlayer } from "@/components/CanvidVideoPlayer";
 import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoiceDemo";
 
 const SAVEME_DEMO_VIDEO = "/videos/saveme-demo.mp4";

@@ -1,7 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import cors from "cors";
-import {createHash} from "crypto";
 import {GoogleAuth} from "google-auth-library";
 import {createSharedMemory} from "./sharedMemory/create";
 import {searchSharedMemories} from "./sharedMemory/search";
@@ -10,6 +9,12 @@ import {listSharedMemories} from "./sharedMemory/list";
 import {updateSharedMemory} from "./sharedMemory/update";
 import {batchCreateSharedMemories} from "./sharedMemory/batchCreate";
 import {SharedMemoryCreateInput, SharedMemorySearchInput} from "./sharedMemory/types";
+import {
+  generateAgentApiKey,
+  hashAgentApiKey,
+  normalizeAgentPermissions,
+  SharedMemoryPermission,
+} from "./sharedMemory/agentKeys";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -27,8 +32,6 @@ const withCors = (
     });
   };
 };
-
-type SharedMemoryPermission = "read" | "write";
 
 type AuthenticatedUser = admin.auth.DecodedIdToken & {
   saveMeApiKey?: {
@@ -85,7 +88,7 @@ const verifyAuth = async (req: functions.https.Request): Promise<AuthenticatedUs
   // the owning Firebase user's uid. Users create these from the Settings UI.
   if (token.startsWith("sm_")) {
     try {
-      const keyHash = createHash("sha256").update(token).digest("hex");
+      const keyHash = hashAgentApiKey(token);
       const snap = await admin.firestore()
         .collection("api_keys")
         .where("key_hash", "==", keyHash)
@@ -186,6 +189,7 @@ export const sharedMemoryAgentStatus = functions.https.onRequest(
         write: hasPermission(user, "write"),
         endpoints: [
           "sharedMemoryAgentStatus",
+          "sharedMemoryCreateAgentKey",
           "sharedMemoryCreate",
           "sharedMemoryBatchCreate",
           "sharedMemorySearch",
@@ -195,6 +199,63 @@ export const sharedMemoryAgentStatus = functions.https.onRequest(
         ],
       },
     });
+  })
+);
+
+export const sharedMemoryCreateAgentKey = functions.https.onRequest(
+  withCors(async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+
+    const user = await verifyAuth(req);
+    if (!user || user.saveMeApiKey) {
+      res.status(401).json({error: "Firebase user session required"});
+      return;
+    }
+
+    const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+    if (!name) {
+      res.status(400).json({error: "name is required"});
+      return;
+    }
+
+    const apiKey = generateAgentApiKey();
+    const keyHash = hashAgentApiKey(apiKey);
+    const keyPrefix = `${apiKey.substring(0, 10)}...`;
+    const permissions = normalizeAgentPermissions(req.body?.permissions);
+    const agentType = typeof req.body?.agent_type === "string" ? req.body.agent_type : "custom";
+    const agentSource = typeof req.body?.agent_source === "string" ? req.body.agent_source : "custom_agent";
+
+    try {
+      const docRef = await admin.firestore().collection("api_keys").add({
+        user_id: user.uid,
+        name,
+        agent_type: agentType,
+        agent_source: agentSource,
+        key_hash: keyHash,
+        key_prefix: keyPrefix,
+        permissions,
+        is_active: true,
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      res.json({
+        ok: true,
+        api_key: apiKey,
+        key: {
+          id: docRef.id,
+          name,
+          key_prefix: keyPrefix,
+          permissions,
+          is_active: true,
+        },
+      });
+    } catch (error) {
+      console.error("sharedMemoryCreateAgentKey error:", error);
+      res.status(500).json({error: "Failed to create agent API key"});
+    }
   })
 );
 

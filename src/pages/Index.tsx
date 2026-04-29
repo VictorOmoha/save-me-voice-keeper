@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Mic, Mail, ArrowRight, Sun, Moon, Sparkles } from "lucide-react";
+import { Check, Mic, Mail, ArrowRight, Sun, Moon, Sparkles, Bot, PlugZap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
@@ -154,6 +154,47 @@ const Index = () => {
               <p className={`text-sm leading-relaxed transition-colors ${theme === 'dark' ? 'text-zinc-300 group-hover:text-zinc-200' : 'text-zinc-600 group-hover:text-zinc-700'}`}>{feature.desc}</p>
             </div>
           ))}
+        </section>
+
+        {/* Agent Memory Teaser */}
+        <section className={`py-20 px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
+          <div className={`max-w-5xl mx-auto rounded-3xl border p-8 md:p-12 ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
+            <div className="grid md:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+              <div>
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-6 ${theme === 'dark' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+                  <Bot className="w-3 h-3" />
+                  Human memory. Agent memory. One place.
+                </div>
+                <h2 className={`text-3xl md:text-4xl font-bold mb-5 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Your AI agents should remember what you already told them.</h2>
+                <p className={`text-base md:text-lg leading-relaxed mb-6 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                  Voice dump your thoughts into SaveMe, then let trusted agents like Hermes, OpenClaw, Claude, Codex, or Cursor search the same memory before they work. It stays your memory layer, not another scattered chat history.
+                </p>
+                <Link to={isAuthenticated ? "/settings#connect-agent" : "/signup"} className={`inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                  Connect an agent
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              <div className={`rounded-2xl border p-5 space-y-4 ${theme === 'dark' ? 'bg-black/30 border-zinc-800/70' : 'bg-white border-zinc-200'}`}>
+                {[
+                  ['1', 'Speak naturally', 'Brain Dump captures raw thoughts.'],
+                  ['2', 'Nova organizes', 'Memories become searchable facts, tasks, and context.'],
+                  ['3', 'Agents retrieve', 'Your tools use the same durable context when you allow it.'],
+                ].map(([num, title, desc]) => (
+                  <div key={num} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold shrink-0">{num}</div>
+                    <div>
+                      <p className={`font-semibold text-sm ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{title}</p>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>{desc}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className={`pt-4 border-t flex items-center gap-2 text-xs ${theme === 'dark' ? 'border-zinc-800 text-zinc-400' : 'border-zinc-200 text-zinc-500'}`}>
+                  <PlugZap className="w-4 h-4 text-primary" />
+                  API keys are created per agent with read/write scopes.
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Demo Section */}

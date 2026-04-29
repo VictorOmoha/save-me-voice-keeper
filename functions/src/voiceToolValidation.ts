@@ -1,7 +1,7 @@
 export interface ToolValidationResult {
   valid: boolean;
   error?: string;
-  sanitizedArgs?: Record<string, any>;
+  sanitizedArgs?: Record<string, unknown>;
 }
 
 const MAX_STRING_LENGTH = 5000;
@@ -42,7 +42,7 @@ function sanitizeString(value: unknown, max = MAX_STRING_LENGTH): string | undef
 }
 
 export function validateToolArgs(toolName: string, args: Record<string, unknown>): ToolValidationResult {
-  const sanitized: Record<string, any> = {};
+  const sanitized: Record<string, unknown> = {};
 
   switch (toolName) {
   case "navigateApp": {

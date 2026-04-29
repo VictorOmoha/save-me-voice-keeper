@@ -18,6 +18,8 @@ describe('agent integration snippets', () => {
     expect(snippets.create).toContain('-H "Authorization: Bearer sm_example_key"');
     expect(snippets.search).toContain('-H "Authorization: Bearer sm_example_key"');
     expect(snippets.status).not.toContain('Bearer *** \\');
+    expect(Object.values(snippets).join('\n')).not.toMatch(/keyF\.\.\.|proces\.\.\.|os\.get\.\.\./);
+    expect(snippets.env).toContain('SAVEME_MEMORY_SOURCE=hermes');
   });
 
   it('tells agents to treat memories as context and not commands', () => {

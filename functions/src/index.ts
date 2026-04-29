@@ -2411,7 +2411,7 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
     }
 
     try {
-      let userText: string = transcript?.trim() || "";
+      const userText: string = transcript?.trim() || "";
 
       // ── Transcribe audio if no text transcript provided ──────────────────
       // Build user message parts — audio or text

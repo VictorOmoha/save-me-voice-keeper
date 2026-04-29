@@ -58,6 +58,7 @@ export const useBrainDumpCapture = () => {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [lastStartAttemptAt, setLastStartAttemptAt] = useState<number | null>(null);
   const [lastCapturedAudioUrl, setLastCapturedAudioUrl] = useState<string | null>(null);
+  const lastCapturedAudioUrlRef = useRef<string | null>(null);
   const [continuous, setContinuous] = useState(true);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -99,22 +100,26 @@ export const useBrainDumpCapture = () => {
     continuousRef.current = continuous;
   }, [continuous]);
 
-  const clearPendingRequest = () => {
+  useEffect(() => {
+    lastCapturedAudioUrlRef.current = lastCapturedAudioUrl;
+  }, [lastCapturedAudioUrl]);
+
+  const clearPendingRequest = useCallback(() => {
     if (requestTimeoutRef.current !== null) {
       window.clearTimeout(requestTimeoutRef.current);
       requestTimeoutRef.current = null;
     }
     abortControllerRef.current = null;
-  };
+  }, []);
 
-  const clearAutoStopTimer = () => {
+  const clearAutoStopTimer = useCallback(() => {
     if (autoStopTimerRef.current) {
       clearTimeout(autoStopTimerRef.current);
       autoStopTimerRef.current = null;
     }
-  };
+  }, []);
 
-  const clearSilenceDetection = () => {
+  const clearSilenceDetection = useCallback(() => {
     if (silenceCheckTimerRef.current) {
       clearInterval(silenceCheckTimerRef.current);
       silenceCheckTimerRef.current = null;
@@ -124,17 +129,17 @@ export const useBrainDumpCapture = () => {
       audioContextRef.current = null;
     }
     analyserRef.current = null;
-  };
+  }, []);
 
-  const abortPendingRequest = () => {
+  const abortPendingRequest = useCallback(() => {
     abortControllerRef.current?.abort();
     clearPendingRequest();
-  };
+  }, [clearPendingRequest]);
 
-  const stopTracks = () => {
+  const stopTracks = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-  };
+  }, []);
 
   /** Convert raw PCM/L16 bytes into a browser-playable WAV file.
    *
@@ -226,13 +231,14 @@ export const useBrainDumpCapture = () => {
       clearSilenceDetection();
       audioRef.current?.pause();
       capturePlaybackRef.current?.pause();
-      if (lastCapturedAudioUrl) URL.revokeObjectURL(lastCapturedAudioUrl);
+      const audioUrl = lastCapturedAudioUrlRef.current;
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (mediaRecorderRef.current?.state === "recording") {
         try { mediaRecorderRef.current.stop(); } catch (_) { /* */ }
       }
       stopTracks();
     };
-  }, []);
+  }, [abortPendingRequest, clearAutoStopTimer, clearSilenceDetection, stopTracks]);
 
   const start = useCallback(async () => {
     const now = Date.now();
@@ -704,7 +710,16 @@ export const useBrainDumpCapture = () => {
       setIsListening(false);
       stopTracks();
     }
-  }, [isListening, isProcessingVoice, playAudio]);
+  }, [
+    abortPendingRequest,
+    clearAutoStopTimer,
+    clearPendingRequest,
+    clearSilenceDetection,
+    isListening,
+    isProcessingVoice,
+    playAudio,
+    stopTracks,
+  ]);
 
   // Keep startRef in sync for continuous mode
   useEffect(() => {
@@ -730,7 +745,7 @@ export const useBrainDumpCapture = () => {
       setIsListening(false);
       stopTracks();
     }
-  }, [isProcessingVoice]);
+  }, [abortPendingRequest, clearAutoStopTimer, clearSilenceDetection, isProcessingVoice, stopTracks]);
 
   const playLastRecording = useCallback(async () => {
     if (!lastCapturedAudioUrl) {
@@ -778,7 +793,7 @@ export const useBrainDumpCapture = () => {
       setLastCapturedAudioUrl(null);
     }
     stopTracks();
-  }, [lastCapturedAudioUrl]);
+  }, [abortPendingRequest, clearAutoStopTimer, clearSilenceDetection, lastCapturedAudioUrl, stopTracks]);
 
   return {
     isSupported: typeof window !== "undefined" && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia,

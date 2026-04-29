@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Brain, PlugZap, Plus, RefreshCw, Search, X } from 'lucide-react';
 import {
@@ -208,7 +208,7 @@ export function SharedMemoryPanel() {
   const [showCreate, setShowCreate] = useState(false);
   const [editingMemory, setEditingMemory] = useState<SharedMemoryRecord | null>(null);
 
-  const loadRecent = async () => {
+  const loadRecent = useCallback(async () => {
     setLoading(true);
     try {
       const result = await sharedMemoryClient.list({
@@ -224,11 +224,11 @@ export function SharedMemoryPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterProject, filterType]);
 
   useEffect(() => {
     void loadRecent();
-  }, [filterType, filterProject]);
+  }, [loadRecent]);
 
   const runSearch = async () => {
     const trimmed = query.trim();

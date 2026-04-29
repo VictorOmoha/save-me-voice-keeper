@@ -39,8 +39,8 @@ const Settings = () => {
         if (roleSnap.exists()) {
           setIsAdmin(roleSnap.data()?.role === 'admin');
         }
-      } catch (error) {
-        console.log('Could not check admin role:', error);
+      } catch {
+        setIsAdmin(false);
       }
     };
     checkAdminRole();

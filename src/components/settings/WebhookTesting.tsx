@@ -48,23 +48,6 @@ export const WebhookTesting = () => {
     { key: 'userEmail', type: 'email', value: 'omohavictor@gmail.com', label: 'User Email' }
   ]);
 
-  // Load saved webhook URL and user email on component mount
-  useEffect(() => {
-    const savedWebhookUrl = localStorage.getItem('zapierWebhookUrl');
-    if (savedWebhookUrl) {
-      setWebhookUrl(savedWebhookUrl);
-    }
-
-    // Get current user email from auth context
-    if (user?.email) {
-      setUserEmail(user.email);
-      setTestFields(prev => prev.map(field =>
-        field.key === 'userEmail' ? { ...field, value: user.email || '' } : field
-      ));
-    }
-
-    loadLatestEntry();
-  }, [user, loadLatestEntry]);
 
   // Load the latest entry from the database
   const loadLatestEntry = useCallback(async () => {
@@ -115,6 +98,24 @@ export const WebhookTesting = () => {
       console.error('Error loading latest entry:', error);
     }
   }, [user]);
+
+  // Load saved webhook URL and user email on component mount
+  useEffect(() => {
+    const savedWebhookUrl = localStorage.getItem('zapierWebhookUrl');
+    if (savedWebhookUrl) {
+      setWebhookUrl(savedWebhookUrl);
+    }
+
+    // Get current user email from auth context
+    if (user?.email) {
+      setUserEmail(user.email);
+      setTestFields(prev => prev.map(field =>
+        field.key === 'userEmail' ? { ...field, value: user.email || '' } : field
+      ));
+    }
+
+    void loadLatestEntry();
+  }, [user, loadLatestEntry]);
 
   // Save webhook URL to localStorage
   const handleSaveWebhookUrl = () => {

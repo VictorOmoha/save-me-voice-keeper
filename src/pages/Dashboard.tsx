@@ -20,6 +20,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { SavedEntry } from '@/types/dashboard';
 import { toast } from 'sonner';
+import { trackActivationEvent } from '@/lib/analytics';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -52,6 +53,7 @@ export default function Dashboard() {
     entry: null,
     onConfirm: () => {}
   });
+  const [memoryNudge, setMemoryNudge] = useState<{ title: string; category: string; savedAt: string; nextPrompt: string } | null>(null);
 
   const {
     savedEntries,
@@ -105,6 +107,32 @@ export default function Dashboard() {
   }, [searchParams, handleAddEntry]);
 
   useEffect(() => {
+    if (searchParams.get('from') === 'brain_dump_saved') {
+      trackActivationEvent('dashboard_viewed_after_save');
+    }
+
+    try {
+      const raw = localStorage.getItem('saveme_last_brain_dump_saved');
+      if (!raw) return;
+
+      const parsed = JSON.parse(raw) as { title?: string; category?: string; savedAt?: string; nextPrompt?: string };
+      if (!parsed.savedAt) return;
+
+      const ageMs = Date.now() - new Date(parsed.savedAt).getTime();
+      if (ageMs > 1000 * 60 * 60 * 24 * 7) return;
+
+      setMemoryNudge({
+        title: parsed.title || 'your last brain dump',
+        category: parsed.category || 'Personal',
+        savedAt: parsed.savedAt,
+        nextPrompt: parsed.nextPrompt || 'What changed since the last thing you saved?',
+      });
+    } catch (error) {
+      console.debug('Could not load memory nudge:', error);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     const requestedCategory = searchParams.get('category');
     if (!requestedCategory) return;
 
@@ -154,6 +182,16 @@ export default function Dashboard() {
 
   const handleViewAllEntries = () => {
     navigate('/all-entries');
+  };
+
+  const handleContinueMemory = () => {
+    trackActivationEvent('brain_dump_repeat_clicked', { source: 'dashboard_nudge' });
+    navigate('/brain-dump');
+  };
+
+  const dismissMemoryNudge = () => {
+    trackActivationEvent('brain_dump_repeat_dismissed', { source: 'dashboard_nudge' });
+    setMemoryNudge(null);
   };
 
   const handleCreateDocument = () => {
@@ -264,10 +302,31 @@ export default function Dashboard() {
             )}
           </>
         ) : (
-          <DashboardMainContent
-            userName={userName}
-            savedEntries={savedEntries}
-            searchQuery={searchQuery}
+          <>
+            {memoryNudge && (
+              <section className="mx-4 mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4 md:mx-6 md:mt-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Continue building your memory layer</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Last saved: <span className="font-medium text-foreground">{memoryNudge.title}</span> in {memoryNudge.category}. {memoryNudge.nextPrompt}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handleContinueMemory} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                      Add today&apos;s update
+                    </button>
+                    <button type="button" onClick={dismissMemoryNudge} className="rounded-lg border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
+                      Not now
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
+            <DashboardMainContent
+              userName={userName}
+              savedEntries={savedEntries}
+              searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             showDocumentCreator={showDocumentCreator}
             showAddEntry={showAddEntry}
@@ -289,7 +348,8 @@ export default function Dashboard() {
             onViewDocument={handleViewDocument}
             onViewAllEntries={handleViewAllEntries}
             isSaving={isSaving}
-          />
+            />
+          </>
         )}
 
         <Suspense fallback={null}>

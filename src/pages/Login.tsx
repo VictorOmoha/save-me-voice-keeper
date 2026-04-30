@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
+import { trackActivationEvent } from "@/lib/analytics";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -29,11 +30,13 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    trackActivationEvent("login_started", { source: "email_form", requested_plan: requestedPlan || "none" });
     const result = await login(email, password);
 
     if (result.error) {
       toast.error(result.error);
     } else {
+      trackActivationEvent("login_completed", { method: "email", requested_plan: requestedPlan || "none" });
       toast.success("Welcome back!");
       navigate(postAuthDestination);
     }
@@ -41,12 +44,14 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    trackActivationEvent("login_started", { source: "google", requested_plan: requestedPlan || "none" });
     const result = await signInWithGoogle();
 
     if (result.error) {
       toast.error(result.error);
       setIsGoogleLoading(false);
     } else {
+      trackActivationEvent("login_completed", { method: "google", requested_plan: requestedPlan || "none" });
       toast.success("Signing in with Google...");
     }
   };

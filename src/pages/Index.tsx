@@ -6,6 +6,7 @@ import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoiceDemo";
+import { trackActivationEvent } from "@/lib/analytics";
 
 const SAVEME_DEMO_VIDEO = "/videos/saveme-demo.mp4";
 
@@ -127,12 +128,12 @@ const Index = () => {
               </button>
             )}
             {isAuthenticated ? (
-              <Link to="/brain-dump" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+              <Link to="/brain-dump" onClick={() => trackActivationEvent("brain_dump_start_clicked", { source: "landing_hero_authenticated" })} className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                 Start voice dump
                 <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
-              <Link to="/signup" className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+              <Link to="/signup?next=%2Fbrain-dump" onClick={() => trackActivationEvent("signup_started", { source: "landing_hero_brain_dump" })} className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                 Start voice dump
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -169,7 +170,7 @@ const Index = () => {
                 <p className={`text-base md:text-lg leading-relaxed mb-6 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
                   Voice dump your thoughts into SaveMe, then let trusted agents like Hermes, OpenClaw, Claude, Codex, or Cursor search the same memory before they work. It stays your memory layer, not another scattered chat history.
                 </p>
-                <Link to={isAuthenticated ? "/settings#connect-agent" : "/signup"} className={`inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+                <Link to={isAuthenticated ? "/settings#connect-agent" : "/signup"} onClick={() => trackActivationEvent(isAuthenticated ? "agent_connect_clicked" : "signup_started", { source: "agent_memory_teaser" })} className={`inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
                   Connect an agent
                   <ArrowRight className="w-4 h-4" />
                 </Link>
@@ -251,7 +252,7 @@ const Index = () => {
               </div>
               <div className={`text-center mt-20 pt-12 border-t ${theme === 'dark' ? 'border-zinc-800/20' : 'border-zinc-200'}`}>
                 <p className={`text-sm mb-8 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>If this is you — just start talking</p>
-                <button className={`px-8 py-3 rounded-lg font-medium transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Try Voice Capture Now</button>
+                <Link to={isAuthenticated ? "/brain-dump" : "/signup?next=%2Fbrain-dump"} onClick={() => trackActivationEvent(isAuthenticated ? "brain_dump_start_clicked" : "signup_started", { source: "landing_pain_cta" })} className={`inline-flex px-8 py-3 rounded-lg font-medium transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>Try Voice Capture Now</Link>
               </div>
             </div>
           </div>
@@ -286,7 +287,7 @@ const Index = () => {
                       </li>
                     ))}
                   </ul>
-                  <Link to={getPlanHref(plan.name)} className={`block w-full px-6 py-3 rounded-lg font-medium text-center transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`}>
+                  <Link to={getPlanHref(plan.name)} onClick={() => trackActivationEvent("subscription_clicked", { source: "landing_pricing", plan: plan.name.toLowerCase() })} className={`block w-full px-6 py-3 rounded-lg font-medium text-center transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`}>
                     {plan.price === "$0" ? "Start Free" : "Get Started"}
                   </Link>
                 </div>
@@ -299,7 +300,7 @@ const Index = () => {
         <section className={`py-24 px-8 border-t text-center ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
           <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Ready to <span className="text-primary">offload your brain?</span></h2>
           <p className={`text-lg mb-8 max-w-xl mx-auto ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Your external memory is one voice command away.</p>
-          <Link to="/signup" className={`inline-flex items-center gap-2 px-8 py-4 text-lg rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
+          <Link to="/signup?next=%2Fbrain-dump" onClick={() => trackActivationEvent("signup_started", { source: "landing_final_cta" })} className={`inline-flex items-center gap-2 px-8 py-4 text-lg rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
             <Mic className="w-5 h-5" />
             Start Free — No Card Needed
           </Link>

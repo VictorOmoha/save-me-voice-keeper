@@ -11,12 +11,12 @@ import { BrainDumpProcessor, ActionItem, actionItemsToStrings } from "@/utils/br
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
 import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
-import { analytics, auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { ArrowLeft, CheckCircle2, LayoutDashboard, Sparkles, Loader2, Users, Tag, Zap, Keyboard } from "lucide-react";
 import { ShareButtons } from "@/components/braindump/ShareButtons";
 import { KeyboardShortcuts } from "@/components/braindump/KeyboardShortcuts";
 import { openEmailClient, generateLinkedInPost, exportToClipboard, downloadAsText } from "@/utils/shareUtils";
-import { logEvent } from "firebase/analytics";
+import { trackActivationEvent } from "@/lib/analytics";
 
 const processor = new BrainDumpProcessor();
 
@@ -76,7 +76,8 @@ const BrainDumpPage: React.FC = () => {
 
   const handleDashboardClick = () => {
     safeStop();
-    navigate('/dashboard');
+    trackActivationEvent("brain_dump_dashboard_clicked", { after_save: Boolean(justSaved) });
+    navigate(justSaved ? '/dashboard?from=brain_dump_saved' : '/dashboard');
   };
 
   // Main processed state
@@ -145,7 +146,7 @@ const BrainDumpPage: React.FC = () => {
   useEffect(() => {
     document.title = "Brain Dump | Fast voice capture";
     try {
-      logEvent(analytics, "brain_dump_view");
+      trackActivationEvent("brain_dump_view");
     } catch (error) {
       console.debug("Analytics event failed:", error);
     }
@@ -271,7 +272,7 @@ const BrainDumpPage: React.FC = () => {
     setPeople(result.people || []);
     setLivePreview(null);
     try {
-      logEvent(analytics, "brain_dump_processed", {
+      trackActivationEvent("brain_dump_processed", {
         has_action_items: (result.actionItems || []).length > 0,
         has_key_points: (result.keyPoints || []).length > 0,
         source: rawText ? "typed" : "voice",
@@ -369,7 +370,7 @@ const BrainDumpPage: React.FC = () => {
         category,
       });
       try {
-        logEvent(analytics, "brain_dump_saved", {
+        trackActivationEvent("brain_dump_saved", {
           category,
           has_summary: Boolean(summary),
           action_item_count: actionItems.length,
@@ -379,7 +380,18 @@ const BrainDumpPage: React.FC = () => {
       } catch (error) {
         console.debug("Analytics event failed:", error);
       }
-      setJustSaved({ title: title || `Brain Dump - ${new Date().toLocaleString()}`, category });
+      const savedTitle = title || `Brain Dump - ${new Date().toLocaleString()}`;
+      setJustSaved({ title: savedTitle, category });
+      try {
+        localStorage.setItem("saveme_last_brain_dump_saved", JSON.stringify({
+          title: savedTitle,
+          category,
+          savedAt: new Date().toISOString(),
+          nextPrompt: "What changed since the last thing you saved? Dump the update before it slips away.",
+        }));
+      } catch (error) {
+        console.debug("Could not persist repeat prompt:", error);
+      }
       toast.success("Nova saved this to your vault");
       setRawText("");
       setTitle("");
@@ -556,25 +568,25 @@ const BrainDumpPage: React.FC = () => {
         <article className="space-y-6">
           <header className="space-y-4">
             <div>
-              <h1 className="text-3xl font-bold">Brain Dump</h1>
-              <p className="text-muted-foreground mt-1">Speak freely. Nova will organize your thoughts and save what matters.</p>
+              <h1 className="text-3xl font-bold">Start with one messy thought</h1>
+              <p className="text-muted-foreground mt-1">Tap record, say what is in your head, then save the organized version to your external memory.</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-xl border bg-card p-4">
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 1</p>
-                <p className="text-sm font-semibold mt-1">Nova capture</p>
-                <p className="text-xs text-muted-foreground mt-1">Speak naturally or paste messy thoughts. No need to organize first.</p>
+                <p className="text-sm font-semibold mt-1">Start speaking</p>
+                <p className="text-xs text-muted-foreground mt-1">Say tasks, ideas, reminders, or half-finished thoughts. Messy is the point.</p>
               </div>
               <div className="rounded-xl border bg-card p-4">
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 2</p>
-                <p className="text-sm font-semibold mt-1">Nova is organizing</p>
-                <p className="text-xs text-muted-foreground mt-1">Nova will organize and save this for you.</p>
+                <p className="text-sm font-semibold mt-1">Nova structures it</p>
+                <p className="text-xs text-muted-foreground mt-1">Your dump becomes a title, category, notes, tags, and action items.</p>
               </div>
               <div className="rounded-xl border bg-card p-4">
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 3</p>
                 <p className="text-sm font-semibold mt-1">Saved to vault</p>
-                <p className="text-xs text-muted-foreground mt-1">Store it in your vault so you can find it later without friction.</p>
+                <p className="text-xs text-muted-foreground mt-1">Save it so your memory and trusted agents can use it later.</p>
               </div>
             </div>
           </header>
@@ -585,17 +597,17 @@ const BrainDumpPage: React.FC = () => {
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-green-900">Saved to your vault</p>
+                    <p className="text-sm font-semibold text-green-900">Saved. Come back tomorrow and add the next update.</p>
                     <p className="text-sm text-green-800 mt-1">
-                      <span className="font-medium">{justSaved.title}</span> was filed under <span className="font-medium">{justSaved.category}</span>.
+                      <span className="font-medium">{justSaved.title}</span> was filed under <span className="font-medium">{justSaved.category}</span>. Your next prompt: “What changed since this?”
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => navigate('/all-entries')}>
+                  <Button variant="outline" onClick={() => { trackActivationEvent('brain_dump_view_entries_clicked'); navigate('/all-entries'); }}>
                     View entries
                   </Button>
-                  <Button onClick={() => setJustSaved(null)}>
+                  <Button onClick={() => { trackActivationEvent("brain_dump_repeat_clicked"); setJustSaved(null); }}>
                     Start another dump
                   </Button>
                 </div>
@@ -609,7 +621,7 @@ const BrainDumpPage: React.FC = () => {
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-foreground">How this works</p>
-                    <p className="text-sm text-muted-foreground mt-1">Say everything in one pass. Nova will organize it and save it unless you want manual review.</p>
+                    <p className="text-sm text-muted-foreground mt-1">The first win is simple: capture one real thing you do not want to forget.</p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <span className="rounded-full border bg-background px-3 py-1">Best for tasks</span>
@@ -636,7 +648,7 @@ const BrainDumpPage: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle id="capture">Capture</CardTitle>
-                <p className="text-sm text-muted-foreground">Speak or type freely. Nova will organize your thoughts and get them ready to save.</p>
+                <p className="text-sm text-muted-foreground">Record for 10 to 30 seconds, or type if the mic is blocked. Then organize and save.</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-3">
@@ -650,7 +662,10 @@ const BrainDumpPage: React.FC = () => {
                         <button
                           key={prompt}
                           type="button"
-                          onClick={() => setRawText(prompt)}
+                          onClick={() => {
+                            trackActivationEvent("brain_dump_prompt_selected", { prompt: prompt.slice(0, 40) });
+                            setRawText(prompt);
+                          }}
                           className="rounded-full border bg-background px-3 py-1 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
                         >
                           {prompt}
@@ -661,15 +676,15 @@ const BrainDumpPage: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {!isListening ? (
-                    <Button onClick={start} aria-label="Start recording">Talk to Nova</Button>
+                    <Button onClick={start} size="lg" aria-label="Start recording">Start speaking</Button>
                   ) : (
-                    <Button variant="secondary" onClick={stop} aria-label="Stop recording">Finish dump</Button>
+                    <Button variant="secondary" size="lg" onClick={stop} aria-label="Stop recording">Finish dump</Button>
                   )}
-                  <Button variant="outline" onClick={reset} aria-label="Reset transcript">Reset</Button>
+                  <Button variant="outline" onClick={() => { trackActivationEvent("brain_dump_reset_clicked"); reset(); }} aria-label="Reset transcript">Reset</Button>
                   {lastCapturedAudioUrl && (
                     <Button variant="outline" onClick={playLastRecording} aria-label="Play last recording">Play last recording</Button>
                   )}
-                  <Button variant="outline" onClick={handleProcess} aria-label="Organize with Nova">Organize with Nova</Button>
+                  <Button variant="outline" onClick={handleProcess} aria-label="Organize with Nova">Organize typed dump</Button>
                   <Button
                     variant="default"
                     onClick={handleEnhanceWithAI}
@@ -727,7 +742,7 @@ const BrainDumpPage: React.FC = () => {
                 />
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <p>
-                    Status: {isProcessingVoice ? '⏳ Nova is processing your voice...' : isListening ? (continuous ? '🎤 Nova is listening (continuous). Speak freely.' : '🎤 Nova is recording. Speak freely.') : voiceError ? 'Voice unavailable, typing is ready' : 'Nova is ready'}
+                    Status: {isProcessingVoice ? '⏳ Nova is processing your voice...' : isListening ? (continuous ? '🎤 Nova is listening. Keep going until your thought is out.' : '🎤 Nova is recording. Speak freely.') : voiceError ? 'Voice unavailable, typing is ready' : 'Ready, start with one thought'}
                     {livePreview && livePreview.isProcessing && ' | ⚡ Nova is organizing your thoughts...'}
                   </p>
                   <div className="flex items-center gap-3">
@@ -994,7 +1009,7 @@ const BrainDumpPage: React.FC = () => {
                             aria-label="Save structured entry"
                             className="w-full"
                           >
-                            Save structured entry
+                            Save to my memory vault
                           </Button>
                           <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
                             <p className="font-medium text-foreground mb-1">What happens after you save?</p>

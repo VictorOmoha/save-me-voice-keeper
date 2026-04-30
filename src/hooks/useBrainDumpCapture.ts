@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getCloudFunctionUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
+import { trackActivationEvent } from "@/lib/analytics";
 
 const TRANSCRIBE_URL = getCloudFunctionUrl("transcribeAudio");
 const VOICE_AGENT_URL = getCloudFunctionUrl("voiceAgent");
@@ -252,6 +253,7 @@ export const useBrainDumpCapture = () => {
 
     setLastStartAttemptAt(now);
     setVoiceError(null);
+    trackActivationEvent("brain_dump_start_clicked", { source: "voice" });
     // If this is a manual (re)start after user action, reset echo counters
     if (manualStopRef.current) {
       repeatCountRef.current = 0;
@@ -270,6 +272,7 @@ export const useBrainDumpCapture = () => {
     audioChunksRef.current = [];
 
     if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder === "undefined") {
+      trackActivationEvent("brain_dump_voice_unavailable", { reason: "unsupported_browser" });
       setVoiceError("Voice capture is not available in this browser. Type your brain dump instead.");
       toast.error("Voice capture is not available in this browser.");
       return;
@@ -287,6 +290,7 @@ export const useBrainDumpCapture = () => {
           sampleRate: 48000,
         },
       });
+      trackActivationEvent("mic_permission_granted");
       streamRef.current = stream;
 
       // Log actual track settings applied by browser
@@ -319,6 +323,10 @@ export const useBrainDumpCapture = () => {
 
         const resolvedMimeType = mimeTypeRef.current || recorder.mimeType || "audio/webm";
         const blob = new Blob(audioChunksRef.current, { type: resolvedMimeType });
+        trackActivationEvent("recording_completed", {
+          blob_size: blob.size,
+          mime_type: resolvedMimeType,
+        });
 
         console.log("[useBrainDumpCapture] recorder stopped", {
           chunks: audioChunksRef.current.length,
@@ -327,6 +335,7 @@ export const useBrainDumpCapture = () => {
         });
 
         if (blob.size < 500) {
+          trackActivationEvent("recording_rejected", { reason: "too_short", blob_size: blob.size });
           setVoiceError("Nova didn't catch enough audio. Try a longer voice dump, or type your brain dump instead.");
           toast.error("Recorded audio was too short or empty.");
           return;
@@ -392,6 +401,10 @@ export const useBrainDumpCapture = () => {
           };
 
           if (!transcribeResponse.ok) {
+            trackActivationEvent("transcription_failed", {
+              status: transcribeResponse.status,
+              reason: transcribeResponse.status === 429 ? "rate_limited" : "http_error",
+            });
             console.warn("[useBrainDumpCapture] transcribeAudio failed:", transcribeResponse.status, transcribeData);
             if (transcribeResponse.status === 429) {
               const retryAfterHeader = transcribeResponse.headers.get("Retry-After");
@@ -414,6 +427,10 @@ export const useBrainDumpCapture = () => {
 
           transcribeRateLimitedUntilRef.current = 0;
           const heardText = (transcribeData?.detected && transcribeData?.transcript?.trim()) || "";
+          trackActivationEvent("transcription_completed", {
+            detected: Boolean(heardText),
+            transcript_length: heardText.length,
+          });
           console.log("[useBrainDumpCapture] transcript:", heardText || "(none)");
 
           // ── Echo / hallucination guard BEFORE calling voiceAgent ──────────
@@ -504,6 +521,7 @@ export const useBrainDumpCapture = () => {
           }));
 
           if (agentData.error) {
+            trackActivationEvent("brain_dump_voice_agent_failed", { reason: String(agentData.error).slice(0, 80) });
             console.error("[useBrainDumpCapture] voiceAgent error:", agentData.error);
             setVoiceError(`Nova error: ${agentData.error}`);
             toast.error(`Nova error: ${agentData.error}`);
@@ -528,6 +546,10 @@ export const useBrainDumpCapture = () => {
               (a: VoiceAgentAction) => a.tool === "saveEntry" && a.result?.success
             );
             if (saveAction) {
+              trackActivationEvent("brain_dump_saved", {
+                source: "voice_agent",
+                category: (saveAction.args?.category as string) || "Personal",
+              });
               setSavedEntry({
                 title: (saveAction.args?.title as string) || "",
                 category: (saveAction.args?.category as string) || "Personal",
@@ -587,6 +609,7 @@ export const useBrainDumpCapture = () => {
       mediaRecorderRef.current = recorder;
       recorder.start(250);
       setIsListening(true);
+      trackActivationEvent("recording_started", { mime_type: mimeTypeRef.current });
 
       // ── Set up silence detection (VAD) ──────────────────────────────────
       try {
@@ -700,9 +723,11 @@ export const useBrainDumpCapture = () => {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("Permission denied") || message.includes("NotAllowedError")) {
+        trackActivationEvent("mic_permission_denied");
         setVoiceError("Microphone access denied. Please allow microphone access and try again.");
         toast.error("Microphone access denied.");
       } else {
+        trackActivationEvent("brain_dump_voice_start_failed", { reason: message.slice(0, 80) });
         console.error("[useBrainDumpCapture] start failed:", error);
         setVoiceError(`Voice did not start. ${message}. Type your brain dump and Nova will still organize it.`);
         toast.error(`Voice did not start: ${message}`);

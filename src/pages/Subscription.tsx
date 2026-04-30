@@ -9,6 +9,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { auth } from "@/lib/firebase";
+import { trackActivationEvent } from "@/lib/analytics";
 
 // Cloud Functions URL - set after deployment
 const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
@@ -74,6 +75,7 @@ const Subscription = () => {
 
   const handleUpgrade = async (planName: string) => {
     console.log('handleUpgrade called with:', planName);
+    trackActivationEvent("subscription_clicked", { source: "subscription_page", plan: planName.toLowerCase() });
 
     if (planName === "Free") {
       console.log('Free plan selected, returning early');
@@ -122,11 +124,13 @@ const Subscription = () => {
 
       const { url } = await response.json();
       if (url) {
+        trackActivationEvent("subscription_checkout_opened", { plan: planName.toLowerCase() });
         window.location.href = url;
       } else {
         throw new Error('No checkout URL returned');
       }
     } catch (err) {
+      trackActivationEvent("subscription_checkout_failed", { plan: planName.toLowerCase() });
       console.error('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
@@ -146,6 +150,7 @@ const Subscription = () => {
       return;
     }
 
+    trackActivationEvent("billing_portal_clicked");
     setLoadingPortal(true);
 
     try {
@@ -169,6 +174,7 @@ const Subscription = () => {
 
       const { url } = await response.json();
       if (url) {
+        trackActivationEvent("billing_portal_opened");
         window.location.href = url;
       } else {
         throw new Error('No portal URL returned');

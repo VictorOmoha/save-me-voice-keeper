@@ -6,17 +6,10 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect
 } from 'firebase/auth';
-
-
-const getAuthErrorInfo = (error: unknown): { code?: string; message: string } => {
-  if (error instanceof Error) {
-    const code = 'code' in error ? (error as { code?: string }).code : undefined;
-    return { code, message: error.message };
-  }
-  return { message: String(error) };
-};
+import { getAuthErrorInfo, getGoogleAuthFailureMode } from './authErrors';
 
 export const authService = {
   login: async (email: string, password: string): Promise<{ error?: string }> => {
@@ -87,19 +80,24 @@ export const authService = {
       console.error('Error code:', code);
       console.error('Error message:', message);
 
-      // Provide user-friendly error messages
-      let errorMessage = 'An unexpected error occurred';
-      if (code === 'auth/popup-closed-by-user') {
-        errorMessage = 'Sign-in was cancelled';
-      } else if (code === 'auth/popup-blocked') {
-        errorMessage = 'Popup was blocked. Please allow popups for this site.';
-      } else if (code === 'auth/unauthorized-domain') {
-        errorMessage = 'This domain is not authorized for sign-in. Please contact support.';
-      } else if (message) {
-        errorMessage = message;
+      const failureMode = getGoogleAuthFailureMode(error);
+      if (failureMode.shouldTryRedirect) {
+        console.warn(failureMode.message);
+        try {
+          const provider = new GoogleAuthProvider();
+          provider.setCustomParameters({
+            prompt: 'select_account'
+          });
+          await signInWithRedirect(auth, provider);
+          return {};
+        } catch (redirectError) {
+          const redirectInfo = getAuthErrorInfo(redirectError);
+          console.error('Google redirect sign-in exception:', redirectError);
+          return { error: redirectInfo.message || failureMode.message };
+        }
       }
 
-      return { error: errorMessage };
+      return { error: failureMode.message };
     }
   },
 

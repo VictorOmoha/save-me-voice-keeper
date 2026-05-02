@@ -45,7 +45,10 @@ const Index = () => {
           if (video.video_type === 'demo') setActiveDemoVideo({ url: video.video_url, title: video.title });
           else if (video.video_type === 'canvid_replacement') setActiveCanvidVideo({ url: video.video_url, title: video.title });
         });
-      } catch (error) { console.error('Error fetching videos:', error); }
+      } catch (error) {
+        console.warn('Video metadata unavailable; using bundled demo video fallback.', error);
+        setActiveDemoVideo({ url: SAVEME_DEMO_VIDEO, title: 'SaveMe.Space Demo' });
+      }
     };
     fetchActiveVideos();
   }, []);

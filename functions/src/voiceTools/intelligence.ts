@@ -395,10 +395,14 @@ export async function handleIntelligenceTool(
   }
 
   case "setReminder": {
-    const whenStr = (args.when as string).toLowerCase();
-    const triggerAt = new Date();
+    const rawWhen = String(args.when || "").trim();
+    const whenStr = rawWhen.toLowerCase();
+    const parsedAbsoluteDate = new Date(rawWhen);
+    const triggerAt = Number.isNaN(parsedAbsoluteDate.getTime()) ? new Date() : parsedAbsoluteDate;
 
-    if (whenStr.includes("tomorrow")) {
+    if (!Number.isNaN(parsedAbsoluteDate.getTime())) {
+      // Exact date/time supplied by UI or model, keep it as-is.
+    } else if (whenStr.includes("tomorrow")) {
       triggerAt.setDate(triggerAt.getDate() + 1);
       triggerAt.setHours(9, 0, 0, 0);
     } else if (whenStr.includes("next week") || whenStr.includes("next monday")) {
@@ -444,11 +448,16 @@ export async function handleIntelligenceTool(
     const reminderDoc = await db.collection("reminders").add({
       user_id: userId,
       text: args.text,
+      task_text: args.text,
+      notification_text: `Reminder: ${args.text}`,
+      type: "task_reminder",
+      source: "voice_agent",
       trigger_at: admin.firestore.Timestamp.fromDate(triggerAt),
       entry_id: args.entryId || null,
       action_item_id: null,
       status: "pending",
       created_at: admin.firestore.FieldValue.serverTimestamp(),
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     return novaAction("set_reminder", { text: args.text, when: triggerAt.toISOString() }, {

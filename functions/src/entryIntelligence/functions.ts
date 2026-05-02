@@ -436,7 +436,8 @@ export const checkReminders = functions.pubsub
         batch.set(notifRef, {
           user_id: reminder.user_id,
           type: "reminder",
-          text: reminder.text,
+          text: reminder.notification_text || `Reminder: ${reminder.text}`,
+          task_text: reminder.task_text || reminder.text,
           entry_id: reminder.entry_id || null,
           reminder_id: doc.id,
           status: "pending",
@@ -444,7 +445,11 @@ export const checkReminders = functions.pubsub
         });
 
         // Mark reminder as sent
-        batch.update(doc.ref, {status: "sent"});
+        batch.update(doc.ref, {
+          status: "sent",
+          sent_at: admin.firestore.FieldValue.serverTimestamp(),
+          updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
       }
 
       await batch.commit();

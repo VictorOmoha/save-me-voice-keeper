@@ -21,6 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SavedEntry } from '@/types/dashboard';
 import { toast } from 'sonner';
 import { trackActivationEvent } from '@/lib/analytics';
+import { useTaskReminderAlarm } from '@/hooks/useTaskReminderAlarm';
 
 const categories = [
   { name: 'Documents', icon: '📄', description: 'Official papers, certificates, contracts' },
@@ -31,6 +32,8 @@ const categories = [
 ];
 
 export default function Dashboard() {
+  useTaskReminderAlarm();
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();

@@ -10,6 +10,7 @@ import { SavedEntry } from "@/types/dashboard";
 import { DashboardIntelligencePanel } from "@/components/dashboard/DashboardIntelligencePanel";
 import { SharedMemoryPanel } from "@/components/dashboard/SharedMemoryPanel";
 import { SharedMemoryDevPanel } from "@/components/dev/SharedMemoryDevPanel";
+import { TaskReminderCard } from "@/components/task-reminders/TaskReminderCard";
 
 interface DashboardMainContentProps {
   userName?: string;
@@ -173,6 +174,8 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         onSearchChange={onSearchChange}
         onEntrySelect={onViewDocument}
       />
+
+      <TaskReminderCard />
 
       {/* Stats Cards */}
       <StatsCards

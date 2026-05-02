@@ -41,7 +41,9 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!url.protocol.startsWith('http')) return;
 
-  // Never cache API/backend calls
+  // Never intercept API/backend calls. Let the browser own long-lived Firebase
+  // listen streams so service worker fetch handling cannot turn transient network
+  // interruptions into uncaught promise errors.
   if (
     url.hostname.includes('firestore.googleapis.com') ||
     url.hostname.includes('cloudfunctions.net') ||
@@ -50,7 +52,6 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('identitytoolkit') ||
     url.hostname.includes('securetoken')
   ) {
-    event.respondWith(fetch(event.request));
     return;
   }
 

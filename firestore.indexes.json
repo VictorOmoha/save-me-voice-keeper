@@ -130,6 +130,15 @@
       ]
     },
     {
+      "collectionGroup": "pending_notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "user_category_patterns",
       "queryScope": "COLLECTION",
       "fields": [

@@ -77,13 +77,20 @@ service cloud.firestore {
     match /reminders/{docId} {
       allow read: if isSignedIn()
         && resource.data.user_id == request.auth.uid;
-      allow write: if false; // server-only writes
+      allow create: if isSignedIn()
+        && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if false; // server-only updates
     }
 
     match /pending_notifications/{docId} {
       allow read: if isSignedIn()
         && resource.data.user_id == request.auth.uid;
-      allow write: if false; // server-only writes
+      allow update: if isSignedIn()
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == resource.data.user_id
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'dismissed';
+      allow create, delete: if false; // server-only creates/deletes
     }
 
     // --- User profile / settings (doc ID = user UID) ---

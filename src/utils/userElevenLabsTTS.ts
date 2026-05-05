@@ -2,6 +2,7 @@
  * User ElevenLabs TTS Utility
  * Uses the user's own API key for text-to-speech
  */
+import { getElevenLabsApiKey } from '@/utils/userSecrets';
 
 // Voice IDs for ElevenLabs
 export const ELEVENLABS_VOICES = {
@@ -29,10 +30,10 @@ interface SpeakOptions {
 let currentAudio: HTMLAudioElement | null = null;
 
 /**
- * Get the user's ElevenLabs API key from localStorage
+ * Get the user's ElevenLabs API key from memory. Do not persist API keys in localStorage.
  */
 export const getUserApiKey = (): string | null => {
-  return localStorage.getItem('elevenlabs_user_api_key');
+  return getElevenLabsApiKey();
 };
 
 /**
@@ -102,7 +103,7 @@ export const speakWithUserKey = async (
 
   // If no API key, fall back to browser TTS
   if (!apiKey) {
-    console.log('[UserTTS] No API key, falling back to browser TTS');
+    if (import.meta.env.DEV) console.log('[UserTTS] No API key, falling back to browser TTS');
     return speakWithBrowser(text, { onStart, onEnd });
   }
 

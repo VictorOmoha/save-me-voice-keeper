@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { clearElevenLabsApiKey, setElevenLabsApiKey } from '@/utils/userSecrets';
 
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
@@ -90,11 +91,7 @@ export const useUserPreferences = () => {
           has_completed_onboarding: data.has_completed_onboarding ?? false,
         };
         setPreferences(loadedPrefs);
-        
-        // Sync API key to localStorage for TTS utility
-        if (loadedPrefs.elevenlabs_api_key) {
-          localStorage.setItem('elevenlabs_user_api_key', loadedPrefs.elevenlabs_api_key);
-        }
+        setElevenLabsApiKey(loadedPrefs.elevenlabs_api_key);
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
@@ -122,14 +119,14 @@ export const useUserPreferences = () => {
       setPreferences(prev => {
         const next = { ...prev, ...updates };
 
-        // Sync to localStorage for pure utility functions in textToSpeech.ts
+        // Sync non-secret voice preferences for pure utility functions in textToSpeech.ts
         if (updates.tts_service) localStorage.setItem('selected_tts_service', updates.tts_service);
         if (updates.elevenlabs_voice_id) localStorage.setItem('selected_voice', updates.elevenlabs_voice_id);
         if (updates.elevenlabs_api_key !== undefined) {
           if (updates.elevenlabs_api_key) {
-            localStorage.setItem('elevenlabs_user_api_key', updates.elevenlabs_api_key);
+            setElevenLabsApiKey(updates.elevenlabs_api_key);
           } else {
-            localStorage.removeItem('elevenlabs_user_api_key');
+            clearElevenLabsApiKey();
           }
         }
         if (updates.minimax_voice_id) localStorage.setItem('selected_minimax_voice', updates.minimax_voice_id);
@@ -167,7 +164,7 @@ export const useUserPreferences = () => {
       }, { merge: true });
       
       setPreferences(prev => ({ ...prev, elevenlabs_api_key: undefined }));
-      localStorage.removeItem('elevenlabs_user_api_key');
+      clearElevenLabsApiKey();
       return true;
     } catch (error) {
       console.error('Error clearing API key:', error);

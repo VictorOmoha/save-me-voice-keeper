@@ -14,12 +14,6 @@ import { trackActivationEvent } from "@/lib/analytics";
 // Cloud Functions URL - set after deployment
 const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
 
-// Stripe Price IDs - these should match your Stripe dashboard
-const STRIPE_PRICES = {
-  basic: import.meta.env.VITE_STRIPE_BASIC_PRICE_ID || 'price_basic_monthly',
-  premium: import.meta.env.VITE_STRIPE_PREMIUM_PRICE_ID || 'price_premium_monthly',
-};
-
 const Subscription = () => {
   const { user, isAuthenticated, session } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
@@ -64,7 +58,7 @@ const Subscription = () => {
       features: [
         "Everything in Basic",
         "Data export & backup",
-        "Advanced encryption",
+        "Enhanced privacy controls",
         "API access",
         "Custom integrations",
         "24/7 support"
@@ -74,11 +68,9 @@ const Subscription = () => {
   ];
 
   const handleUpgrade = async (planName: string) => {
-    console.log('handleUpgrade called with:', planName);
     trackActivationEvent("subscription_clicked", { source: "subscription_page", plan: planName.toLowerCase() });
 
     if (planName === "Free") {
-      console.log('Free plan selected, returning early');
       return;
     }
 
@@ -97,9 +89,9 @@ const Subscription = () => {
 
     try {
       const token = await currentUser.getIdToken();
-      const priceId = STRIPE_PRICES[planName.toLowerCase() as keyof typeof STRIPE_PRICES];
+      const plan = planName.toLowerCase();
 
-      if (!priceId) {
+      if (plan !== 'basic' && plan !== 'premium') {
         toast.error('Invalid plan selected');
         return;
       }
@@ -111,9 +103,7 @@ const Subscription = () => {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          priceId,
-          successUrl: `${window.location.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${window.location.origin}/subscription`,
+          plan,
         }),
       });
 
@@ -131,7 +121,6 @@ const Subscription = () => {
       }
     } catch (err) {
       trackActivationEvent("subscription_checkout_failed", { plan: planName.toLowerCase() });
-      console.error('Checkout exception:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPlan(null);
@@ -162,9 +151,7 @@ const Subscription = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          returnUrl: `${window.location.origin}/settings`,
-        }),
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
@@ -180,7 +167,6 @@ const Subscription = () => {
         throw new Error('No portal URL returned');
       }
     } catch (err) {
-      console.error('Portal error:', err);
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPortal(false);
@@ -307,11 +293,7 @@ const Subscription = () => {
                 <Button
                   className={`w-full font-medium ${plan.current ? 'bg-gray-400 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                   disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    console.log('Button clicked for plan:', plan.name, 'current:', plan.current, 'loading:', loadingPlan);
-                    handleUpgrade(plan.name);
-                  }}
+                  onClick={() => handleUpgrade(plan.name)}
                 >
                   {loadingPlan === plan.name ? (
                     <>

@@ -4,85 +4,92 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect
 } from 'firebase/auth';
 import { getAuthErrorInfo, getGoogleAuthFailureMode } from './authErrors';
+import { logAuth } from '@/utils/logger';
+
+const RESET_PASSWORD_MESSAGE = 'If an account exists for that email, a password reset link has been sent.';
+
+const getLoginErrorMessage = (code: string, fallback: string): string => {
+  if (code === 'auth/invalid-email') {
+    return 'Invalid email address format.';
+  }
+
+  if (code === 'auth/user-disabled') {
+    return 'This account has been disabled.';
+  }
+
+  if (code === 'auth/too-many-requests') {
+    return 'Too many failed attempts. Please try again later.';
+  }
+
+  if (
+    code === 'auth/user-not-found' ||
+    code === 'auth/wrong-password' ||
+    code === 'auth/invalid-credential'
+  ) {
+    return 'Invalid email or password. Please check your credentials.';
+  }
+
+  return fallback;
+};
 
 export const authService = {
   login: async (email: string, password: string): Promise<{ error?: string }> => {
-    console.log('authService.login called', { email });
+    logAuth('login started');
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log('authService.login success', { uid: result.user.uid, email: result.user.email });
+      await signInWithEmailAndPassword(auth, email, password);
+      logAuth('login completed');
       return {};
     } catch (error) {
       const { code, message } = getAuthErrorInfo(error);
-      console.error('authService.login error', error);
-      console.error('Error code:', code);
-
-      // Provide user-friendly error messages
-      let errorMessage = message;
-      if (code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email address.';
-      } else if (code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password. Please try again.';
-      } else if (code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address format.';
-      } else if (code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled.';
-      } else if (code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.';
-      } else if (code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid email or password. Please check your credentials.';
-      }
-
-      return { error: errorMessage };
+      logAuth('login failed', { code });
+      return { error: getLoginErrorMessage(code, message) };
     }
   },
 
   signup: async (email: string, password: string, fullName: string): Promise<{ error?: string }> => {
-    console.log('authService.signup called', { email });
+    logAuth('signup started');
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Update profile with full name
       if (userCredential.user) {
         await updateProfile(userCredential.user, {
           displayName: fullName
         });
+        await sendEmailVerification(userCredential.user);
       }
-      console.log('authService.signup success', { uid: userCredential.user.uid });
+
+      logAuth('signup completed');
       return {};
     } catch (error) {
-      const { message } = getAuthErrorInfo(error);
-      console.error('authService.signup error', error);
+      const { code, message } = getAuthErrorInfo(error);
+      logAuth('signup failed', { code });
       return { error: message };
     }
   },
 
   signInWithGoogle: async (): Promise<{ error?: string }> => {
-    console.log('authService.signInWithGoogle called');
+    logAuth('google sign-in started');
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      console.log('authService.signInWithGoogle: Starting popup...');
-      const result = await signInWithPopup(auth, provider);
-      console.log('authService.signInWithGoogle success', { uid: result.user.uid, email: result.user.email });
+      await signInWithPopup(auth, provider);
+      logAuth('google sign-in completed');
       return {};
     } catch (error) {
-      const { code, message } = getAuthErrorInfo(error);
-      console.error('Google sign-in exception:', error);
-      console.error('Error code:', code);
-      console.error('Error message:', message);
+      const { code } = getAuthErrorInfo(error);
+      logAuth('google sign-in failed', { code });
 
       const failureMode = getGoogleAuthFailureMode(error);
       if (failureMode.shouldTryRedirect) {
-        console.warn(failureMode.message);
         try {
           const provider = new GoogleAuthProvider();
           provider.setCustomParameters({
@@ -92,7 +99,7 @@ export const authService = {
           return {};
         } catch (redirectError) {
           const redirectInfo = getAuthErrorInfo(redirectError);
-          console.error('Google redirect sign-in exception:', redirectError);
+          logAuth('google redirect sign-in failed', { code: redirectInfo.code });
           return { error: redirectInfo.message || failureMode.message };
         }
       }
@@ -105,17 +112,24 @@ export const authService = {
     try {
       await signOut(auth);
     } catch (error) {
-      console.error('Error signing out:', error);
+      const { code } = getAuthErrorInfo(error);
+      logAuth('logout failed', { code });
     }
   },
 
-  resetPassword: async (email: string): Promise<{ error?: string }> => {
+  resetPassword: async (email: string): Promise<{ error?: string; message?: string }> => {
     try {
       await sendPasswordResetEmail(auth, email);
-      return {};
+      return { message: RESET_PASSWORD_MESSAGE };
     } catch (error) {
-      const { message } = getAuthErrorInfo(error);
-      return { error: message };
+      const { code } = getAuthErrorInfo(error);
+      logAuth('password reset request failed', { code });
+
+      if (code === 'auth/invalid-email') {
+        return { error: 'Invalid email address format.' };
+      }
+
+      return { message: RESET_PASSWORD_MESSAGE };
     }
   },
 };

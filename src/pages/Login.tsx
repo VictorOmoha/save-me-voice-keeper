@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { trackActivationEvent } from "@/lib/analytics";
+import { resolvePostAuthDestination } from "@/utils/authRedirect";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,11 +17,10 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const requestedPlan = searchParams.get("plan");
   const nextDestination = searchParams.get("next");
-  const postAuthDestination = nextDestination
-    ? nextDestination
-    : requestedPlan === "basic" || requestedPlan === "premium"
-      ? `/subscription?plan=${requestedPlan}`
-      : "/dashboard";
+  const postAuthDestination = resolvePostAuthDestination({
+    next: nextDestination,
+    requestedPlan,
+  });
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -81,7 +81,7 @@ const Login = () => {
           </h1>
           <p className="text-muted-foreground max-w-md">
             Secure entry point to your galvanized data framework.
-            All transmissions encrypted end-to-end.
+            Data is encrypted in transit and protected by account-level access controls.
           </p>
         </div>
 

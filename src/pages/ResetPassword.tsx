@@ -22,7 +22,7 @@ const ResetPassword = () => {
     if (result.error) {
       toast.error(result.error);
     } else {
-      toast.success("Password reset email sent! Check your inbox.");
+      toast.success(result.message || "If an account exists for that email, a password reset link has been sent.");
     }
     
     setIsLoading(false);

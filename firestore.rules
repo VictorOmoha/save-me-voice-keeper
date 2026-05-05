@@ -12,19 +12,27 @@ service cloud.firestore {
 
     // --- User-owned data (user_id field) ---
     match /entries/{docId} {
-      allow read, write: if isSignedIn()
-        && resource == null
-          ? request.resource.data.user_id == request.auth.uid
-          : resource.data.user_id == request.auth.uid;
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
       allow create: if isSignedIn()
         && request.resource.data.user_id == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == resource.data.user_id;
+      allow delete: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
     }
 
     match /action_items/{docId} {
-      allow read, write: if isSignedIn()
-        && (resource == null || resource.data.user_id == request.auth.uid);
+      allow read: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
       allow create: if isSignedIn()
         && request.resource.data.user_id == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.user_id == request.auth.uid
+        && request.resource.data.user_id == resource.data.user_id;
+      allow delete: if isSignedIn()
+        && resource.data.user_id == request.auth.uid;
     }
 
     match /nova_memories/{docId} {
@@ -113,10 +121,7 @@ service cloud.firestore {
     match /api_keys/{docId} {
       allow read: if isSignedIn()
         && resource.data.user_id == request.auth.uid;
-      allow create: if isSignedIn()
-        && request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if isSignedIn()
-        && resource.data.user_id == request.auth.uid;
+      allow create, update, delete: if false; // server-only API key writes
     }
 
     match /shared_memories/{docId} {

@@ -56,7 +56,7 @@ const Index = () => {
   const plans = [
     { name: "FREE", price: "$0", period: "Forever", description: "Perfect for getting started", features: ["Up to 50 entries", "Basic search", "Web access only", "Standard support"], popular: false },
     { name: "BASIC", price: "$9", period: "per month", description: "For personal power users", features: ["Unlimited entries", "Advanced search & filters", "All platforms", "Voice input & commands", "Priority support"], popular: true },
-    { name: "PREMIUM", price: "$19", period: "per month", description: "For teams and professionals", features: ["Everything in Basic", "Data export & backup", "Advanced encryption", "API access", "Custom integrations", "24/7 support"], popular: false }
+    { name: "PREMIUM", price: "$19", period: "per month", description: "For teams and professionals", features: ["Everything in Basic", "Data export & backup", "Enhanced privacy controls", "API access", "Custom integrations", "24/7 support"], popular: false }
   ];
 
   if (!isComponentReady) {
@@ -150,7 +150,7 @@ const Index = () => {
             { num: "01", title: "Voice Capture", desc: "Just speak naturally. Capture notes, ideas, contacts, and reminders without typing a single word." },
             { num: "02", title: "AI Organization", desc: "Your data is automatically sorted into categories. No folders to manage, no tags to remember." },
             { num: "03", title: "Instant Search", desc: "Find anything in seconds. Search by keyword, category, or just describe what you're looking for." },
-            { num: "04", title: "Your Data, Private", desc: "End-to-end encryption. Your information stays yours. We never sell or share your data." }
+            { num: "04", title: "Your Data, Private", desc: "Encrypted in transit and protected by account-level access controls. Your information stays yours. We never sell or share your data." }
           ].map((feature, i) => (
             <div key={i} className={`p-10 border-b md:border-b-0 md:border-r last:border-r-0 transition-all group reveal ${theme === 'dark' ? 'border-zinc-800/50 hover:bg-zinc-900/40' : 'border-zinc-200 hover:bg-zinc-50'}`} style={{ animationDelay: `${0.5 + i * 0.1}s` }}>
               <span className="text-primary text-2xl font-bold mb-6 block">{feature.num}</span>

@@ -1,6 +1,7 @@
 import { toast } from 'sonner';
 import { playEndOfSpeechCueIfEnabled } from '@/utils/audioCues';
 import { auth } from '@/lib/firebase';
+import { getElevenLabsApiKey } from '@/utils/userSecrets';
 
 // Firebase Cloud Functions base URL
 // This will be set after deployment. Format: https://us-central1-{project-id}.cloudfunctions.net
@@ -84,10 +85,10 @@ export const isCloudFunctionsConfigured = (): boolean => {
 };
 
 /**
- * Get user's ElevenLabs API key from localStorage
+ * Get user's ElevenLabs API key from memory. Do not persist API keys in localStorage.
  */
 const getUserElevenLabsKey = (): string | null => {
-  return localStorage.getItem('elevenlabs_user_api_key');
+  return getElevenLabsApiKey();
 };
 
 /**
@@ -164,7 +165,7 @@ const speakWithUserElevenLabs = async (text: string, voiceId: string): Promise<b
   if (!apiKey) return false;
 
   try {
-    console.log('TTS: Using user ElevenLabs API key');
+    if (import.meta.env.DEV) console.log('TTS: Using user ElevenLabs API key');
     
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`,

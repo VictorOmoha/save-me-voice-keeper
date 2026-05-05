@@ -2,6 +2,11 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
+import {
+  getCheckoutPlanConfig,
+  getSafeOrigin,
+  sanitizeReturnUrl,
+} from "./safety";
 
 /**
  * Stripe Create Checkout Session
@@ -20,10 +25,11 @@ export const createCheckout = functions.https.onRequest(
       return;
     }
 
-    const {priceId, successUrl, cancelUrl} = req.body;
+    const {plan} = req.body;
+    const checkoutPlan = getCheckoutPlanConfig(plan);
 
-    if (!priceId) {
-      res.status(400).json({error: "Price ID is required"});
+    if (!checkoutPlan) {
+      res.status(400).json({error: "Valid plan is required"});
       return;
     }
 
@@ -63,20 +69,22 @@ export const createCheckout = functions.https.onRequest(
       }
 
       // Create checkout session
+      const requestOrigin = getSafeOrigin(req.headers.origin);
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         payment_method_types: ["card"],
         line_items: [
           {
-            price: priceId,
+            price: checkoutPlan.priceId,
             quantity: 1,
           },
         ],
         mode: "subscription",
-        success_url: successUrl || `${req.headers.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: cancelUrl || `${req.headers.origin}/subscription`,
+        success_url: `${requestOrigin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${requestOrigin}/subscription`,
         metadata: {
           firebaseUserId: user.uid,
+          plan: checkoutPlan.plan,
         },
       });
 
@@ -134,7 +142,7 @@ export const customerPortal = functions.https.onRequest(
       // Create portal session
       const session = await stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: returnUrl || `${req.headers.origin}/settings`,
+        return_url: sanitizeReturnUrl(returnUrl, req.headers.origin, "/settings"),
       });
 
       res.json({url: session.url});

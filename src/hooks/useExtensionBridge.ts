@@ -1,53 +1,17 @@
 /**
  * useExtensionBridge
  *
- * Two jobs:
- * 1. Relay the Firebase auth token to the browser extension (background.js)
- *    so the extension can make authenticated quickSave API calls without
- *    requiring a separate login flow inside the popup.
- *
- * 2. Handle PWA share target — when the app is opened via the OS share sheet
- *    (manifest.json share_target → /#/share?title=...&text=...&url=...)
- *    extract the shared data and pre-fill a save form.
+ * Handles PWA share target payloads. The previous global token relay was
+ * intentionally removed because Firebase ID tokens must not be broadcast on
+ * window events where any page script can listen for them.
  */
 
 import { useEffect } from "react";
-import { auth } from "@/lib/firebase";
 import { useNavigate, useLocation } from "react-router-dom";
 
 export const useExtensionBridge = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // ── Token relay to browser extension ─────────────────────────────────────
-  useEffect(() => {
-    const relayToken = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
-
-        const token = await user.getIdToken(false);
-
-        // Dispatch event — content-script.js is listening for this
-        window.dispatchEvent(new CustomEvent("saveme:auth-token", { detail: { token } }));
-      } catch {
-        // Not in extension context — no-op
-      }
-    };
-
-    // Relay on load + whenever auth state changes
-    relayToken();
-    const unsub = auth.onIdTokenChanged(() => relayToken());
-
-    // Also respond to extension requests
-    const handleTokenRequest = () => relayToken();
-    window.addEventListener("saveme:request-token", handleTokenRequest);
-
-    return () => {
-      unsub();
-      window.removeEventListener("saveme:request-token", handleTokenRequest);
-    };
-  }, []);
 
   // ── PWA share target handler ──────────────────────────────────────────────
   useEffect(() => {

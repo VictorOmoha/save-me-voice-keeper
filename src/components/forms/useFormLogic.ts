@@ -63,24 +63,11 @@ export const useFormLogic = ({
     JSON.stringify(fields) !== JSON.stringify(initialState.fields);
 
   useEffect(() => {
-    console.log('useFormLogic useEffect triggered:', {
-      editEntry: editEntry?.title,
-      templateEntry: templateEntry?.title,
-      mode,
-      preselectedCategory
-    });
-
     let newTitle = "";
     let newCategory = preselectedCategory || "";
     let newFields: CustomField[] = [];
 
     if (editEntry) {
-      console.log('Processing editEntry:', {
-        title: editEntry.title,
-        fields: editEntry.fields,
-        fieldDefinitions: editEntry.fieldDefinitions
-      });
-
       newTitle = editEntry.title;
       newCategory = editEntry.fields.category || "";
       
@@ -94,8 +81,6 @@ export const useFormLogic = ({
             value: editEntry.fields[fieldDef.name] || ''
           }));
         newFields = editFields.length > 0 ? editFields : [];
-        
-        console.log('Created fields from definitions with normalized names:', newFields);
       } else {
         // Fallback: create fields from the fields object with normalized names
         const editFields: CustomField[] = Object.entries(editEntry.fields)
@@ -107,16 +92,8 @@ export const useFormLogic = ({
             value
           }));
         newFields = editFields.length > 0 ? editFields : [];
-        
-        console.log('Created fields from fields object with normalized names:', newFields);
       }
     } else if (templateEntry && mode === 'template') {
-      console.log('Processing templateEntry for template mode:', {
-        title: templateEntry.title,
-        fields: templateEntry.fields,
-        fieldDefinitions: templateEntry.fieldDefinitions
-      });
-
       newTitle = templateEntry.title; // Use template title as starting point
       newCategory = templateEntry.fields.category || preselectedCategory || "";
 
@@ -130,8 +107,6 @@ export const useFormLogic = ({
             value: templateEntry.fields[fieldDef.name] || ''
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
-
-        console.log('Created template fields for template mode:', newFields);
       } else {
         // Fallback: create fields from the fields object
         const templateFields: CustomField[] = Object.entries(templateEntry.fields)
@@ -143,16 +118,8 @@ export const useFormLogic = ({
             value: value || ''
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
-
-        console.log('Created template fields from fields object:', newFields);
       }
     }
-
-    console.log('Final form state:', {
-      newTitle,
-      newCategory,
-      newFields
-    });
 
     // Set form state
     setTitle(newTitle);
@@ -182,13 +149,10 @@ export const useFormLogic = ({
       type: fieldType,
       value: initial?.value ?? ''
     };
-    console.log('Adding new field:', newField);
     setFields(prev => [...prev, newField]);
     return newField.id;
   }, []);
   const updateField = (id: string, key: keyof CustomField, value: unknown) => {
-    console.log('Updating field:', { id, key, value });
-    
     // Validate field type if we're updating the type
     if (key === 'type') {
       const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
@@ -244,12 +208,6 @@ export const useFormLogic = ({
           type: field.type
         });
       }
-    });
-
-    console.log('Prepared submission data:', {
-      title: title || 'Untitled Entry',
-      fields: fieldData,
-      fieldDefinitions: fieldDefinitions
     });
 
     return {

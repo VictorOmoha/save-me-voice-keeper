@@ -59,6 +59,7 @@ class SearchAnalyticsService {
       const analyticsRef = collection(db, 'search_analytics');
       const q = query(
         analyticsRef,
+        where('user_id', '==', user.uid),
         where('created_at', '>=', Timestamp.fromDate(thirtyDaysAgo)),
         orderBy('created_at', 'desc')
       );
@@ -79,7 +80,9 @@ class SearchAnalyticsService {
         .slice(0, limit)
         .map(([query]) => ({ query }));
     } catch (error) {
-      console.error('Error fetching popular searches:', error);
+      if (import.meta.env.DEV) {
+        console.warn('Error fetching popular searches:', error);
+      }
       return [];
     }
   }

@@ -130,6 +130,13 @@ service cloud.firestore {
       allow write: if false; // shared-memory writes go through Cloud Functions
     }
 
+    match /storage_usage/{docId} {
+      allow read: if isSignedIn()
+        && docId == request.auth.uid
+        && resource.data.user_id == request.auth.uid;
+      allow create, update, delete: if false; // storage usage writes stay server-owned
+    }
+
     // --- User-generated content ---
     match /search_analytics/{docId} {
       allow create: if isSignedIn()

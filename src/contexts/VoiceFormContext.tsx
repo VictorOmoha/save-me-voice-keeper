@@ -44,14 +44,12 @@ export const VoiceFormProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     categorySetter: (category: string) => void,
     addFieldFunction?: (fieldName?: string, fieldType?: string) => void
   ) => {
-    console.log('Registering form setters for voice input');
     setFormTitleSetter(() => titleSetter);
     setFormCategorySetter(() => categorySetter);
     setFormAddFieldFunction(() => addFieldFunction);
   }, []);
 
   const unregisterFormSetters = useCallback(() => {
-    console.log('Unregistering form setters');
     setFormTitleSetter(null);
     setFormCategorySetter(null);
     setFormAddFieldFunction(null);

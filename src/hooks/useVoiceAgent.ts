@@ -199,10 +199,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   // This is the single supported frontend command executor for Nova.
   useEffect(() => {
     if (!pendingCommands.length) return;
-    console.log("[useVoiceAgent] Executing app commands:", pendingCommands);
     for (const cmd of pendingCommands) {
-      console.log("[useVoiceAgent] Command:", cmd.appCommand, "route:", cmd.route, "id:", cmd.id, "category:", cmd.category);
-
       if (cmd.appCommand === "navigate" && cmd.route) {
         // Use React Router callback only (avoid conflicting with window.location.hash)
         onNavigateRef.current?.(cmd.route);
@@ -427,9 +424,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       }
 
       // ── Queue app commands ────────────────────────────────────────────────
-      console.log("[useVoiceAgent] Response data:", { appCommands: data.appCommands, actionsExecuted: data.actionsExecuted });
       if (data.appCommands?.length) {
-        console.log("[useVoiceAgent] Queuing app commands:", data.appCommands);
         setPendingCommands(data.appCommands as AppCommand[]);
       }
 

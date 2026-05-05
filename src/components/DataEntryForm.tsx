@@ -86,8 +86,6 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   // Register form setters once on mount; wrappers read latest refs.
   useEffect(() => {
-    console.log('🔧 DataEntryForm: voice registration effect mounted');
-
     if (registerFormSetters && unregisterFormSetters) {
       const timer = setTimeout(() => {
         const voiceSetTitle = (value: string) => {
@@ -114,17 +112,13 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         };
 
         registerFormSetters(voiceSetTitle, voiceSetCategory, voiceAddField);
-        console.log('🎯 DataEntryForm: Form setters registered');
       }, 100);
 
       return () => {
         clearTimeout(timer);
-        console.log('🧹 DataEntryForm: Unregistering voice form setters');
         unregisterFormSetters();
       };
     }
-
-    console.log('❌ DataEntryForm: Voice form context not available');
   }, [registerFormSetters, unregisterFormSetters]);
 
   const handleSubmit = (e: React.FormEvent) => {

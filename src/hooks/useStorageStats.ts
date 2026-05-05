@@ -73,7 +73,9 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
           if (isMounted) setServerUsage(null);
         }
       } catch (e) {
-        console.warn('Failed to fetch storage usage:', e);
+        if (import.meta.env.DEV) {
+          console.warn('Failed to fetch storage usage:', e);
+        }
         if (isMounted) setServerUsage(null);
       }
     };

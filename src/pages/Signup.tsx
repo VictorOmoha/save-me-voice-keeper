@@ -135,6 +135,7 @@ const Signup = () => {
                   id="name"
                   type="text"
                   placeholder="Your full name"
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -151,6 +152,7 @@ const Signup = () => {
                   id="email"
                   type="email"
                   placeholder="user@domain.com"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -167,6 +169,7 @@ const Signup = () => {
                   id="password"
                   type="password"
                   placeholder="Min 6 characters"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

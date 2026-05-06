@@ -243,7 +243,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                       </label>
                       <div className="p-3 bg-accent/50 rounded-md border">
                         <p className="text-foreground whitespace-pre-wrap">
-                          {String(value) || 'No data'}
+                          {String(value) || 'No details added yet'}
                         </p>
                       </div>
                     </div>

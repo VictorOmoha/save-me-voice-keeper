@@ -39,32 +39,32 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, u
   const stats = [
     {
       id: "0x001",
-      title: "TOTAL_ENTRIES",
+      title: "Total entries",
       value: totalEntries.toString(),
-      subtitle: "RECORDS_IN_ARCHIVE",
+      subtitle: "Saved in your archive",
       icon: FileText,
     },
     {
       id: "0x002",
-      title: "CATEGORIES",
+      title: "Categories",
       value: "5",
-      subtitle: "ORGANIZED_COLLECTIONS",
+      subtitle: "Organized collections",
       icon: FolderOpen,
     },
     {
       id: "0x003",
-      title: "STORAGE_USED",
+      title: "Storage used",
       value: storageStats.totalUsedFormatted,
-      subtitle: `OF ${storageStats.limitFormatted} AVAILABLE`,
+      subtitle: `of ${storageStats.limitFormatted} available`,
       icon: HardDrive,
       showProgress: true,
       progress: storageStats.percentage
     },
     {
       id: "0x004",
-      title: "RECENT_ACTIVITY",
+      title: "Recent activity",
       value: recentActivityCount.toString(),
-      subtitle: "ENTRIES_THIS_WEEK",
+      subtitle: "Entries this week",
       icon: Activity,
     }
   ];

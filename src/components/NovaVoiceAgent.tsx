@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 const STATUS_TEXT: Record<AgentStatus, string> = {
   idle: "Tap to speak",
-  listening: "Listening...",
+  listening: "Recording, tap square to stop",
   thinking: "Nova is thinking...",
   acting: "Nova is acting...",
   speaking: "Nova is speaking...",
@@ -19,7 +19,7 @@ const STATUS_TEXT: Record<AgentStatus, string> = {
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-primary",
-  listening: "bg-red-500",
+  listening: "bg-blue-600",
   thinking: "bg-amber-500",
   acting: "bg-violet-500",
   speaking: "bg-emerald-500",
@@ -145,8 +145,8 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               <p className="font-medium text-sm">Hey, I'm Nova</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[220px] leading-relaxed">
                 {continuous
-                  ? "I'm always listening after I respond. Just talk."
-                  : "Tap the mic and talk. I'll handle the rest."}
+                  ? "Nova can keep the mic on after she responds. You can turn Live off anytime."
+                  : "Tap the mic when you want Nova to hear you, or type below."}
               </p>
             </div>
           </div>
@@ -228,10 +228,12 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-md",
               STATUS_COLOR[status], "text-white",
-              status === "listening" && "ring-4 ring-red-300 scale-110",
+              status === "listening" && "ring-4 ring-blue-300 scale-105",
               status === "speaking" && "ring-4 ring-emerald-300",
               isDisabled && "opacity-60 cursor-not-allowed scale-100"
             )}
+            title={status === "listening" ? "Stop recording" : "Start recording"}
+            aria-label={status === "listening" ? "Stop Nova recording" : "Start Nova recording"}
           >
             {status === "listening"
               ? <Square className="h-4 w-4 fill-white" />

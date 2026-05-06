@@ -221,12 +221,12 @@ export default function AllEntries() {
     >
       {/* Page Header - Skeletal */}
       <div className="mb-6">
-        <div className="protocol-tag mb-3">PROTOCOL: DATA_RETRIEVAL</div>
+        <div className="protocol-tag mb-3">Saved information</div>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="archive-title text-2xl mb-1">ALL_ENTRIES</h1>
+            <h1 className="archive-title text-2xl mb-1">All entries</h1>
             <p className="mono text-xs text-muted-foreground">
-              {filteredEntries.length} {filteredEntries.length === 1 ? 'RECORD' : 'RECORDS'} IN_ARCHIVE
+              {filteredEntries.length} {filteredEntries.length === 1 ? 'saved item' : 'saved items'}
             </p>
           </div>
           <button
@@ -234,7 +234,7 @@ export default function AllEntries() {
             className="btn-galvanized btn-galvanized-primary"
           >
             <Plus className="w-4 h-4" />
-            ADD_ENTRY
+            Add entry
           </button>
         </div>
       </div>
@@ -242,7 +242,7 @@ export default function AllEntries() {
       {showAddEntry && (
         <div className="galvanized-card p-6 mb-6">
           <h3 className="mono text-sm font-bold text-foreground mb-4 pb-3 border-b border-galvanized">
-            {isFillMode ? 'FILL_FORM' : editingEntry ? 'EDIT_ENTRY' : templateEntry ? 'NEW_FROM_TEMPLATE' : 'CREATE_NEW_ENTRY'}
+            {isFillMode ? 'Fill form' : editingEntry ? 'Edit entry' : templateEntry ? 'New from template' : 'Create new entry'}
           </h3>
           <DataEntryForm
             onSave={handleSaveEntry}

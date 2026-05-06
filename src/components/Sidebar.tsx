@@ -82,14 +82,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link to="/dashboard" onClick={handleNavClick}>
             <div className={navItemClass(location.pathname === "/dashboard")}>
               <LayoutDashboard className="w-4 h-4" />
-              <span>DASHBOARD</span>
+              <span>Dashboard</span>
             </div>
           </Link>
 
           <Link to="/all-entries" onClick={handleNavClick}>
             <div className={navItemClass(location.pathname === "/all-entries")}>
               <FileText className="w-4 h-4" />
-              <span>ALL_ENTRIES</span>
+              <span>All entries</span>
               <span className="badge-skeletal ml-auto">
                 {savedEntriesCount}
               </span>
@@ -99,7 +99,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link to="/brain-dump" onClick={handleNavClick}>
             <div className={navItemClass(location.pathname === "/brain-dump")}>
               <Brain className="w-4 h-4" />
-              <span>BRAIN_DUMP</span>
+              <span>Brain dump</span>
             </div>
           </Link>
 
@@ -111,13 +111,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="nav-item-skeletal w-full flex items-center gap-3 text-left"
           >
             <Plus className="w-4 h-4" />
-            <span>ADD_ENTRY</span>
+            <span>Add entry</span>
           </button>
 
           <Link to="/settings" onClick={handleNavClick}>
             <div className={navItemClass(location.pathname === "/settings")}>
               <Settings className="w-4 h-4" />
-              <span>SETTINGS</span>
+              <span>Settings</span>
             </div>
           </Link>
         </nav>
@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Categories */}
         <div className="mt-8 pt-6 border-t border-galvanized">
           <h3 className="mono text-xs text-muted-foreground tracking-wider mb-4 px-4">
-            CATEGORIES
+            Categories
           </h3>
           <div className="space-y-1">
             {categories.map((category) => {
@@ -137,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Link key={category.name} to={`/category/${category.name}`} onClick={handleNavClick}>
                   <div className={navItemClass(location.pathname === `/category/${category.name}`)}>
                     <Icon className="w-4 h-4" />
-                    <span>{category.name.toUpperCase()}</span>
+                    <span>{category.name}</span>
                     <span className="badge-skeletal ml-auto">
                       {count}
                     </span>
@@ -153,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 border-t border-galvanized">
         <div className="mono text-xs text-muted-foreground flex items-center gap-2">
           <span className="status-dot" />
-          <span>ARCHIVE_READY</span>
+          <span>Archive ready</span>
         </div>
       </div>
     </>

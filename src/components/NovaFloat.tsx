@@ -216,7 +216,7 @@ export const NovaFloat: React.FC = () => {
       {/* Panel */}
       <div
         className={cn(
-          "fixed z-50 w-full sm:w-[420px] sm:right-6",
+          "fixed z-50 w-full sm:w-[360px] sm:right-6",
           "bg-background border shadow-2xl",
           "transition-all duration-300 ease-out",
           isMinimized
@@ -227,7 +227,7 @@ export const NovaFloat: React.FC = () => {
             : "translate-y-6 opacity-0 pointer-events-none"
         )}
         style={{
-          height: isMinimized ? "48px" : "clamp(420px, 60vh, 600px)",
+          height: isMinimized ? "48px" : "clamp(360px, 48vh, 480px)",
           overflow: "hidden",
         }}
       >

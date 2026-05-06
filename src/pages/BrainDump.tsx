@@ -113,7 +113,10 @@ const BrainDumpPage: React.FC = () => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [justSaved, setJustSaved] = useState<{ title: string; category: string } | null>(null);
 
+  const capturedContent = useMemo(() => (rawText || transcript).trim(), [rawText, transcript]);
+  const hasCapturedContent = capturedContent.length > 0;
   const hasStructured = useMemo(() => !!title || actionItems.length || keyPoints.length || notes.length, [title, actionItems, keyPoints, notes]);
+  const canSaveStructuredCapture = hasCapturedContent && hasStructured;
 
   // Convert ActionItem[] to string[] for display
   const actionItemStrings = useMemo(() => actionItemsToStrings(actionItems), [actionItems]);
@@ -210,7 +213,7 @@ const BrainDumpPage: React.FC = () => {
 
   // LIVE PREVIEW: Process transcript in real-time while user is speaking
   useEffect(() => {
-    const content = (rawText || transcript).trim();
+    const content = capturedContent;
     
     if (livePreviewTimeoutRef.current) {
       clearTimeout(livePreviewTimeoutRef.current);
@@ -255,7 +258,7 @@ const BrainDumpPage: React.FC = () => {
   }, [rawText, transcript, isListening]);
 
   const handleProcess = () => {
-    const content = (rawText || transcript).trim();
+    const content = capturedContent;
     if (!content) {
       toast.info("Speak or paste some text first");
       return;
@@ -284,7 +287,7 @@ const BrainDumpPage: React.FC = () => {
   };
 
   const handleEnhanceWithAI = async () => {
-    const content = (rawText || transcript).trim();
+    const content = capturedContent;
     if (!content) {
       toast.info("Speak or paste some text first");
       return;
@@ -334,8 +337,13 @@ const BrainDumpPage: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!hasCapturedContent) {
+      toast.info("Speak or paste some text first");
+      return;
+    }
+
     if (!hasStructured) {
-      toast.info("Process your brain dump first");
+      toast.info("Organize your brain dump first");
       return;
     }
 
@@ -355,7 +363,7 @@ const BrainDumpPage: React.FC = () => {
         title: title || `Brain Dump - ${new Date().toLocaleString()}`,
         fields: {
           category,
-          originalText: (rawText || transcript).trim(),
+          originalText: capturedContent,
           summary,
           actionItems: actionItemStrings.join('\n• '),
           keyPoints: keyPoints.join('\n• '),
@@ -511,6 +519,11 @@ const BrainDumpPage: React.FC = () => {
     if (saveInfo) {
       if (saveInfo.category) setCategory(saveInfo.category);
       const doSave = () => { handleSave(); speak('Saved your structured notes.'); };
+      if (!hasCapturedContent) {
+        toast.info("Speak or paste some text first");
+        lastHandledRef.current = t;
+        return;
+      }
       if (!hasStructured) {
         handleProcess();
         setTimeout(doSave, 150);
@@ -534,6 +547,10 @@ const BrainDumpPage: React.FC = () => {
         if (norm) setCategory(norm);
       }
       const doSave = () => { handleSave(); speak('Saved your structured notes.'); };
+      if (!hasCapturedContent) {
+        toast.info("Speak or paste some text first");
+        return;
+      }
       if (!hasStructured) {
         handleProcess();
         setTimeout(doSave, 150);
@@ -569,7 +586,7 @@ const BrainDumpPage: React.FC = () => {
           <header className="space-y-4">
             <div>
               <h1 className="text-3xl font-bold">Start with one messy thought</h1>
-              <p className="text-muted-foreground mt-1">Tap record, say what is in your head, then save the organized version to your external memory.</p>
+              <p className="text-muted-foreground mt-1">Tap Start speaking, say what is in your head, then save the organized version to your external memory.</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -585,7 +602,7 @@ const BrainDumpPage: React.FC = () => {
               </div>
               <div className="rounded-xl border bg-card p-4">
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 3</p>
-                <p className="text-sm font-semibold mt-1">Saved to vault</p>
+                <p className="text-sm font-semibold mt-1">Review and save</p>
                 <p className="text-xs text-muted-foreground mt-1">Save it so your memory and trusted agents can use it later.</p>
               </div>
             </div>
@@ -674,37 +691,6 @@ const BrainDumpPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {!isListening ? (
-                    <Button onClick={start} size="lg" aria-label="Start recording">Start speaking</Button>
-                  ) : (
-                    <Button variant="secondary" size="lg" onClick={stop} aria-label="Stop recording">Finish dump</Button>
-                  )}
-                  <Button variant="outline" onClick={() => { trackActivationEvent("brain_dump_reset_clicked"); reset(); }} aria-label="Reset transcript">Reset</Button>
-                  {lastCapturedAudioUrl && (
-                    <Button variant="outline" onClick={playLastRecording} aria-label="Play last recording">Play last recording</Button>
-                  )}
-                  <Button variant="outline" onClick={handleProcess} aria-label="Organize with Nova">Organize typed dump</Button>
-                  <Button
-                    variant="default"
-                    onClick={handleEnhanceWithAI}
-                    disabled={isEnhancing}
-                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-                    aria-label="Enhance with AI"
-                  >
-                    {isEnhancing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Enhancing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Enhance with AI
-                      </>
-                    )}
-                  </Button>
-                </div>
 
                 {novaResponseText && (
                   <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
@@ -740,6 +726,38 @@ const BrainDumpPage: React.FC = () => {
                   placeholder="What's on your mind right now? Dump tasks, ideas, reminders, meeting notes, or half-formed thoughts here..."
                   className="min-h-[220px] text-base"
                 />
+
+                <div className="flex flex-wrap gap-2">
+                  {!isListening ? (
+                    <Button onClick={start} size="lg" aria-label="Start recording">Start speaking</Button>
+                  ) : (
+                    <Button variant="secondary" size="lg" onClick={stop} aria-label="Stop recording">Finish dump</Button>
+                  )}
+                  <Button variant="outline" onClick={handleProcess} aria-label="Organize with Nova" disabled={!hasCapturedContent}>Organize typed dump</Button>
+                  <Button
+                    variant="default"
+                    onClick={handleEnhanceWithAI}
+                    disabled={isEnhancing || !hasCapturedContent}
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                    aria-label="Enhance with AI"
+                  >
+                    {isEnhancing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Enhancing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Enhance with AI
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={() => { trackActivationEvent("brain_dump_reset_clicked"); reset(); }} aria-label="Reset transcript">Reset</Button>
+                  {lastCapturedAudioUrl && (
+                    <Button variant="outline" onClick={playLastRecording} aria-label="Play last recording">Play last recording</Button>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <p>
                     Status: {isProcessingVoice ? '⏳ Nova is processing your voice...' : isListening ? (continuous ? '🎤 Nova is listening. Keep going until your thought is out.' : '🎤 Nova is recording. Speak freely.') : voiceError ? 'Voice unavailable, typing is ready' : 'Ready, start with one thought'}
@@ -787,6 +805,21 @@ const BrainDumpPage: React.FC = () => {
                     title, category, actionItems, keyPoints, notes, people, tags,
                     confidence: confidence || 0, isProcessing: false
                   };
+
+                  if (!livePreview && !hasStructured) {
+                    return (
+                      <div className="space-y-4">
+                        <div className="rounded-xl border border-dashed bg-muted/20 p-5 text-sm text-muted-foreground">
+                          <p className="font-medium text-foreground mb-1">Your organized capture will appear here.</p>
+                          <p>Record or type one thought, then tap Organize typed dump. Nova will turn it into a title, category, notes, tags, and action items before you save.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+                          <p className="font-medium text-foreground mb-1">Save stays locked until Nova has something real.</p>
+                          <p>This prevents empty memories or placeholder titles from being saved to your vault.</p>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <>
@@ -1001,11 +1034,11 @@ const BrainDumpPage: React.FC = () => {
                       )}
 
                       {/* SAVE BUTTON - only show if not in live preview or if live preview has data */}
-                      {(!livePreview || hasStructured) && (
+                      {canSaveStructuredCapture && (
                         <div className="pt-2 space-y-3">
                           <Button
                             onClick={handleSave}
-                            disabled={!hasStructured && !livePreview}
+                            disabled={!canSaveStructuredCapture}
                             aria-label="Save structured entry"
                             className="w-full"
                           >

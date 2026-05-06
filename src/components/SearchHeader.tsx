@@ -107,7 +107,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             searchQuery={searchQuery}
             onSearchChange={onSearchChange}
             onEntrySelect={handleEntrySelect}
-            placeholder="SEARCH_ARCHIVE..."
+            placeholder="Search saved information..."
             className="w-full input-skeletal"
           />
         </div>
@@ -120,20 +120,20 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             aria-label="Open voice dump"
           >
             <Brain className="w-4 h-4" />
-            <span className="hidden sm:inline">BRAIN_DUMP</span>
+            <span className="hidden sm:inline">Brain dump</span>
           </Link>
           <button
             onClick={onAllEntriesSelect}
             className="btn-galvanized btn-galvanized-secondary"
           >
-            ALL_ENTRIES
+            All entries
           </button>
           <button
             onClick={onAddEntry}
             className="btn-galvanized btn-galvanized-primary"
           >
             <Plus className="w-4 h-4" />
-            <span>ADD_ENTRY</span>
+            <span>Add entry</span>
           </button>
 
           {/* User Menu Dropdown - Skeletal */}
@@ -148,29 +148,29 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             <DropdownMenuContent className="w-56 bg-card border border-galvanized" align="end" forceMount>
               <DropdownMenuLabel className="font-normal border-b border-galvanized pb-2">
                 <div className="flex flex-col gap-1">
-                  <p className="mono text-sm font-bold text-foreground">{userName || 'USER'}</p>
+                  <p className="mono text-sm font-bold text-foreground">{userName || 'User'}</p>
                   <p className="mono text-xs text-muted-foreground">
-                    ACCOUNT_MANAGEMENT
+                    Account management
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-galvanized" />
               <DropdownMenuItem onClick={() => navigate('/settings')} className="mono text-xs cursor-pointer hover:bg-primary/10">
                 <User className="mr-2 h-4 w-4" />
-                <span>PROFILE_SETTINGS</span>
+                <span>Profile settings</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/subscription')} className="mono text-xs cursor-pointer hover:bg-primary/10">
                 <CreditCard className="mr-2 h-4 w-4" />
-                <span>SUBSCRIPTION</span>
+                <span>Subscription</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/user-guide')} className="mono text-xs cursor-pointer hover:bg-primary/10">
                 <HelpCircle className="mr-2 h-4 w-4" />
-                <span>HELP_GUIDE</span>
+                <span>Help guide</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-galvanized" />
               <DropdownMenuItem onClick={handleSignOut} className="mono text-xs cursor-pointer text-red-500 hover:text-red-400 hover:bg-red-500/10">
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>SIGN_OUT</span>
+                <span>Sign out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -184,10 +184,10 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             <span key={`${item.label}-${idx}`} className="flex items-center gap-2">
               {item.to && idx !== breadcrumbs.length - 1 ? (
                 <Link to={item.to} className="hover:text-primary transition-colors">
-                  {item.label.toUpperCase()}
+                  {item.label}
                 </Link>
               ) : (
-                <span className="text-foreground">{item.label.toUpperCase()}</span>
+                <span className="text-foreground">{item.label}</span>
               )}
               {idx < breadcrumbs.length - 1 && (
                 <ChevronRight className="w-3 h-3" />

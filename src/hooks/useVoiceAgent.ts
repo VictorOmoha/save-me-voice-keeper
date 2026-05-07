@@ -106,7 +106,7 @@ const toolLabel = (name: string, args: Record<string, unknown>): string => {
     case "getRecentEntries": return "Fetching recent entries...";
     case "updateEntry":      return "Updating entry...";
     case "deleteEntry":      return "Deleting entry...";
-    case "navigateApp":      return `Navigating to ${args.route}...`;
+    case "navigateApp":      return "Opening the requested page...";
     case "navigateToCategory": return `Opening ${args.category}...`;
     case "openEntryForm":    return "Opening entry form...";
     case "openEntry":        return `Opening "${args.title || args.id}"...`;
@@ -127,9 +127,29 @@ const toolLabel = (name: string, args: Record<string, unknown>): string => {
     case "setReminder":      return `Setting reminder: "${args.text}"...`;
     case "printEntry":       return `Printing "${args.title || args.category || "entry"}"...`;
     case "scrollPage":       return `Scrolling ${args.direction || "down"}...`;
+    case "closeEntry":       return "Closing the current view...";
     default:                 return `${name}...`;
   }
 };
+
+const SILENT_ACTION_TOASTS = new Set(["navigateApp", "closeEntry"]);
+
+const sanitizeNovaText = (text = "") =>
+  text
+    .replace(/^__nova_greet__:[^\n]+\n*/i, "")
+    .replace(/\bcloseEntry\b/g, "Entry closed")
+    .replace(/Navigating to\s+\/[^.\n]*(?:\.\.\.)?/gi, "Opening the requested page")
+    .trim();
+
+const sanitizeConversationHistory = (turns: ConversationTurn[] = []): ConversationTurn[] =>
+  turns
+    .map((turn) => ({
+      ...turn,
+      parts: turn.parts
+        .map((part) => ({ ...part, text: part.text ? sanitizeNovaText(part.text) : part.text }))
+        .filter((part) => !part.text || part.text.trim().length > 0),
+    }))
+    .filter((turn) => turn.parts.length > 0);
 
 // Toast icons per tool
 const ACTION_TOAST_ICON: Record<string, string> = {
@@ -153,7 +173,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
   const [actions, setActions] = useState<ActionEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [continuous, setContinuous] = useState(options.continuous ?? true);
+  const [continuous, setContinuous] = useState(options.continuous ?? false);
   const [pendingCommands, setPendingCommands] = useState<AppCommand[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(() =>
     localStorage.getItem("nova_session_id")
@@ -400,7 +420,9 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
             ...prev,
             { tool: a.tool, args: a.args, result: a.result, label, status: "running" },
           ]);
-          toast(label.replace("...", ""), { icon: ACTION_TOAST_ICON[a.tool] || "⚡" });
+          if (!SILENT_ACTION_TOASTS.has(a.tool)) {
+            toast(label.replace("...", ""), { icon: ACTION_TOAST_ICON[a.tool] || "⚡" });
+          }
 
           // Brief pause so each action is visible
           await new Promise((r) => setTimeout(r, 500));
@@ -414,8 +436,8 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
         }
       }
 
-      setResponseText(data.responseText);
-      setConversationHistory(data.conversationHistory || []);
+      setResponseText(sanitizeNovaText(data.responseText || ""));
+      setConversationHistory(sanitizeConversationHistory(data.conversationHistory || []));
 
       // Persist session ID for conversation continuity across page refreshes
       if (data.sessionId) {

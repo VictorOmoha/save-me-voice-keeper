@@ -29,9 +29,10 @@ export const FormFieldManager: React.FC<FormFieldManagerProps> = ({
   const hasTableFields = tableFields.length > 0;
   
   return (
-    <div className={`flex items-center justify-between transition-all duration-300 ${
+    <div className={`space-y-3 transition-all duration-300 ${
       highlightedField === 'more_fields' ? 'animate-pulse' : ''
     }`}>
+      <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <label className="text-lg font-semibold text-foreground">
           {isFillMode ? 'Fill in the Data' : 'Custom Fields'}
@@ -67,6 +68,13 @@ export const FormFieldManager: React.FC<FormFieldManagerProps> = ({
           <Plus className="h-3 w-3" />
           Add Field
         </button>
+      )}
+      </div>
+
+      {fields.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          No custom fields yet. Add fields for policy numbers, phone numbers, dates, links, or any detail you want searchable later.
+        </div>
       )}
     </div>
   );

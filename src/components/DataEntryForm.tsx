@@ -10,6 +10,7 @@ import { FormFieldManager } from "./forms/FormFieldManager";
 import { CustomFieldItem } from "./forms/CustomFieldItem";
 import { useVoiceFormContext } from "@/contexts/VoiceFormContext";
 import { VoiceStatusIndicator } from "./voice/VoiceStatusIndicator";
+import { toast } from "sonner";
 import { Mic } from "lucide-react";
 
 interface DataEntryFormProps {
@@ -121,8 +122,14 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     }
   }, [registerFormSetters, unregisterFormSetters]);
 
+  const hasRequiredBasics = title.trim().length > 0 && selectedCategory.trim().length > 0;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasRequiredBasics) {
+      toast.error('Add a title and category before saving.');
+      return;
+    }
     onSave(prepareSubmissionData());
   };
 
@@ -250,7 +257,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border w-full sm:w-auto" disabled={isSaving}>
             Cancel
           </Button>
-          <Button type="submit" variant="gradient" className="w-full sm:w-auto" disabled={isSaving}>
+          <Button type="submit" variant="gradient" className="w-full sm:w-auto" disabled={isSaving || !hasRequiredBasics}>
             {isSaving ? 'Saving...' : editEntry ? 'Update Entry' : isTemplateMode ? 'Save Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
           </Button>
         </div>

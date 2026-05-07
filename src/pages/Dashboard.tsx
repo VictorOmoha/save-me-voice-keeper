@@ -258,6 +258,20 @@ export default function Dashboard() {
     setDocumentEditorState({ isOpen: false, entry: null });
   };
 
+  const isEntryFormActive = showAddEntry || !!editingEntry || !!fillingEntry || !!templateEntry;
+  const formHeading = showDocumentCreator
+    ? 'Create Document'
+    : editingEntry
+      ? 'Edit Entry'
+      : fillingEntry
+        ? 'Fill Entry'
+        : templateEntry
+          ? 'Use Entry as Template'
+          : 'Add Entry';
+  const formSubheading = showDocumentCreator
+    ? 'Build a structured document for your archive.'
+    : 'Add the details you want SaveMe to remember. Save stays locked until the basics are clear.';
+
   const userName = user?.displayName || user?.email || 'User';
 
   if (authLoading) {
@@ -280,9 +294,14 @@ export default function Dashboard() {
         onCancelEdit={handleCancelEdit}
         onFillEntry={fillEntry}
         onUseAsTemplate={useAsTemplate}
+        activeSection={isEntryFormActive || showDocumentCreator ? 'add-entry' : 'dashboard'}
       >
         {(showAddEntry || editingEntry || fillingEntry || templateEntry || showDocumentCreator) ? (
           <>
+            <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <p className="text-lg font-semibold text-foreground">{formHeading}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{formSubheading}</p>
+            </div>
             {showDocumentCreator ? (
               <div className="p-6">
                 <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading document tools…</div>}>

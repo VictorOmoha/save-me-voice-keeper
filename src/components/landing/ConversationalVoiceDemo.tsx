@@ -484,7 +484,7 @@ export const ConversationalVoiceDemo: React.FC<ConversationalVoiceDemoProps> = (
               <Mic className="w-12 h-12" />
             </button>
           </div>
-          <p className={`font-mono text-sm tracking-wider ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-500'}`}>TAP TO START</p>
+          <p className={`font-mono text-sm tracking-wider ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>CLICK OR TAP TO START</p>
           <p className={`text-sm max-w-sm mx-auto ${theme === 'dark' ? 'text-zinc-500' : 'text-zinc-500'}`}>
             Have a conversation with SaveMe. Tell me what you want to remember!
           </p>

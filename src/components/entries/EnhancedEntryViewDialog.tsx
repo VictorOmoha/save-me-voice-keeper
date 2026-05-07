@@ -172,6 +172,15 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
       }
       return true;
     });
+  const meaningfulFields = displayFields.filter(([key, value]) => {
+    if (key === "category") return false;
+    if (value === null || value === undefined || value === "") return false;
+    if (typeof value === "object" && "columns" in (value as Record<string, unknown>) && "rows" in (value as Record<string, unknown>)) {
+      return Array.isArray((value as TableData).rows) && (value as TableData).rows.length > 0;
+    }
+    return true;
+  });
+  const hasMeaningfulDetails = meaningfulFields.length > 0 || entryImages.length > 0 || Boolean(hasFile);
 
   const handleDownload = async () => {
     if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
@@ -220,6 +229,10 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
   };
 
   const handlePrint = () => {
+    if (!hasMeaningfulDetails) {
+      toast.error("Add details before printing this entry.");
+      return;
+    }
     if (onPrint) {
       onPrint(entry);
     } else {
@@ -323,6 +336,11 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
             </h3>
 
             <div className="grid gap-4">
+              {!hasMeaningfulDetails && (
+                <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                  No details have been added yet. Edit this entry to add policy numbers, contacts, notes, dates, files, or anything Nova should help you remember.
+                </div>
+              )}
               {displayFields.map(([key, value]) => {
                 // Handle table fields
                 if (typeof value === "object" && value !== null && "columns" in value && "rows" in value) {
@@ -462,6 +480,8 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
           <Button
             onClick={handlePrint}
             variant="outline"
+            disabled={!hasMeaningfulDetails}
+            title={!hasMeaningfulDetails ? "Add details before printing" : "Print entry"}
             className="gap-2"
           >
             <Printer className="h-4 w-4" />
@@ -474,6 +494,8 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                 onClose();
               }}
               variant="outline"
+              disabled={!hasMeaningfulDetails}
+              title={!hasMeaningfulDetails ? "Add details before filling this form" : "Fill form"}
               className="gap-2 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
             >
               <FileText className="h-4 w-4" />
@@ -487,6 +509,8 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                 onClose();
               }}
               variant="outline"
+              disabled={!hasMeaningfulDetails}
+              title={!hasMeaningfulDetails ? "Add details before using this as a template" : "Use as template"}
               className="gap-2 text-purple-600 hover:text-purple-700 border-purple-200 hover:border-purple-300"
             >
               <Copy className="h-4 w-4" />

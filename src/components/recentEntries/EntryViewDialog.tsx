@@ -71,6 +71,16 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   
   // Extract images from the entry
   const entryImages = extractImagesFromEntry(entry);
+  const detailFields = Object.entries(entry.fields).filter(([key, value]) => {
+    if (['category', 'hasUploadedFile', 'fileName', 'fileSize', 'fileType'].includes(key)) return false;
+    if (entryImages.includes(String(value)) || (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) return false;
+    if (value === null || value === undefined || value === '') return false;
+    if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) {
+      return Array.isArray((value as TableData).rows) && (value as TableData).rows.length > 0;
+    }
+    return true;
+  });
+  const hasMeaningfulDetails = detailFields.length > 0 || entryImages.length > 0 || Boolean(entry.fields.hasUploadedFile && entry.fields.fileName);
   
   // Check if this is a document entry with an uploaded file
   const isDocumentWithFile = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
@@ -124,6 +134,10 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   };
 
   const handlePrint = () => {
+    if (!hasMeaningfulDetails) {
+      toast.error("Add details before printing this entry.");
+      return;
+    }
     printProfessionally([entry], { title: entry.title, includeMetadata: true });
     toast.success("Print dialog opened");
   };
@@ -188,6 +202,11 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-foreground">Entry Details</h3>
             <div className="grid gap-4">
+              {!hasMeaningfulDetails && (
+                <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+                  No details have been added yet. Edit this entry to add the information SaveMe should remember.
+                </div>
+              )}
               {Object.entries(entry.fields)
                 .filter(([key, value]) => {
                   // Skip file metadata fields
@@ -243,7 +262,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                       </label>
                       <div className="p-3 bg-accent/50 rounded-md border">
                         <p className="text-foreground whitespace-pre-wrap">
-                          {String(value) || 'No details added yet'}
+                          {String(value) || 'No value yet'}
                         </p>
                       </div>
                     </div>
@@ -281,6 +300,8 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
             <Button
               onClick={handlePrint}
               variant="outline"
+              disabled={!hasMeaningfulDetails}
+              title={!hasMeaningfulDetails ? "Add details before printing" : "Print entry"}
               className="text-purple-600 hover:text-purple-700"
             >
               <Printer className="h-4 w-4 mr-2" />
@@ -293,6 +314,8 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                   onClose();
                 }}
                 variant="outline"
+                disabled={!hasMeaningfulDetails}
+                title={!hasMeaningfulDetails ? "Add details before filling this form" : "Fill form"}
                 className="text-green-600 hover:text-green-700"
               >
                 <FileText className="h-4 w-4 mr-2" />
@@ -306,6 +329,8 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                   onClose();
                 }}
                 variant="outline"
+                disabled={!hasMeaningfulDetails}
+                title={!hasMeaningfulDetails ? "Add details before using this as a template" : "Use as template"}
                 className="text-purple-600 hover:text-purple-700"
               >
                 <Copy className="h-4 w-4 mr-2" />

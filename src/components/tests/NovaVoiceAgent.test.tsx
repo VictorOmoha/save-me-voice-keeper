@@ -23,6 +23,6 @@ describe('NovaVoiceAgent', () => {
     render(<NovaVoiceAgent continuous={false} />);
 
     expect(screen.getByText("Hey, I'm Nova")).toBeTruthy();
-    expect(screen.getByText('Tap to speak')).toBeTruthy();
+    expect(screen.getByText('Mic is off. Tap when ready.')).toBeTruthy();
   });
 });

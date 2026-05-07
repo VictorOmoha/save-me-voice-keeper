@@ -153,13 +153,21 @@
 
   html {
     font-family: var(--font-sans);
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    max-width: 100%;
     overflow-x: hidden;
     line-height: 1.4;
+  }
+
+  #root {
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   /* NOISE TEXTURE OVERLAY - Galvanized effect */

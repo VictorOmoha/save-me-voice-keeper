@@ -10,8 +10,8 @@ import { useVoiceAgent, UseVoiceAgentOptions, AgentStatus } from "@/hooks/useVoi
 import { cn } from "@/lib/utils";
 
 const STATUS_TEXT: Record<AgentStatus, string> = {
-  idle: "Tap to speak",
-  listening: "Recording, tap square to stop",
+  idle: "Mic is off. Tap when ready.",
+  listening: "Recording now. Tap Stop to finish.",
   thinking: "Nova is thinking...",
   acting: "Nova is acting...",
   speaking: "Nova is speaking...",
@@ -239,9 +239,12 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               ? <Square className="h-4 w-4 fill-white" />
               : <Mic className="h-4 w-4" />}
           </button>
-          <span className="text-xs text-muted-foreground min-w-[110px]">
+          <span className={cn(
+            "text-xs min-w-[140px]",
+            status === "listening" ? "font-semibold text-blue-700 dark:text-blue-300" : "text-muted-foreground"
+          )}>
             {STATUS_TEXT[status]}
-            {continuous && status === "idle" && " · auto-on"}
+            {continuous && status === "idle" && " · Live will auto-listen"}
           </span>
         </div>
 

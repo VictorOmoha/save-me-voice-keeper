@@ -19,6 +19,7 @@ interface DashboardLayoutProps {
   onCancelEdit: () => void;
   onFillEntry?: (entry: SavedEntry) => void;
   onUseAsTemplate?: (entry: SavedEntry) => void;
+  activeSection?: "dashboard" | "add-entry" | "all-entries" | "brain-dump" | "settings";
   children: React.ReactNode;
 }
 
@@ -36,6 +37,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onCancelEdit,
   onFillEntry,
   onUseAsTemplate,
+  activeSection,
   children,
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -53,6 +55,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           onCategorySelect={onCategorySelect}
           onAllEntriesSelect={onAllEntriesSelect}
           entries={savedEntries}
+          activeSection={activeSection}
         />
       </div>
 
@@ -65,6 +68,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         onCategorySelect={onCategorySelect}
         onAllEntriesSelect={onAllEntriesSelect}
         entries={savedEntries}
+        activeSection={activeSection}
       />
 
       {/* Main Content Area */}

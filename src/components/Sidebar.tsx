@@ -25,6 +25,7 @@ interface SidebarProps {
   entries: SavedEntry[];
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
+  activeSection?: "dashboard" | "add-entry" | "all-entries" | "brain-dump" | "settings";
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,7 +35,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onAllEntriesSelect,
   entries,
   isMobileOpen,
-  onMobileClose
+  onMobileClose,
+  activeSection
 }) => {
   const location = useLocation();
   const { filterEntriesByCategory } = useCategoryFilter();
@@ -51,6 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     onMobileClose?.();
   };
 
+  const isAddEntryActive = activeSection === "add-entry";
   const navItemClass = (isActive: boolean) =>
     `nav-item-skeletal w-full flex items-center gap-3 ${isActive ? 'active' : ''}`;
 
@@ -80,14 +83,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-1 py-6 overflow-y-auto">
         <nav className="space-y-1">
           <Link to="/dashboard" onClick={handleNavClick}>
-            <div className={navItemClass(location.pathname === "/dashboard")}>
+            <div className={navItemClass(activeSection ? activeSection === "dashboard" : location.pathname === "/dashboard")}>
               <LayoutDashboard className="w-4 h-4" />
               <span>Dashboard</span>
             </div>
           </Link>
 
           <Link to="/all-entries" onClick={handleNavClick}>
-            <div className={navItemClass(location.pathname === "/all-entries")}>
+            <div className={navItemClass(activeSection ? activeSection === "all-entries" : location.pathname === "/all-entries")}>
               <FileText className="w-4 h-4" />
               <span>All entries</span>
               <span className="badge-skeletal ml-auto">
@@ -97,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </Link>
 
           <Link to="/brain-dump" onClick={handleNavClick}>
-            <div className={navItemClass(location.pathname === "/brain-dump")}>
+            <div className={navItemClass(activeSection ? activeSection === "brain-dump" : location.pathname === "/brain-dump")}>
               <Brain className="w-4 h-4" />
               <span>Brain dump</span>
             </div>
@@ -108,14 +111,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onAddEntry();
               handleNavClick();
             }}
-            className="nav-item-skeletal w-full flex items-center gap-3 text-left"
+            className={navItemClass(isAddEntryActive)}
           >
             <Plus className="w-4 h-4" />
             <span>Add entry</span>
           </button>
 
           <Link to="/settings" onClick={handleNavClick}>
-            <div className={navItemClass(location.pathname === "/settings")}>
+            <div className={navItemClass(activeSection ? activeSection === "settings" : location.pathname === "/settings")}>
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </div>

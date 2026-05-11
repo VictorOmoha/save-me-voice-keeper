@@ -113,6 +113,15 @@ export const useBrainDumpCapture = () => {
     setIsProcessingVoice(value);
   }, []);
 
+  const scheduleContinuousRestart = useCallback((delayMs = 500) => {
+    if (!continuousRef.current || manualStopRef.current) return;
+
+    window.setTimeout(() => {
+      if (!manualStopRef.current && startRef.current) {
+        startRef.current();
+      }
+    }, delayMs);
+  }, []);
 
   useEffect(() => {
     lastCapturedAudioUrlRef.current = lastCapturedAudioUrl;
@@ -355,6 +364,7 @@ export const useBrainDumpCapture = () => {
           trackActivationEvent("recording_rejected", { reason: "too_short", blob_size: blob.size });
           setVoiceError("Nova didn't catch enough audio. Try a longer voice dump, or type your brain dump instead.");
           toast.error("Recorded audio was too short or empty.");
+          scheduleContinuousRestart();
           return;
         }
 
@@ -410,11 +420,7 @@ export const useBrainDumpCapture = () => {
 
           const restartIfContinuous = () => {
             setProcessingVoiceState(false);
-            if (continuousRef.current && !manualStopRef.current) {
-              setTimeout(() => {
-                if (!manualStopRef.current && startRef.current) startRef.current();
-              }, 500);
-            }
+            scheduleContinuousRestart();
           };
 
           if (!transcribeResponse.ok) {
@@ -458,12 +464,14 @@ export const useBrainDumpCapture = () => {
           if (!heardText) {
             console.log("[useBrainDumpCapture] no speech detected — skipping voiceAgent");
             repeatCountRef.current += 1;
-            const emptyTurnLimit = continuousRef.current ? 6 : 2;
-            if (repeatCountRef.current >= emptyTurnLimit) {
+            if (!continuousRef.current && repeatCountRef.current >= 2) {
               manualStopRef.current = true;
               toast.info("Nova didn't catch anything. Tap the mic to try again.");
               setProcessingVoiceState(false);
               return;
+            }
+            if (continuousRef.current && repeatCountRef.current % 6 === 0) {
+              toast.info("Nova is still listening. Start speaking when you're ready.");
             }
             restartIfContinuous();
             return;
@@ -472,12 +480,14 @@ export const useBrainDumpCapture = () => {
           if (isLikelyHallucination(heardText)) {
             console.log("[useBrainDumpCapture] skipping: likely hallucination/silence:", heardText);
             repeatCountRef.current += 1;
-            const emptyTurnLimit = continuousRef.current ? 6 : 2;
-            if (repeatCountRef.current >= emptyTurnLimit) {
+            if (!continuousRef.current && repeatCountRef.current >= 2) {
               manualStopRef.current = true;
               toast.info("Nova didn't catch anything clear. Tap the mic to try again.");
               setProcessingVoiceState(false);
               return;
+            }
+            if (continuousRef.current && repeatCountRef.current % 6 === 0) {
+              toast.info("Nova is still listening. Start speaking when you're ready.");
             }
             restartIfContinuous();
             return;
@@ -485,17 +495,25 @@ export const useBrainDumpCapture = () => {
 
           if (heardNormalized === lastNormalized) {
             console.log("[useBrainDumpCapture] skipping: duplicate transcript (echo)");
-            manualStopRef.current = true;
-            toast.info("Mic echo detected — paused. Tap to resume.");
-            setProcessingVoiceState(false);
+            if (!continuousRef.current) {
+              manualStopRef.current = true;
+              toast.info("Mic echo detected — paused. Tap to resume.");
+              setProcessingVoiceState(false);
+              return;
+            }
+            restartIfContinuous();
             return;
           }
 
           if (novaLastNormalized.length > 10 && heardNormalized.includes(novaLastNormalized.substring(0, 20))) {
             console.log("[useBrainDumpCapture] skipping: transcript matches Nova's last response");
-            manualStopRef.current = true;
-            toast.info("Nova heard herself — paused to avoid echo. Tap to resume.");
-            setProcessingVoiceState(false);
+            if (!continuousRef.current) {
+              manualStopRef.current = true;
+              toast.info("Nova heard herself — paused to avoid echo. Tap to resume.");
+              setProcessingVoiceState(false);
+              return;
+            }
+            restartIfContinuous();
             return;
           }
 
@@ -544,7 +562,7 @@ export const useBrainDumpCapture = () => {
             console.error("[useBrainDumpCapture] voiceAgent error:", agentData.error);
             setVoiceError(`Nova error: ${agentData.error}`);
             toast.error(`Nova error: ${agentData.error}`);
-            setProcessingVoiceState(false);
+            restartIfContinuous();
             return;
           }
 
@@ -595,11 +613,7 @@ export const useBrainDumpCapture = () => {
           // 800ms delay to let speakers settle and avoid mic echo of Nova's audio
           if (continuousRef.current && !manualStopRef.current) {
             console.log("[useBrainDumpCapture] continuous mode: restarting recording in 800ms");
-            setTimeout(() => {
-              if (!manualStopRef.current && startRef.current) {
-                startRef.current();
-              }
-            }, 800);
+            scheduleContinuousRestart(800);
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -612,6 +626,9 @@ export const useBrainDumpCapture = () => {
           setVoiceError(`Voice capture failed. ${friendlyMessage}. You can still type your brain dump below.`);
           toast.error(friendlyMessage);
           setProcessingVoiceState(false);
+          if (message !== "Not authenticated") {
+            scheduleContinuousRestart(1000);
+          }
         } finally {
           clearPendingRequest();
         }
@@ -774,6 +791,7 @@ export const useBrainDumpCapture = () => {
     clearPendingRequest,
     clearSilenceDetection,
     playAudio,
+    scheduleContinuousRestart,
     setListeningState,
     setProcessingVoiceState,
     stopTracks,

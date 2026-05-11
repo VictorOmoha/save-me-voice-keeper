@@ -51,6 +51,8 @@ const normalizeForCompare = (s: string): string =>
 export const useBrainDumpCapture = () => {
   const [isListening, setIsListening] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const isListeningRef = useRef(false);
+  const isProcessingVoiceRef = useRef(false);
   const [transcript, setTranscript] = useState("");
   const [novaResponseText, setNovaResponseText] = useState("");
   const [savedEntry, setSavedEntry] = useState<{ title: string; category: string } | null>(null);
@@ -100,6 +102,17 @@ export const useBrainDumpCapture = () => {
   useEffect(() => {
     continuousRef.current = continuous;
   }, [continuous]);
+
+  const setListeningState = useCallback((value: boolean) => {
+    isListeningRef.current = value;
+    setIsListening(value);
+  }, []);
+
+  const setProcessingVoiceState = useCallback((value: boolean) => {
+    isProcessingVoiceRef.current = value;
+    setIsProcessingVoice(value);
+  }, []);
+
 
   useEffect(() => {
     lastCapturedAudioUrlRef.current = lastCapturedAudioUrl;
@@ -263,8 +276,12 @@ export const useBrainDumpCapture = () => {
     manualStopRef.current = false;
     console.log("[useBrainDumpCapture] start clicked");
 
-    if (isListening || isProcessingVoice) {
-      console.log("[useBrainDumpCapture] start ignored, already busy", { isListening, isProcessingVoice });
+    const recorderBusy = mediaRecorderRef.current?.state === "recording";
+    if (recorderBusy || isProcessingVoiceRef.current) {
+      console.log("[useBrainDumpCapture] start ignored, already busy", {
+        recorderState: mediaRecorderRef.current?.state,
+        isProcessingVoice: isProcessingVoiceRef.current,
+      });
       return;
     }
 
@@ -318,7 +335,7 @@ export const useBrainDumpCapture = () => {
       recorder.onstop = async () => {
         clearAutoStopTimer();
         clearSilenceDetection();
-        setIsListening(false);
+        setListeningState(false);
         stopTracks();
 
         const resolvedMimeType = mimeTypeRef.current || recorder.mimeType || "audio/webm";
@@ -357,7 +374,7 @@ export const useBrainDumpCapture = () => {
           console.log("[useBrainDumpCapture] 🔊 Audio captured — use Play last recording or run: new Audio(window.__lastCapturedAudioUrl).play()");
         } catch (_) { /* */ }
 
-        setIsProcessingVoice(true);
+        setProcessingVoiceState(true);
 
         try {
           const token = await getFirebaseIdToken();
@@ -392,7 +409,7 @@ export const useBrainDumpCapture = () => {
           const transcribeData = await transcribeResponse.json().catch(() => ({}));
 
           const restartIfContinuous = () => {
-            setIsProcessingVoice(false);
+            setProcessingVoiceState(false);
             if (continuousRef.current && !manualStopRef.current) {
               setTimeout(() => {
                 if (!manualStopRef.current && startRef.current) startRef.current();
@@ -416,7 +433,7 @@ export const useBrainDumpCapture = () => {
               manualStopRef.current = true;
               setVoiceError("Nova transcription is rate-limited right now. Please wait a bit, then try again.");
               toast.info(`Nova is rate-limited right now. Try again in about ${Math.ceil(cooldownMs / 1000)}s.`);
-              setIsProcessingVoice(false);
+              setProcessingVoiceState(false);
               return;
             }
 
@@ -441,10 +458,11 @@ export const useBrainDumpCapture = () => {
           if (!heardText) {
             console.log("[useBrainDumpCapture] no speech detected — skipping voiceAgent");
             repeatCountRef.current += 1;
-            if (repeatCountRef.current >= 2) {
+            const emptyTurnLimit = continuousRef.current ? 6 : 2;
+            if (repeatCountRef.current >= emptyTurnLimit) {
               manualStopRef.current = true;
               toast.info("Nova didn't catch anything. Tap the mic to try again.");
-              setIsProcessingVoice(false);
+              setProcessingVoiceState(false);
               return;
             }
             restartIfContinuous();
@@ -454,10 +472,11 @@ export const useBrainDumpCapture = () => {
           if (isLikelyHallucination(heardText)) {
             console.log("[useBrainDumpCapture] skipping: likely hallucination/silence:", heardText);
             repeatCountRef.current += 1;
-            if (repeatCountRef.current >= 2) {
+            const emptyTurnLimit = continuousRef.current ? 6 : 2;
+            if (repeatCountRef.current >= emptyTurnLimit) {
               manualStopRef.current = true;
               toast.info("Nova didn't catch anything clear. Tap the mic to try again.");
-              setIsProcessingVoice(false);
+              setProcessingVoiceState(false);
               return;
             }
             restartIfContinuous();
@@ -468,7 +487,7 @@ export const useBrainDumpCapture = () => {
             console.log("[useBrainDumpCapture] skipping: duplicate transcript (echo)");
             manualStopRef.current = true;
             toast.info("Mic echo detected — paused. Tap to resume.");
-            setIsProcessingVoice(false);
+            setProcessingVoiceState(false);
             return;
           }
 
@@ -476,7 +495,7 @@ export const useBrainDumpCapture = () => {
             console.log("[useBrainDumpCapture] skipping: transcript matches Nova's last response");
             manualStopRef.current = true;
             toast.info("Nova heard herself — paused to avoid echo. Tap to resume.");
-            setIsProcessingVoice(false);
+            setProcessingVoiceState(false);
             return;
           }
 
@@ -525,7 +544,7 @@ export const useBrainDumpCapture = () => {
             console.error("[useBrainDumpCapture] voiceAgent error:", agentData.error);
             setVoiceError(`Nova error: ${agentData.error}`);
             toast.error(`Nova error: ${agentData.error}`);
-            setIsProcessingVoice(false);
+            setProcessingVoiceState(false);
             return;
           }
 
@@ -570,7 +589,7 @@ export const useBrainDumpCapture = () => {
             console.warn("[useBrainDumpCapture] No audio content from voiceAgent — Nova is silent");
           }
 
-          setIsProcessingVoice(false);
+          setProcessingVoiceState(false);
 
           // ── Continuous mode: auto-restart recording after Nova finishes ─────
           // 800ms delay to let speakers settle and avoid mic echo of Nova's audio
@@ -592,7 +611,7 @@ export const useBrainDumpCapture = () => {
                 : message;
           setVoiceError(`Voice capture failed. ${friendlyMessage}. You can still type your brain dump below.`);
           toast.error(friendlyMessage);
-          setIsProcessingVoice(false);
+          setProcessingVoiceState(false);
         } finally {
           clearPendingRequest();
         }
@@ -602,13 +621,13 @@ export const useBrainDumpCapture = () => {
         console.error("[useBrainDumpCapture] MediaRecorder error:", (event as ErrorEvent).error);
         setVoiceError("Audio recording failed to start.");
         toast.error("Audio recording failed to start.");
-        setIsListening(false);
+        setListeningState(false);
         stopTracks();
       };
 
       mediaRecorderRef.current = recorder;
       recorder.start(250);
-      setIsListening(true);
+      setListeningState(true);
       trackActivationEvent("recording_started", { mime_type: mimeTypeRef.current });
 
       // ── Set up silence detection (VAD) ──────────────────────────────────
@@ -746,7 +765,7 @@ export const useBrainDumpCapture = () => {
         setVoiceError(`Voice did not start. ${message}. Type your brain dump and Nova will still organize it.`);
         toast.error(`Voice did not start: ${message}`);
       }
-      setIsListening(false);
+      setListeningState(false);
       stopTracks();
     }
   }, [
@@ -754,9 +773,9 @@ export const useBrainDumpCapture = () => {
     clearAutoStopTimer,
     clearPendingRequest,
     clearSilenceDetection,
-    isListening,
-    isProcessingVoice,
     playAudio,
+    setListeningState,
+    setProcessingVoiceState,
     stopTracks,
   ]);
 
@@ -772,7 +791,7 @@ export const useBrainDumpCapture = () => {
     if (isProcessingVoice) {
       abortPendingRequest();
       audioRef.current?.pause();
-      setIsProcessingVoice(false);
+      setProcessingVoiceState(false);
       setVoiceError("Voice upload canceled. You can try again, or type your brain dump below.");
       toast.info("Voice upload canceled");
       return;
@@ -781,10 +800,10 @@ export const useBrainDumpCapture = () => {
       try { mediaRecorderRef.current.requestData(); } catch (_) { /* */ }
       mediaRecorderRef.current.stop();
     } else {
-      setIsListening(false);
+      setListeningState(false);
       stopTracks();
     }
-  }, [abortPendingRequest, clearAutoStopTimer, clearSilenceDetection, isProcessingVoice, stopTracks]);
+  }, [abortPendingRequest, clearAutoStopTimer, clearSilenceDetection, isProcessingVoice, setListeningState, setProcessingVoiceState, stopTracks]);
 
   const playLastRecording = useCallback(async () => {
     if (!lastCapturedAudioUrl) {
@@ -814,8 +833,8 @@ export const useBrainDumpCapture = () => {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
-    setIsListening(false);
-    setIsProcessingVoice(false);
+    setListeningState(false);
+    setProcessingVoiceState(false);
     setTranscript("");
     setNovaResponseText("");
     setSavedEntry(null);
@@ -832,7 +851,7 @@ export const useBrainDumpCapture = () => {
       setLastCapturedAudioUrl(null);
     }
     stopTracks();
-  }, [abortPendingRequest, clearAutoStopTimer, clearSilenceDetection, lastCapturedAudioUrl, stopTracks]);
+  }, [abortPendingRequest, clearAutoStopTimer, clearSilenceDetection, lastCapturedAudioUrl, setListeningState, setProcessingVoiceState, stopTracks]);
 
   return {
     isSupported: typeof window !== "undefined" && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia,

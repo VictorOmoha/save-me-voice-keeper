@@ -636,10 +636,17 @@ export const useBrainDumpCapture = () => {
         lastSoundAtRef.current = recordStartTime;
         hasDetectedSpeechRef.current = false;
         peakRmsRef.current = 0;
-        // Auto-calibrate from baseline ambient noise. Threshold = max(1.5, 3× baseline)
+        // Auto-calibrate from baseline ambient noise before allowing speech detection.
+        // The previous logic used the default 1.5 threshold during calibration, so room
+        // noise/clicks could mark `hasSpeech` early and stop the recorder before Victor
+        // actually started talking. Keep calibration as a no-decision window.
+        const CALIBRATION_MS = 700;
+        const SPEECH_FRAME_COUNT = 2;
         let baselineRms = 0;
         let baselineSamples = 0;
-        let SPEECH_RMS_THRESHOLD = 1.5;
+        let isCalibrated = false;
+        let speechFrames = 0;
+        let SPEECH_RMS_THRESHOLD = 2.5;
         let logCount = 0;
 
         silenceCheckTimerRef.current = setInterval(() => {
@@ -657,15 +664,19 @@ export const useBrainDumpCapture = () => {
 
           if (rms > peakRmsRef.current) peakRmsRef.current = rms;
 
-          // First 500ms: calibrate baseline noise level
-          if (elapsedSinceStart < 500) {
-            baselineRms = (baselineRms * baselineSamples + rms) / (baselineSamples + 1);
-            baselineSamples++;
-            if (baselineSamples === 3) {
-              // Set threshold = 3× baseline, minimum 1.5
-              SPEECH_RMS_THRESHOLD = Math.max(1.5, baselineRms * 3);
+          if (!isCalibrated) {
+            if (elapsedSinceStart < CALIBRATION_MS) {
+              baselineRms = (baselineRms * baselineSamples + rms) / (baselineSamples + 1);
+              baselineSamples++;
+            } else {
+              // Use a lower dynamic threshold than 3× baseline. In real walkthroughs,
+              // speech peaked around 6.09 while ambient baseline was 2.14; 3× baseline
+              // made true speech miss by a hair.
+              SPEECH_RMS_THRESHOLD = Math.max(2.5, baselineRms + 2.0, baselineRms * 1.8);
+              isCalibrated = true;
               console.log("[VAD] calibrated: baseline rms=", baselineRms.toFixed(2), "threshold=", SPEECH_RMS_THRESHOLD.toFixed(2));
             }
+            return;
           }
 
           // Periodic logging so we can see what RMS levels we're seeing
@@ -675,11 +686,14 @@ export const useBrainDumpCapture = () => {
           }
 
           if (rms > SPEECH_RMS_THRESHOLD) {
+            speechFrames += 1;
             lastSoundAtRef.current = now;
-            if (!hasDetectedSpeechRef.current) {
+            if (!hasDetectedSpeechRef.current && speechFrames >= SPEECH_FRAME_COUNT) {
               hasDetectedSpeechRef.current = true;
               console.log("[useBrainDumpCapture] VAD: speech detected (rms:", rms.toFixed(2), ")");
             }
+          } else {
+            speechFrames = 0;
           }
 
           if (elapsedSinceStart < MIN_RECORDING_MS) return;

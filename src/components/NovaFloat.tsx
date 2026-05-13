@@ -43,6 +43,7 @@ export const NovaFloat: React.FC = () => {
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [liveAction, setLiveAction] = useState<NovaActionPayload | null>(null);
   const [shouldGreet, setShouldGreet] = useState(false);
+  const [autoStartListeningToken, setAutoStartListeningToken] = useState(0);
   const hasGreetedRef = useRef(false);
 
   const isPrintableEntry = (entry: Record<string, unknown>): entry is Partial<SavedEntry> & { id: string } => {
@@ -58,6 +59,20 @@ export const NovaFloat: React.FC = () => {
       setTimeout(() => setShouldGreet(false), 200);
     }
   }, [panelState]);
+
+  // Brain Dump can hand an active voice session to the global Nova panel.
+  // Open Nova and auto-start the mic so the user does not have to tap again.
+  useEffect(() => {
+    const handleVoiceHandoff = () => {
+      hasGreetedRef.current = true;
+      setShouldGreet(false);
+      setPanelState("open");
+      setAutoStartListeningToken((token) => token + 1);
+    };
+
+    window.addEventListener("nova:voice-handoff", handleVoiceHandoff);
+    return () => window.removeEventListener("nova:voice-handoff", handleVoiceHandoff);
+  }, []);
 
   const handleNavigate = useCallback((route: string) => {
     navigate(route);
@@ -294,7 +309,9 @@ export const NovaFloat: React.FC = () => {
             onExportData={handleExportData}
             onPrintEntry={handlePrintEntry}
             onNovaAction={handleNovaAction}
+            continuous={true}
             autoGreet={shouldGreet}
+            autoStartListeningToken={autoStartListeningToken}
             displayName={user?.displayName || user?.email?.split("@")[0] || "there"}
           />
         </div>

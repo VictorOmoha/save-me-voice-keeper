@@ -173,7 +173,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const [conversationHistory, setConversationHistory] = useState<ConversationTurn[]>([]);
   const [actions, setActions] = useState<ActionEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [continuous, setContinuous] = useState(options.continuous ?? false);
+  const [continuous, setContinuousState] = useState(options.continuous ?? false);
   const [pendingCommands, setPendingCommands] = useState<AppCommand[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(() =>
     localStorage.getItem("nova_session_id")
@@ -184,7 +184,37 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const continuousRef = useRef(continuous);
+  const manualStopRef = useRef(false);
+  const statusRef = useRef<AgentStatus>(status);
+  const startListeningRef = useRef<(() => void) | null>(null);
   const callAgentRef = useRef<(input: AgentInput) => Promise<void>>();
+
+  const setAgentStatus = useCallback((nextStatus: AgentStatus) => {
+    statusRef.current = nextStatus;
+    setStatus(nextStatus);
+  }, []);
+
+  const setContinuous = useCallback((value: boolean) => {
+    continuousRef.current = value;
+    setContinuousState(value);
+    if (!value) {
+      manualStopRef.current = true;
+    }
+  }, []);
+
+  const restartIfContinuous = useCallback((delayMs = 300) => {
+    if (!continuousRef.current || manualStopRef.current) return;
+
+    window.setTimeout(() => {
+      if (!continuousRef.current || manualStopRef.current) return;
+
+      const recorderBusy = mediaRecorderRef.current?.state === "recording";
+      const agentBusy = ["listening", "thinking", "acting", "speaking"].includes(statusRef.current);
+      if (recorderBusy || agentBusy) return;
+
+      startListeningRef.current?.();
+    }, delayMs);
+  }, []);
 
   // Stable refs for navigation callbacks
   const onNavigateRef = useRef(onNavigate);
@@ -266,6 +296,11 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
   // ── Start recording via MediaRecorder ────────────────────────────────────
   const startListening = useCallback(async () => {
+    const recorderBusy = mediaRecorderRef.current?.state === "recording";
+    const agentBusy = ["listening", "thinking", "acting", "speaking"].includes(statusRef.current);
+    if (recorderBusy || agentBusy) return;
+
+    manualStopRef.current = false;
     setError(null);
     setTranscript("");
 
@@ -292,7 +327,8 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
         if (blob.size < 500) {
-          setStatus("idle");
+          setAgentStatus("idle");
+          restartIfContinuous();
           return;
         }
 
@@ -307,7 +343,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
       recorder.start(250); // collect chunks every 250ms
       mediaRecorderRef.current = recorder;
-      setStatus("listening");
+      setAgentStatus("listening");
 
       // Auto-stop after 10 seconds
       autoStopTimerRef.current = setTimeout(() => {
@@ -324,23 +360,24 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
           ? "Mic permission denied. Please allow microphone access in your browser."
           : `Mic error: ${message}`
       );
-      setStatus("idle");
+      setAgentStatus("idle");
     }
-  }, []);
+  }, [restartIfContinuous, setAgentStatus]);
 
   // ── Stop recording ────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
+    manualStopRef.current = true;
     if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     } else {
-      setStatus("idle");
+      setAgentStatus("idle");
     }
-  }, []);
+  }, [setAgentStatus]);
 
   // ── Audio playback + auto-restart ─────────────────────────────────────────
   const playAudio = useCallback(async (base64Audio: string, mimeType = "audio/pcm") => {
-    setStatus("speaking");
+    setAgentStatus("speaking");
     audioRef.current?.pause();
 
     const binary = atob(base64Audio);
@@ -359,23 +396,29 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
     audio.onended = () => {
       URL.revokeObjectURL(url);
-      setStatus("idle");
-      if (continuousRef.current) {
-        setTimeout(() => startListening(), 300);
-      }
+      setAgentStatus("idle");
+      restartIfContinuous();
     };
     audio.onerror = (event) => {
       console.warn("[useVoiceAgent] Audio element failed to play Nova response", event);
       URL.revokeObjectURL(url);
-      setStatus("idle");
+      setAgentStatus("idle");
+      restartIfContinuous();
     };
 
-    await audio.play();
-  }, [startListening]);
+    try {
+      await audio.play();
+    } catch (event) {
+      console.warn("[useVoiceAgent] Browser blocked or failed Nova response playback", event);
+      URL.revokeObjectURL(url);
+      setAgentStatus("idle");
+      restartIfContinuous();
+    }
+  }, [restartIfContinuous, setAgentStatus]);
 
   // ── Core agent call ───────────────────────────────────────────────────────
   const callAgent = useCallback(async (input: AgentInput) => {
-    setStatus("thinking");
+    setAgentStatus("thinking");
     setError(null);
     setActions([]);
 
@@ -409,7 +452,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
       // ── Stagger actions for real-time feel ──────────────────────────────────
       if (data.actionsExecuted?.length) {
-        setStatus("acting");
+        setAgentStatus("acting");
 
         for (let i = 0; i < data.actionsExecuted.length; i++) {
           const a = data.actionsExecuted[i];
@@ -454,18 +497,19 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       if (data.audioContent) {
         await playAudio(data.audioContent, data.audioMimeType || "audio/pcm");
       } else {
-        setStatus("idle");
-        if (continuousRef.current) startListening();
+        setAgentStatus("idle");
+        restartIfContinuous();
       }
 
     } catch (err: unknown) {
       console.error("[useVoiceAgent]", err);
       setError(err instanceof Error ? err.message : String(err));
-      setStatus("idle");
+      setAgentStatus("idle");
     }
-  }, [conversationHistory, sessionId, playAudio, startListening]);
+  }, [conversationHistory, sessionId, playAudio, restartIfContinuous, setAgentStatus]);
 
-  // Keep callAgentRef pointing to latest callAgent
+  // Keep start/call refs pointing to latest callbacks used by recorder and restart timers
+  useEffect(() => { startListeningRef.current = startListening; }, [startListening]);
   useEffect(() => { callAgentRef.current = callAgent; }, [callAgent]);
 
   // ── Text fallback ──────────────────────────────────────────────────────────
@@ -476,16 +520,17 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
 
   // ── Reset ──────────────────────────────────────────────────────────────────
   const resetConversation = useCallback(() => {
+    manualStopRef.current = true;
     setConversationHistory([]);
     setTranscript("");
     setResponseText("");
     setActions([]);
-    setStatus("idle");
+    setAgentStatus("idle");
     setError(null);
     audioRef.current?.pause();
     setSessionId(null);
     localStorage.removeItem("nova_session_id");
-  }, []);
+  }, [setAgentStatus]);
 
   return {
     status, transcript, responseText, error, actions,

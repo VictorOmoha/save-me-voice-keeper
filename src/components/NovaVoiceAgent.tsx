@@ -50,11 +50,13 @@ const ACTION_ICON: Record<string, string> = {
 
 type NovaVoiceAgentProps = UseVoiceAgentOptions & {
   autoGreet?: boolean;
+  autoStartListeningToken?: number;
   displayName?: string;
 };
 
 export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   autoGreet,
+  autoStartListeningToken,
   displayName,
   ...props
 }) => {
@@ -67,6 +69,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   const [textInput, setTextInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasGreetedRef = useRef(false);
+  const lastAutoStartTokenRef = useRef<number | undefined>(undefined);
 
   // ── Auto-greet on first open ──────────────────────────────────────────────
   useEffect(() => {
@@ -83,6 +86,18 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
       }, 400);
     }
   }, [autoGreet, conversationHistory.length, status, sendText, displayName]);
+
+  // ── Auto-listen when another surface hands off an active Nova conversation ─
+  useEffect(() => {
+    if (
+      autoStartListeningToken &&
+      autoStartListeningToken !== lastAutoStartTokenRef.current &&
+      status === "idle"
+    ) {
+      lastAutoStartTokenRef.current = autoStartListeningToken;
+      startListening();
+    }
+  }, [autoStartListeningToken, status, startListening]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

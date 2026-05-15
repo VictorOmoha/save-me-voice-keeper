@@ -44,7 +44,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             </div>
             <h3 className="text-lg md:text-xl font-semibold text-card-foreground">Start with a voice dump</h3>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              Speak freely. Nova will organize your thoughts.
+              Speak freely. Nova will organize it into a memory you can find later.
             </p>
           </div>
 
@@ -63,13 +63,13 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
         <div className="mt-4 grid gap-2 sm:grid-cols-3 text-xs text-muted-foreground">
           <div className="rounded-lg bg-background/80 border px-3 py-2">1. Dump thoughts fast</div>
           <div className="rounded-lg bg-background/80 border px-3 py-2">2. Process into structure</div>
-          <div className="rounded-lg bg-background/80 border px-3 py-2">3. Save and find it later</div>
+          <div className="rounded-lg bg-background/80 border px-3 py-2">3. Save to your archive</div>
         </div>
       </div>
 
       <div>
         <h3 className="text-base md:text-lg font-semibold text-card-foreground mb-1 md:mb-2">Quick Actions</h3>
-        <p className="text-muted-foreground text-xs md:text-sm mb-3 md:mb-4">Capture, create, or search your vault</p>
+        <p className="text-muted-foreground text-xs md:text-sm mb-3 md:mb-4">Capture a memory, add structured details, or search your archive</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -93,7 +93,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             size="sm"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Entry</span>
+            <span>Save Memory</span>
           </Button>
 
           <Button

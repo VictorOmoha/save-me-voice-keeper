@@ -71,7 +71,8 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   
   // Extract images from the entry
   const entryImages = extractImagesFromEntry(entry);
-  const detailFields = Object.entries(entry.fields).filter(([key, value]) => {
+  const displayFields = Object.entries(entry.fields).filter(([key, value]) => {
+    if (key === 'category') return false;
     if (['category', 'hasUploadedFile', 'fileName', 'fileSize', 'fileType'].includes(key)) return false;
     if (entryImages.includes(String(value)) || (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) return false;
     if (value === null || value === undefined || value === '') return false;
@@ -80,7 +81,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
     }
     return true;
   });
-  const hasMeaningfulDetails = detailFields.length > 0 || entryImages.length > 0 || Boolean(entry.fields.hasUploadedFile && entry.fields.fileName);
+  const hasMeaningfulDetails = displayFields.length > 0 || entryImages.length > 0 || Boolean(entry.fields.hasUploadedFile && entry.fields.fileName);
   
   // Check if this is a document entry with an uploaded file
   const isDocumentWithFile = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
@@ -198,28 +199,23 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
             onOpenEntry={onOpenRelatedEntry}
           />
 
+          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Memory saved</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This entry is in your archive under {categoryName}. You can edit it anytime to add policy numbers, contacts, dates, files, or retrieval notes.
+            </p>
+          </div>
+
           {/* Entry Fields */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-foreground">Entry Details</h3>
             <div className="grid gap-4">
               {!hasMeaningfulDetails && (
                 <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                  No details have been added yet. Edit this entry to add the information SaveMe should remember.
+                  Saved as-is. No extra details have been added yet, but your original memory is safe in the archive.
                 </div>
               )}
-              {Object.entries(entry.fields)
-                .filter(([key, value]) => {
-                  // Skip file metadata fields
-                  if (['hasUploadedFile', 'fileName', 'fileSize', 'fileType'].includes(key)) {
-                    return false;
-                  }
-                  // Skip image fields that are already shown in the gallery
-                  if (entryImages.includes(String(value)) || 
-                      (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) {
-                    return false;
-                  }
-                  return true;
-                })
+              {displayFields
                 .map(([key, value]) => {
                   // Handle table fields separately
                   if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) {
@@ -262,7 +258,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                       </label>
                       <div className="p-3 bg-accent/50 rounded-md border">
                         <p className="text-foreground whitespace-pre-wrap">
-                          {String(value) || 'No value yet'}
+                          {String(value)}
                         </p>
                       </div>
                     </div>

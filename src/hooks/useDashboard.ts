@@ -27,8 +27,6 @@ export const useDashboard = () => {
       setEditingEntry(null);
       setFillingEntry(null);
       setTemplateEntry(null);
-      const isUpdate = !!(editingEntry || fillingEntry);
-      toast.success(isUpdate ? 'Entry updated successfully!' : 'Entry saved successfully!');
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error('Failed to save entry');

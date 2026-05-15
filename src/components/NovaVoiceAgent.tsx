@@ -12,14 +12,14 @@ import { cn } from "@/lib/utils";
 const STATUS_TEXT: Record<AgentStatus, string> = {
   idle: "Mic is off. Tap when ready.",
   listening: "Recording now. Tap Stop to finish.",
-  thinking: "Nova is thinking...",
-  acting: "Nova is acting...",
+  thinking: "Processing your memory...",
+  acting: "Saving this to your archive...",
   speaking: "Nova is speaking...",
 };
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
   idle: "bg-primary",
-  listening: "bg-blue-600",
+  listening: "bg-red-600",
   thinking: "bg-amber-500",
   acting: "bg-violet-500",
   speaking: "bg-emerald-500",
@@ -67,6 +67,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   } = useVoiceAgent(props);
 
   const [textInput, setTextInput] = useState("");
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasGreetedRef = useRef(false);
   const lastAutoStartTokenRef = useRef<number | undefined>(undefined);
@@ -102,6 +103,21 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [conversationHistory, actions, status]);
+
+  useEffect(() => {
+    if (status !== "listening") {
+      setRecordingSeconds(0);
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setRecordingSeconds(seconds => seconds + 1);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [status]);
+
+  const recordingTime = `${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, "0")}`;
 
   const handleMicClick = () => {
     if (status === "idle") startListening();
@@ -226,9 +242,22 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
       </div>
 
       {/* Live transcript */}
-      {status === "listening" && transcript && (
-        <div className="mx-4 mb-1 px-3 py-1.5 bg-muted/40 rounded-lg text-xs text-muted-foreground italic shrink-0">
-          {transcript}
+      {status === "listening" && (
+        <div className="mx-4 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">Recording now</p>
+              <p className="text-xs text-muted-foreground">Tap Stop when you are finished. Nova will process the memory after this.</p>
+            </div>
+            <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white tabular-nums animate-pulse">
+              {recordingTime}
+            </span>
+          </div>
+          {transcript && (
+            <p className="mt-2 rounded-lg bg-background/70 px-3 py-2 text-xs text-foreground italic">
+              {transcript}
+            </p>
+          )}
         </div>
       )}
 
@@ -243,7 +272,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-md",
               STATUS_COLOR[status], "text-white",
-              status === "listening" && "ring-4 ring-blue-300 scale-105",
+              status === "listening" && "ring-4 ring-red-300 scale-110 animate-pulse",
               status === "speaking" && "ring-4 ring-emerald-300",
               isDisabled && "opacity-60 cursor-not-allowed scale-100"
             )}
@@ -256,7 +285,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
           </button>
           <span className={cn(
             "text-xs min-w-[140px]",
-            status === "listening" ? "font-semibold text-blue-700 dark:text-blue-300" : "text-muted-foreground"
+            status === "listening" ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground"
           )}>
             {STATUS_TEXT[status]}
             {continuous && status === "idle" && " · Live will auto-listen"}

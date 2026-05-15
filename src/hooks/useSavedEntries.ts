@@ -110,7 +110,7 @@ export const useSavedEntries = () => {
         };
 
         setSavedEntries(prev => prev.map(e => e.id === editingEntry.id ? updatedEntry : e));
-        toast.success('Entry updated successfully!');
+        toast.success(`${entry.title} updated in ${updatedEntry.category}.`);
       } else {
         // Insert new entry
         const entriesRef = collection(db, 'entries');
@@ -135,7 +135,9 @@ export const useSavedEntries = () => {
         };
 
         setSavedEntries(prev => [savedEntry, ...prev]);
-        toast.success('Entry saved successfully!');
+        toast.success(`${entry.title} saved to ${savedEntry.category}.`, {
+          description: 'You can find it in All entries and edit details anytime.',
+        });
       }
     } catch (error) {
       console.error('Error saving entry:', error);

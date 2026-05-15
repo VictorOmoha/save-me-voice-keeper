@@ -177,10 +177,10 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         <div className={`space-y-2 transition-all duration-300 ${
           highlightedField === 'title' ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-2' : ''
         }`}>
-          <Label htmlFor="title" className="text-foreground">Entry Title</Label>
+          <Label htmlFor="title" className="text-foreground">What should SaveMe remember?</Label>
           <Input
             id="title"
-            placeholder="Give your entry a title (e.g., 'Medication Info', 'Insurance Policy')"
+            placeholder="e.g., Insurance Policy, Mom's medication, Renewal deadline"
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
@@ -216,6 +216,9 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         </div>
 
         <div className="space-y-4">
+          <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+            Add the details you already know. Example: “My policy is with State Farm, policy number is 1234, renewal is July 15.” Empty fields stay hidden in the saved view.
+          </div>
           <FormFieldManager
             fields={fields}
             onAddField={addField}

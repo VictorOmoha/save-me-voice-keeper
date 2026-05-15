@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -186,6 +186,10 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
     return 'Complex';
   };
 
+  const getEntryCategory = (entry: SavedEntry): string => {
+    return String(entry.fields.category || entry.category || 'Personal');
+  };
+
   const handleBulkDelete = () => {
     if (selectedEntries.length > 0) {
       setBulkDeleteDialogOpen(true);
@@ -297,7 +301,8 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
               </TableHead>
               <TableHead className="w-12"></TableHead>
               <SortableHeader field="title">Title</SortableHeader>
-              <SortableHeader field="type">Type</SortableHeader>
+              <TableHead>Category</TableHead>
+              <SortableHeader field="type">Details</SortableHeader>
               <SortableHeader field="updatedAt">Last Modified</SortableHeader>
               <TableHead>Intelligence</TableHead>
               <TableHead>Actions</TableHead>
@@ -305,10 +310,9 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
           </TableHeader>
           <TableBody>
             {sortedEntries.map((entry) => (
-              <>
+              <Fragment key={entry.id}>
                 <TableRow 
-                  key={entry.id} 
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-gray-50 cursor-pointer text-sm"
                   onClick={(e) => handleRowClick(entry, e)}
                 >
                   <TableCell>
@@ -331,11 +335,14 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                       )}
                     </Button>
                   </TableCell>
-                  <TableCell className="font-medium">{entry.title}</TableCell>
+                  <TableCell className="py-4 text-base font-semibold text-foreground">{entry.title}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{getEntryType(entry)}</Badge>
+                    <Badge variant="secondary" className="text-xs">{getEntryCategory(entry)}</Badge>
                   </TableCell>
-                  <TableCell className="text-gray-600">
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">{getEntryType(entry)}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
                     {new Date(entry.updatedAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
@@ -344,7 +351,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                       return (
                         <div className="flex flex-wrap gap-1 max-w-[220px]">
                           {intelligence.isEnriched ? (
-                            <>
+                            <Fragment>
                               <Badge variant="outline" className="text-xs border-primary/30 text-primary">Smart</Badge>
                               {intelligence.actionItemCount > 0 && (
                                 <Badge variant="outline" className="text-xs">{intelligence.actionItemCount} actions</Badge>
@@ -358,7 +365,7 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                               {intelligence.tags.slice(0, 1).map((tag) => (
                                 <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                               ))}
-                            </>
+                            </Fragment>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
@@ -427,26 +434,28 @@ export const EntriesTable: React.FC<EntriesTableProps> = ({
                 </TableRow>
                 {expandedRows.includes(entry.id) && (
                   <TableRow>
-                    <TableCell colSpan={6} className="bg-gray-50 p-4">
+                    <TableCell colSpan={8} className="bg-gray-50 p-4">
                       <div className="space-y-2">
                         <h4 className="font-medium text-gray-900">Fields Preview:</h4>
                         <div className="grid gap-2">
-                          {Object.entries(entry.fields).map(([key, value]) => (
-                            <div key={key} className="flex items-start space-x-2 text-sm">
-                              <span className="font-medium text-gray-700 min-w-0 w-1/3">
-                                {key}:
-                              </span>
-                              <span className="text-gray-900 break-words flex-1">
-                                {String(value)}
-                              </span>
-                            </div>
-                          ))}
+                          {Object.entries(entry.fields)
+                            .filter(([key, value]) => key !== 'category' && value !== null && value !== undefined && value !== '')
+                            .map(([key, value]) => (
+                              <div key={key} className="flex items-start space-x-2 text-sm">
+                                <span className="font-medium text-gray-700 min-w-0 w-1/3">
+                                  {key}:
+                                </span>
+                                <span className="text-gray-900 break-words flex-1">
+                                  {String(value)}
+                                </span>
+                              </div>
+                            ))}
                         </div>
                       </div>
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             ))}
           </TableBody>
         </Table>

@@ -165,22 +165,19 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
   const displayFields = Object.entries(entry.fields)
     .filter(([key]) => !metadataFields.includes(key))
     .filter(([key, value]) => {
+      if (key === "category") return false;
       // Skip image fields that are already shown in the gallery
       if (entryImages.includes(String(value)) ||
           (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) {
         return false;
       }
+      if (value === null || value === undefined || value === "") return false;
+      if (typeof value === "object" && "columns" in (value as Record<string, unknown>) && "rows" in (value as Record<string, unknown>)) {
+        return Array.isArray((value as TableData).rows) && (value as TableData).rows.length > 0;
+      }
       return true;
     });
-  const meaningfulFields = displayFields.filter(([key, value]) => {
-    if (key === "category") return false;
-    if (value === null || value === undefined || value === "") return false;
-    if (typeof value === "object" && "columns" in (value as Record<string, unknown>) && "rows" in (value as Record<string, unknown>)) {
-      return Array.isArray((value as TableData).rows) && (value as TableData).rows.length > 0;
-    }
-    return true;
-  });
-  const hasMeaningfulDetails = meaningfulFields.length > 0 || entryImages.length > 0 || Boolean(hasFile);
+  const hasMeaningfulDetails = displayFields.length > 0 || entryImages.length > 0 || Boolean(hasFile);
 
   const handleDownload = async () => {
     if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
@@ -329,6 +326,13 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
             />
           </div>
 
+          <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Memory saved</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This is stored under {category}. Add more details anytime to make it easier for Nova to retrieve later.
+            </p>
+          </div>
+
           {/* Entry Fields */}
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
@@ -338,7 +342,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
             <div className="grid gap-4">
               {!hasMeaningfulDetails && (
                 <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-                  No details have been added yet. Edit this entry to add policy numbers, contacts, notes, dates, files, or anything Nova should help you remember.
+                  Saved as-is. No extra details have been added yet, but your original memory is safe in the archive.
                 </div>
               )}
               {displayFields.map(([key, value]) => {

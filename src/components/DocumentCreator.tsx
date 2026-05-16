@@ -184,14 +184,14 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       allFieldKeys: Object.keys(documentEntry.fields)
     });
 
-    // Upload file to Supabase Storage and save entry
+    // Upload file to Firebase Storage and save entry
     if (uploadedFile) {
-      console.log('DIAGNOSTIC: Processing file upload to Supabase Storage...');
+      console.log('DIAGNOSTIC: Processing file upload to Firebase Storage...');
       
       // Use a timestamp-based ID for the upload
       const entryId = `temp-${Date.now()}`;
       
-      // Upload to Supabase Storage
+      // Upload to Firebase Storage
       const uploadPath = await uploadDocumentToStorage(uploadedFile, entryId);
       if (uploadPath) {
         console.log('DIAGNOSTIC: File uploaded to storage at:', uploadPath);

@@ -181,10 +181,10 @@ We do NOT sell your personal data. We may share data in these limited circumstan
 
 ### 5.1 Service Providers (Third-Party Processors)
 
-**Supabase (Database & Auth):**
+**Firebase / Google Cloud (Database, Auth, Storage & Cloud Functions):**
 - Stores your user data and content
-- Provides authentication services
-- Privacy Policy: https://supabase.com/privacy
+- Provides authentication, storage, and backend processing services
+- Privacy Policy: https://policies.google.com/privacy
 
 **11Labs (Voice Processing):**
 - Processes voice-to-text conversion
@@ -233,7 +233,7 @@ We may share your data with third parties if you explicitly consent (e.g., integ
 - Regular security audits
 
 **Infrastructure Security:**
-- Hosted on secure cloud providers (Supabase, AWS)
+- Hosted on secure cloud providers including Firebase / Google Cloud
 - Regular security updates and patches
 - Monitoring for suspicious activity
 
@@ -469,7 +469,7 @@ If you are in the EEA or UK and believe we have violated GDPR, you may lodge a c
 - Provide the Service, improve features, customer support, security
 
 **Who We Share With:**
-- Service providers (Supabase, 11Labs, Stripe)
+- Service providers (Firebase / Google Cloud, 11Labs, Stripe)
 - Legal requirements only
 - We NEVER sell your data
 

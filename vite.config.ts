@@ -18,7 +18,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    minify: false,
+    // Keep dev builds readable, but ship minified production assets.
+    minify: mode === 'development' ? false : 'terser',
     rollupOptions: {
       output: {
         manualChunks: {

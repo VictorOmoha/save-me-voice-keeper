@@ -87,7 +87,7 @@ We use your voice input to:
 - You must not upload illegal, infringing, or harmful content
 
 ### 5.2 Data Storage
-- We store your data on secure cloud servers (currently Supabase)
+- We store your data on secure cloud servers (currently Firebase / Google Cloud)
 - Storage limits apply based on your subscription tier (see Pricing)
 - We perform regular backups but are not liable for data loss
 - You can export your data at any time
@@ -212,7 +212,7 @@ You agree NOT to:
 - You grant us a license to use your content solely to provide the Service
 
 ### 8.3 Third-Party Services
-- We use third-party services (11Labs, Supabase, Stripe, etc.)
+- We use third-party services (Firebase / Google Cloud, 11Labs, Stripe, etc.)
 - These services have their own terms and privacy policies
 - We are not responsible for third-party service failures or changes
 

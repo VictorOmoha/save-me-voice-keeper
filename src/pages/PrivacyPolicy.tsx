@@ -117,7 +117,7 @@ const PrivacyPolicy = () => {
 
           <h3>4.1 Service Providers (Third-Party Processors)</h3>
           <ul>
-            <li><strong>Supabase:</strong> Stores your user data and content, provides authentication</li>
+            <li><strong>Firebase / Google Cloud:</strong> Stores your user data and content, provides authentication, and runs backend processing</li>
             <li><strong>11Labs:</strong> Processes voice-to-text conversion (audio deleted after processing)</li>
             <li><strong>Stripe:</strong> Processes subscription payments (we do NOT see your full credit card details)</li>
           </ul>
@@ -130,7 +130,7 @@ const PrivacyPolicy = () => {
           <ul>
             <li><strong>Encryption:</strong> All data encrypted in transit (HTTPS/TLS) and at rest</li>
             <li><strong>Access Controls:</strong> Role-based access, multi-factor authentication available</li>
-            <li><strong>Infrastructure:</strong> Hosted on secure cloud providers (Supabase, AWS)</li>
+            <li><strong>Infrastructure:</strong> Hosted on secure cloud providers including Firebase / Google Cloud</li>
           </ul>
 
           <p className="text-sm italic">
@@ -206,7 +206,7 @@ const PrivacyPolicy = () => {
             <h3 className="text-lg font-bold">SUMMARY: KEY PRIVACY POINTS</h3>
             <ul className="mt-4 space-y-2 text-sm">
               <li><strong>Voice Data:</strong> Audio deleted immediately after transcription; only text stored</li>
-              <li><strong>Data Sharing:</strong> Only with service providers (Supabase, 11Labs, Stripe) - we NEVER sell data</li>
+              <li><strong>Data Sharing:</strong> Only with service providers (Firebase / Google Cloud, 11Labs, Stripe) - we NEVER sell data</li>
               <li><strong>Your Rights:</strong> Access, correct, delete, export your data anytime</li>
               <li><strong>Security:</strong> Encrypted in transit and at rest, industry-standard protection</li>
             </ul>

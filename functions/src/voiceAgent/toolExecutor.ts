@@ -79,10 +79,17 @@ export async function executeVoiceTool(
     return fail(validation.error || `Invalid arguments for ${toolName}`);
   }
 
+  // Use the bounded/normalized arguments returned by validation. Without this,
+  // validation can pass while the executor still uses overlong or unnormalized
+  // model-supplied values.
+  const safeArgs = { ...args, ...(validation.sanitizedArgs || {}) };
+
   console.log(`[VoiceTool] Executing ${toolName}`, {
     userId,
-    args: summarizeToolArgs(args),
+    args: summarizeToolArgs(safeArgs),
   });
+
+  args = safeArgs;
 
   // ── App control tools — return commands for the frontend to execute ────────
   const appControlResult = await handleAppControlTool(toolName, args, userId, entriesRef);
@@ -231,9 +238,16 @@ export async function executeVoiceTool(
     };
     if (title) updateData.title = title;
 
-    // Fetch existing entry to compare and merge
+    // Fetch existing entry to compare/merge, and enforce ownership because
+    // Cloud Functions use Admin SDK and bypass Firestore security rules.
     const existingDoc = await entriesRef.doc(entryId).get();
+    if (!existingDoc.exists) {
+      return fail("Entry not found");
+    }
     const existingData = existingDoc.data() || {};
+    if (existingData.user_id !== userId) {
+      return fail("Entry not found");
+    }
     const currentFields = existingData.fields && typeof existingData.fields === "object"
       ? existingData.fields as Record<string, unknown>
       : {};
@@ -272,7 +286,13 @@ export async function executeVoiceTool(
   case "deleteEntry": {
     const entryId = typeof args.id === "string" ? args.id : "";
     const delDoc = await entriesRef.doc(entryId).get();
+    if (!delDoc.exists) {
+      return fail("Entry not found");
+    }
     const delData = delDoc.data() || {};
+    if (delData.user_id !== userId) {
+      return fail("Entry not found");
+    }
     const delTitle = typeof delData.title === "string" ? delData.title : "Entry";
     await entriesRef.doc(entryId).delete();
     return novaAction("delete_entry", { id: entryId, title: delTitle }, { id: entryId, title: delTitle });

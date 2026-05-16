@@ -1,1 +1,0 @@
-import{a as r}from"./vendor-ui-BZXQuPcq.js";import{b as e}from"./index-DemZbdRU.js";import"./vendor-charts-Cd3UQbZ4.js";import"./vendor-firebase-BJRo5C9w.js";const i=()=>{const t=e();return r.useEffect(()=>{t("/",{replace:!0})},[t]),null};export{i as default};

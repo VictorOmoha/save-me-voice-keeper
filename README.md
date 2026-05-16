@@ -31,16 +31,18 @@ Capture your thoughts by voice. Nova AI organizes them. Get structured documents
 
 ### Backend
 
-- **Auth & DB**: Supabase (PostgreSQL, Edge Functions, Row-Level Security)
-- **Payments**: Stripe (checkout, webhooks, customer portal)
-- **Voice Processing**: Edge functions for STT, TTS (ElevenLabs, MiniMax, Google Cloud), and Nova AI processing
-- **Storage**: Supabase Storage for voice recordings and documents
+- **Auth & DB**: Firebase Auth + Cloud Firestore (`saveme-f5af0`)
+- **Server logic**: Firebase Cloud Functions in `functions/`
+- **Payments**: Stripe checkout, webhooks, and customer portal through Firebase functions
+- **Voice Processing**: Firebase functions for Nova agent execution, audio transcription, TTS, quick save, entry intelligence, and shared memory APIs
+- **Storage**: Firebase Storage for app assets/user files where enabled
+- **No legacy backend clients**: The active app uses Firebase only. Do not add alternate backend clients, edge functions, migrations, docs, or deployment config back into this codebase.
 
 ### AI Layer (Nova)
 
-- NovaFloat → NovaVoiceAgent → useVoiceAgent → Firebase voiceAgent
-- Voice commands → Firebase cloud functions → appCommands/events
-- Brain dump enhancement via Supabase edge functions
+- NovaFloat → NovaVoiceAgent → useVoiceAgent → Firebase `voiceAgent`
+- Voice commands → Firebase Cloud Functions → Firestore mutations + appCommands/events
+- Shared memory and external agent integration → Firebase shared-memory functions + user-minted `sm_` API keys
 
 ## Project Structure
 
@@ -59,11 +61,8 @@ src/
   contexts/           # React Context providers
   utils/              # Shared utilities
     nlp/              # Legacy voice command NLP (deprecated)
-  lib/                # Core libraries and API clients
-supabase/
-  functions/          # Edge functions (STT, TTS, payments, Nova AI)
-  migrations/         # Database schema migrations
-functions/            # Firebase Cloud Functions (Nova voice tools)
+  lib/                # Core Firebase/API clients
+functions/            # Firebase Cloud Functions (Nova, billing, audio, shared memory)
 public/               # Static assets
 ```
 
@@ -71,11 +70,11 @@ public/               # Static assets
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Supabase project (local or remote)
-- Firebase project (for Nova functions)
+- Node.js 20+ and npm
+- Firebase project (`saveme-f5af0`) with Auth, Firestore, Storage, and Functions enabled
 - Stripe account (payments)
-- ElevenLabs API key (TTS)
+- Gemini/Google Cloud credentials for Nova voice agent and TTS
+- Optional user-provided ElevenLabs API key for alternate TTS flows
 
 ### Setup
 

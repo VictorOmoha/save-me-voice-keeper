@@ -29,12 +29,8 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
     navigate("/brain-dump");
   };
 
-  const handleQuickCapture = () => {
-    window.dispatchEvent(new CustomEvent("saveme:quick-capture"));
-  };
-
   return (
-    <div className="bg-card border border-border rounded-lg p-4 md:p-6 mb-6 md:mb-8 space-y-5">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-5 mb-6 md:mb-8 space-y-5">
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1.5">
@@ -48,14 +44,10 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 md:min-w-[320px]">
+          <div className="flex flex-col sm:flex-row gap-2 md:min-w-[220px]">
             <Button onClick={handleStartBrainDump} className="flex items-center justify-center gap-2 flex-1">
               <Mic className="w-4 h-4" />
               Voice Dump
-            </Button>
-            <Button onClick={handleQuickCapture} variant="outline" className="flex items-center justify-center gap-2 flex-1">
-              <Plus className="w-4 h-4" />
-              Save Memory
             </Button>
           </div>
         </div>
@@ -74,15 +66,6 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex flex-wrap gap-2 sm:gap-3">
-          <Button
-            onClick={handleStartBrainDump}
-            className="flex items-center space-x-2 flex-1 sm:flex-none min-w-[140px]"
-            size="sm"
-          >
-            <Mic className="w-4 h-4" />
-            <span>Voice Dump</span>
-          </Button>
-
           <Button
             onClick={() => {
               console.log('Add Entry button clicked');

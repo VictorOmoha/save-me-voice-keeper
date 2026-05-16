@@ -106,8 +106,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 container mx-auto px-3 md:px-4 py-4 md:py-6">
-          <div className="p-6 rounded-2xl border bg-card/50">
+        <div
+          data-testid="dashboard-content-shell"
+          className="flex-1 w-full max-w-[1500px] mx-auto px-3 md:px-6 py-4 md:py-6"
+        >
+          <div className="p-4 md:p-6 rounded-2xl border bg-card/50">
             {children}
           </div>
         </div>

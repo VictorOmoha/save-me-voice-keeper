@@ -75,14 +75,15 @@ export const TaskReminderCard = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="task-reminder-time">Date and time</Label>
+          <Label htmlFor="task-reminder-time">Reminder time</Label>
           <Input
             id="task-reminder-time"
             type="datetime-local"
             value={scheduledAtInput}
             onChange={(event) => setScheduledAtInput(event.target.value)}
-            className="w-full min-w-[260px] text-sm"
+            className="w-full text-sm"
           />
+          <p className="text-xs text-muted-foreground">Uses your device's local time.</p>
         </div>
 
         <Button type="submit" disabled={saving} className="md:mb-0">

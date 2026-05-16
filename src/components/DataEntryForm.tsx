@@ -173,7 +173,12 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <form onSubmit={handleSubmit} className="space-y-4 p-4 md:p-5">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 md:p-4">
+          <p className="text-sm font-semibold text-foreground">Save stays locked until the basics are clear.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Add a title and category first. Then include only the details you know.</p>
+        </div>
+
         <div className={`space-y-2 transition-all duration-300 ${
           highlightedField === 'title' ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-2' : ''
         }`}>
@@ -217,7 +222,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
         <div className="space-y-4">
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Add the details you already know. Example: “My policy is with State Farm, policy number is 1234, renewal is July 15.” Empty fields stay hidden in the saved view.
+            Example: “My policy is with State Farm, policy number is 1234, renewal is July 15.” Empty fields stay hidden in the saved view.
           </div>
           <FormFieldManager
             fields={fields}
@@ -256,7 +261,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           ))}
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:space-x-2 pt-4">
+        <div className="sticky bottom-0 -mx-4 md:-mx-5 mt-2 flex flex-col-reverse sm:flex-row justify-end gap-2 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border w-full sm:w-auto" disabled={isSaving}>
             Cancel
           </Button>

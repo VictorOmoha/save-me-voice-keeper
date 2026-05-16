@@ -194,7 +194,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               <p className="font-medium text-sm">Hey, I'm Nova</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[220px] leading-relaxed">
                 {continuous
-                  ? "Nova can keep the mic on after she responds. You can turn Live off anytime."
+                  ? "Auto-listen is on, but the mic is off until Nova finishes responding or you tap the mic."
                   : "Tap the mic when you want Nova to hear you, or type below."}
               </p>
             </div>

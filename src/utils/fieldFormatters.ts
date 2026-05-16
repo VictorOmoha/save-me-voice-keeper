@@ -112,6 +112,26 @@ export const formatFieldName = (key: string): string => {
     .trim();
 };
 
+
+/**
+ * Format a field key with category/title context so generic imported fields do not read as vague labels.
+ */
+export const formatContextualFieldName = (key: string, context?: { category?: string; title?: string }): string => {
+  const normalizedKey = key.trim().toLowerCase();
+  const title = context?.title?.toLowerCase() || "";
+  const category = context?.category?.toLowerCase() || "";
+
+  if (normalizedKey === "name" && (category.includes("finance") || title.includes("insurance") || title.includes("policy"))) {
+    return "Policyholder name";
+  }
+
+  if (normalizedKey === "number" && (title.includes("insurance") || title.includes("policy"))) {
+    return "Policy number";
+  }
+
+  return formatFieldName(key);
+};
+
 /**
  * Format a date for full display
  */

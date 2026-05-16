@@ -30,7 +30,7 @@ import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCar
 import { TableData } from "@/components/forms/types";
 import { cn } from "@/lib/utils";
 import { getCategoryConfig } from "@/utils/categoryConfig";
-import { formatFieldName, metadataFields } from "@/utils/fieldFormatters";
+import { formatContextualFieldName, formatFieldName, metadataFields } from "@/utils/fieldFormatters";
 import { logError } from "@/utils/logger";
 import { EntryIntelligencePanel } from "@/components/entries/EntryIntelligencePanel";
 
@@ -359,7 +359,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                     <div key={key} className="space-y-2">
                       <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                         <Tag className={cn("w-4 h-4", config.color)} />
-                        {formatFieldName(key)}
+                        {formatContextualFieldName(key, { category, title: entry.title })}
                       </label>
                       <div className="rounded-lg border overflow-hidden">
                         {isShoppingList ? (
@@ -398,7 +398,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                       </div>
                       <div className="flex-1 min-w-0">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                          {formatFieldName(key)}
+                          {formatContextualFieldName(key, { category, title: entry.title })}
                         </label>
                         <div className="mt-1">
                           {type === "email" ? (

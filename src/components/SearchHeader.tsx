@@ -1,7 +1,6 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,11 +9,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Brain, LogOut, User, CreditCard, HelpCircle, ChevronRight } from "lucide-react";
+import { LogOut, User, CreditCard, HelpCircle, ChevronRight } from "lucide-react";
 import { SmartSearchWithBoundary as SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
@@ -39,7 +38,6 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
   onSearchChange,
   userName,
   savedEntries,
-  onAddEntry,
   onCategorySelect,
   onAllEntriesSelect,
   onEditEntry,
@@ -112,37 +110,23 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
           />
         </div>
 
-        {/* Actions - Skeletal */}
+        {/* Actions - keep capture CTAs in the dashboard body to avoid duplication */}
         <div className="flex items-center gap-2">
-          <Link
-            to="/brain-dump"
-            className="btn-galvanized btn-galvanized-secondary"
-            aria-label="Open voice dump"
-          >
-            <Brain className="w-4 h-4" />
-            <span className="hidden sm:inline">Voice Dump</span>
-          </Link>
           <button
             onClick={onAllEntriesSelect}
             className="btn-galvanized btn-galvanized-secondary"
           >
             All entries
           </button>
-          <button
-            onClick={onAddEntry}
-            className="btn-galvanized btn-galvanized-primary"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Save Memory</span>
-          </button>
 
           {/* User Menu Dropdown - Skeletal */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-9 h-9 border border-galvanized bg-card flex items-center justify-center hover:border-primary transition-colors">
-                <span className="mono text-xs font-bold text-primary">
-                  {userInitials}
-                </span>
+              <button
+                aria-label="Open account menu"
+                className="w-10 h-10 rounded-full border border-galvanized bg-card flex items-center justify-center hover:border-primary transition-colors"
+              >
+                <User className="w-4 h-4 text-primary" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-card border border-galvanized" align="end" forceMount>

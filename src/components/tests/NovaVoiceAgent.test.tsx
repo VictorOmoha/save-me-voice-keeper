@@ -73,8 +73,8 @@ describe('NovaVoiceAgent', () => {
 
     expect(screen.getByText('Auto-listen on')).toBeTruthy();
     expect(screen.getByText('Mic is off. Auto-listen is on after Nova responds.')).toBeTruthy();
-    expect(screen.queryByText('Live')).toBeNull();
-    expect(screen.queryByText(/Live will auto-listen/i)).toBeNull();
+    expect(screen.queryByText(/\bLive\b/i)).toBeNull();
+    expect(screen.queryByText(/Nova can keep the mic on/i)).toBeNull();
   });
 
   it('shows memory processing copy consistently while Nova is thinking', () => {

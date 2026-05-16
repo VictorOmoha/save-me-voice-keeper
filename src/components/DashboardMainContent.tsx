@@ -3,8 +3,6 @@ import React, { useMemo } from "react";
 import { FileText, Users, Shield, Zap, Star, Table, Grid3X3, Heart, DollarSign, User, LucideIcon } from "lucide-react";
 import { EnhancedRecentEntries } from "@/components/entries";
 import { StatsCards } from "@/components/StatsCards";
-import { DataEntryForm } from "@/components/DataEntryForm";
-import { DocumentCreator } from "@/components/DocumentCreator";
 import { NewQuickActions } from "@/components/NewQuickActions";
 import { SavedEntry } from "@/types/dashboard";
 import { DashboardIntelligencePanel } from "@/components/dashboard/DashboardIntelligencePanel";
@@ -18,16 +16,6 @@ interface DashboardMainContentProps {
   savedEntries: SavedEntry[];
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  showDocumentCreator: boolean;
-  showAddEntry: boolean;
-  editingEntry: SavedEntry | null;
-  fillingEntry: SavedEntry | null;
-  getFormTitle: () => string;
-  getFormMode: () => 'create' | 'edit' | 'fill';
-  onDocumentSave: (document: unknown) => void;
-  onDocumentCancel: () => void;
-  onSaveEntry: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onCancelEdit: () => void;
   onCategorySelect: (category: string) => void;
   onAddEntry: () => void;
   onCreateDocument: () => void;
@@ -36,7 +24,6 @@ interface DashboardMainContentProps {
   onUseAsTemplate: (entry: SavedEntry) => void;
   onDeleteEntry: (id: string) => void;
   onViewAllEntries: () => void;
-  isSaving?: boolean;
   onViewDocument?: (entry: SavedEntry) => void;
 }
 
@@ -105,16 +92,6 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   savedEntries,
   searchQuery,
   onSearchChange,
-  showDocumentCreator,
-  showAddEntry,
-  editingEntry,
-  fillingEntry,
-  getFormTitle,
-  getFormMode,
-  onDocumentSave,
-  onDocumentCancel,
-  onSaveEntry,
-  onCancelEdit,
   onCategorySelect,
   onAddEntry,
   onCreateDocument,
@@ -123,31 +100,8 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onUseAsTemplate,
   onDeleteEntry,
   onViewAllEntries,
-  isSaving,
   onViewDocument,
 }) => {
-  if (showDocumentCreator) {
-    return (
-      <DocumentCreator
-        onSave={onDocumentSave}
-        onCancel={onDocumentCancel}
-      />
-    );
-  }
-
-  if (showAddEntry || editingEntry || fillingEntry) {
-    return (
-      <DataEntryForm
-        mode={getFormMode()}
-        editEntry={editingEntry}
-        templateEntry={fillingEntry}
-        onSave={onSaveEntry}
-        onCancel={onCancelEdit}
-        isSaving={isSaving}
-      />
-    );
-  }
-
   return (
     <div className="space-y-8">
       {/* Welcome Section */}

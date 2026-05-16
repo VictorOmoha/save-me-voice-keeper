@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { Suspense, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,6 @@ import {
   ChevronRight
 } from "lucide-react";
 import { EnhancedEntryCard } from "./EnhancedEntryCard";
-import { EnhancedEntryViewDialog } from "./EnhancedEntryViewDialog";
-import { printProfessionally } from "./ProfessionalPrintView";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -32,6 +30,10 @@ interface EnhancedRecentEntriesProps {
 }
 
 type ViewMode = "list" | "grid" | "compact";
+
+const EnhancedEntryViewDialog = React.lazy(() =>
+  import('./EnhancedEntryViewDialog').then((module) => ({ default: module.EnhancedEntryViewDialog }))
+);
 
 export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React.memo(({
   entries,
@@ -102,11 +104,13 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
     }
   };
 
-  const handlePrintAll = () => {
+  const handlePrintAll = async () => {
     if (recentEntries.length === 0) {
       toast.error("No entries to print");
       return;
     }
+
+    const { printProfessionally } = await import('./ProfessionalPrintView');
     printProfessionally(recentEntries, {
       title: "Recent Entries",
       includeMetadata: true,
@@ -237,17 +241,21 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
       </Card>
 
       {/* Entry View Dialog */}
-      <EnhancedEntryViewDialog
-        entry={viewingEntry}
-        isOpen={!!viewingEntry}
-        onClose={handleCloseDialog}
-        onEdit={onEdit}
-        onFill={onFill}
-        onUseAsTemplate={onUseAsTemplate}
-        onViewDocument={onView}
-        allEntries={entries}
-        onOpenRelatedEntry={(entry) => setViewingEntry(entry)}
-      />
+      {viewingEntry && (
+        <Suspense fallback={null}>
+          <EnhancedEntryViewDialog
+            entry={viewingEntry}
+            isOpen={!!viewingEntry}
+            onClose={handleCloseDialog}
+            onEdit={onEdit}
+            onFill={onFill}
+            onUseAsTemplate={onUseAsTemplate}
+            onViewDocument={onView}
+            allEntries={entries}
+            onOpenRelatedEntry={(entry) => setViewingEntry(entry)}
+          />
+        </Suspense>
+      )}
     </>
   );
 });

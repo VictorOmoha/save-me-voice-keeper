@@ -4,8 +4,10 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
-import { DataEntryForm } from '@/components/DataEntryForm';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
+const DataEntryForm = lazy(() =>
+  import('@/components/DataEntryForm').then((module) => ({ default: module.DataEntryForm }))
+);
 const DocumentCreator = lazy(() =>
   import('@/components/DocumentCreator').then((module) => ({ default: module.DocumentCreator }))
 );
@@ -312,15 +314,17 @@ export default function Dashboard() {
                 </Suspense>
               </div>
             ) : (
-              <DataEntryForm
-                mode={getFormMode()}
-                editEntry={editingEntry || fillingEntry}
-                templateEntry={templateEntry}
-                onSave={saveEntry}
-                onCancel={handleCancelEdit}
-                isVoiceActive={false}
-                isSaving={isSaving}
-              />
+              <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading entry form…</div>}>
+                <DataEntryForm
+                  mode={getFormMode()}
+                  editEntry={editingEntry || fillingEntry}
+                  templateEntry={templateEntry}
+                  onSave={saveEntry}
+                  onCancel={handleCancelEdit}
+                  isVoiceActive={false}
+                  isSaving={isSaving}
+                />
+              </Suspense>
             )}
           </>
         ) : (
@@ -350,16 +354,6 @@ export default function Dashboard() {
               savedEntries={savedEntries}
               searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            showDocumentCreator={showDocumentCreator}
-            showAddEntry={showAddEntry}
-            editingEntry={editingEntry}
-            fillingEntry={fillingEntry}
-            getFormTitle={getFormTitle}
-            getFormMode={getFormMode}
-            onDocumentSave={handleDocumentSave}
-            onDocumentCancel={handleDocumentCancel}
-            onSaveEntry={saveEntry}
-            onCancelEdit={handleCancelEdit}
             onCategorySelect={handleCategorySelect}
             onAddEntry={handleAddEntry}
             onCreateDocument={handleCreateDocument}
@@ -369,27 +363,30 @@ export default function Dashboard() {
             onDeleteEntry={deleteEntry}
             onViewDocument={handleViewDocument}
             onViewAllEntries={handleViewAllEntries}
-            isSaving={isSaving}
             />
           </>
         )}
 
         <Suspense fallback={null}>
-          <EnhancedDocumentViewer
-            isOpen={documentViewerState.isOpen}
-            onClose={handleCloseDocumentViewer}
-            entry={documentViewerState.entry}
-            onEdit={handleEditDocument}
-            allEntries={savedEntries}
-            onOpenRelatedEntry={handleOpenRelatedEntry}
-          />
+          {documentViewerState.isOpen && (
+            <EnhancedDocumentViewer
+              isOpen={documentViewerState.isOpen}
+              onClose={handleCloseDocumentViewer}
+              entry={documentViewerState.entry}
+              onEdit={handleEditDocument}
+              allEntries={savedEntries}
+              onOpenRelatedEntry={handleOpenRelatedEntry}
+            />
+          )}
 
-          <DocumentEditor
-            isOpen={documentEditorState.isOpen}
-            onClose={handleCloseDocumentEditor}
-            entry={documentEditorState.entry}
-            onSave={handleDocumentSaved}
-          />
+          {documentEditorState.isOpen && (
+            <DocumentEditor
+              isOpen={documentEditorState.isOpen}
+              onClose={handleCloseDocumentEditor}
+              entry={documentEditorState.entry}
+              onSave={handleDocumentSaved}
+            />
+          )}
         </Suspense>
 
         <DeleteConfirmDialog

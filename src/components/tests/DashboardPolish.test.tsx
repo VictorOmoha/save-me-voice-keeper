@@ -62,6 +62,17 @@ describe('dashboard polish', () => {
     expect(screen.queryByText('VO')).toBeNull();
   });
 
+  it('renders breadcrumb links on nested dashboard routes without throwing', () => {
+    render(
+      <MemoryRouter initialEntries={['/all-entries']}>
+        <SearchHeader {...layoutProps} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole('link', { name: 'Dashboard' }).getAttribute('href')).toBe('/dashboard');
+    expect(screen.getByText('All Entries')).toBeTruthy();
+  });
+
   it('caps the readable desktop content width so ultrawide screens do not stretch the app', () => {
     render(
       <MemoryRouter>

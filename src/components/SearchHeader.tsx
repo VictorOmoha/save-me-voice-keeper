@@ -13,7 +13,7 @@ import { LogOut, User, CreditCard, HelpCircle, ChevronRight } from "lucide-react
 import { SmartSearchWithBoundary as SmartSearch } from "./SmartSearch";
 import { SavedEntry } from "@/types/dashboard";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";

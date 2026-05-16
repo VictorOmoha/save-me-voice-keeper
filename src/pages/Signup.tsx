@@ -88,7 +88,7 @@ const Signup = () => {
 
         <div className="mono text-xs text-muted-foreground flex items-center gap-2">
           <span className="status-dot" />
-          SECURE_CONNECTION_ESTABLISHED
+          Secure connection active
         </div>
       </div>
 
@@ -105,14 +105,14 @@ const Signup = () => {
 
           <div className="galvanized-card p-8">
             <div className="text-center mb-8">
-              <h2 className="mono text-xl font-bold text-foreground mb-2">CREATE_ACCOUNT</h2>
+              <h2 className="text-xl font-bold text-foreground mb-2">Create account</h2>
               <p className="text-sm text-muted-foreground">Start your external memory</p>
             </div>
 
             <GoogleSignInButton
               onSignIn={handleGoogleSignIn}
               isLoading={isGoogleLoading}
-              text="SIGN_UP_WITH_GOOGLE"
+              text="Continue with Google"
             />
 
             <div className="relative my-8">
@@ -121,7 +121,7 @@ const Signup = () => {
               </div>
               <div className="relative flex justify-center">
                 <span className="bg-card px-4 mono text-xs text-muted-foreground">
-                  OR_CONTINUE_WITH
+                  Or use email
                 </span>
               </div>
             </div>
@@ -129,7 +129,7 @@ const Signup = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="name" className="mono text-xs text-muted-foreground uppercase tracking-wider">
-                  FULL_NAME
+                  Full name
                 </Label>
                 <Input
                   id="name"
@@ -146,7 +146,7 @@ const Signup = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="mono text-xs text-muted-foreground uppercase tracking-wider">
-                  EMAIL_ADDRESS
+                  Email address
                 </Label>
                 <Input
                   id="email"
@@ -163,7 +163,7 @@ const Signup = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="mono text-xs text-muted-foreground uppercase tracking-wider">
-                  PASSWORD
+                  Password
                 </Label>
                 <Input
                   id="password"
@@ -184,14 +184,14 @@ const Signup = () => {
                 disabled={isLoading}
                 className="w-full btn-galvanized btn-galvanized-primary justify-center"
               >
-                {isLoading ? "CREATING_ACCOUNT..." : "CREATE_ACCOUNT"}
+                {isLoading ? "Creating account..." : "Create account"}
               </button>
             </form>
 
             <div className="mt-8 pt-6 border-t border-galvanized text-center">
               <span className="text-sm text-muted-foreground">Already have an account? </span>
               <Link to={nextDestination ? `/login?next=${encodeURIComponent(nextDestination)}` : requestedPlan ? `/login?plan=${requestedPlan}` : "/login"} className="mono text-sm text-primary hover:underline">
-                AUTHENTICATE
+                Sign in
               </Link>
             </div>
           </div>
@@ -199,7 +199,7 @@ const Signup = () => {
           {/* Footer Link */}
           <div className="mt-8 text-center">
             <Link to="/" className="mono text-xs text-muted-foreground hover:text-primary transition-colors">
-              ← RETURN_TO_HOME
+              ← Return home
             </Link>
           </div>
         </div>

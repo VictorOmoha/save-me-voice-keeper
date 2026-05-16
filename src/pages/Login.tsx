@@ -87,7 +87,7 @@ const Login = () => {
 
         <div className="mono text-xs text-muted-foreground flex items-center gap-2">
           <span className="status-dot" />
-          SECURE_CONNECTION_ESTABLISHED
+          Secure connection active
         </div>
       </div>
 
@@ -104,14 +104,14 @@ const Login = () => {
 
           <div className="galvanized-card p-8">
             <div className="text-center mb-8">
-              <h2 className="mono text-xl font-bold text-foreground mb-2">AUTHENTICATE</h2>
+              <h2 className="text-xl font-bold text-foreground mb-2">Sign in</h2>
               <p className="text-sm text-muted-foreground">Sign in to access your archive</p>
             </div>
 
             <GoogleSignInButton
               onSignIn={handleGoogleSignIn}
               isLoading={isGoogleLoading}
-              text="SIGN_IN_WITH_GOOGLE"
+              text="Continue with Google"
             />
 
             <div className="relative my-8">
@@ -120,7 +120,7 @@ const Login = () => {
               </div>
               <div className="relative flex justify-center">
                 <span className="bg-card px-4 mono text-xs text-muted-foreground">
-                  OR_CONTINUE_WITH
+                  Or use email
                 </span>
               </div>
             </div>
@@ -128,7 +128,7 @@ const Login = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="mono text-xs text-muted-foreground uppercase tracking-wider">
-                  EMAIL_ADDRESS
+                  Email address
                 </Label>
                 <Input
                   id="email"
@@ -145,7 +145,7 @@ const Login = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="password" className="mono text-xs text-muted-foreground uppercase tracking-wider">
-                  PASSWORD
+                  Password
                 </Label>
                 <Input
                   id="password"
@@ -165,7 +165,7 @@ const Login = () => {
                 disabled={isLoading}
                 className="w-full btn-galvanized btn-galvanized-primary justify-center"
               >
-                {isLoading ? "AUTHENTICATING..." : "INITIATE_LOGIN"}
+                {isLoading ? "Signing in..." : "Sign in"}
               </button>
             </form>
 
@@ -174,14 +174,14 @@ const Login = () => {
                 to="/reset-password"
                 className="mono text-xs text-primary hover:underline"
               >
-                FORGOT_PASSWORD?
+                Forgot password?
               </Link>
             </div>
 
             <div className="mt-8 pt-6 border-t border-galvanized text-center">
               <span className="text-sm text-muted-foreground">No archive yet? </span>
               <Link to={nextDestination ? `/signup?next=${encodeURIComponent(nextDestination)}` : requestedPlan ? `/signup?plan=${requestedPlan}` : "/signup"} className="mono text-sm text-primary hover:underline">
-                CREATE_ACCOUNT
+                Create account
               </Link>
             </div>
           </div>
@@ -189,7 +189,7 @@ const Login = () => {
           {/* Footer Link */}
           <div className="mt-8 text-center">
             <Link to="/" className="mono text-xs text-muted-foreground hover:text-primary transition-colors">
-              ← RETURN_TO_HOME
+              ← Return home
             </Link>
           </div>
         </div>

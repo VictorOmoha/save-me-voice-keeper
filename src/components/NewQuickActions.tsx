@@ -51,11 +51,11 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
           <div className="flex flex-col sm:flex-row gap-2 md:min-w-[320px]">
             <Button onClick={handleStartBrainDump} className="flex items-center justify-center gap-2 flex-1">
               <Mic className="w-4 h-4" />
-              Start voice dump
+              Voice Dump
             </Button>
             <Button onClick={handleQuickCapture} variant="outline" className="flex items-center justify-center gap-2 flex-1">
               <Plus className="w-4 h-4" />
-              Quick Save
+              Save Memory
             </Button>
           </div>
         </div>
@@ -106,7 +106,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             size="sm"
           >
             <FileText className="w-4 h-4" />
-            <span className="hidden xs:inline">Create </span>Doc
+            <span>Upload Document</span>
           </Button>
         </div>
 

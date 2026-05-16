@@ -120,7 +120,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             aria-label="Open voice dump"
           >
             <Brain className="w-4 h-4" />
-            <span className="hidden sm:inline">Brain dump</span>
+            <span className="hidden sm:inline">Voice Dump</span>
           </Link>
           <button
             onClick={onAllEntriesSelect}
@@ -133,7 +133,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             className="btn-galvanized btn-galvanized-primary"
           >
             <Plus className="w-4 h-4" />
-            <span>Add entry</span>
+            <span>Save Memory</span>
           </button>
 
           {/* User Menu Dropdown - Skeletal */}

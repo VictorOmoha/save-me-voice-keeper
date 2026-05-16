@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link to="/brain-dump" onClick={handleNavClick}>
             <div className={navItemClass(activeSection ? activeSection === "brain-dump" : location.pathname === "/brain-dump")}>
               <Brain className="w-4 h-4" />
-              <span>Brain dump</span>
+              <span>Voice Dump</span>
             </div>
           </Link>
 
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={navItemClass(isAddEntryActive)}
           >
             <Plus className="w-4 h-4" />
-            <span>Add entry</span>
+            <span>Save Memory</span>
           </button>
 
           <Link to="/settings" onClick={handleNavClick}>

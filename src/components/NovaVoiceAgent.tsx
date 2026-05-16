@@ -25,6 +25,24 @@ const STATUS_COLOR: Record<AgentStatus, string> = {
   speaking: "bg-emerald-500",
 };
 
+const formatNovaError = (message: string) => {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("voice agent failed")) {
+    return "Nova couldn't start voice capture. Check microphone access and try again.";
+  }
+
+  if (lower.includes("not authenticated")) {
+    return "Sign in again so Nova can save this memory securely.";
+  }
+
+  if (lower.includes("mic error") || lower.includes("microphone") || lower.includes("permission") || lower.includes("denied")) {
+    return message;
+  }
+
+  return "Nova hit a problem while processing this memory. Try again in a moment.";
+};
+
 // Tool name → friendly label
 const ACTION_ICON: Record<string, string> = {
   saveEntry: "💾",
@@ -150,7 +168,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
           title={continuous ? "Continuous mode ON — Nova auto-listens after each response" : "Continuous mode OFF"}
         >
           <Radio className={cn("h-3 w-3", continuous && "animate-pulse")} />
-          {continuous ? "Live" : "Manual"}
+          {continuous ? "Auto-listen on" : "Manual"}
         </button>
 
         {conversationHistory.length > 0 && (
@@ -228,7 +246,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
               <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
               <span className="text-xs text-muted-foreground">
-                {status === "thinking" ? "Nova is thinking..." : "Working on it..."}
+                {status === "thinking" ? "Processing your memory..." : "Saving this to your archive..."}
               </span>
             </div>
           </div>
@@ -236,7 +254,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
 
         {error && (
           <div className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2 text-center">
-            {error}
+            {formatNovaError(error)}
           </div>
         )}
       </div>
@@ -287,8 +305,9 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             "text-xs min-w-[140px]",
             status === "listening" ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground"
           )}>
-            {STATUS_TEXT[status]}
-            {continuous && status === "idle" && " · Live will auto-listen"}
+            {continuous && status === "idle"
+              ? "Mic is off. Auto-listen is on after Nova responds."
+              : STATUS_TEXT[status]}
           </span>
         </div>
 

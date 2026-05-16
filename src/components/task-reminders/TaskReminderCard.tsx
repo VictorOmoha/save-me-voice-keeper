@@ -62,7 +62,7 @@ export const TaskReminderCard = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[1fr_220px_auto] md:items-end">
+      <form onSubmit={handleSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)_auto] lg:items-end">
         <div className="space-y-2">
           <Label htmlFor="task-reminder-text">Task</Label>
           <Textarea
@@ -81,6 +81,7 @@ export const TaskReminderCard = () => {
             type="datetime-local"
             value={scheduledAtInput}
             onChange={(event) => setScheduledAtInput(event.target.value)}
+            className="w-full min-w-[260px] text-sm"
           />
         </div>
 

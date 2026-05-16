@@ -86,7 +86,7 @@ export default function Onboarding() {
           size="sm"
           onClick={handleSkip}
           disabled={isCompleting}
-          className="text-muted-foreground hover:text-foreground"
+          className="border border-border/80 bg-card/80 text-foreground shadow-sm backdrop-blur-sm hover:bg-card hover:text-primary focus-visible:ring-primary"
         >
           <X className="w-4 h-4 mr-1" />
           Skip

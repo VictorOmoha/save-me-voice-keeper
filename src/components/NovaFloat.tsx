@@ -230,19 +230,20 @@ export const NovaFloat: React.FC = () => {
     <>
       {/* Panel */}
       <div
+        data-testid="nova-float-panel"
         className={cn(
-          "fixed z-50 w-full sm:w-[360px] sm:right-6",
-          "bg-background border shadow-2xl",
+          "fixed z-50 w-full sm:w-[320px] md:w-[340px] sm:right-6 lg:right-8",
+          "bg-background/95 border shadow-2xl backdrop-blur-md",
           "transition-all duration-300 ease-out",
           isMinimized
-            ? "bottom-0 sm:bottom-20 rounded-t-2xl sm:rounded-2xl"
-            : "bottom-0 sm:bottom-20 rounded-t-2xl sm:rounded-2xl",
+            ? "bottom-0 sm:bottom-24 rounded-t-2xl sm:rounded-2xl"
+            : "bottom-0 sm:bottom-24 rounded-t-2xl sm:rounded-2xl",
           isVisible
             ? "translate-y-0 opacity-100 pointer-events-auto"
             : "translate-y-6 opacity-0 pointer-events-none"
         )}
         style={{
-          height: isMinimized ? "48px" : "clamp(360px, 48vh, 480px)",
+          height: isMinimized ? "48px" : "clamp(320px, 42vh, 420px)",
           overflow: "hidden",
         }}
       >

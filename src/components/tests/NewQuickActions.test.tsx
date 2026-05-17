@@ -27,6 +27,11 @@ describe('NewQuickActions', () => {
     expect(screen.getAllByText('Voice Dump').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Save Memory').length).toBeGreaterThan(0);
     expect(screen.getByText('Upload Document')).toBeTruthy();
+    expect(screen.getByText(/One capture box first/i)).toBeTruthy();
+    expect(screen.getByText(/Review the structured memory/i)).toBeTruthy();
+    expect(screen.getByText(/Search and open it later/i)).toBeTruthy();
+    expect(screen.queryByText(/Create account/i)).toBeNull();
+    expect(screen.queryByText(/Sign up/i)).toBeNull();
     expect(screen.queryByText('Quick Save')).toBeNull();
     expect(screen.queryByText('Doc')).toBeNull();
     expect(screen.queryByText(/Brain dump/i)).toBeNull();

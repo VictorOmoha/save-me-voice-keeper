@@ -10,8 +10,8 @@ import { useVoiceAgent, UseVoiceAgentOptions, AgentStatus } from "@/hooks/useVoi
 import { cn } from "@/lib/utils";
 
 const STATUS_TEXT: Record<AgentStatus, string> = {
-  idle: "Mic is off. Tap when ready.",
-  listening: "Recording now. Tap Stop to finish.",
+  idle: "Not listening. Tap the mic to start.",
+  listening: "Stop recording to save",
   thinking: "Processing your memory...",
   acting: "Saving this to your archive...",
   speaking: "Nova is speaking...",
@@ -264,7 +264,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
         <div className="mx-4 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-red-700 dark:text-red-300">Recording now</p>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">Listening now</p>
               <p className="text-xs text-muted-foreground">Tap Stop when you are finished. Nova will process the memory after this.</p>
             </div>
             <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white tabular-nums animate-pulse">

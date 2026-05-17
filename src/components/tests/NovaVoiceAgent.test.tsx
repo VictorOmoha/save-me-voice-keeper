@@ -63,7 +63,7 @@ describe('NovaVoiceAgent', () => {
     render(<NovaVoiceAgent continuous={false} />);
 
     expect(screen.getByText("Hey, I'm Nova")).toBeTruthy();
-    expect(screen.getByText('Mic is off. Tap when ready.')).toBeTruthy();
+    expect(screen.getByText('Not listening. Tap the mic to start.')).toBeTruthy();
   });
 
   it('does not describe continuous mode as live listening when the mic is off', () => {
@@ -77,11 +77,18 @@ describe('NovaVoiceAgent', () => {
     expect(screen.queryByText(/Nova can keep the mic on/i)).toBeNull();
   });
 
-  it('shows memory processing copy consistently while Nova is thinking', () => {
-    mockState({ status: 'thinking' });
-
+  it('shows explicit trust-safe voice states for idle, listening, and processing', () => {
     render(<NovaVoiceAgent />);
+    expect(screen.getByText('Not listening. Tap the mic to start.')).toBeTruthy();
 
+    mockState({ status: 'listening', transcript: 'insurance policy renews in June' });
+    const { rerender } = render(<NovaVoiceAgent />);
+    expect(screen.getByText('Listening now')).toBeTruthy();
+    expect(screen.getByText(/Tap Stop when you are finished/i)).toBeTruthy();
+    expect(screen.getByText('Stop recording to save')).toBeTruthy();
+
+    mockState({ status: 'thinking' });
+    rerender(<NovaVoiceAgent />);
     expect(screen.getAllByText('Processing your memory...').length).toBeGreaterThan(0);
     expect(screen.queryByText('Nova is thinking...')).toBeNull();
   });

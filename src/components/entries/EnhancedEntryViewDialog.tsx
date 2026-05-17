@@ -120,6 +120,23 @@ const formatFieldValue = (key: string, value: unknown): { formatted: string; typ
   return { formatted: String(value), type: "text" };
 };
 
+const isPlaceholderDetail = (key: string, value: unknown): boolean => {
+  if (value === null || value === undefined || value === "") return true;
+  if (typeof value !== "string") return false;
+
+  const normalizedKey = key.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  const normalizedValue = value.trim().toLowerCase();
+
+  if (!normalizedValue) return true;
+  if (["n/a", "na", "none", "null", "undefined", "unknown", "todo", "tbd"].includes(normalizedValue)) return true;
+  if (/^value\s*\d+$/i.test(value.trim())) return true;
+  if (/^field\s*\d+$/i.test(value.trim())) return true;
+  if (/^custom\s*field\s*\d*$/i.test(value.trim())) return true;
+  if (/^value\d+$/.test(normalizedKey) && /^value\s*\d+$/i.test(value.trim())) return true;
+
+  return false;
+};
+
 export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = ({
   entry,
   isOpen,
@@ -171,7 +188,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
           (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) {
         return false;
       }
-      if (value === null || value === undefined || value === "") return false;
+      if (isPlaceholderDetail(key, value)) return false;
       if (typeof value === "object" && "columns" in (value as Record<string, unknown>) && "rows" in (value as Record<string, unknown>)) {
         return Array.isArray((value as TableData).rows) && (value as TableData).rows.length > 0;
       }

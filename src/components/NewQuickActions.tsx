@@ -52,10 +52,10 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
           </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-3 text-xs text-muted-foreground">
-          <div className="rounded-lg bg-background/80 border px-3 py-2">1. Dump thoughts fast</div>
-          <div className="rounded-lg bg-background/80 border px-3 py-2">2. Process into structure</div>
-          <div className="rounded-lg bg-background/80 border px-3 py-2">3. Save to your archive</div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3 text-xs font-medium text-foreground/90">
+          <div className="rounded-lg bg-background/90 border border-border px-3 py-2">1. One capture box first</div>
+          <div className="rounded-lg bg-background/90 border border-border px-3 py-2">2. Review the structured memory</div>
+          <div className="rounded-lg bg-background/90 border border-border px-3 py-2">3. Search and open it later</div>
         </div>
       </div>
 

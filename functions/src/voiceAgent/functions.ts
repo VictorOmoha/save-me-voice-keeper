@@ -354,7 +354,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
                   input: {text: responseText},
                   voice: {
                     languageCode: "en-US",
-                    name: "en-US-Neural2-F",
+                    // Match the higher-quality landing-page demo voice.
+                    // The landing demo maps "rachel" to Google Studio-O.
+                    name: "en-US-Studio-O",
                   },
                   audioConfig: {
                     audioEncoding: "MP3",

@@ -258,7 +258,7 @@ export const NovaFloat: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-semibold text-sm">Nova</span>
+            <span className="font-semibold text-sm">Anam</span>
             {isMinimized && (
               <span className="text-xs text-muted-foreground">· tap to expand</span>
             )}
@@ -270,7 +270,7 @@ export const NovaFloat: React.FC = () => {
                 setPanelState(isMinimized ? "open" : "minimized");
               }}
               className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-              title={isMinimized ? "Expand Nova" : "Minimize — scroll freely"}
+              title={isMinimized ? "Expand Anam" : "Minimize — scroll freely"}
             >
               {isMinimized
                 ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
@@ -282,7 +282,7 @@ export const NovaFloat: React.FC = () => {
                 setPanelState("closed");
               }}
               className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-              title="Close Nova"
+              title="Close Anam"
             >
               <X className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
@@ -337,7 +337,7 @@ export const NovaFloat: React.FC = () => {
           "transition-all duration-200 hover:scale-105 active:scale-95",
           isVisible ? "opacity-0 pointer-events-none scale-90" : "opacity-100"
         )}
-        aria-label="Open Nova AI"
+        aria-label="Open Anam"
       >
         <div className="relative">
           <Mic className="h-5 w-5" />

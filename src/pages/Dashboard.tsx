@@ -269,10 +269,10 @@ export default function Dashboard() {
         ? 'Fill Entry'
         : templateEntry
           ? 'Use Entry as Template'
-          : 'Add Entry';
+          : 'Save a Memory';
   const formSubheading = showDocumentCreator
     ? 'Build a structured document for your archive.'
-    : 'Add the details you want SaveMe to remember. Save stays locked until the basics are clear.';
+    : 'Write the thing you do not want to lose. Anam keeps it structured, searchable, and yours.';
 
   const userName = user?.displayName || user?.email || 'User';
 

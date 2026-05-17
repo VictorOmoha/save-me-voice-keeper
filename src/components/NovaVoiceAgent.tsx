@@ -14,7 +14,7 @@ const STATUS_TEXT: Record<AgentStatus, string> = {
   listening: "Stop recording to save",
   thinking: "Processing your memory...",
   acting: "Saving this to your archive...",
-  speaking: "Nova is speaking...",
+  speaking: "Anam is speaking...",
 };
 
 const STATUS_COLOR: Record<AgentStatus, string> = {
@@ -29,18 +29,22 @@ const formatNovaError = (message: string) => {
   const lower = message.toLowerCase();
 
   if (lower.includes("voice agent failed")) {
-    return "Nova couldn't start voice capture. Check microphone access and try again.";
+    return "Anam couldn't start voice capture. Check microphone access and try again.";
   }
 
   if (lower.includes("not authenticated")) {
-    return "Sign in again so Nova can save this memory securely.";
+    return "Sign in again so Anam can save this memory securely.";
+  }
+
+  if (lower.includes("provider") || lower.includes("temporarily unavailable") || lower.includes("timed out") || lower.includes("timeout")) {
+    return "The AI provider is busy. I saved your message and will retry when you send again.";
   }
 
   if (lower.includes("mic error") || lower.includes("microphone") || lower.includes("permission") || lower.includes("denied")) {
     return message;
   }
 
-  return "Nova hit a problem while processing this memory. Try again in a moment.";
+  return "Anam hit a problem while processing this memory. Try again in a moment.";
 };
 
 // Tool name → friendly label
@@ -191,11 +195,11 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-sm">Hey, I'm Nova</p>
+              <p className="font-medium text-sm">Hey, I'm Anam</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[220px] leading-relaxed">
                 {continuous
-                  ? "Auto-listen is on, but the mic is off until Nova finishes responding or you tap the mic."
-                  : "Tap the mic when you want Nova to hear you, or type below."}
+                  ? "Auto-listen is on, but the mic is off until Anam finishes responding or you tap the mic."
+                  : "Tap the mic when you want Anam to hear you, or type below."}
               </p>
             </div>
           </div>
@@ -265,7 +269,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-red-700 dark:text-red-300">Listening now</p>
-              <p className="text-xs text-muted-foreground">Tap Stop when you are finished. Nova will process the memory after this.</p>
+              <p className="text-xs text-muted-foreground">Tap Stop when you are finished. Anam will process the memory after this.</p>
             </div>
             <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white tabular-nums animate-pulse">
               {recordingTime}
@@ -295,7 +299,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               isDisabled && "opacity-60 cursor-not-allowed scale-100"
             )}
             title={status === "listening" ? "Stop recording" : "Start recording"}
-            aria-label={status === "listening" ? "Stop Nova recording" : "Start Nova recording"}
+            aria-label={status === "listening" ? "Stop Anam recording" : "Start Anam recording"}
           >
             {status === "listening"
               ? <Square className="h-4 w-4 fill-white" />
@@ -306,7 +310,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             status === "listening" ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground"
           )}>
             {continuous && status === "idle"
-              ? "Mic is off. Auto-listen is on after Nova responds."
+              ? "Mic is off. Auto-listen is on after Anam responds."
               : STATUS_TEXT[status]}
           </span>
         </div>

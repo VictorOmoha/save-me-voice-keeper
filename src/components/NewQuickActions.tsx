@@ -36,24 +36,24 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
           <div className="space-y-1.5">
             <div className="inline-flex items-center gap-2 text-xs font-medium text-primary">
               <Sparkles className="w-3.5 h-3.5" />
-              Fastest way to use SaveMe
+              First memory path
             </div>
-            <h3 className="text-lg md:text-xl font-semibold text-card-foreground">Start with a voice dump</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-card-foreground">Say one thing you don’t want to forget.</h3>
             <p className="text-sm text-muted-foreground max-w-2xl">
-              Speak freely. Nova will organize it into a memory you can find later.
+              Speak. Anam will turn it into structured memory you own.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 md:min-w-[220px]">
             <Button onClick={handleStartBrainDump} className="flex items-center justify-center gap-2 flex-1">
               <Mic className="w-4 h-4" />
-              Voice Dump
+              Start Voice Dump
             </Button>
           </div>
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-3 text-xs font-medium text-foreground/90">
-          <div className="rounded-lg bg-background/90 border border-border px-3 py-2">1. One capture box first</div>
+          <div className="rounded-lg bg-background/90 border border-border px-3 py-2">1. Speak naturally</div>
           <div className="rounded-lg bg-background/90 border border-border px-3 py-2">2. Review the structured memory</div>
           <div className="rounded-lg bg-background/90 border border-border px-3 py-2">3. Search and open it later</div>
         </div>
@@ -61,7 +61,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
 
       <div>
         <h3 className="text-base md:text-lg font-semibold text-card-foreground mb-1 md:mb-2">Quick Actions</h3>
-        <p className="text-muted-foreground text-xs md:text-sm mb-3 md:mb-4">Capture a memory, add structured details, or search your archive</p>
+        <p className="text-muted-foreground text-xs md:text-sm mb-3 md:mb-4">Capture by voice first. Use manual save only when you already know the details.</p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -76,7 +76,7 @@ export const NewQuickActions: React.FC<NewQuickActionsProps> = ({
             size="sm"
           >
             <Plus className="w-4 h-4" />
-            <span>Save Memory</span>
+            <span>Save a Memory Manually</span>
           </Button>
 
           <Button

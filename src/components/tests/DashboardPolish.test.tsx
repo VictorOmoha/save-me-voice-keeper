@@ -99,8 +99,8 @@ describe('dashboard polish', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getAllByText('Voice Dump')).toHaveLength(1);
-    expect(screen.getAllByText('Save Memory').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Start Voice Dump')).toHaveLength(1);
+    expect(screen.getAllByText('Save a Memory Manually').length).toBeGreaterThan(0);
     expect(screen.getByText('Upload Document')).toBeTruthy();
   });
 });

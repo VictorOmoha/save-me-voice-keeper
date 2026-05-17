@@ -62,7 +62,7 @@ describe('NovaVoiceAgent', () => {
   it('renders idle state without triggering hook initialization errors', () => {
     render(<NovaVoiceAgent continuous={false} />);
 
-    expect(screen.getByText("Hey, I'm Nova")).toBeTruthy();
+    expect(screen.getByText("Hey, I'm Anam")).toBeTruthy();
     expect(screen.getByText('Not listening. Tap the mic to start.')).toBeTruthy();
   });
 
@@ -72,9 +72,9 @@ describe('NovaVoiceAgent', () => {
     render(<NovaVoiceAgent continuous />);
 
     expect(screen.getByText('Auto-listen on')).toBeTruthy();
-    expect(screen.getByText('Mic is off. Auto-listen is on after Nova responds.')).toBeTruthy();
+    expect(screen.getByText('Mic is off. Auto-listen is on after Anam responds.')).toBeTruthy();
     expect(screen.queryByText(/\bLive\b/i)).toBeNull();
-    expect(screen.queryByText(/Nova can keep the mic on/i)).toBeNull();
+    expect(screen.queryByText(/Anam can keep the mic on/i)).toBeNull();
   });
 
   it('shows explicit trust-safe voice states for idle, listening, and processing', () => {
@@ -98,7 +98,16 @@ describe('NovaVoiceAgent', () => {
 
     render(<NovaVoiceAgent />);
 
-    expect(screen.getByText("Nova couldn't start voice capture. Check microphone access and try again.")).toBeTruthy();
+    expect(screen.getByText("Anam couldn't start voice capture. Check microphone access and try again.")).toBeTruthy();
     expect(screen.queryByText('Voice agent failed')).toBeNull();
+  });
+
+  it('turns provider outages into a trust-preserving retry message', () => {
+    mockState({ error: 'The AI provider is temporarily unavailable. Please try again later.' });
+
+    render(<NovaVoiceAgent />);
+
+    expect(screen.getByText('The AI provider is busy. I saved your message and will retry when you send again.')).toBeTruthy();
+    expect(screen.queryByText(/temporarily unavailable/i)).toBeNull();
   });
 });

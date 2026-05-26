@@ -155,7 +155,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
       </div>
 
       {/* ── Conversation area ── */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div ref={scrollRef} className={cn("flex-1 overflow-y-auto px-4 py-3 space-y-3", status === "listening" && "hidden")}>
 
         {/* Empty state */}
         {displayTurns.length === 0 && actions.length === 0 && status === "idle" && (
@@ -238,24 +238,24 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
         )}
       </div>
 
-      {/* ── Live transcript + waveform ── */}
+      {/* ── Live transcript + waveform (expanded) ── */}
       {status === "listening" && (
-        <div className="mx-4 mb-2 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2.5 shrink-0">
-          <div className="flex items-center gap-3 mb-2">
-            {/* Mic icon + pulse */}
+        <div className="mx-3 mb-2 rounded-xl bg-primary/5 border-2 border-primary/20 px-5 py-5 shrink-0 flex-1 flex flex-col justify-center min-h-[0]">
+          {/* Mic icon + pulse + timer row */}
+          <div className="flex items-center gap-4 mb-4">
             <div className="relative shrink-0">
-              <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center">
-                <Square className="h-3 w-3 fill-white text-white" />
+              <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center">
+                <Square className="h-5 w-5 fill-white text-white" />
               </div>
-              <span className="absolute -inset-1 rounded-full border border-red-500/30 animate-ping" />
+              <span className="absolute -inset-1.5 rounded-full border border-red-500/40 animate-ping" />
             </div>
 
-            {/* Waveform bars */}
-            <div className="flex items-center gap-[2px] h-5 flex-1">
+            {/* Waveform bars (bigger) */}
+            <div className="flex items-center gap-[4px] h-10 flex-1">
               {[30, 55, 80, 100, 70, 45, 65, 90, 50, 75, 35, 60].map((h, i) => (
                 <span
                   key={i}
-                  className="w-[3px] rounded-full bg-primary/50"
+                  className="w-[5px] rounded-full bg-primary/50"
                   style={{
                     height: `${h}%`,
                     animation: `waveform-pulse 1s ease-in-out ${i * 0.1}s infinite`,
@@ -265,18 +265,36 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             </div>
 
             {/* Timer */}
-            <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white tabular-nums animate-pulse shrink-0">
+            <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white tabular-nums animate-pulse shrink-0">
               {recordingTime}
             </span>
           </div>
 
-          {/* Live transcription */}
-          {transcript && (
-            <div className="rounded-lg bg-background/60 px-3 py-2 text-xs text-foreground font-mono">
-              {transcript}
-              <span className="inline-block w-[2px] h-[0.9em] ml-0.5 align-text-bottom animate-pulse bg-primary" />
-            </div>
-          )}
+          {/* Live transcription (larger text, prominent) */}
+          <div className="rounded-xl bg-background/70 px-5 py-4 border border-primary/10">
+            {transcript ? (
+              <p className="text-base sm:text-lg text-foreground font-mono leading-relaxed">
+                "{transcript}"
+                <span className="inline-block w-[3px] h-[1.1em] ml-1 align-text-bottom animate-pulse bg-primary" />
+              </p>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 rounded-full bg-primary/30 animate-bounce" style={{ animationDelay: "0s" }} />
+                  <span className="w-2 h-2 rounded-full bg-primary/30 animate-bounce" style={{ animationDelay: "0.15s" }} />
+                  <span className="w-2 h-2 rounded-full bg-primary/30 animate-bounce" style={{ animationDelay: "0.3s" }} />
+                </div>
+                <span className="text-sm text-muted-foreground font-mono tracking-wider uppercase">
+                  Listening...
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Hint */}
+          <p className="text-[11px] text-muted-foreground/60 text-center mt-3">
+            Tap the red stop button when you're done
+          </p>
         </div>
       )}
 

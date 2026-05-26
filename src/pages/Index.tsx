@@ -19,6 +19,7 @@ const Index = () => {
   const [activeDemoVideo, setActiveDemoVideo] = useState<{ url: string; title: string } | null>(null);
   const [activeCanvidVideo, setActiveCanvidVideo] = useState<{ url: string; title: string } | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [demoMuted, setDemoMuted] = useState(false);
 
   const getPlanHref = (planName: string) => {
     const normalizedPlan = planName.toLowerCase();
@@ -213,7 +214,7 @@ const Index = () => {
             <div className={`p-3 md:p-4 reveal stagger-3 relative group rounded-3xl overflow-hidden border shadow-2xl ${theme === 'dark' ? 'bg-zinc-900/50 border-zinc-800/50 shadow-black/30' : 'bg-white border-zinc-200 shadow-zinc-200/60'}`}>
               <div className={`absolute inset-0 pointer-events-none opacity-60 ${theme === 'dark' ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_45%)]' : 'bg-[radial-gradient(circle_at_top,rgba(24,24,27,0.05),transparent_45%)]'}`} />
               <div className={`relative overflow-hidden rounded-2xl border ${theme === 'dark' ? 'border-zinc-800/70 bg-black' : 'border-zinc-200 bg-zinc-950'}`}>
-                <VoiceDemoAnimation theme={theme} />
+                <VoiceDemoAnimation theme={theme} muted={demoMuted} onMuteToggle={() => setDemoMuted(m => !m)} />
               </div>
             </div>
           </div>

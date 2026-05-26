@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Mic, Sparkles, Check } from "lucide-react";
+import { Mic, Volume2, VolumeX, Check } from "lucide-react";
+import { demoSpeak, demoStopSpeaking } from "@/utils/demoTTS";
 
 interface VoiceDemoAnimationProps {
   theme: "light" | "dark";
+  muted?: boolean;
+  onMuteToggle?: () => void;
 }
 
 const voiceText =
@@ -18,7 +21,7 @@ const resultItems = [
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme }) => {
+export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme, muted = false, onMuteToggle }) => {
   const [phase, setPhase] = useState<
     | "idle"
     | "listening"
@@ -31,12 +34,19 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
   >("idle");
   const [typedText, setTypedText] = useState("");
   const [visibleResults, setVisibleResults] = useState<number[]>([]);
+  const [speaking, setSpeaking] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const runningRef = useRef(false);
+
+  const stopSpeaking = useCallback(() => {
+    demoStopSpeaking();
+    setSpeaking(false);
+  }, []);
 
   const runDemo = useCallback(async () => {
     if (runningRef.current) return;
     runningRef.current = true;
+    stopSpeaking();
 
     // Reset
     setPhase("idle");
@@ -48,8 +58,14 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
     setPhase("listening");
     await sleep(1200);
 
-    // Phase 2: Type out transcription
+    // Phase 2: Type out transcription + TTS
     setPhase("typing");
+    if (!muted) {
+      setSpeaking(true);
+      demoSpeak(voiceText, {
+        onEnd: () => setSpeaking(false),
+      });
+    }
     for (let i = 0; i < voiceText.length; i++) {
       if (!runningRef.current) return;
       const ch = voiceText[i];
@@ -83,7 +99,7 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
     // Phase 6: Done
     setPhase("done");
     runningRef.current = false;
-  }, []);
+  }, [muted, stopSpeaking]);
 
   // Auto-play on mount with IntersectionObserver
   useEffect(() => {
@@ -103,7 +119,6 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
       { threshold: 0.4 }
     );
 
-    // Small delay to ensure layout is settled
     const timer = setTimeout(() => observer.observe(el), 300);
     return () => {
       clearTimeout(timer);
@@ -112,6 +127,7 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
   }, [runDemo]);
 
   const handleReplay = () => {
+    stopSpeaking();
     runningRef.current = false;
     setTimeout(() => runDemo(), 50);
   };
@@ -139,12 +155,31 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
           <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
         </div>
         <span
-          className={`text-[11px] tracking-[2px] uppercase font-medium ${
+          className={`text-[11px] tracking-[2px] uppercase font-medium flex-1 ${
             isDark ? "text-zinc-500" : "text-zinc-400"
           }`}
         >
           Nova
         </span>
+
+        {/* Mute Toggle */}
+        {onMuteToggle && (
+          <button
+            onClick={onMuteToggle}
+            className={`p-1.5 rounded-full transition-colors ${
+              isDark
+                ? "hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
+                : "hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600"
+            }`}
+            title={muted ? "Unmute voice" : "Mute voice"}
+          >
+            {muted ? (
+              <VolumeX className="w-3.5 h-3.5" />
+            ) : (
+              <Volume2 className={`w-3.5 h-3.5 ${speaking ? "text-primary" : ""}`} />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Body */}
@@ -248,11 +283,7 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
               : "opacity-0 max-h-0 overflow-hidden"
           }`}
         >
-          <span
-            className={`w-3.5 h-3.5 rounded-full border-2 border-transparent border-t-primary animate-spin ${
-              isDark ? "" : ""
-            }`}
-          />
+          <span className="w-3.5 h-3.5 rounded-full border-2 border-transparent border-t-primary animate-spin" />
           <span
             className={`text-xs tracking-[1px] uppercase ${
               isDark ? "text-zinc-500" : "text-zinc-400"
@@ -273,11 +304,7 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
                   : "opacity-0 translate-y-3"
               } ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
             >
-              <Check
-                className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
-                  isDark ? "text-primary" : "text-primary"
-                }`}
-              />
+              <Check className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
               <span>{item.text}</span>
             </div>
           ))}
@@ -332,9 +359,7 @@ export const VoiceDemoAnimation: React.FC<VoiceDemoAnimationProps> = ({ theme })
             />
           </div>
           <span
-            className={`text-xs flex-1 ${
-              isDark ? "text-zinc-500" : "text-zinc-400"
-            }`}
+            className={`text-xs flex-1 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
           >
             Or type here...
           </span>

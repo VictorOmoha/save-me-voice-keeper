@@ -243,7 +243,7 @@ export const NovaFloat: React.FC = () => {
             : "translate-y-6 opacity-0 pointer-events-none"
         )}
         style={{
-          height: isMinimized ? "48px" : "clamp(320px, 42vh, 420px)",
+          height: isMinimized ? "48px" : "clamp(400px, 55vh, 600px)",
           overflow: "hidden",
         }}
       >

@@ -1,6 +1,7 @@
 /**
  * NovaVoiceAgent.tsx
  * Conversational AI interface — live action feed + continuous listening.
+ * Terminal-style UI matching VoiceDemoAnimation.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -10,40 +11,23 @@ import { useVoiceAgent, UseVoiceAgentOptions, AgentStatus } from "@/hooks/useVoi
 import { cn } from "@/lib/utils";
 
 const STATUS_TEXT: Record<AgentStatus, string> = {
-  idle: "Not listening. Tap the mic to start.",
-  listening: "Stop recording to save",
-  thinking: "Processing your memory...",
-  acting: "Saving this to your archive...",
-  speaking: "Anam is speaking...",
-};
-
-const STATUS_COLOR: Record<AgentStatus, string> = {
-  idle: "bg-primary",
-  listening: "bg-red-600",
-  thinking: "bg-amber-500",
-  acting: "bg-violet-500",
-  speaking: "bg-emerald-500",
+  idle: "",
+  listening: "",
+  thinking: "PROCESSING",
+  acting: "SAVING",
+  speaking: "SPEAKING",
 };
 
 const formatNovaError = (message: string) => {
   const lower = message.toLowerCase();
-
-  if (lower.includes("voice agent failed")) {
+  if (lower.includes("voice agent failed"))
     return "Anam couldn't start voice capture. Check microphone access and try again.";
-  }
-
-  if (lower.includes("not authenticated")) {
+  if (lower.includes("not authenticated"))
     return "Sign in again so Anam can save this memory securely.";
-  }
-
-  if (lower.includes("provider") || lower.includes("temporarily unavailable") || lower.includes("timed out") || lower.includes("timeout")) {
+  if (lower.includes("provider") || lower.includes("temporarily unavailable") || lower.includes("timed out") || lower.includes("timeout"))
     return "The AI provider is busy. I saved your message and will retry when you send again.";
-  }
-
-  if (lower.includes("mic error") || lower.includes("microphone") || lower.includes("permission") || lower.includes("denied")) {
+  if (lower.includes("mic error") || lower.includes("microphone") || lower.includes("permission") || lower.includes("denied"))
     return message;
-  }
-
   return "Anam hit a problem while processing this memory. Try again in a moment.";
 };
 
@@ -94,29 +78,17 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   const hasGreetedRef = useRef(false);
   const lastAutoStartTokenRef = useRef<number | undefined>(undefined);
 
-  // ── Auto-greet on first open ──────────────────────────────────────────────
+  // ── Auto-greet on first open ──
   useEffect(() => {
-    if (
-      autoGreet &&
-      !hasGreetedRef.current &&
-      conversationHistory.length === 0 &&
-      status === "idle"
-    ) {
+    if (autoGreet && !hasGreetedRef.current && conversationHistory.length === 0 && status === "idle") {
       hasGreetedRef.current = true;
-      // Small delay so the panel animation completes first
-      setTimeout(() => {
-        sendText(`__nova_greet__:${displayName || "there"}`);
-      }, 400);
+      setTimeout(() => { sendText(`__nova_greet__:${displayName || "there"}`); }, 400);
     }
   }, [autoGreet, conversationHistory.length, status, sendText, displayName]);
 
-  // ── Auto-listen when another surface hands off an active Nova conversation ─
+  // ── Auto-listen ──
   useEffect(() => {
-    if (
-      autoStartListeningToken &&
-      autoStartListeningToken !== lastAutoStartTokenRef.current &&
-      status === "idle"
-    ) {
+    if (autoStartListeningToken && autoStartListeningToken !== lastAutoStartTokenRef.current && status === "idle") {
       lastAutoStartTokenRef.current = autoStartListeningToken;
       startListening();
     }
@@ -127,15 +99,8 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   }, [conversationHistory, actions, status]);
 
   useEffect(() => {
-    if (status !== "listening") {
-      setRecordingSeconds(0);
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setRecordingSeconds(seconds => seconds + 1);
-    }, 1000);
-
+    if (status !== "listening") { setRecordingSeconds(0); return; }
+    const timer = window.setInterval(() => { setRecordingSeconds(s => s + 1); }, 1000);
     return () => window.clearInterval(timer);
   }, [status]);
 
@@ -159,36 +124,40 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   return (
     <div className="flex flex-col h-full">
 
-      {/* Controls bar — continuous mode + reset */}
-      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b shrink-0">
-        <button
-          onClick={() => setContinuous(!continuous)}
-          className={cn(
-            "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors",
-            continuous
-              ? "bg-emerald-500/15 text-emerald-600"
-              : "bg-muted text-muted-foreground"
-          )}
-          title={continuous ? "Continuous mode ON — Nova auto-listens after each response" : "Continuous mode OFF"}
-        >
-          <Radio className={cn("h-3 w-3", continuous && "animate-pulse")} />
-          {continuous ? "Auto-listen on" : "Manual"}
-        </button>
-
-        {conversationHistory.length > 0 && (
+      {/* ── Controls bar ── */}
+      <div className="flex items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="font-semibold text-sm">Anam</span>
+        </div>
+        <div className="flex items-center gap-2">
           <button
-            onClick={resetConversation}
-            className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-            title="Reset conversation"
+            onClick={() => setContinuous(!continuous)}
+            className={cn(
+              "flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors",
+              continuous ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"
+            )}
+            title={continuous ? "Continuous mode ON" : "Continuous mode OFF"}
           >
-            <RotateCcw className="h-3 w-3 text-muted-foreground" />
+            <Radio className={cn("h-2.5 w-2.5", continuous && "animate-pulse")} />
+            {continuous ? "Auto-listen on" : "Manual"}
           </button>
-        )}
+          {conversationHistory.length > 0 && (
+            <button
+              onClick={resetConversation}
+              className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
+              title="Reset conversation"
+            >
+              <RotateCcw className="h-3 w-3 text-muted-foreground" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Conversation */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+      {/* ── Conversation area ── */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
 
+        {/* Empty state */}
         {displayTurns.length === 0 && actions.length === 0 && status === "idle" && (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-10">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -198,64 +167,70 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               <p className="font-medium text-sm">Hey, I'm Anam</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[220px] leading-relaxed">
                 {continuous
-                  ? "Auto-listen is on, but the mic is off until Anam finishes responding or you tap the mic."
+                  ? "Auto-listen is on, but the mic is off until Anam finishes responding."
                   : "Tap the mic when you want Anam to hear you, or type below."}
               </p>
             </div>
           </div>
         )}
 
-        {/* Message bubbles */}
+        {/* Terminal-style messages */}
         {displayTurns.map((turn, i) => {
           const text = turn.parts.find(p => p.text)?.text || "";
           const isUser = turn.role === "user";
           return (
             <div key={i} className={cn("flex", isUser ? "justify-end" : "justify-start")}>
               <div className={cn(
-                "max-w-[82%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed",
+                "max-w-[88%] px-3.5 py-2 text-sm leading-relaxed",
                 isUser
-                  ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "bg-muted text-foreground rounded-bl-sm"
+                  ? "bg-primary/10 text-foreground rounded-xl"
+                  : "text-foreground"
               )}>
-                {text}
+                {isUser ? (
+                  <div className="flex items-start gap-2">
+                    <Mic className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                    <span className="font-mono text-xs sm:text-sm">{text}</span>
+                  </div>
+                ) : (
+                  <span className="text-xs sm:text-sm">{text}</span>
+                )}
               </div>
             </div>
           );
         })}
 
-        {/* Live action feed */}
+        {/* Live action feed — styled as checkmarked result cards */}
         {actions.length > 0 && (
-          <div className="flex justify-start">
-            <div className="bg-muted/60 border rounded-xl px-3 py-2 space-y-1.5 max-w-[85%]">
-              {actions.map((action, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <span>{ACTION_ICON[action.tool] || "⚡"}</span>
-                  <span className={cn(
-                    "flex-1",
-                    action.status === "done" ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {action.label.replace("...", action.status === "done" ? "" : "...")}
-                  </span>
-                  {action.status === "done" && <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />}
-                  {action.status === "error" && <XCircle className="h-3 w-3 text-destructive shrink-0" />}
-                </div>
-              ))}
-            </div>
+          <div className="space-y-1.5">
+            {actions.map((action, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                {action.status === "done" && <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />}
+                {action.status === "error" && <XCircle className="h-3 w-3 text-destructive shrink-0 mt-0.5" />}
+                {action.status === "pending" && <Loader2 className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 animate-spin" />}
+                <span className={cn(
+                  "flex-1",
+                  action.status === "done" ? "text-foreground" : "text-muted-foreground"
+                )}>
+                  {action.label.replace("...", action.status === "done" ? "" : "...")}
+                </span>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Thinking / acting indicator */}
         {(status === "thinking" || status === "acting") && actions.length === 0 && (
           <div className="flex justify-start">
-            <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
-              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {status === "thinking" ? "Processing your memory..." : "Saving this to your archive..."}
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                {status === "thinking" ? "PROCESSING" : "SAVING"}
               </span>
             </div>
           </div>
         )}
 
+        {/* Error */}
         {error && (
           <div className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2 text-center">
             {formatNovaError(error)}
@@ -263,27 +238,59 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
         )}
       </div>
 
-      {/* Live transcript */}
+      {/* ── Live transcript + waveform ── */}
       {status === "listening" && (
-        <div className="mx-4 mb-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 shrink-0">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-red-700 dark:text-red-300">Listening now</p>
-              <p className="text-xs text-muted-foreground">Tap Stop when you are finished. Anam will process the memory after this.</p>
+        <div className="mx-4 mb-2 rounded-xl bg-primary/5 border border-primary/20 px-3 py-2.5 shrink-0">
+          <div className="flex items-center gap-3 mb-2">
+            {/* Mic icon + pulse */}
+            <div className="relative shrink-0">
+              <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center">
+                <Square className="h-3 w-3 fill-white text-white" />
+              </div>
+              <span className="absolute -inset-1 rounded-full border border-red-500/30 animate-ping" />
             </div>
-            <span className="rounded-full bg-red-600 px-2.5 py-1 text-xs font-semibold text-white tabular-nums animate-pulse">
+
+            {/* Waveform bars */}
+            <div className="flex items-center gap-[2px] h-5 flex-1">
+              {[30, 55, 80, 100, 70, 45, 65, 90, 50, 75, 35, 60].map((h, i) => (
+                <span
+                  key={i}
+                  className="w-[3px] rounded-full bg-primary/50"
+                  style={{
+                    height: `${h}%`,
+                    animation: `waveform-pulse 1s ease-in-out ${i * 0.1}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Timer */}
+            <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-semibold text-white tabular-nums animate-pulse shrink-0">
               {recordingTime}
             </span>
           </div>
+
+          {/* Live transcription */}
           {transcript && (
-            <p className="mt-2 rounded-lg bg-background/70 px-3 py-2 text-xs text-foreground italic">
+            <div className="rounded-lg bg-background/60 px-3 py-2 text-xs text-foreground font-mono">
               {transcript}
-            </p>
+              <span className="inline-block w-[2px] h-[0.9em] ml-0.5 align-text-bottom animate-pulse bg-primary" />
+            </div>
           )}
         </div>
       )}
 
-      {/* Controls */}
+      {/* ── Speaking indicator ── */}
+      {(status === "speaking") && (
+        <div className="mx-4 mb-2 shrink-0">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="uppercase tracking-wider">Anam is speaking</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Controls ── */}
       <div className="px-4 pb-4 pt-2 space-y-2.5 border-t shrink-0">
 
         {/* Status + Mic */}
@@ -293,12 +300,13 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             disabled={isDisabled}
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-md",
-              STATUS_COLOR[status], "text-white",
-              status === "listening" && "ring-4 ring-red-300 scale-110 animate-pulse",
-              status === "speaking" && "ring-4 ring-emerald-300",
+              status === "listening"
+                ? "bg-red-600 text-white ring-4 ring-red-300 scale-110 animate-pulse"
+                : status === "speaking"
+                  ? "bg-emerald-600 text-white ring-4 ring-emerald-300"
+                  : "bg-primary text-white hover:bg-primary/90",
               isDisabled && "opacity-60 cursor-not-allowed scale-100"
             )}
-            title={status === "listening" ? "Stop recording" : "Start recording"}
             aria-label={status === "listening" ? "Stop Anam recording" : "Start Anam recording"}
           >
             {status === "listening"
@@ -306,12 +314,12 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               : <Mic className="h-4 w-4" />}
           </button>
           <span className={cn(
-            "text-xs min-w-[140px]",
-            status === "listening" ? "font-semibold text-red-700 dark:text-red-300" : "text-muted-foreground"
+            "text-xs min-w-[120px] tracking-wider",
+            status === "listening" ? "font-semibold text-red-600" : "text-muted-foreground"
           )}>
-            {continuous && status === "idle"
-              ? "Mic is off. Auto-listen is on after Anam responds."
-              : STATUS_TEXT[status]}
+            {STATUS_TEXT[status] || (continuous && status === "idle"
+              ? "Auto-listen on — tap mic to start"
+              : "Tap mic or type below")}
           </span>
         </div>
 
@@ -335,6 +343,14 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
           </Button>
         </div>
       </div>
+
+      {/* Keyframes */}
+      <style>{`
+        @keyframes waveform-pulse {
+          0%, 100% { transform: scaleY(1); }
+          50% { transform: scaleY(0.5); }
+        }
+      `}</style>
     </div>
   );
 };

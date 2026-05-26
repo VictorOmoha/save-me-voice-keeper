@@ -234,7 +234,7 @@ export const NovaFloat: React.FC = () => {
         className={cn(
           "fixed z-50 w-full sm:w-[500px] md:w-[560px] sm:right-6 lg:right-8",
           "bg-background/95 border shadow-2xl backdrop-blur-md",
-          "transition-all duration-300 ease-out",
+          "transition-[opacity,transform] duration-300 ease-out",
           isMinimized
             ? "bottom-0 sm:bottom-24 rounded-t-2xl sm:rounded-2xl"
             : "bottom-0 sm:bottom-24 rounded-t-2xl sm:rounded-2xl",
@@ -244,9 +244,11 @@ export const NovaFloat: React.FC = () => {
         )}
         style={{
           height: isMinimized ? "48px" : "clamp(400px, 55vh, 600px)",
-          overflow: "hidden",
-        }}
-      >
+          minWidth: isMinimized ? undefined : "300px",
+          resize: isMinimized ? "none" : "both",
+          overflow: isMinimized ? "hidden" : "auto",
+        }}>
+          {/* Resize handle — drag from bottom-right corner */}
         {/* Minimized header bar */}
         <div
           className={cn(

@@ -6,6 +6,7 @@ import { VideoModal } from "@/components/VideoModal";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoiceDemo";
+import { VoiceDemoAnimation } from "@/components/landing/VoiceDemoAnimation";
 import { trackActivationEvent } from "@/lib/analytics";
 
 const SAVEME_DEMO_VIDEO = "/videos/saveme-demo.mp4";
@@ -212,20 +213,8 @@ const Index = () => {
             <div className={`p-3 md:p-4 reveal stagger-3 relative group rounded-3xl overflow-hidden border shadow-2xl ${theme === 'dark' ? 'bg-zinc-900/50 border-zinc-800/50 shadow-black/30' : 'bg-white border-zinc-200 shadow-zinc-200/60'}`}>
               <div className={`absolute inset-0 pointer-events-none opacity-60 ${theme === 'dark' ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_45%)]' : 'bg-[radial-gradient(circle_at_top,rgba(24,24,27,0.05),transparent_45%)]'}`} />
               <div className={`relative overflow-hidden rounded-2xl border ${theme === 'dark' ? 'border-zinc-800/70 bg-black' : 'border-zinc-200 bg-zinc-950'}`}>
-                <video
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="w-full h-auto rounded-2xl bg-black"
-                  poster="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png"
-                >
-                  <source src={SAVEME_DEMO_VIDEO} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
+                <VoiceDemoAnimation theme={theme} />
               </div>
-              <p className={`relative mt-4 text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                If the video does not load immediately, use the play controls to start the SaveMe.Space demo.
-              </p>
             </div>
           </div>
         </section>

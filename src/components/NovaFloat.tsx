@@ -46,6 +46,66 @@ export const NovaFloat: React.FC = () => {
   const [autoStartListeningToken, setAutoStartListeningToken] = useState(0);
   const hasGreetedRef = useRef(false);
 
+  // ── Resizable panel ──────────────────────────────────────────────────────
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelSize, setPanelSize] = useState({ width: 560, height: 500 });
+  const isResizingRef = useRef(false);
+  const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
+
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingRef.current = true;
+
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+
+    resizeStartRef.current = {
+      x: clientX,
+      y: clientY,
+      width: panelSize.width,
+      height: panelSize.height,
+    };
+
+    document.body.style.cursor = "nwse-resize";
+    document.body.style.userSelect = "none";
+  }, [panelSize]);
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!isResizingRef.current) return;
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+
+      const deltaX = resizeStartRef.current.x - clientX;
+      const deltaY = resizeStartRef.current.y - clientY;
+
+      setPanelSize({
+        width: Math.max(340, resizeStartRef.current.width + deltaX),
+        height: Math.max(300, resizeStartRef.current.height + deltaY),
+      });
+    };
+
+    const handleUp = () => {
+      if (!isResizingRef.current) return;
+      isResizingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleUp);
+    };
+  }, []);
+
   const isPrintableEntry = (entry: Record<string, unknown>): entry is Partial<SavedEntry> & { id: string } => {
     return typeof entry.id === "string";
   };
@@ -230,9 +290,10 @@ export const NovaFloat: React.FC = () => {
     <>
       {/* Panel */}
       <div
+        ref={panelRef}
         data-testid="nova-float-panel"
         className={cn(
-          "fixed z-50 w-full sm:w-[500px] md:w-[560px] sm:right-6 lg:right-8",
+          "fixed z-50 sm:right-6 lg:right-8 relative",
           "bg-background/95 border shadow-2xl backdrop-blur-md",
           "transition-[opacity,transform] duration-300 ease-out",
           isMinimized
@@ -243,13 +304,14 @@ export const NovaFloat: React.FC = () => {
             : "translate-y-6 opacity-0 pointer-events-none"
         )}
         style={{
-          height: isMinimized ? "48px" : "clamp(400px, 55vh, 600px)",
-          minWidth: isMinimized ? undefined : "300px",
-          resize: isMinimized ? "none" : "both",
-          overflow: isMinimized ? "hidden" : "auto",
+          width: isMinimized ? undefined : `${panelSize.width}px`,
+          height: isMinimized ? "48px" : `${panelSize.height}px`,
+          minWidth: isMinimized ? undefined : "340px",
+          minHeight: isMinimized ? undefined : "300px",
+          overflow: isMinimized ? "hidden" : "hidden",
+          display: "flex",
+          flexDirection: "column",
         }}>
-          {/* Resize handle — drag from bottom-right corner */}
-        {/* Minimized header bar */}
         <div
           className={cn(
             "flex items-center justify-between px-4 shrink-0",
@@ -318,6 +380,26 @@ export const NovaFloat: React.FC = () => {
             displayName={user?.displayName || user?.email?.split("@")[0] || "there"}
           />
         </div>
+
+        {/* Resize handle — drag bottom-right corner */}
+        {!isMinimized && (
+          <div
+            onMouseDown={handleResizeStart}
+            onTouchStart={handleResizeStart}
+            className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize group z-10"
+            style={{ touchAction: "none" }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              className="absolute bottom-1 right-1 text-muted-foreground/40 group-hover:text-muted-foreground/80 transition-colors"
+            >
+              <path d="M14 2L14 14L2 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M10 14L14 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* Nova live action overlay */}

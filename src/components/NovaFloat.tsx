@@ -293,7 +293,7 @@ export const NovaFloat: React.FC = () => {
         ref={panelRef}
         data-testid="nova-float-panel"
         className={cn(
-          "fixed z-50 sm:right-6 lg:right-8 relative",
+          "fixed z-50 sm:right-6 lg:right-8",
           "bg-background/95 border shadow-2xl backdrop-blur-md",
           "transition-[opacity,transform] duration-300 ease-out",
           isMinimized

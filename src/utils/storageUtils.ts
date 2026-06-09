@@ -77,7 +77,11 @@ export const getRecentActivityCount = (entries: Array<Record<string, unknown>>):
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   
   return entries.filter(entry => {
-    const entryDate = new Date(entry.createdAt);
+    const createdAt = entry.createdAt;
+    if (typeof createdAt !== 'string' && typeof createdAt !== 'number' && !(createdAt instanceof Date)) {
+      return false;
+    }
+    const entryDate = new Date(createdAt);
     return entryDate >= oneWeekAgo;
   }).length;
 };

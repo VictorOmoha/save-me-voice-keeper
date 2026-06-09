@@ -64,7 +64,7 @@ export const extractImagesFromEntry = (entry: EntryLike): string[] => {
   if (entry.fieldDefinitions) {
     entry.fieldDefinitions.forEach((fieldDef) => {
       const fieldValue = entry.fields[fieldDef.name];
-      if (fieldDef.type === 'image' && isImageUrl(fieldValue)) {
+      if (fieldDef.type === 'image' && typeof fieldValue === 'string' && isImageUrl(fieldValue)) {
         images.push(fieldValue);
       } else if (fieldDef.type === 'gallery' && Array.isArray(fieldValue)) {
         fieldValue.forEach((url) => {

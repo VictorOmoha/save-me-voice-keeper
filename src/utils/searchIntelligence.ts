@@ -253,7 +253,7 @@ class SearchIntelligence {
           entry,
           confidence,
           entryId: entry.id,
-          category: entry.fields.category || 'Personal'
+          category: (typeof entry.fields.category === 'string' && entry.fields.category) || 'Personal'
         });
       }
     });

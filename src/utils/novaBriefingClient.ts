@@ -51,7 +51,7 @@ const extractEnvelope = <T = Record<string, unknown>>(
     return {
       success: false,
       data: (result.data || {}) as T,
-      error: result.error || `Tool ${toolName} failed`,
+      error: typeof result.error === "string" && result.error ? result.error : `Tool ${toolName} failed`,
     };
   }
 
@@ -62,7 +62,7 @@ const extractEnvelope = <T = Record<string, unknown>>(
   };
 };
 
-const callBriefingTool = async (
+const callBriefingTool = async <T = Record<string, unknown>>(
   toolName: BriefingToolName,
   args: Record<string, unknown>,
   sessionId?: string | null
@@ -102,7 +102,7 @@ const callBriefingTool = async (
   return {
     raw: data,
     toolResult: extractToolResult(data, toolName),
-    envelope: extractEnvelope(data, toolName),
+    envelope: extractEnvelope<T>(data, toolName),
     sessionId: data.sessionId || sessionId || null,
   };
 };
@@ -160,9 +160,35 @@ export interface RelatedEntriesResult {
   sessionId?: string | null;
 }
 
+interface PreparedBriefingData {
+  briefing?: string;
+  entriesUsed?: number;
+  memoriesUsed?: number;
+  openActionItems?: number;
+}
+
+interface ActivitySummaryData {
+  totalEntries?: number;
+  categoryCounts?: Record<string, number>;
+  recentTitles?: string[];
+  openActionItems?: number;
+  timeframe?: string;
+}
+
+interface UpcomingDeadlinesData {
+  items?: UpcomingDeadlinesResult["items"];
+  count?: number;
+  timeframe?: string;
+}
+
+interface RelatedEntriesData {
+  entries?: RelatedEntriesResult["entries"];
+  count?: number;
+}
+
 export const novaBriefingClient = {
   async prepareBriefing(subject: string, type: string = "general", sessionId?: string | null): Promise<PreparedBriefingResult> {
-    const { envelope, sessionId: nextSessionId } = await callBriefingTool("prepareBriefing", { subject, type }, sessionId);
+    const { envelope, sessionId: nextSessionId } = await callBriefingTool<PreparedBriefingData>("prepareBriefing", { subject, type }, sessionId);
     return {
       success: envelope.success,
       briefing: envelope.data?.briefing || "I couldn't prepare a briefing right now.",
@@ -175,7 +201,7 @@ export const novaBriefingClient = {
   },
 
   async getActivitySummary(timeframe: string = "this_week", sessionId?: string | null): Promise<ActivitySummaryResult> {
-    const { envelope, sessionId: nextSessionId } = await callBriefingTool("getActivitySummary", { timeframe }, sessionId);
+    const { envelope, sessionId: nextSessionId } = await callBriefingTool<ActivitySummaryData>("getActivitySummary", { timeframe }, sessionId);
     return {
       success: envelope.success,
       totalEntries: envelope.data?.totalEntries || 0,
@@ -189,7 +215,7 @@ export const novaBriefingClient = {
   },
 
   async getUpcomingDeadlines(timeframe: string = "this_week", sessionId?: string | null): Promise<UpcomingDeadlinesResult> {
-    const { envelope, sessionId: nextSessionId } = await callBriefingTool("getUpcomingDeadlines", { timeframe }, sessionId);
+    const { envelope, sessionId: nextSessionId } = await callBriefingTool<UpcomingDeadlinesData>("getUpcomingDeadlines", { timeframe }, sessionId);
     return {
       success: envelope.success,
       items: envelope.data?.items || [],
@@ -201,7 +227,7 @@ export const novaBriefingClient = {
   },
 
   async getRelatedEntries(topic: string, limit: number = 10, sessionId?: string | null): Promise<RelatedEntriesResult> {
-    const { envelope, sessionId: nextSessionId } = await callBriefingTool("getRelatedEntries", { topic, limit }, sessionId);
+    const { envelope, sessionId: nextSessionId } = await callBriefingTool<RelatedEntriesData>("getRelatedEntries", { topic, limit }, sessionId);
     return {
       success: envelope.success,
       entries: envelope.data?.entries || [],

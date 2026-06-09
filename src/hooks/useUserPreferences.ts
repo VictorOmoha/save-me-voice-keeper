@@ -26,6 +26,8 @@ export interface UserPreferences {
   voice_audio_cue_enabled?: boolean;
   voice_audio_cue_volume?: number;
   has_completed_onboarding?: boolean;
+  auto_export_enabled?: boolean;
+  auto_export_format?: 'json' | 'csv';
 }
 
 const defaultPreferences: UserPreferences = {

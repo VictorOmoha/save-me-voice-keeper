@@ -86,7 +86,7 @@ export interface SharedMemoryUpdateInput {
   metadata?: Record<string, unknown>;
 }
 
-async function authedPost<T>(functionName: string, body: Record<string, unknown>): Promise<T> {
+async function authedPost<T>(functionName: string, body: object): Promise<T> {
   const token = await getFirebaseIdToken();
 
   const response = await fetch(getCloudFunctionUrl(functionName), {

@@ -74,7 +74,7 @@ export const ApiKeysSettings = () => {
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const keyPermissions = Array.isArray(data.permissions) && data.permissions.length > 0
+        const keyPermissions: AgentPermission[] = Array.isArray(data.permissions) && data.permissions.length > 0
           ? data.permissions.filter((permission: unknown): permission is AgentPermission => permission === "read" || permission === "write")
           : ["read", "write"];
 
@@ -464,11 +464,11 @@ def remember(title, content, type="fact", tags=None, project=None):
         </div>
       </div>
 
-      <Snippet title="Environment variables" text={snippets.envSnippet} onCopy={copy} />
-      <Snippet title="Agent memory instruction" text={snippets.agentInstructionSnippet} onCopy={copy} />
-      <Snippet title="1. Test the connection" text={snippets.statusSnippet} onCopy={copy} />
-      <Snippet title="2. Write a memory" text={snippets.createSnippet} onCopy={copy} />
-      <Snippet title="3. Search memory before the next run" text={snippets.searchSnippet} onCopy={copy} />
+      <Snippet title="Environment variables" text={snippets.env} onCopy={copy} />
+      <Snippet title="Agent memory instruction" text={snippets.agentInstruction} onCopy={copy} />
+      <Snippet title="1. Test the connection" text={snippets.status} onCopy={copy} />
+      <Snippet title="2. Write a memory" text={snippets.create} onCopy={copy} />
+      <Snippet title="3. Search memory before the next run" text={snippets.search} onCopy={copy} />
       <Snippet title="Node helper for agent projects" text={nodeHelperSnippet} onCopy={copy} />
       <Snippet title="Python helper for agent projects" text={pythonHelperSnippet} onCopy={copy} />
 

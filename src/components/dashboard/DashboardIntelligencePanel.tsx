@@ -46,6 +46,24 @@ interface DashboardIntelligencePanelProps {
   entries: SavedEntry[];
 }
 
+const asOptionalString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+const asOptionalNumber = (value: unknown): number | undefined =>
+  typeof value === "number" ? value : undefined;
+
+const toReminderDate = (value: unknown): Date | null => {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof (value as { toDate: () => Date }).toDate === "function"
+  ) {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  return null;
+};
+
 const parseActionItemText = (value: unknown): string[] => {
   if (!value) return [];
 
@@ -174,9 +192,9 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
           return {
             id: docSnap.id,
             text: String(data.text || data.title || "Reminder"),
-            remind_at: data.remind_at?.toDate?.() || null,
-            status: data.status,
-            entry_id: data.entry_id || data.entryId || null,
+            remind_at: toReminderDate(data.remind_at),
+            status: asOptionalString(data.status),
+            entry_id: asOptionalString(data.entry_id) || asOptionalString(data.entryId) || null,
           };
         });
 
@@ -184,8 +202,8 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
           const data = docSnap.data() as Record<string, unknown>;
           return {
             id: docSnap.id,
-            target_entry_id: data.target_entry_id,
-            score: data.score,
+            target_entry_id: asOptionalString(data.target_entry_id),
+            score: asOptionalNumber(data.score),
           };
         });
 
@@ -194,7 +212,7 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
           return {
             id: docSnap.id,
             content: String(data.content || ""),
-            category: data.category || null,
+            category: asOptionalString(data.category) || null,
           };
         });
 

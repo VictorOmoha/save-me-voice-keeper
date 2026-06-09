@@ -210,7 +210,7 @@ export function matchesShortcut(
   shortcut: typeof KEYBOARD_SHORTCUTS[keyof typeof KEYBOARD_SHORTCUTS]
 ): boolean {
   if (event.key !== shortcut.key) return false;
-  if (shortcut.ctrl && !event.ctrlKey && !event.metaKey) return false;
-  if (shortcut.shift && !event.shiftKey) return false;
+  if ('ctrl' in shortcut && shortcut.ctrl && !event.ctrlKey && !event.metaKey) return false;
+  if ('shift' in shortcut && shortcut.shift && !event.shiftKey) return false;
   return true;
 }

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SavedEntry } from "@/types/dashboard";
+import { fieldValueToText } from "@/utils/fieldValueGuards";
 import { Download, Printer, Copy } from "lucide-react";
 import { printProfessionally } from "@/components/entries/ProfessionalPrintView";
 import { toast } from "sonner";
@@ -45,7 +46,7 @@ const EntryCardComponent: React.FC<EntryCardProps> = ({
             </Badge>
             {entry.fields.fileName && (
               <Badge variant="secondary" className="text-xs transition-all duration-200 ease-in-out hover:scale-105">
-                {entry.fields.fileName}
+                {fieldValueToText(entry.fields.fileName)}
               </Badge>
             )}
             {entry.fields.hasUploadedFile && entry.fields.fileName && (

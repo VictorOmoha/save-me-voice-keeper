@@ -33,6 +33,7 @@ import { getCategoryConfig } from "@/utils/categoryConfig";
 import { formatContextualFieldName, formatFieldName, metadataFields } from "@/utils/fieldFormatters";
 import { logError } from "@/utils/logger";
 import { EntryIntelligencePanel } from "@/components/entries/EntryIntelligencePanel";
+import { fieldValueToText } from "@/utils/fieldValueGuards";
 
 interface EnhancedEntryViewDialogProps {
   entry: SavedEntry | null;
@@ -47,6 +48,12 @@ interface EnhancedEntryViewDialogProps {
   onOpenRelatedEntry?: (entry: SavedEntry) => void;
 }
 
+
+const isTableDataValue = (value: unknown): value is TableData =>
+  typeof value === "object" &&
+  value !== null &&
+  "columns" in value &&
+  "rows" in value;
 
 // Format field value for display
 const formatFieldValue = (key: string, value: unknown): { formatted: string; type: "text" | "date" | "currency" | "phone" | "masked" | "email" | "url" } => {
@@ -63,15 +70,17 @@ const formatFieldValue = (key: string, value: unknown): { formatted: string; typ
 
   // Handle dates
   if (key.toLowerCase().includes("date") || key.toLowerCase().includes("expir") || key.toLowerCase().includes("appointment")) {
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      const formatted = date.toLocaleDateString("en-US", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      });
-      return { formatted, type: "date" };
+    if (typeof value === "string" || typeof value === "number" || value instanceof Date) {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        const formatted = date.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        });
+        return { formatted, type: "date" };
+      }
     }
   }
 
@@ -101,7 +110,7 @@ const formatFieldValue = (key: string, value: unknown): { formatted: string; typ
   if (key.toLowerCase().includes("balance") || key.toLowerCase().includes("amount") ||
       key.toLowerCase().includes("price") || key.toLowerCase().includes("cost") ||
       key.toLowerCase().includes("premium")) {
-    const num = parseFloat(value);
+    const num = parseFloat(String(value));
     if (!isNaN(num)) {
       const formatted = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num);
       return { formatted, type: "currency" };
@@ -189,8 +198,8 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
         return false;
       }
       if (isPlaceholderDetail(key, value)) return false;
-      if (typeof value === "object" && "columns" in (value as Record<string, unknown>) && "rows" in (value as Record<string, unknown>)) {
-        return Array.isArray((value as TableData).rows) && (value as TableData).rows.length > 0;
+      if (isTableDataValue(value)) {
+        return Array.isArray(value.rows) && value.rows.length > 0;
       }
       return true;
     });
@@ -303,7 +312,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                 {hasFile && (
                   <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm gap-1">
                     <FileText className="w-3 h-3" />
-                    {entry.fields.fileName}
+                    {fieldValueToText(entry.fields.fileName)}
                   </Badge>
                 )}
               </div>
@@ -364,8 +373,8 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
               )}
               {displayFields.map(([key, value]) => {
                 // Handle table fields
-                if (typeof value === "object" && value !== null && "columns" in value && "rows" in value) {
-                  const tableData = value as TableData;
+                if (isTableDataValue(value)) {
+                  const tableData: TableData = value;
                   const isShoppingList = tableData.columns.some(col =>
                     ["item", "quantity", "price", "cost", "purchased", "got it"].some(term =>
                       col.name.toLowerCase().includes(term)

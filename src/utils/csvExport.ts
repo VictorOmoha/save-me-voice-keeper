@@ -77,9 +77,10 @@ export const exportToCSV = (entries: SavedEntry[], filename: string = 'form-data
 };
 
 export const exportCategoryToCSV = (entries: SavedEntry[], categoryName: string) => {
-  const categoryEntries = entries.filter(entry => 
-    entry.fields.category?.toLowerCase() === categoryName.toLowerCase()
-  );
+  const categoryEntries = entries.filter(entry => {
+    const category = entry.fields.category;
+    return typeof category === 'string' && category.toLowerCase() === categoryName.toLowerCase();
+  });
   
   if (categoryEntries.length === 0) {
     throw new Error(`No entries found for category: ${categoryName}`);

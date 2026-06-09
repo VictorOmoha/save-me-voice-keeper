@@ -18,7 +18,10 @@ export const formatFieldValue = (key: string, value: unknown): string => {
   }
 
   // Handle dates
-  if (keyLower.includes("date") || keyLower.includes("expir")) {
+  if (
+    (keyLower.includes("date") || keyLower.includes("expir")) &&
+    (typeof value === "string" || typeof value === "number" || value instanceof Date)
+  ) {
     const date = new Date(value);
     if (!isNaN(date.getTime())) {
       return date.toLocaleDateString("en-US", {
@@ -48,7 +51,7 @@ export const formatFieldValue = (key: string, value: unknown): string => {
     keyLower.includes("cost") ||
     keyLower.includes("premium")
   ) {
-    const num = parseFloat(value);
+    const num = parseFloat(String(value));
     if (!isNaN(num)) {
       return new Intl.NumberFormat("en-US", {
         style: "currency",
@@ -86,7 +89,8 @@ export const formatFieldValue = (key: string, value: unknown): string => {
   // Handle objects (table data, etc.)
   if (typeof value === "object" && value !== null) {
     if ("columns" in value && "rows" in value) {
-      return `[Table: ${value.rows?.length || 0} rows]`;
+      const rows = (value as { rows?: unknown[] }).rows;
+      return `[Table: ${rows?.length || 0} rows]`;
     }
     return JSON.stringify(value);
   }

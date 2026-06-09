@@ -7,10 +7,11 @@ import PatternInsightsPanel from '@/components/insights/PatternInsightsPanel';
 import { getInsightsForPeriod, PatternAnalysis } from '@/utils/patternRecognition';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useToast } from '@/hooks/use-toast';
+import { fieldValueToText } from '@/utils/fieldValueGuards';
 
 const InsightsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { entries, isLoading: isDashboardLoading } = useDashboard();
+  const { savedEntries: entries, isLoading: isDashboardLoading } = useDashboard();
   const { toast } = useToast();
   
   const [analysis, setAnalysis] = useState<PatternAnalysis | null>(null);
@@ -30,16 +31,16 @@ const InsightsPage: React.FC = () => {
         const formattedEntries = entries.map(e => ({
           id: e.id || Math.random().toString(),
           title: e.title || '',
-          notes: e.fields?.notes || e.fields?.originalText || '',
-          people: e.fields?.people 
-            ? (typeof e.fields.people === 'string' 
+          notes: fieldValueToText(e.fields?.notes) || fieldValueToText(e.fields?.originalText) || '',
+          people: e.fields?.people
+            ? (typeof e.fields.people === 'string'
               ? e.fields.people.split(',').map(p => p.trim())
-              : Array.isArray(e.fields.people) ? e.fields.people : [])
+              : Array.isArray(e.fields.people) ? e.fields.people.map(fieldValueToText) : [])
             : [],
-          tags: e.fields?.tags 
-            ? (typeof e.fields.tags === 'string' 
+          tags: e.fields?.tags
+            ? (typeof e.fields.tags === 'string'
               ? e.fields.tags.split(',').map(t => t.trim())
-              : Array.isArray(e.fields.tags) ? e.fields.tags : [])
+              : Array.isArray(e.fields.tags) ? e.fields.tags.map(fieldValueToText) : [])
             : [],
           createdAt: e.createdAt instanceof Date ? e.createdAt : new Date(e.createdAt || Date.now()),
           fields: e.fields || {}

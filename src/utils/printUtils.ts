@@ -1,4 +1,4 @@
-import { SavedEntry } from "@/types/dashboard";
+import { SavedEntry, FieldDefinition } from "@/types/dashboard";
 import { TableData } from "@/components/forms/types";
 import { toDisplayFieldName } from "./fieldNameNormalizer";
 
@@ -354,7 +354,7 @@ const renderInventoryListCard = (tableData: TableData, title: string): string =>
 
   const totalItems = tableData.rows.length;
   const lowStock = tableData.rows.filter(row => {
-    const qty = quantityCol ? parseFloat(row[quantityCol.id]) || 0 : 0;
+    const qty = quantityCol ? parseFloat(String(row[quantityCol.id])) || 0 : 0;
     return qty < 10;
   }).length;
 
@@ -374,7 +374,7 @@ const renderInventoryListCard = (tableData: TableData, title: string): string =>
           const location = locationCol ? row[locationCol.id] : '';
           const sku = skuCol ? row[skuCol.id] : '';
           
-          const qty = parseFloat(quantity) || 0;
+          const qty = parseFloat(String(quantity)) || 0;
           const stockStatus = qty === 0 ? 'out-of-stock' : qty < 10 ? 'low-stock' : 'in-stock';
 
           return `
@@ -433,8 +433,8 @@ const renderShoppingListCard = (tableData: TableData, title: string): string => 
 
   const totalCost = tableData.rows.reduce((sum, row) => {
     if (priceCol && quantityCol) {
-      const price = parseFloat(row[priceCol.id]) || 0;
-      const quantity = parseFloat(row[quantityCol.id]) || 1;
+      const price = parseFloat(String(row[priceCol.id])) || 0;
+      const quantity = parseFloat(String(row[quantityCol.id])) || 1;
       return sum + (price * quantity);
     }
     return sum;
@@ -472,8 +472,8 @@ const renderShoppingListCard = (tableData: TableData, title: string): string => 
                 </div>
                 <div class="item-details">
                   ${quantity ? `<span class="quantity">Qty: ${quantity}</span>` : ''}
-                  ${price ? `<span class="price">$${parseFloat(price).toFixed(2)}</span>` : ''}
-                  ${quantity && price ? `<span class="subtotal">= $${(parseFloat(quantity) * parseFloat(price)).toFixed(2)}</span>` : ''}
+                  ${price ? `<span class="price">$${parseFloat(String(price)).toFixed(2)}</span>` : ''}
+                  ${quantity && price ? `<span class="subtotal">= $${(parseFloat(String(quantity)) * parseFloat(String(price))).toFixed(2)}</span>` : ''}
                 </div>
                 ${notes ? `<div class="item-notes">${notes}</div>` : ''}
               </div>
@@ -617,7 +617,7 @@ const renderGenericTable = (tableData: TableData, title: string): string => {
 };
 
 // Enhanced helper function to render field values based on their type and content
-const renderFieldValue = (key: string, value: unknown, fieldDefinitions?: Array<Record<string, unknown>>, template: string = 'auto'): string => {
+const renderFieldValue = (key: string, value: unknown, fieldDefinitions?: FieldDefinition[], template: string = 'auto'): string => {
   if (value === null || value === undefined || value === '') {
     return '<span class="text-muted">No data</span>';
   }
@@ -735,7 +735,7 @@ const renderTableCellValue = (value: unknown, columnType: string): string => {
     case 'number':
       return typeof value === 'number' ? value.toLocaleString() : String(value);
     case 'date':
-      return new Date(value).toLocaleDateString();
+      return new Date(typeof value === 'number' || value instanceof Date ? value : String(value)).toLocaleDateString();
     default:
       return String(value);
   }

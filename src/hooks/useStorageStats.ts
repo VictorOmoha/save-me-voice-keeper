@@ -93,7 +93,7 @@ export const useStorageStats = (entries: SavedEntry[], userTier?: string): Stora
     const localStorageUsed = calculateLocalStorageSize();
 
     // Fallback estimates if server usage isn't available yet
-    const estimatedDbUsed = calculateDatabaseStorageSize(entries);
+    const estimatedDbUsed = calculateDatabaseStorageSize(entries.map(entry => ({ ...entry })));
 
     const normalizedTier = isValidTier((userTier || 'free').toLowerCase())
       ? ((userTier || 'free').toLowerCase() as Tier)

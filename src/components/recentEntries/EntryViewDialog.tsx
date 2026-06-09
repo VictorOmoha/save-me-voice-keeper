@@ -20,6 +20,13 @@ import { ShoppingListCardViewer } from "@/components/forms/table/ShoppingListCar
 import { TableData } from "@/components/forms/types";
 import { logVoice, logError } from "@/utils/logger";
 import { EntryIntelligencePanel } from "@/components/entries/EntryIntelligencePanel";
+import { fieldValueToText } from "@/utils/fieldValueGuards";
+
+const isTableDataValue = (value: unknown): value is TableData =>
+  typeof value === 'object' &&
+  value !== null &&
+  'columns' in value &&
+  'rows' in value;
 
 interface EntryViewDialogProps {
   entry: SavedEntry | null;
@@ -76,8 +83,8 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
     if (['category', 'hasUploadedFile', 'fileName', 'fileSize', 'fileType'].includes(key)) return false;
     if (entryImages.includes(String(value)) || (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) return false;
     if (value === null || value === undefined || value === '') return false;
-    if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) {
-      return Array.isArray((value as TableData).rows) && (value as TableData).rows.length > 0;
+    if (isTableDataValue(value)) {
+      return Array.isArray(value.rows) && value.rows.length > 0;
     }
     return true;
   });
@@ -177,9 +184,9 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
             {entry.fields.hasUploadedFile && entry.fields.fileName && (
               <div className="flex items-center space-x-2 text-sm">
                 <FileText className="w-4 h-4" />
-                <span>{entry.fields.fileName}</span>
+                <span>{fieldValueToText(entry.fields.fileName)}</span>
                 <span className="text-muted-foreground">
-                  ({entry.fields.fileSize ? `${(entry.fields.fileSize / 1024).toFixed(1)} KB` : 'Unknown size'})
+                  ({typeof entry.fields.fileSize === 'number' && entry.fields.fileSize ? `${(entry.fields.fileSize / 1024).toFixed(1)} KB` : 'Unknown size'})
                 </span>
               </div>
             )}
@@ -218,8 +225,8 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
               {displayFields
                 .map(([key, value]) => {
                   // Handle table fields separately
-                  if (typeof value === 'object' && value !== null && 'columns' in value && 'rows' in value) {
-                    const tableData = value as TableData;
+                  if (isTableDataValue(value)) {
+                    const tableData: TableData = value;
                     
                     // Check if this is a shopping list by looking for common shopping list columns
                     const isShoppingList = tableData.columns.some(col => 

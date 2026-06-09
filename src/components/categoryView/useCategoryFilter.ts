@@ -4,11 +4,14 @@ import { SavedEntry } from "@/types/dashboard";
 export const useCategoryFilter = () => {
   const filterEntriesByCategory = (entries: SavedEntry[], categoryName: string) => {
     return entries.filter(entry => {
+      const entryCategory = typeof entry.fields.category === "string"
+        ? entry.fields.category.toLowerCase()
+        : undefined;
       if (categoryName === "Documents") {
         // More comprehensive criteria for Documents
         const isDocument = (
-          entry.fields.category?.toLowerCase() === "documents" ||
-          entry.fields.category?.toLowerCase() === "document" ||
+          entryCategory === "documents" ||
+          entryCategory === "document" ||
           entry.fields.documentType ||
           entry.fields.fileName ||
           entry.fields.hasUploadedFile ||
@@ -23,7 +26,7 @@ export const useCategoryFilter = () => {
       
       // For other categories, use existing logic
       const isMatch = (
-        entry.fields.category?.toLowerCase() === categoryName.toLowerCase() ||
+        entryCategory === categoryName.toLowerCase() ||
         (categoryName === "Health" && entry.title.toLowerCase().includes("health")) ||
         (categoryName === "Contacts" && entry.title.toLowerCase().includes("contact")) ||
         (categoryName === "Finance" && entry.title.toLowerCase().includes("finance")) ||

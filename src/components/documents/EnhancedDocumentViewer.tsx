@@ -14,6 +14,7 @@ import { RichTextEditor } from '@/components/documents/RichTextEditor';
 import { printBlobDocument, printDocumentHtml } from '@/utils/printUtils';
 import DOMPurify from 'dompurify';
 import { EntryIntelligencePanel } from '@/components/entries/EntryIntelligencePanel';
+import { fieldValueToText } from '@/utils/fieldValueGuards';
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
@@ -438,7 +439,7 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
                 </div>
                 <div>
                   <span className="font-medium">File Type:</span>
-                  <p className="text-muted-foreground">{entry?.fields?.documentType || 'Unknown'}</p>
+                  <p className="text-muted-foreground">{fieldValueToText(entry?.fields?.documentType) || 'Unknown'}</p>
                 </div>
                 <div>
                   <span className="font-medium">File Size:</span>

@@ -5,6 +5,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const asString = (v: unknown): string => (typeof v === "string" ? v : "");
+const asNumber = (v: unknown): number => (typeof v === "number" ? v : 0);
+
 export type NovaActionType =
   | "save_entry" | "update_entry" | "delete_entry"
   | "search" | "remember" | "forget"
@@ -50,9 +53,9 @@ const EntryFormBody = ({ data, actionType, onPhaseDone }: {
   const [visibleFields, setVisibleFields] = useState(0);
   const [phase, setPhase] = useState<"title" | "category" | "content" | "fields" | "done">("title");
 
-  const title = data.title || "";
-  const category = data.category || "";
-  const content = data.content || "";
+  const title = asString(data.title);
+  const category = asString(data.category);
+  const content = asString(data.content);
   const fields = Array.isArray(data.fields) ? data.fields as Array<{ key: string; value: string }> : null;
 
   useEffect(() => {
@@ -157,7 +160,7 @@ const DeleteBody = ({ data, onPhaseDone }: { data: Record<string, unknown>; onPh
   return (
     <div className="p-4 flex items-center justify-center">
       <div className={cn("text-base font-medium transition-all duration-500", struck ? "line-through opacity-40 scale-95" : "opacity-100")}>
-        {data.title || "Entry"}
+        {asString(data.title) || "Entry"}
       </div>
     </div>
   );
@@ -191,7 +194,7 @@ const SearchBody = ({ data, onPhaseDone }: { data: Record<string, unknown>; onPh
           {r.category && <span className="ml-auto text-xs text-muted-foreground shrink-0">{r.category}</span>}
         </div>
       ))}
-      <div className="text-xs text-muted-foreground text-center pt-1">{data.count || 0} result{(data.count || 0) !== 1 ? "s" : ""} found</div>
+      <div className="text-xs text-muted-foreground text-center pt-1">{asNumber(data.count)} result{asNumber(data.count) !== 1 ? "s" : ""} found</div>
     </div>
   );
 };
@@ -203,15 +206,16 @@ const QuickActionBody = ({ data, actionType, onPhaseDone }: {
   onPhaseDone: () => void;
 }) => {
   const [typed, setTyped] = useState("");
-  const text = actionType === "remember" ? (data.content || "")
+  const text = actionType === "remember" ? asString(data.content)
     : actionType === "forget" ? `Removed ${data.count || 0} memor${(data.count || 0) === 1 ? "y" : "ies"}`
     : actionType === "update_task" ? `"${data.text || "Task"}" → ${data.status || "updated"}`
-    : actionType === "set_reminder" ? (data.text || "Reminder")
+    : actionType === "set_reminder" ? (asString(data.text) || "Reminder")
     : "";
 
-  const subtext = actionType === "set_reminder" && data.when
-    ? new Date(data.when).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
-    : actionType === "remember" && data.category ? data.category
+  const when = data.when;
+  const subtext = actionType === "set_reminder" && (typeof when === "string" || typeof when === "number" || when instanceof Date)
+    ? new Date(when).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+    : actionType === "remember" && data.category ? asString(data.category)
     : null;
 
   useEffect(() => {

@@ -76,13 +76,16 @@ describe('NovaFloat', () => {
     toastInfoMock.mockReset();
   });
 
-  it('uses a compact bottom-right panel so Nova does not dominate dashboard content', () => {
+  it('uses a resizable bottom-right panel anchored away from dashboard content', () => {
     render(<NovaFloat />);
 
     const panel = screen.getByTestId('nova-float-panel');
-    expect(panel.className).toContain('sm:w-[320px]');
     expect(panel.className).toContain('bottom-0 sm:bottom-24');
-    expect(panel.getAttribute('style')).toContain('clamp(320px, 42vh, 420px)');
+    expect(panel.className).toContain('fixed');
+    const style = panel.getAttribute('style') || '';
+    expect(style).toContain('width: 560px');
+    expect(style).toContain('height: 500px');
+    expect(style).toContain('min-width: 340px');
   });
 
   it('dispatches entry refresh event and navigates to saved entry after save action completion', () => {

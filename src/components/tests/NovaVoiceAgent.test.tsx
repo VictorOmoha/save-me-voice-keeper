@@ -63,7 +63,8 @@ describe('NovaVoiceAgent', () => {
     render(<NovaVoiceAgent continuous={false} />);
 
     expect(screen.getByText("Hey, I'm Anam")).toBeTruthy();
-    expect(screen.getByText('Not listening. Tap the mic to start.')).toBeTruthy();
+    expect(screen.getByText('Tap the mic when you want Anam to hear you, or type below.')).toBeTruthy();
+    expect(screen.getByText('Tap mic or type below')).toBeTruthy();
   });
 
   it('does not describe continuous mode as live listening when the mic is off', () => {
@@ -72,24 +73,24 @@ describe('NovaVoiceAgent', () => {
     render(<NovaVoiceAgent continuous />);
 
     expect(screen.getByText('Auto-listen on')).toBeTruthy();
-    expect(screen.getByText('Mic is off. Auto-listen is on after Anam responds.')).toBeTruthy();
+    expect(screen.getByText('Auto-listen is on, but the mic is off until Anam finishes responding.')).toBeTruthy();
     expect(screen.queryByText(/\bLive\b/i)).toBeNull();
     expect(screen.queryByText(/Anam can keep the mic on/i)).toBeNull();
   });
 
   it('shows explicit trust-safe voice states for idle, listening, and processing', () => {
-    render(<NovaVoiceAgent />);
-    expect(screen.getByText('Not listening. Tap the mic to start.')).toBeTruthy();
+    const { rerender } = render(<NovaVoiceAgent />);
+    expect(screen.getByText('Tap mic or type below')).toBeTruthy();
 
     mockState({ status: 'listening', transcript: 'insurance policy renews in June' });
-    const { rerender } = render(<NovaVoiceAgent />);
-    expect(screen.getByText('Listening now')).toBeTruthy();
-    expect(screen.getByText(/Tap Stop when you are finished/i)).toBeTruthy();
-    expect(screen.getByText('Stop recording to save')).toBeTruthy();
+    rerender(<NovaVoiceAgent />);
+    expect(screen.getByText('"insurance policy renews in June"')).toBeTruthy();
+    expect(screen.getByText(/Tap the red stop button when you're done/i)).toBeTruthy();
+    expect(screen.getByLabelText('Stop Anam recording')).toBeTruthy();
 
     mockState({ status: 'thinking' });
     rerender(<NovaVoiceAgent />);
-    expect(screen.getAllByText('Processing your memory...').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('PROCESSING').length).toBeGreaterThan(0);
     expect(screen.queryByText('Nova is thinking...')).toBeNull();
   });
 

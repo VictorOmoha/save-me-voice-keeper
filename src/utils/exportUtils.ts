@@ -45,7 +45,7 @@ export const exportEntries = async (
 
 const exportToJSON = (entries: SavedEntry[], filename: string, includeMetadata: boolean) => {
   const exportData = entries.map(entry => {
-    const data: Record<string, unknown> & { _metadata?: { id: string; title: string; createdAt: string; updatedAt: string } } = { ...entry.fields };
+    const data: Record<string, unknown> & { _metadata?: { id: string; title: string; createdAt: Date; updatedAt: Date } } = { ...entry.fields };
     
     if (includeMetadata) {
       data._metadata = {

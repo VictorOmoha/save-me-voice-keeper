@@ -18,7 +18,7 @@ global.console = {
 };
 
 // Mock Speech Recognition API
-global.SpeechRecognition = class MockSpeechRecognition implements SpeechRecognition {
+class MockSpeechRecognition implements SpeechRecognition {
   continuous = false;
   interimResults = false;
   lang = 'en-US';
@@ -44,9 +44,19 @@ global.SpeechRecognition = class MockSpeechRecognition implements SpeechRecognit
   onsoundend = null;
   onspeechstart = null;
   onspeechend = null;
-} as unknown as typeof globalThis.SpeechRecognition;
+}
 
-global.webkitSpeechRecognition = global.SpeechRecognition;
+Object.defineProperty(globalThis, 'SpeechRecognition', {
+  writable: true,
+  configurable: true,
+  value: MockSpeechRecognition,
+});
+
+Object.defineProperty(globalThis, 'webkitSpeechRecognition', {
+  writable: true,
+  configurable: true,
+  value: MockSpeechRecognition,
+});
 
 // Mock window object properties
 Object.defineProperty(window, 'speechSynthesis', {

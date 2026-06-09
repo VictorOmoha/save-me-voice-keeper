@@ -206,7 +206,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               <div key={i} className="flex items-start gap-2 text-xs">
                 {action.status === "done" && <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />}
                 {action.status === "error" && <XCircle className="h-3 w-3 text-destructive shrink-0 mt-0.5" />}
-                {action.status === "pending" && <Loader2 className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 animate-spin" />}
+                {action.status === "running" && <Loader2 className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 animate-spin" />}
                 <span className={cn(
                   "flex-1",
                   action.status === "done" ? "text-foreground" : "text-muted-foreground"

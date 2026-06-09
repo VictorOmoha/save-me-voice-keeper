@@ -37,6 +37,7 @@ export type GalleryFieldValue = ImageFieldValue[];
 export type FieldValue =
   | string
   | number
+  | boolean
   | Date
   | TableFieldValue
   | ImageFieldValue

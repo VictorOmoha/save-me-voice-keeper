@@ -268,7 +268,7 @@ export const NovaFloat: React.FC = () => {
 
     // After search, navigate to all-entries with search query
     if (actionType === "search" && actionData.query) {
-      navigate(`/all-entries?search=${encodeURIComponent(actionData.query)}`);
+      navigate(`/all-entries?search=${encodeURIComponent(String(actionData.query))}`);
       setPanelState("minimized");
     }
 

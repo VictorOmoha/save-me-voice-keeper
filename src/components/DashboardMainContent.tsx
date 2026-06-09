@@ -41,7 +41,7 @@ const CategoriesGrid = React.memo(({
   savedEntries,
   onCategorySelect
 }: {
-  categories: typeof categories;
+  categories: { name: string; icon: LucideIcon; description: string }[];
   savedEntries: SavedEntry[];
   onCategorySelect: (category: string) => void;
 }) => {
@@ -49,7 +49,7 @@ const CategoriesGrid = React.memo(({
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const entry of savedEntries) {
-      const cat = entry.fields.category || 'Personal';
+      const cat = typeof entry.fields.category === 'string' && entry.fields.category ? entry.fields.category : 'Personal';
       counts[cat] = (counts[cat] || 0) + 1;
     }
     return counts;

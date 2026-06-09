@@ -15,6 +15,15 @@ import { ShoppingListTemplate } from './table/ShoppingListTemplate';
 import { EnhancedTableFillMode } from './table/EnhancedTableFillMode';
 import { validateFieldName } from "@/utils/fieldNameNormalizer";
 
+const isTableDataValue = (value: unknown): value is TableData => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Array.isArray((value as TableData).columns) &&
+    Array.isArray((value as TableData).rows)
+  );
+};
+
 interface CustomFieldItemProps {
   field: CustomField;
   index: number;
@@ -66,16 +75,11 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   }, [field.name, isEditMode]);
   
   // Detect table data structure regardless of field type
-  const hasTableDataStructure = field.value && 
-    typeof field.value === 'object' && 
-    field.value.columns && 
-    Array.isArray(field.value.columns) && 
-    field.value.rows && 
-    Array.isArray(field.value.rows);
+  const hasTableDataStructure = isTableDataValue(field.value);
 
   // For existing table fields with data, show data editor by default
-  const hasTableData = (normalizedFieldType === 'table' && field.value && 
-    (field.value.columns && Array.isArray(field.value.columns) && field.value.columns.length > 0)) || hasTableDataStructure;
+  const hasTableData = (normalizedFieldType === 'table' && isTableDataValue(field.value) &&
+    field.value.columns.length > 0) || hasTableDataStructure;
   
   // Check if this is a field with table data that needs type conversion
   const needsTableConversion = hasTableDataStructure && normalizedFieldType !== 'table';
@@ -115,7 +119,9 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
 
   const renderFieldInput = () => {
     console.log('renderFieldInput called for field:', field.name, 'type:', field.type, 'value:', field.value);
-    
+
+    const inputValue = ((typeof field.value === 'string' || typeof field.value === 'number') && field.value) || '';
+
     if (shouldShowDataInput) {
       // Show data input for filling or editing existing data
       switch (normalizedFieldType) {
@@ -136,7 +142,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             // Auto-save the converted structure
             onUpdateField(field.id, 'value', tableData);
           } else {
-            tableData = field.value || { columns: [], rows: [] };
+            tableData = isTableDataValue(field.value) ? field.value : { columns: [], rows: [] };
           }
           
           console.log('Table data after initialization:', tableData);
@@ -167,12 +173,12 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           return (
             <div className="space-y-4">
               <ImageUpload
-                value={field.value || ''}
+                value={typeof field.value === 'string' ? field.value : ''}
                 onChange={(value) => onUpdateField(field.id, 'value', value)}
                 multiple={false}
                 label=""
               />
-              {field.value && (
+              {typeof field.value === 'string' && field.value && (
                 <ImageGallery images={[field.value]} readOnly={false} />
               )}
             </div>
@@ -181,7 +187,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           return (
             <div className="space-y-4">
               <ImageUpload
-                value={field.value || []}
+                value={Array.isArray(field.value) ? field.value : []}
                 onChange={(value) => onUpdateField(field.id, 'value', value)}
                 multiple={true}
                 label=""
@@ -195,7 +201,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           return (
             <Textarea
               placeholder="Enter your text..."
-              value={field.value || ''}
+              value={inputValue}
               onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
               className="bg-background border-border text-foreground"
             />
@@ -204,7 +210,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           return (
             <Input
               type="date"
-              value={field.value || ''}
+              value={inputValue}
               onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
               className="bg-background border-border text-foreground"
             />
@@ -214,7 +220,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             <Input
               type="number"
               placeholder="Enter a number..."
-              value={field.value || ''}
+              value={inputValue}
               onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
               className="bg-background border-border text-foreground"
             />
@@ -224,7 +230,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             <Input
               type="text"
               placeholder="Enter your text..."
-              value={field.value || ''}
+              value={inputValue}
               onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
               className="bg-background border-border text-foreground"
             />
@@ -276,7 +282,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
                 
                 // Convert value when changing field type
                 let newValue = field.value;
-                if (value === 'table' && (typeof field.value === 'string' || !field.value || !field.value.columns)) {
+                if (value === 'table' && (typeof field.value === 'string' || !field.value || !isTableDataValue(field.value))) {
                   // Convert to table structure
                   newValue = {
                     columns: [
@@ -287,7 +293,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
                   };
                 } else if (value !== 'table' && normalizedFieldType === 'table') {
                   // Convert from table to other type
-                  newValue = field.value?.rows?.[0]?.item || '';
+                  newValue = (isTableDataValue(field.value) && field.value.rows[0]?.item) || '';
                 }
                 onUpdateField(field.id, 'type', value);
                 onUpdateField(field.id, 'value', newValue);
@@ -313,8 +319,8 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               <Label className="text-foreground text-sm text-muted-foreground">Current Value</Label>
               <div className="p-2 bg-muted rounded text-sm">
                 {normalizedFieldType === 'table' ? (
-                  (field.value && field.value.rows && Array.isArray(field.value.rows)) 
-                    ? `Table with ${field.value.rows.length} rows` 
+                  isTableDataValue(field.value)
+                    ? `Table with ${field.value.rows.length} rows`
                     : 'Empty table'
                 ) : (
                   Array.isArray(field.value) ? field.value.join(', ') : String(field.value)

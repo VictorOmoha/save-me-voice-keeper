@@ -11,8 +11,9 @@ interface EntryIntelligencePanelProps {
 }
 
 const normalizeActionItems = (entry: SavedEntry): string[] => {
-  const extracted = Array.isArray((entry as SavedEntry & { action_items?: unknown[] }).action_items)
-    ? ((entry as SavedEntry & { action_items?: unknown[] }).action_items || []).map((item) => {
+  const rawActionItems: unknown = entry.action_items;
+  const extracted = Array.isArray(rawActionItems)
+    ? rawActionItems.map((item) => {
         if (typeof item === "string") return item.trim();
         if (item && typeof item === "object" && "text" in item) {
           return String((item as { text?: string }).text || "").trim();

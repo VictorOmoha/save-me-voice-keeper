@@ -2,9 +2,9 @@
 import { SavedEntry } from "@/types/dashboard";
 import { FileText, Heart, Users, DollarSign, User } from "lucide-react";
 
-export const getCategoryName = (entry: SavedEntry) => {
+export const getCategoryName = (entry: SavedEntry): string => {
   // First check if the entry has a category field
-  if (entry.fields?.category) {
+  if (typeof entry.fields?.category === "string" && entry.fields.category) {
     return entry.fields.category;
   }
 

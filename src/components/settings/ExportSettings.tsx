@@ -12,6 +12,7 @@ import { auth } from "@/lib/firebase";
 
 export const ExportSettings: React.FC = () => {
   const { preferences, updatePreferences, isLoading } = useUserPreferences();
+  const exportPreferences = preferences;
   const [isExporting, setIsExporting] = useState(false);
   const [exportUrl, setExportUrl] = useState<string | null>(null);
 
@@ -46,7 +47,7 @@ export const ExportSettings: React.FC = () => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ format: preferences.auto_export_format || "json" }),
+        body: JSON.stringify({ format: exportPreferences.auto_export_format || "json" }),
       });
 
       const data = await response.json();
@@ -85,7 +86,7 @@ export const ExportSettings: React.FC = () => {
         <div className="space-y-3">
           <Label className="text-sm font-medium">Export Format</Label>
           <Select
-            value={preferences.auto_export_format || "json"}
+            value={exportPreferences.auto_export_format || "json"}
             onValueChange={(value) => handleUpdatePreference({ auto_export_format: value as "json" | "csv" })}
             disabled={isLoading}
           >
@@ -153,13 +154,13 @@ export const ExportSettings: React.FC = () => {
               </p>
             </div>
             <Switch
-              checked={preferences.auto_export_enabled || false}
+              checked={exportPreferences.auto_export_enabled || false}
               onCheckedChange={(checked) => handleUpdatePreference({ auto_export_enabled: checked })}
               disabled={isLoading}
             />
           </div>
 
-          {preferences.auto_export_enabled && (
+          {exportPreferences.auto_export_enabled && (
             <div className="p-3 bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
               Auto-backup is enabled. Your new entries will be exported daily and stored securely in your account.
             </div>

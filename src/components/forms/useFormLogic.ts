@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { SavedEntry, FieldDefinition } from "@/types/dashboard";
+import { SavedEntry, FieldDefinition, FieldValue, FieldRecord } from "@/types/dashboard";
 import { CustomField, CATEGORIES } from './types';
 import { normalizeToDbFieldName } from "@/utils/fieldNameNormalizer";
 
@@ -69,7 +69,7 @@ export const useFormLogic = ({
 
     if (editEntry) {
       newTitle = editEntry.title;
-      newCategory = editEntry.fields.category || "";
+      newCategory = (typeof editEntry.fields.category === 'string' && editEntry.fields.category) || "";
       
       if (editEntry.fieldDefinitions && editEntry.fieldDefinitions.length > 0) {
         // Use field definitions to create fields with proper structure
@@ -95,7 +95,7 @@ export const useFormLogic = ({
       }
     } else if (templateEntry && mode === 'template') {
       newTitle = templateEntry.title; // Use template title as starting point
-      newCategory = templateEntry.fields.category || preselectedCategory || "";
+      newCategory = (typeof templateEntry.fields.category === 'string' && templateEntry.fields.category) || preselectedCategory || "";
 
       if (templateEntry.fieldDefinitions && templateEntry.fieldDefinitions.length > 0) {
         // Use field definitions with values as starting point
@@ -184,7 +184,7 @@ export const useFormLogic = ({
   };
 
   const prepareSubmissionData = () => {
-    const fieldData: Record<string, unknown> = {
+    const fieldData: FieldRecord = {
       category: selectedCategory
     };
     const fieldDefinitions: FieldDefinition[] = [
@@ -195,7 +195,7 @@ export const useFormLogic = ({
       if (field.name && field.name.trim() !== '') {
         // Convert display name back to a database-friendly format
         const dbFieldName = normalizeToDbFieldName(field.name);
-        const value = field.value ?? '';
+        const value = (field.value ?? '') as FieldValue;
         // Skip default empty description field
         if (dbFieldName === 'description' && (value === '' || (typeof value === 'string' && value.trim() === ''))) {
           return;

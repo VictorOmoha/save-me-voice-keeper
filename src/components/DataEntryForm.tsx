@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SavedEntry } from "@/types/dashboard";
+import { CustomField } from "./forms/types";
 import { useFormLogic } from "./forms/useFormLogic";
 import { CategorySelector } from "./forms/CategorySelector";
 import { FormFieldManager } from "./forms/FormFieldManager";
@@ -105,9 +106,13 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           setLastVoiceUpdate(`Adding field: ${fieldName || 'Custom Field'}`);
           setHighlightedField('field_name');
 
-          const initial: { name?: string; type?: string } = {};
+          const initial: Partial<CustomField> = {};
           if (fieldName) initial.name = fieldName;
-          if (fieldType) initial.type = fieldType;
+          if (fieldType) {
+            const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
+            const matchedType = validTypes.find(t => t === fieldType);
+            if (matchedType) initial.type = matchedType;
+          }
           const newId = addFieldRef.current(initial);
           console.debug('🎤 DataEntryForm.voiceAddField -> added field', { newId, fieldName, fieldType });
         };

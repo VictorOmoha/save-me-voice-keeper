@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Download, Search, ShoppingCart, DollarSign, Package } from 'lucide-react';
 import { TableData } from '../types';
+import { fieldValueToText } from '@/utils/fieldValueGuards';
 import { toast } from 'sonner';
 
 interface ShoppingListCardViewerProps {
@@ -50,13 +51,13 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
     const purchasedItems = purchasedColumn 
       ? filteredRows.filter(row => row[purchasedColumn.id]).length 
       : 0;
-    const totalCost = priceColumn 
-      ? filteredRows.reduce((sum, row) => sum + (parseFloat(row[priceColumn.id]) || 0), 0)
+    const totalCost = priceColumn
+      ? filteredRows.reduce((sum, row) => sum + (parseFloat(String(row[priceColumn.id])) || 0), 0)
       : 0;
     const purchasedCost = priceColumn && purchasedColumn
       ? filteredRows
           .filter(row => row[purchasedColumn.id])
-          .reduce((sum, row) => sum + (parseFloat(row[priceColumn.id]) || 0), 0)
+          .reduce((sum, row) => sum + (parseFloat(String(row[priceColumn.id])) || 0), 0)
       : 0;
 
     return {
@@ -215,7 +216,7 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
                       )}
                       <div className="flex-1">
                         <h4 className={`font-medium ${isPurchased ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                          {itemColumn ? row[itemColumn.id] : 'Unknown Item'}
+                          {itemColumn ? fieldValueToText(row[itemColumn.id]) : 'Unknown Item'}
                         </h4>
                         
                         {/* Quantity and Price on same line */}
@@ -223,14 +224,14 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
                           {quantityColumn && row[quantityColumn.id] && (
                             <span className="flex items-center gap-1">
                               <Package className="h-3 w-3" />
-                              {row[quantityColumn.id]}
+                              {fieldValueToText(row[quantityColumn.id])}
                               {unitColumn && row[unitColumn.id] && ` ${row[unitColumn.id]}`}
                             </span>
                           )}
                           {priceColumn && row[priceColumn.id] && (
                             <span className="flex items-center gap-1 font-medium">
                               <DollarSign className="h-3 w-3" />
-                              {parseFloat(row[priceColumn.id]).toFixed(2)}
+                              {parseFloat(String(row[priceColumn.id])).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -241,12 +242,12 @@ export const ShoppingListCardViewer: React.FC<ShoppingListCardViewerProps> = ({
                     <div className="flex items-center gap-2 text-xs">
                       {categoryColumn && row[categoryColumn.id] && (
                         <Badge variant="secondary" className="text-xs">
-                          {row[categoryColumn.id]}
+                          {fieldValueToText(row[categoryColumn.id])}
                         </Badge>
                       )}
                       {notesColumn && row[notesColumn.id] && (
                         <span className="text-muted-foreground italic">
-                          {row[notesColumn.id]}
+                          {fieldValueToText(row[notesColumn.id])}
                         </span>
                       )}
                     </div>

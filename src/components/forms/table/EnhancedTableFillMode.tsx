@@ -107,6 +107,7 @@ export const EnhancedTableFillMode: React.FC<EnhancedTableFillModeProps> = ({
 
   const renderCellInput = useCallback((row: Record<string, unknown>, column: TableColumn, rowIndex: number) => {
     const cellValue = row[column.id] || '';
+    const inputValue = ((typeof cellValue === 'string' || typeof cellValue === 'number') && cellValue) || '';
     const isFocused = focusedCell?.rowIndex === rowIndex && focusedCell?.columnId === column.id;
     const isHighlighted = highlightedCell?.rowIndex === rowIndex && highlightedCell?.columnId === column.id;
     
@@ -146,7 +147,7 @@ export const EnhancedTableFillMode: React.FC<EnhancedTableFillModeProps> = ({
         return (
           <Input
             type="number"
-            value={cellValue}
+            value={inputValue}
             onChange={(e) => updateRowValue(rowIndex, column.id, e.target.value)}
             placeholder="0"
             {...commonProps}
@@ -156,7 +157,7 @@ export const EnhancedTableFillMode: React.FC<EnhancedTableFillModeProps> = ({
         return (
           <Input
             type="date"
-            value={cellValue}
+            value={inputValue}
             onChange={(e) => updateRowValue(rowIndex, column.id, e.target.value)}
             {...commonProps}
           />
@@ -165,7 +166,7 @@ export const EnhancedTableFillMode: React.FC<EnhancedTableFillModeProps> = ({
         return (
           <Input
             type="text"
-            value={cellValue}
+            value={inputValue}
             onChange={(e) => updateRowValue(rowIndex, column.id, e.target.value)}
             placeholder={`Enter ${column.name.toLowerCase()}...`}
             {...commonProps}

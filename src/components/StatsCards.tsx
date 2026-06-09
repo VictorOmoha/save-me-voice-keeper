@@ -14,7 +14,9 @@ interface StatsCardsProps {
 
 export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, userTier = 'free' }) => {
   const storageStats = useStorageStats(entries, userTier);
-  const recentActivityCount = getRecentActivityCount(entries);
+  const recentActivityCount = getRecentActivityCount(
+    entries.map((entry) => ({ ...entry }))
+  );
 
   React.useEffect(() => {
     try {

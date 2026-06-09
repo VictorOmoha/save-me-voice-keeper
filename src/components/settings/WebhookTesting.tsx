@@ -11,6 +11,7 @@ import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs, limit } from "firebase/firestore";
 import { SavedWebhookConfigs } from "./SavedWebhookConfigs";
 import { useAuth } from "@/contexts/AuthContext";
+import { fieldValueToText } from "@/utils/fieldValueGuards";
 
 interface TestField {
   key: string;
@@ -79,10 +80,12 @@ export const WebhookTesting = () => {
         setLatestEntry(entry);
 
         // Update test fields with latest entry data
-        const expirationDate = entry.fields?.expirationDate ||
+        const expirationCandidate = entry.fields?.expirationDate ||
                               entry.fields?.['Expiration Date'] ||
-                              entry.fields?.['expiration_date'] ||
-                              new Date().toISOString().split('T')[0];
+                              entry.fields?.['expiration_date'];
+        const expirationDate = typeof expirationCandidate === 'string'
+          ? expirationCandidate
+          : new Date().toISOString().split('T')[0];
 
         setTestFields(prev => prev.map(field => {
           if (field.key === 'entryTitle') {
@@ -310,7 +313,7 @@ export const WebhookTesting = () => {
                 <strong>Last Updated:</strong> {new Date(latestEntry.updated_at).toLocaleString()}
               </p>
               <p className="text-sm text-muted-foreground">
-                <strong>Expiration Date:</strong> {latestEntry.fields?.expirationDate || latestEntry.fields?.['Expiration Date'] || 'Not set'}
+                <strong>Expiration Date:</strong> {fieldValueToText(latestEntry.fields?.expirationDate || latestEntry.fields?.['Expiration Date']) || 'Not set'}
               </p>
             </div>
           )}

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, X, FileText, Edit3, Printer } from 'lucide-react';
-import { SavedEntry } from '@/types/dashboard';
+import { SavedEntry, FieldRecord } from '@/types/dashboard';
 import { storage, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { ref, uploadBytes, getBlob } from 'firebase/storage';
@@ -35,8 +35,8 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   
 
-  const fileName = entry?.fields?.fileName || '';
-  const fileType = entry?.fields?.fileType || '';
+  const fileName = typeof entry?.fields?.fileName === 'string' ? entry.fields.fileName : '';
+  const fileType = typeof entry?.fields?.fileType === 'string' ? entry.fields.fileType : '';
   const hasInline = Boolean((entry?.fields as Record<string, unknown> | undefined)?.documentContent);
   const isTextBased = hasInline || fileType.includes('text') || fileType.includes('html') || fileName.endsWith('.txt') || fileName.endsWith('.html');
   const isHtml = fileName.endsWith('.html') || fileType.includes('html');
@@ -172,12 +172,12 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       });
 
       // Update the entry in the database
-      const updatedFields = {
+      const updatedFields: FieldRecord = {
         ...entry.fields,
         documentContent: documentContent, // Store content for quick access
         storagePath: filePath, // Persist the storage path for faster future loads
         updatedAt: new Date().toISOString(),
-      } as Record<string, unknown>;
+      };
 
       const entryRef = doc(db, 'entries', entry.id);
       await updateDoc(entryRef, {

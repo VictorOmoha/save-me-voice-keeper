@@ -23,8 +23,8 @@ export function SharedMemoryDevPanel() {
         project: 'save-me',
         type: 'dev_test',
         source: 'agent',
-        visibility: 'shared',
-        verification: 'verified',
+        visibility: 'shared_with_agents',
+        verification: 'system_verified',
         confidence: 0.99,
         metadata: { source: 'SharedMemoryDevPanel', seed },
       });
@@ -39,7 +39,7 @@ export function SharedMemoryDevPanel() {
       const listed = await sharedMemoryClient.list({
         limit: 5,
         project: 'save-me',
-        visibility: 'shared',
+        visibility: 'shared_with_agents',
       });
       const searched = await sharedMemoryClient.search({
         query: title,

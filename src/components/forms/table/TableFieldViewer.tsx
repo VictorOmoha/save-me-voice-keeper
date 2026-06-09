@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Download, Search, SortAsc, SortDesc } from 'lucide-react';
 import { TableData, TableColumn } from '../types';
+import { fieldValueToText } from '@/utils/fieldValueGuards';
 import { toast } from 'sonner';
 
 interface TableFieldViewerProps {
@@ -150,9 +151,9 @@ export const TableFieldViewer: React.FC<TableFieldViewerProps> = ({
           </span>
         );
       case 'date':
-        return cellValue ? new Date(cellValue).toLocaleDateString() : '—';
+        return cellValue ? new Date(String(cellValue)).toLocaleDateString() : '—';
       default:
-        return cellValue || '—';
+        return cellValue ? fieldValueToText(cellValue) : '—';
     }
   };
 

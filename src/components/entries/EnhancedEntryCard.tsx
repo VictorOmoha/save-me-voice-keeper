@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { getCategoryConfig } from "@/utils/categoryConfig";
 import { formatFieldValue, formatFieldName, metadataFields } from "@/utils/fieldFormatters";
 import { getEntryIntelligenceSignals } from "@/utils/entryIntelligence";
+import { fieldValueToText } from "@/utils/fieldValueGuards";
 
 interface EnhancedEntryCardProps {
   entry: SavedEntry;
@@ -437,7 +438,7 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
           {hasFile && (
             <Badge variant="outline" className="text-xs gap-1">
               <FileText className="w-3 h-3" />
-              {entry.fields.fileName}
+              {fieldValueToText(entry.fields.fileName)}
             </Badge>
           )}
         </div>

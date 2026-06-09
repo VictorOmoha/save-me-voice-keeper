@@ -105,6 +105,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
 
   const renderCellInput = (row: Record<string, unknown>, column: TableColumn, rowIndex: number) => {
     const cellValue = row[column.id] || '';
+    const inputValue = ((typeof cellValue === 'string' || typeof cellValue === 'number') && cellValue) || '';
 
     switch (column.type) {
       case 'checkbox':
@@ -120,7 +121,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
         return (
           <Input
             type="number"
-            value={cellValue}
+            value={inputValue}
             onChange={(e) => updateRowValue(rowIndex, column.id, e.target.value)}
             disabled={disabled}
             className="min-w-0"
@@ -130,7 +131,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
         return (
           <Input
             type="date"
-            value={cellValue}
+            value={inputValue}
             onChange={(e) => updateRowValue(rowIndex, column.id, e.target.value)}
             disabled={disabled}
             className="min-w-0"
@@ -140,7 +141,7 @@ export const TableFieldEditor: React.FC<TableFieldEditorProps> = ({
         return (
           <Input
             type="text"
-            value={cellValue}
+            value={inputValue}
             onChange={(e) => updateRowValue(rowIndex, column.id, e.target.value)}
             disabled={disabled}
             className="min-w-0"

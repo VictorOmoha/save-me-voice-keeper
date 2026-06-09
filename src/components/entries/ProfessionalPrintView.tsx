@@ -22,6 +22,9 @@ const categoryColors: Record<string, { primary: string; secondary: string; accen
 
 const defaultColors = { primary: "#6b7280", secondary: "#f3f4f6", accent: "#4b5563" };
 
+const isTableDataValue = (value: unknown): value is TableData =>
+  typeof value === "object" && value !== null && "columns" in value;
+
 // Format field value for print
 const formatFieldValue = (key: string, value: unknown): string => {
   if (value === null || value === undefined || value === "") return "—";
@@ -33,13 +36,15 @@ const formatFieldValue = (key: string, value: unknown): string => {
   }
 
   if (key.toLowerCase().includes("date") || key.toLowerCase().includes("expir")) {
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      });
+    if (typeof value === "string" || typeof value === "number" || value instanceof Date) {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric"
+        });
+      }
     }
   }
 
@@ -52,7 +57,7 @@ const formatFieldValue = (key: string, value: unknown): string => {
 
   if (key.toLowerCase().includes("balance") || key.toLowerCase().includes("amount") ||
       key.toLowerCase().includes("price") || key.toLowerCase().includes("cost")) {
-    const num = parseFloat(value);
+    const num = parseFloat(String(value));
     if (!isNaN(num)) {
       return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num);
     }
@@ -96,7 +101,7 @@ const renderTableForPrint = (tableData: TableData): string => {
               const val = row[col.id];
               let displayVal = val;
               if (col.type === "checkbox") displayVal = val ? "✓" : "—";
-              else if (col.type === "date" && val) {
+              else if (col.type === "date" && val && (typeof val === "string" || typeof val === "number" || val instanceof Date)) {
                 const d = new Date(val);
                 displayVal = !isNaN(d.getTime()) ? d.toLocaleDateString() : val;
               }
@@ -461,12 +466,8 @@ export const generateProfessionalPrintHTML = (
       .filter(([_, value]) => value !== null && value !== undefined && value !== "");
 
     // Separate table fields from regular fields
-    const regularFields = displayFields.filter(([_, value]) =>
-      !(typeof value === "object" && value !== null && "columns" in value)
-    );
-    const tableFields = displayFields.filter(([_, value]) =>
-      typeof value === "object" && value !== null && "columns" in value
-    );
+    const regularFields = displayFields.filter(([_, value]) => !isTableDataValue(value));
+    const tableFields = displayFields.filter(([_, value]) => isTableDataValue(value));
 
     const pageBreakClass = pageBreaks && index > 0 ? "page-break" : "";
 
@@ -525,7 +526,7 @@ export const generateProfessionalPrintHTML = (
             ${tableFields.map(([key, value]) => `
               <div class="table-section">
                 <div class="table-title">${formatFieldName(key)}</div>
-                ${renderTableForPrint(value as TableData)}
+                ${isTableDataValue(value) ? renderTableForPrint(value) : ""}
               </div>
             `).join("")}
           </div>

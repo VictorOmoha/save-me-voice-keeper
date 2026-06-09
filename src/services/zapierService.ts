@@ -58,10 +58,12 @@ export const zapierService = {
 
   sendEntryCreatedWebhook: async (webhookUrl: string, entry: EntryLike, userEmail: string) => {
     // Extract expiration date from various possible field names
-    const expirationDate = entry.fields?.expirationDate || 
-                          entry.fields?.['Expiration Date'] || 
-                          entry.fields?.['expiration_date'] ||
-                          new Date().toISOString().split('T')[0];
+    const rawExpirationDate = entry.fields?.expirationDate ||
+                          entry.fields?.['Expiration Date'] ||
+                          entry.fields?.['expiration_date'];
+    const expirationDate = typeof rawExpirationDate === 'string'
+      ? rawExpirationDate
+      : new Date().toISOString().split('T')[0];
 
     const payload = {
       entryTitle: entry.title,

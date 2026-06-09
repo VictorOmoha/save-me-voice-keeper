@@ -105,7 +105,7 @@ export const useSavedEntries = () => {
           title: entry.title,
           fields: entry.fields,
           fieldDefinitions: entry.fieldDefinitions || [],
-          category: entry.fields?.category || 'Personal',
+          category: (typeof entry.fields?.category === 'string' && entry.fields.category) || 'Personal',
           updatedAt: new Date(),
         };
 
@@ -129,7 +129,7 @@ export const useSavedEntries = () => {
           title: entry.title,
           fields: entry.fields,
           fieldDefinitions: entry.fieldDefinitions || [],
-          category: entry.fields?.category || 'Personal',
+          category: (typeof entry.fields?.category === 'string' && entry.fields.category) || 'Personal',
           createdAt: new Date(),
           updatedAt: new Date(),
         };

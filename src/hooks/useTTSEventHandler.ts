@@ -1,6 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { speechRecognition } from '@/utils/speechRecognitionSingleton';
 
+type TTSWindow = Window & {
+  __tts_is_speaking?: boolean;
+  __last_tts_end_time?: number;
+  __manual_stop?: boolean;
+};
+
 interface UseTTSEventHandlerProps {
   conversationState?: {
     isActive: boolean;
@@ -87,11 +93,11 @@ export const useTTSEventHandler = ({
 
   // Return shape preserved for compatibility
   return {
-    isSpeaking: () => (window as unknown).__tts_is_speaking === true,
-    getLastEndTime: () => (window as unknown).__last_tts_end_time || 0,
-    isManualStop: () => (window as unknown).__manual_stop === true,
+    isSpeaking: () => (window as TTSWindow).__tts_is_speaking === true,
+    getLastEndTime: () => (window as TTSWindow).__last_tts_end_time || 0,
+    isManualStop: () => (window as TTSWindow).__manual_stop === true,
     setManualStop: (value: boolean) => {
-      (window as unknown).__manual_stop = value;
+      (window as TTSWindow).__manual_stop = value;
     },
   };
 };

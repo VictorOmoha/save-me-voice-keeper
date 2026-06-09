@@ -47,14 +47,22 @@ export const useOfflineSync = () => {
               _syncedFromOffline: true,
             });
           } else if (item.action === 'update') {
-            const entryRef = doc(db, 'entries', item.data.id);
+            const entryId = item.data.id;
+            if (typeof entryId !== 'string') {
+              throw new Error('Offline queue item is missing an entry id');
+            }
+            const entryRef = doc(db, 'entries', entryId);
             await setDoc(entryRef, {
               ...item.data,
               updated_at: serverTimestamp(),
               _syncedFromOffline: true,
             }, { merge: true });
           } else if (item.action === 'delete') {
-            const entryRef = doc(db, 'entries', item.data.id);
+            const entryId = item.data.id;
+            if (typeof entryId !== 'string') {
+              throw new Error('Offline queue item is missing an entry id');
+            }
+            const entryRef = doc(db, 'entries', entryId);
             await deleteDoc(entryRef);
           }
 
@@ -122,7 +130,7 @@ export const useOfflineSync = () => {
   // Cache entries locally when online
   const cacheEntriesLocally = useCallback(async (entries: SavedEntry[]) => {
     try {
-      await cacheEntries(entries);
+      await cacheEntries(entries.map(entry => ({ ...entry })));
     } catch (error) {
       console.warn('Failed to cache entries locally:', error);
     }

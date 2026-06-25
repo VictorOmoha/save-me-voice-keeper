@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { VoiceFormProvider } from "./contexts/VoiceFormContext";
 import { ThemeProvider } from "./components/ThemeProvider";
@@ -58,6 +58,22 @@ const GlobalProviders: React.FC = () => {
   return null;
 };
 
+/**
+ * The app used HashRouter until mid-2026, so bookmarks, PWA shortcuts, and
+ * shared links in the wild look like /#/dashboard. Rewrite them onto real
+ * paths once on load so they keep working under BrowserRouter.
+ */
+const LegacyHashRedirect: React.FC = () => {
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    const { hash } = window.location;
+    if (hash.startsWith("#/")) {
+      navigate(hash.slice(1), { replace: true });
+    }
+  }, [navigate]);
+  return null;
+};
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -70,7 +86,8 @@ const App = () => (
               <ThemeBootstrapper />
               <VoiceFormProvider>
                 <KeyboardShortcutsProvider>
-                  <HashRouter>
+                  <BrowserRouter>
+                    <LegacyHashRedirect />
                     <GlobalProviders />
                     <VoiceNavigationListener />
                     <NovaFloat />
@@ -101,7 +118,7 @@ const App = () => (
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
-                  </HashRouter>
+                  </BrowserRouter>
                 </KeyboardShortcutsProvider>
               </VoiceFormProvider>
             </AuthProvider>

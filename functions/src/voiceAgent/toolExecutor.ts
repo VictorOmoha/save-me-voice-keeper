@@ -19,6 +19,9 @@ interface EntrySearchRecord {
   id: string;
   title?: string;
   fields?: Record<string, unknown>;
+  tags?: string[];
+  summary?: string;
+  entities?: string[];
 }
 
 export interface ConversationPart {
@@ -58,7 +61,60 @@ const toEntrySearchRecord = (doc: admin.firestore.QueryDocumentSnapshot): EntryS
     id: doc.id,
     title: typeof data.title === "string" ? data.title : undefined,
     fields: data.fields && typeof data.fields === "object" ? data.fields as Record<string, unknown> : undefined,
+    tags: Array.isArray(data.tags) ? data.tags.filter((t: unknown): t is string => typeof t === "string") : undefined,
+    summary: typeof data.summary === "string" ? data.summary : undefined,
+    entities: Array.isArray(data.entities) ? data.entities.filter((e: unknown): e is string => typeof e === "string") : undefined,
   };
+};
+
+const collectSearchableText = (value: unknown, out: string[], depth = 0): void => {
+  if (value === null || value === undefined || depth > 4) return;
+  if (typeof value === "string") {
+    if (value) out.push(value);
+    return;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    out.push(String(value));
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) collectSearchableText(item, out, depth + 1);
+    return;
+  }
+  if (typeof value === "object") {
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      collectSearchableText(item, out, depth + 1);
+    }
+  }
+};
+
+/**
+ * Token-AND scoring: every query word must appear somewhere in the entry
+ * (title hits weigh 3x body hits); returns 0 on any miss so multi-word
+ * queries stay precise while single fields no longer hide matches.
+ */
+const scoreEntryMatch = (entry: EntrySearchRecord, query: string): number => {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return 0;
+  const title = (entry.title || "").toLowerCase();
+  const parts: string[] = [];
+  if (entry.summary) parts.push(entry.summary);
+  if (entry.tags?.length) parts.push(entry.tags.join(" "));
+  if (entry.entities?.length) parts.push(entry.entities.join(" "));
+  collectSearchableText(entry.fields, parts);
+  const body = parts.join("\n").toLowerCase();
+
+  let score = 0;
+  for (const token of tokens) {
+    if (title.includes(token)) {
+      score += 3;
+    } else if (body.includes(token)) {
+      score += 1;
+    } else {
+      return 0;
+    }
+  }
+  return score;
 };
 
 export async function executeVoiceTool(
@@ -178,21 +234,21 @@ export async function executeVoiceTool(
 
   case "searchEntries": {
     const limit = typeof args.limit === "number" ? args.limit : 5;
+    // Search across the user's recent corpus (recency only breaks ties), not
+    // just the last 50 entries — "I know I saved this" must find old entries.
     const snap = await entriesRef
       .where("user_id", "==", userId)
       .orderBy("updated_at", "desc")
-      .limit(50)
+      .limit(500)
       .get();
-    const q = String(args.query || "").toLowerCase();
+    const q = String(args.query || "");
     const results = snap.docs
       .map(toEntrySearchRecord)
-      .filter((entry) =>
-        (entry.title && entry.title.toLowerCase().includes(q)) ||
-        (typeof entry.fields?.content === "string" && entry.fields.content.toLowerCase().includes(q)) ||
-        (typeof entry.fields?.category === "string" && entry.fields.category.toLowerCase().includes(q))
-      )
+      .map((entry) => ({entry, score: scoreEntryMatch(entry, q)}))
+      .filter((scored) => scored.score > 0)
+      .sort((a, b) => b.score - a.score)
       .slice(0, limit)
-      .map((entry) => ({
+      .map(({entry}) => ({
         id: entry.id,
         title: entry.title,
         content: typeof entry.fields?.content === "string" ? entry.fields.content : undefined,

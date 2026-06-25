@@ -5,6 +5,7 @@ function scoreMemory(doc: admin.firestore.QueryDocumentSnapshot, query: string, 
   const data = doc.data();
   const title = String(data.title || "").toLowerCase();
   const content = String(data.content || "").toLowerCase();
+  const tags = Array.isArray(data.tags) ? data.tags.join(" ").toLowerCase() : "";
   const type = String(data.type || "");
   const verification = String(data.verification || "");
   const project = String(data.project || "");
@@ -16,8 +17,14 @@ function scoreMemory(doc: admin.firestore.QueryDocumentSnapshot, query: string, 
   if (!q) score += 0.1;
   if (q && title.includes(q)) score += 3;
   if (q && content.includes(q)) score += 2;
+  if (q && tags.includes(q)) score += 2;
   if (words.some((word) => title.includes(word))) score += 1.5;
   if (words.some((word) => content.includes(word))) score += 1;
+  if (words.some((word) => tags.includes(word))) score += 1;
+
+  // A non-empty query must actually match text somewhere — metadata boosts
+  // alone shouldn't surface unrelated memories.
+  if (q && score === 0) return 0;
 
   if (["preference", "decision", "project_context"].includes(type)) score += 0.5;
   if (verification === "human_confirmed") score += 1;
@@ -48,7 +55,11 @@ export async function searchSharedMemories(
     query = query.where("visibility", "==", input.visibility[0]);
   }
 
-  const snap = await query.limit(Math.min(input.limit || 10, 25)).get();
+  // Fetch a wide candidate pool, then score and trim to the requested limit.
+  // Limiting the Firestore query itself to `input.limit` meant only the most
+  // recently updated handful of memories were ever searchable — a query
+  // matching an older memory could never surface it.
+  const snap = await query.limit(500).get();
 
   const filtered = snap.docs.filter((doc) => {
     const data = doc.data();
@@ -59,10 +70,12 @@ export async function searchSharedMemories(
     return true;
   });
 
+  const hasQuery = Boolean((input.query || "").trim());
   const ranked = filtered
     .map((doc) => ({ doc, score: scoreMemory(doc, input.query || "", input.project) }))
+    .filter(({ score }) => !hasQuery || score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, input.limit || 10)
+    .slice(0, Math.min(input.limit || 10, 25))
     .map(({ doc, score }) => ({ id: doc.id, score, ...doc.data() }));
 
   for (const result of ranked) {

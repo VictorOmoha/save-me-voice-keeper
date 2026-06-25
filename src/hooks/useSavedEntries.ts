@@ -17,6 +17,7 @@ import {
   Timestamp
 } from "firebase/firestore";
 import { toast } from "sonner";
+import { entryMatchesQuery } from "@/utils/entrySearch";
 
 export const useSavedEntries = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -167,15 +168,7 @@ export const useSavedEntries = () => {
   // Filter entries based on search query - memoized to prevent recalculation on every render
   const filteredEntries = React.useMemo(() => {
     if (!searchQuery) return savedEntries;
-
-    const query = searchQuery.toLowerCase();
-    return savedEntries.filter(entry =>
-      entry.title.toLowerCase().includes(query) ||
-      (entry.category && entry.category.toLowerCase().includes(query)) ||
-      Object.values(entry.fields).some(value =>
-        typeof value === 'string' && value.toLowerCase().includes(query)
-      )
-    );
+    return savedEntries.filter(entry => entryMatchesQuery(entry, searchQuery));
   }, [savedEntries, searchQuery]);
 
   // Load entries when user is ready

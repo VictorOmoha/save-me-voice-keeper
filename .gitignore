@@ -31,3 +31,7 @@ dist-ssr
 *.sw?
 serviceAccountKey.json
 deps.txt
+.gstack/
+
+# Claude Code local machine settings (keep shared .claude/launch.json)
+.claude/settings.local.json

@@ -35,3 +35,6 @@ deps.txt
 
 # Claude Code local machine settings (keep shared .claude/launch.json)
 .claude/settings.local.json
+
+# Firebase deploy cache (generated artifact)
+.firebase/

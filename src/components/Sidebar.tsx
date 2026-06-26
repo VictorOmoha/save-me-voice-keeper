@@ -12,10 +12,12 @@ import {
   Plus,
   Settings,
   Brain,
+  Mic,
   X
 } from "lucide-react";
 import { SavedEntry } from "@/types/dashboard";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SidebarProps {
   savedEntriesCount: number;
@@ -40,6 +42,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const location = useLocation();
   const { filterEntriesByCategory } = useCategoryFilter();
+  const { user } = useAuth();
+  const displayName = user?.displayName || user?.email?.split("@")[0] || "You";
+  const initial = displayName.charAt(0).toUpperCase();
 
   const categories = [
     { name: "Documents", icon: FileText },
@@ -89,6 +94,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </Link>
 
+          <Link to="/voice-capture" onClick={handleNavClick}>
+            <div className={navItemClass(location.pathname === "/voice-capture")}>
+              <Mic className="w-4 h-4" />
+              <span>Voice capture</span>
+            </div>
+          </Link>
+
           <Link to="/all-entries" onClick={handleNavClick}>
             <div className={navItemClass(activeSection ? activeSection === "all-entries" : location.pathname === "/all-entries")}>
               <FileText className="w-4 h-4" />
@@ -102,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link to="/brain-dump" onClick={handleNavClick}>
             <div className={navItemClass(activeSection ? activeSection === "brain-dump" : location.pathname === "/brain-dump")}>
               <Brain className="w-4 h-4" />
-              <span>Start Voice Dump</span>
+              <span>Brain dump</span>
             </div>
           </Link>
 
@@ -152,11 +164,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Footer Status */}
-      <div className="p-4 border-t border-galvanized">
-        <div className="mono text-xs text-muted-foreground flex items-center gap-2">
-          <span className="status-dot" />
-          <span>Archive ready</span>
+      {/* User card */}
+      <div className="p-3 border-t border-galvanized">
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.025] border border-border">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
+            style={{ background: "linear-gradient(135deg,#2dd4ff,#0b8fc4)", color: "#04222e" }}
+          >
+            {initial}
+          </div>
+          <div className="min-w-0 leading-tight">
+            <div className="text-[13px] font-semibold text-foreground truncate">{displayName}</div>
+            <div className="mono text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" style={{ boxShadow: "0 0 7px #34d399" }} />
+              all data encrypted
+            </div>
+          </div>
         </div>
       </div>
     </>

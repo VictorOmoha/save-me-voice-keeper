@@ -1,8 +1,9 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -18,11 +19,8 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   }
 
   if (!isAuthenticated) {
-    const hashPath = typeof window !== "undefined" && window.location.hash.startsWith("#")
-      ? window.location.hash.slice(1)
-      : "/login";
-    const next = hashPath || "/login";
-    return <Navigate to={next === "/login" ? "/login" : `/login?next=${encodeURIComponent(next)}`} replace />;
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={next === "/login" || next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`} replace />;
   }
 
   return <>{children}</>;

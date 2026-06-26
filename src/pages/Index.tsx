@@ -1,317 +1,487 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Check, Mic, Mail, ArrowRight, Sun, Moon, Sparkles, Bot, PlugZap } from "lucide-react";
+import type { CSSProperties, ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { VideoModal } from "@/components/VideoModal";
-import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
-import { ConversationalVoiceDemo } from "@/components/landing/ConversationalVoiceDemo";
-import { VoiceDemoAnimation } from "@/components/landing/VoiceDemoAnimation";
 import { trackActivationEvent } from "@/lib/analytics";
+import { AppMock } from "@/components/landing/AppMock";
+import "@/styles/landing.css";
 
-const SAVEME_DEMO_VIDEO = "/videos/saveme-demo.mp4";
+const GRAD = "linear-gradient(135deg,#2dd4ff,#0b8fc4)";
+const ACCENT = "#5fd6f0";
+const MONO = "'JetBrains Mono'";
+
+const ctaPrimary: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 10,
+  borderRadius: 13,
+  background: GRAD,
+  color: "#04222e",
+  boxShadow: "0 0 34px rgba(45,212,255,.4)",
+  fontFamily: "Manrope",
+  fontWeight: 700,
+};
+
+const cardBase: CSSProperties = {
+  borderRadius: 18,
+  background: "rgba(255,255,255,.022)",
+  border: "1px solid rgba(125,165,205,.09)",
+};
+
+const eyebrow: CSSProperties = {
+  font: `600 12px ${MONO}`,
+  letterSpacing: ".2em",
+  color: ACCENT,
+};
+
+const CheckRow = ({ text, color = "#c4cedb" }: { text: ReactNode; color?: string }): JSX.Element => (
+  <div style={{ display: "flex", gap: 10, font: "500 13.5px Manrope", color }}>
+    <span style={{ color: "#39e0a8" }}>✓</span>
+    {text}
+  </div>
+);
+
+const FEATURES = [
+  {
+    title: "Just talk",
+    desc: "Capture notes, ideas, contacts, and reminders by speaking naturally — no typing, no friction.",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="2" width="6" height="12" rx="3" />
+        <path d="M5 11a7 7 0 0 0 14 0" />
+        <path d="M12 18v3" />
+      </svg>
+    ),
+  },
+  {
+    title: "Nova organizes",
+    desc: "Every thought is auto-sorted into notes, tasks, events, and contacts. No folders, no tags to manage.",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill={ACCENT}>
+        <path d="M12 2l1.7 4.8L18.5 8.5l-4.8 1.7L12 15l-1.7-4.8L5.5 8.5l4.8-1.7z" />
+        <path d="M19 14l.8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8z" />
+      </svg>
+    ),
+  },
+  {
+    title: "Find it instantly",
+    desc: "Search by keyword, category, or just describe what you're looking for. Answers in seconds.",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="7" />
+        <path d="M21 21l-4-4" />
+      </svg>
+    ),
+  },
+  {
+    title: "Yours, private",
+    desc: "Encrypted in transit and protected by account-level access. We never sell or share your data.",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 3l7 3v5c0 4.6-3 7.7-7 9-4-1.3-7-4.4-7-9V6z" />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+    ),
+  },
+];
+
+const STEPS = [
+  { n: "01", title: "Speak naturally", desc: "Brain-dump raw thoughts out loud. No structure required — just talk." },
+  { n: "02", title: "Nova organizes", desc: "Your words become searchable facts, tasks, events, and context — sorted automatically." },
+  { n: "03", title: "Retrieve anywhere", desc: "Find anything in seconds — and let trusted AI agents use the same memory when you allow it." },
+];
+
+const PRIVACY = [
+  {
+    title: "Encrypted in transit",
+    desc: "Your captures are protected on the way to your vault.",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4.5" y="10" width="15" height="11" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </svg>
+    ),
+  },
+  {
+    title: "Account-level access",
+    desc: "Only you — and the agents you explicitly authorize — can read your memory.",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="8" r="4.5" />
+        <path d="M11 11l9 9M17 17l2-2M14 14l2-2" />
+      </svg>
+    ),
+  },
+  {
+    title: "Your data stays yours",
+    desc: "We never sell or share your information. Export or delete it anytime.",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="10" cy="8" r="4" />
+        <path d="M3 21a7 7 0 0 1 11-5.7" />
+        <path d="M16 18l2 2 4-4" />
+      </svg>
+    ),
+  },
+];
+
+const featureIconWrap: CSSProperties = {
+  width: 42,
+  height: 42,
+  borderRadius: 12,
+  background: "rgba(45,212,255,.09)",
+  border: "1px solid rgba(45,212,255,.18)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 18,
+};
 
 const Index = () => {
-  const [isComponentReady, setIsComponentReady] = useState(false);
   const { isAuthenticated } = useAuth();
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const navigate = useNavigate();
-  const [activeDemoVideo, setActiveDemoVideo] = useState<{ url: string; title: string } | null>(null);
-  const [activeCanvidVideo, setActiveCanvidVideo] = useState<{ url: string; title: string } | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-  const [demoMuted, setDemoMuted] = useState(false);
 
   const getPlanHref = (planName: string) => {
-    const normalizedPlan = planName.toLowerCase();
-
-    if (normalizedPlan === 'free') {
-      return isAuthenticated ? '/dashboard' : '/signup?plan=free';
-    }
-
-    return isAuthenticated
-      ? `/subscription?plan=${normalizedPlan}`
-      : `/signup?plan=${normalizedPlan}`;
+    const plan = planName.toLowerCase();
+    if (plan === "free") return isAuthenticated ? "/dashboard" : "/signup?plan=free";
+    return isAuthenticated ? `/subscription?plan=${plan}` : `/signup?plan=${plan}`;
   };
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  const brainDumpHref = isAuthenticated ? "/brain-dump" : "/signup?next=%2Fbrain-dump";
+  const trackBrainDump = (source: string) =>
+    trackActivationEvent(isAuthenticated ? "brain_dump_start_clicked" : "signup_started", { source });
 
-  useEffect(() => { setIsComponentReady(true); }, []);
-
-  useEffect(() => {
-    const fetchActiveVideos = async () => {
-      try {
-        const videosRef = collection(db, 'public_demo_videos');
-        const querySnapshot = await getDocs(videosRef);
-        querySnapshot.forEach((docSnap) => {
-          const video = docSnap.data();
-          if (video.video_type === 'demo') setActiveDemoVideo({ url: video.video_url, title: video.title });
-          else if (video.video_type === 'canvid_replacement') setActiveCanvidVideo({ url: video.video_url, title: video.title });
-        });
-      } catch (error) {
-        console.warn('Video metadata unavailable; using bundled demo video fallback.', error);
-        setActiveDemoVideo({ url: SAVEME_DEMO_VIDEO, title: 'SaveMe.Space Demo' });
-      }
-    };
-    fetchActiveVideos();
-  }, []);
-
-  const plans = [
-    { name: "FREE", price: "$0", period: "Forever", description: "Perfect for getting started", features: ["Up to 50 entries", "Basic search", "Web access only", "Standard support"], popular: false },
-    { name: "BASIC", price: "$9", period: "per month", description: "For personal power users", features: ["Unlimited entries", "Advanced search & filters", "All platforms", "Voice input & commands", "Priority support"], popular: true },
-    { name: "PREMIUM", price: "$19", period: "per month", description: "For teams and professionals", features: ["Everything in Basic", "Data export & backup", "Enhanced privacy controls", "API access", "Custom integrations", "24/7 support"], popular: false }
+  const PLANS = [
+    {
+      name: "FREE",
+      price: "$0",
+      period: "forever",
+      blurb: "Perfect for getting started.",
+      cta: "Start free",
+      popular: false,
+      features: ["Up to 50 entries", "Basic search", "Web access", "Standard support"],
+    },
+    {
+      name: "BASIC",
+      price: "$9",
+      period: "/mo",
+      blurb: "For personal power users.",
+      cta: "Get Basic",
+      popular: true,
+      features: ["Unlimited entries", "Advanced search & filters", "All platforms", "Voice input & commands", "Priority support"],
+    },
+    {
+      name: "PREMIUM",
+      price: "$19",
+      period: "/mo",
+      blurb: "For teams and professionals.",
+      cta: "Get Premium",
+      popular: false,
+      features: ["Everything in Basic", "Data export & backup", "Enhanced privacy controls", "API access for agents", "Custom integrations", "24/7 support"],
+    },
   ];
 
-  if (!isComponentReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-        <div className="text-center relative">
-          <p className="text-zinc-500 text-sm">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={`min-h-screen font-sans overflow-x-hidden transition-colors ${theme} ${theme === 'dark' ? 'bg-zinc-950 text-zinc-300 selection:bg-accent/30 selection:text-white' : 'bg-white text-zinc-700 selection:bg-blue-200'}`}>
-      <div className="grid-blueprint" />
+    <div className="lp-root" style={{ minHeight: "100vh", width: "100%" }}>
+      {/* NAV */}
+      <nav
+        className="lp-nav"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 60,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "18px 40px",
+          background: "rgba(5,7,11,.72)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(125,165,205,.07)",
+        }}
+      >
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none" }}>
+          <img src="/logo.png" alt="SaveMe" width={36} height={36} style={{ display: "block", objectFit: "contain", filter: "drop-shadow(0 0 14px rgba(45,212,255,.35))" }} />
+          <span style={{ font: "700 18px Sora", color: "#eaf3fa" }}>SaveMe</span>
+        </Link>
+        <div className="lp-nav-links" style={{ display: "flex", alignItems: "center", gap: 34 }}>
+          <a href="#features" className="lp-navlink" style={{ font: "600 14px Manrope", textDecoration: "none" }}>Product</a>
+          <a href="#how" className="lp-navlink" style={{ font: "600 14px Manrope", textDecoration: "none" }}>How it works</a>
+          <a href="#agents" className="lp-navlink" style={{ font: "600 14px Manrope", textDecoration: "none" }}>For agents</a>
+          <a href="#pricing" className="lp-navlink" style={{ font: "600 14px Manrope", textDecoration: "none" }}>Pricing</a>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+          <Link to={isAuthenticated ? "/dashboard" : "/login"} className="lp-login" style={{ font: "600 14px Manrope", textDecoration: "none" }}>
+            {isAuthenticated ? "Dashboard" : "Log in"}
+          </Link>
+          <Link to={isAuthenticated ? "/dashboard" : "/signup"} className="lp-cta" onClick={() => !isAuthenticated && trackActivationEvent("signup_started", { source: "landing_nav" })} style={{ padding: "9px 18px", borderRadius: 10, background: GRAD, color: "#04222e", font: "700 14px Manrope", boxShadow: "0 0 22px rgba(45,212,255,.35)", textDecoration: "none" }}>
+            Start free
+          </Link>
+        </div>
+      </nav>
 
-      <div className={`max-w-[1400px] mx-auto px-4 md:px-8 min-h-screen flex flex-col ${theme === 'dark' ? 'border-l border-r border-zinc-800/50' : 'border-l border-r border-zinc-200'}`}>
-        {/* Navigation */}
-        <nav className={`grid grid-cols-2 md:grid-cols-3 items-center h-20 text-sm ${theme === 'dark' ? 'border-b border-zinc-800/50' : 'border-b border-zinc-200'}`}>
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="SaveMe.Space" className="w-8 h-8 object-contain" />
-            <span className={`hidden sm:inline font-semibold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>SaveMe.Space</span>
-          </div>
-          <div className={`hidden md:flex justify-center text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Voice-first external memory, powered by AI</div>
-          <div className={`flex items-center justify-end gap-4 ${theme === 'dark' ? 'text-zinc-200' : 'text-zinc-600'}`}>
-            <button onClick={toggleTheme} className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-zinc-800 text-zinc-300 hover:text-white' : 'hover:bg-zinc-100 text-zinc-600 hover:text-zinc-900'}`} aria-label="Toggle theme">
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            {isAuthenticated ? (
-              <Link to="/dashboard" className={`px-5 py-2.5 rounded-lg font-medium transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>Dashboard</Link>
-            ) : (
-              <Link to="/login" className={`px-5 py-2.5 rounded-lg font-medium transition-all ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}>Sign In</Link>
-            )}
-          </div>
-        </nav>
+      {/* HERO */}
+      <header style={{ position: "relative", padding: "74px 24px 90px", textAlign: "center", overflow: "hidden", background: "#05070b" }}>
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }} aria-hidden="true">
+          <div style={{ position: "absolute", top: "-22%", left: "18%", width: 620, height: 620, borderRadius: "50%", background: "radial-gradient(circle,rgba(45,212,255,.20),transparent 64%)", filter: "blur(34px)", animation: "lp-orbA 17s ease-in-out infinite" }} />
+          <div style={{ position: "absolute", top: "-8%", right: "12%", width: 560, height: 560, borderRadius: "50%", background: "radial-gradient(circle,rgba(36,120,220,.18),transparent 64%)", filter: "blur(40px)", animation: "lp-orbB 21s ease-in-out infinite" }} />
+          <div style={{ position: "absolute", bottom: "-26%", left: "38%", width: 680, height: 680, borderRadius: "50%", background: "radial-gradient(circle,rgba(45,212,255,.13),transparent 66%)", filter: "blur(46px)", animation: "lp-orbC 25s ease-in-out infinite" }} />
+        </div>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(125,165,205,.10) 1px,transparent 1px)", backgroundSize: "26px 26px", WebkitMaskImage: "radial-gradient(720px 500px at 50% 10%,#000,transparent 72%)", maskImage: "radial-gradient(720px 500px at 50% 10%,#000,transparent 72%)", animation: "lp-gridpan 26s linear infinite" }} aria-hidden="true" />
 
-        {/* Hero Section */}
-        <section className="py-16 md:py-24 lg:py-32 flex flex-col items-center justify-center text-center">
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold tracking-wide mb-8 reveal ${theme === 'dark' ? 'bg-primary/12 text-primary border border-primary/30' : 'bg-primary/10 text-primary border border-primary/20'}`}>
-            <Mic className="w-3 h-3" />
-            Capture voice. Get structured memory.
+        <div style={{ position: "relative", maxWidth: 920, margin: "0 auto" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 9, padding: "8px 16px", borderRadius: 999, background: "rgba(45,212,255,.07)", border: "1px solid rgba(45,212,255,.18)", marginBottom: 30 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2" strokeLinecap="round">
+              <rect x="9" y="2" width="6" height="12" rx="3" />
+              <path d="M5 11a7 7 0 0 0 14 0" />
+              <path d="M12 18v3" />
+            </svg>
+            <span style={{ font: "600 13px Manrope", color: "#9fdcef" }}>Voice-powered memory · powered by Nova</span>
           </div>
-          <h1 className={`text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 reveal stagger-1 leading-tight ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>
-            Your brain wasn't built<br />
-            <span className="text-primary">to remember everything.</span>
+          <h1 style={{ font: "800 clamp(34px,6vw,64px)/1.04 Sora", letterSpacing: "-.025em", margin: 0 }}>
+            Speak it once. SaveMe<br />remembers everything.
           </h1>
-          <p className={`text-lg md:text-xl max-w-2xl mb-8 reveal stagger-2 leading-relaxed ${theme === 'dark' ? 'text-zinc-200 md:text-zinc-300' : 'text-zinc-600'}`}>
-            Speak your thoughts out loud. SaveMe captures, categorizes, and organizes them automatically, so you never lose an idea, task, or insight again.
+          <p style={{ font: "700 18px Manrope", color: "#aebaca", margin: "26px 0 0" }}>Your brain wasn't built to remember everything.</p>
+          <p style={{ font: "500 17px/1.6 Manrope", color: "#7d8a9c", margin: "6px auto 0", maxWidth: 600 }}>
+            Talk naturally and Nova captures, categorizes, and organizes every idea, task, and note into searchable memory — and lets your AI agents use it too.
           </p>
-          <div className={`mb-10 max-w-2xl rounded-2xl border p-4 text-left reveal stagger-3 ${theme === 'dark' ? 'border-zinc-800/70 bg-zinc-900/40' : 'border-zinc-200 bg-zinc-50'}`}>
-            <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <p className={`text-sm font-semibold mb-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Best place to start: Brain Dump</p>
-                <p className={`text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                  Speak freely. Nova will organize your thoughts into structured notes, action items, and searchable memory.
-                </p>
-              </div>
-            </div>
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 38 }}>
+            <Link to={brainDumpHref} onClick={() => trackBrainDump("landing_hero")} className="lp-cta" style={{ ...ctaPrimary, padding: "15px 26px", fontSize: 15 }}>
+              Start free — no card needed <span style={{ fontSize: 16 }}>→</span>
+            </Link>
+            <a href="#how" className="lp-ghost" style={{ display: "flex", alignItems: "center", padding: "15px 24px", borderRadius: 13, background: "rgba(255,255,255,.04)", border: "1px solid rgba(125,165,205,.14)", color: "#dbe4ee", font: "700 15px Manrope", textDecoration: "none" }}>
+              See how it works
+            </a>
           </div>
-          <div className="w-full max-w-lg mb-8 reveal stagger-3">
-            <ConversationalVoiceDemo onSignupClick={() => navigate("/signup")} theme={theme} />
-          </div>
-          <p className={`text-sm font-medium mb-8 reveal stagger-4 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-400'}`}>Try the demo above, then start a voice dump. No signup needed for the demo.</p>
-          <div className="flex flex-wrap items-center justify-center gap-4 reveal stagger-4">
-            {activeDemoVideo && (
-              <button
-                className={`px-6 py-3 rounded-lg font-medium transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
-                onClick={() => setIsVideoModalOpen(true)}
-              >
-                Watch Demo
-              </button>
-            )}
-            {isAuthenticated ? (
-              <Link to="/brain-dump" onClick={() => trackActivationEvent("brain_dump_start_clicked", { source: "landing_hero_authenticated" })} className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                Start voice dump
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            ) : (
-              <Link to="/signup?next=%2Fbrain-dump" onClick={() => trackActivationEvent("signup_started", { source: "landing_hero_brain_dump" })} className={`px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center gap-2 ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                Start voice dump
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            )}
-          </div>
-        </section>
+        </div>
 
-        {/* Features Grid */}
-        <section className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
-          {[
-            { num: "01", title: "Voice Capture", desc: "Just speak naturally. Capture notes, ideas, contacts, and reminders without typing a single word." },
-            { num: "02", title: "AI Organization", desc: "Your data is automatically sorted into categories. No folders to manage, no tags to remember." },
-            { num: "03", title: "Instant Search", desc: "Find anything in seconds. Search by keyword, category, or just describe what you're looking for." },
-            { num: "04", title: "Your Data, Private", desc: "Encrypted in transit and protected by account-level access controls. Your information stays yours. We never sell or share your data." }
-          ].map((feature, i) => (
-            <div key={i} className={`p-10 border-b md:border-b-0 md:border-r last:border-r-0 transition-all group reveal ${theme === 'dark' ? 'border-zinc-800/50 hover:bg-zinc-900/40' : 'border-zinc-200 hover:bg-zinc-50'}`} style={{ animationDelay: `${0.5 + i * 0.1}s` }}>
-              <span className="text-primary text-2xl font-bold mb-6 block">{feature.num}</span>
-              <h3 className={`font-semibold text-base mb-4 ${theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900'}`}>{feature.title}</h3>
-              <p className={`text-sm leading-relaxed transition-colors ${theme === 'dark' ? 'text-zinc-300 group-hover:text-zinc-200' : 'text-zinc-600 group-hover:text-zinc-700'}`}>{feature.desc}</p>
+        <AppMock />
+      </header>
+
+      {/* LOGOS */}
+      <section className="lp-section" style={{ padding: "54px 24px 64px", textAlign: "center" }}>
+        <div style={{ font: `600 12px ${MONO}`, letterSpacing: ".22em", color: "#5a6679" }}>ONE MEMORY LAYER FOR THE AGENTS YOU ALREADY USE</div>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 46, marginTop: 26 }}>
+          {["Claude", "Cursor", "Codex", "OpenClaw", "Hermes"].map((name) => (
+            <span key={name} className="lp-logoword" style={{ font: "700 22px Sora" }}>{name}</span>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="features" className="lp-section" style={{ padding: "60px 40px", maxWidth: 1200, margin: "0 auto", scrollMarginTop: 84 }}>
+        <div style={eyebrow}>WHAT YOU'LL UNLOCK</div>
+        <h2 style={{ font: "700 clamp(26px,4vw,40px)/1.15 Sora", letterSpacing: "-.02em", margin: "14px 0 36px", maxWidth: 620 }}>
+          Speak freely. Stay organized without lifting a finger.
+        </h2>
+        <div className="lp-feat-grid">
+          {FEATURES.map((f) => (
+            <div key={f.title} style={{ ...cardBase, padding: 24 }}>
+              <div style={featureIconWrap}>{f.icon}</div>
+              <div style={{ font: "700 17px Sora", color: "#eaf1f8", marginBottom: 9 }}>{f.title}</div>
+              <div style={{ font: "500 13.5px/1.6 Manrope", color: "#8593a6" }}>{f.desc}</div>
             </div>
           ))}
-        </section>
+        </div>
+      </section>
 
-        {/* Agent Memory Teaser */}
-        <section className={`py-20 px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
-          <div className={`max-w-5xl mx-auto rounded-3xl border p-8 md:p-12 ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50' : 'bg-zinc-50 border-zinc-200'}`}>
-            <div className="grid md:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
-              <div>
-                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold mb-6 ${theme === 'dark' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
-                  <Bot className="w-3 h-3" />
-                  Human memory. Agent memory. One place.
+      {/* HOW IT WORKS */}
+      <section id="how" className="lp-section" style={{ padding: "70px 40px", textAlign: "center", background: "radial-gradient(700px 360px at 50% 0%,rgba(45,212,255,.05),transparent 65%)", scrollMarginTop: 84 }}>
+        <div style={eyebrow}>PURE VOICE. ZERO FRICTION.</div>
+        <h2 style={{ font: "700 clamp(28px,4.5vw,42px)/1.12 Sora", letterSpacing: "-.02em", margin: "14px auto 44px", maxWidth: 560 }}>
+          From spoken thought to durable memory.
+        </h2>
+        <div className="lp-3grid" style={{ maxWidth: 1140, margin: "0 auto", textAlign: "left" }}>
+          {STEPS.map((s) => (
+            <div key={s.n} style={{ ...cardBase, padding: 28 }}>
+              <div style={{ font: `700 14px ${MONO}`, color: ACCENT, marginBottom: 18 }}>{s.n}</div>
+              <div style={{ font: "700 20px Sora", color: "#eaf1f8", marginBottom: 10 }}>{s.title}</div>
+              <div style={{ font: "500 14px/1.6 Manrope", color: "#8593a6" }}>{s.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* AGENTS */}
+      <section id="agents" className="lp-section" style={{ padding: "70px 40px", maxWidth: 1200, margin: "0 auto", scrollMarginTop: 84 }}>
+        <div className="lp-agents-grid">
+          <div>
+            <div style={{ font: `600 12px ${MONO}`, letterSpacing: ".18em", color: ACCENT }}>HUMAN MEMORY. AGENT MEMORY. ONE PLACE.</div>
+            <h2 style={{ font: "700 clamp(26px,4vw,38px)/1.16 Sora", letterSpacing: "-.02em", margin: "14px 0 16px" }}>
+              Your AI agents should remember what you already told them.
+            </h2>
+            <p style={{ font: "500 15px/1.65 Manrope", color: "#8593a6", margin: "0 0 22px", maxWidth: 480 }}>
+              Voice-dump your thoughts into SaveMe, then let trusted agents search the same memory before they work — so you never re-explain context again.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 13, marginBottom: 28 }}>
+              <CheckRow text="One durable memory layer, not another scattered chat history" />
+              <CheckRow text="Per-agent API keys with read/write scopes you control" />
+              <CheckRow text="Works with Claude, Cursor, Codex, OpenClaw, and Hermes" />
+            </div>
+            <Link
+              to={isAuthenticated ? "/settings#connect-agent" : "/signup"}
+              onClick={() => trackActivationEvent(isAuthenticated ? "agent_connect_clicked" : "signup_started", { source: "agent_memory_teaser" })}
+              className="lp-cta"
+              style={{ display: "inline-flex", padding: "13px 22px", borderRadius: 12, background: GRAD, color: "#04222e", font: "700 14px Manrope", boxShadow: "0 0 26px rgba(45,212,255,.34)", textDecoration: "none" }}
+            >
+              Connect an agent
+            </Link>
+          </div>
+          <div style={{ borderRadius: 16, background: "#080b12", border: "1px solid rgba(125,165,205,.12)", overflow: "hidden", boxShadow: "0 30px 80px -40px rgba(0,0,0,.8)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, height: 42, padding: "0 16px", borderBottom: "1px solid rgba(125,165,205,.08)" }}>
+              <div style={{ display: "flex", gap: 7 }}>
+                <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#3a4252" }} />
+                <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#3a4252" }} />
+                <span style={{ width: 11, height: 11, borderRadius: "50%", background: "#3a4252" }} />
+              </div>
+              <span style={{ font: `500 12.5px ${MONO}`, color: "#7d8a9c" }}>memory.search</span>
+            </div>
+            <div style={{ padding: 22, font: `500 13px/1.9 ${MONO}`, color: "#9aa6b6" }}>
+              <div><span style={{ color: ACCENT }}>POST</span> <span style={{ color: "#c4cedb" }}>/v1/memory/search</span></div>
+              <div><span style={{ color: ACCENT }}>Authorization:</span> Bearer sk_agent_•••</div>
+              <div style={{ height: 14 }} />
+              <div>{"{"}</div>
+              <div>&nbsp;&nbsp;<span style={{ color: "#8fd0ff" }}>"query"</span>: <span style={{ color: "#7fe0b0" }}>"Q3 budget owner"</span>,</div>
+              <div>&nbsp;&nbsp;<span style={{ color: "#8fd0ff" }}>"scopes"</span>: [<span style={{ color: "#7fe0b0" }}>"read"</span>]</div>
+              <div>{"}"}</div>
+              <div style={{ height: 14 }} />
+              <div><span style={{ color: "#39e0a8" }}>200 OK</span></div>
+              <div>{"{"}</div>
+              <div>&nbsp;&nbsp;<span style={{ color: "#8fd0ff" }}>"contact"</span>: <span style={{ color: "#7fe0b0" }}>"Sarah (Marketing)"</span>,</div>
+              <div>&nbsp;&nbsp;<span style={{ color: "#8fd0ff" }}>"event"</span>: <span style={{ color: "#7fe0b0" }}>"Q3 Budget Review · Tue 3pm"</span></div>
+              <div>{"}"}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section id="pricing" className="lp-section" style={{ padding: "70px 40px", textAlign: "center", scrollMarginTop: 84 }}>
+        <div style={eyebrow}>SIMPLE PRICING</div>
+        <h2 style={{ font: "700 clamp(28px,4.5vw,42px)/1.12 Sora", letterSpacing: "-.02em", margin: "14px 0 8px" }}>Start free. Upgrade when you're ready.</h2>
+        <p style={{ font: "500 15px Manrope", color: "#7d8a9c", margin: "0 0 42px" }}>No lock-in. No card needed to begin.</p>
+        <div className="lp-pricing-grid">
+          {PLANS.map((plan) => {
+            const accentText = plan.popular ? "#dbe4ee" : "#c4cedb";
+            return (
+              <div
+                key={plan.name}
+                style={{
+                  position: "relative",
+                  borderRadius: 18,
+                  padding: 28,
+                  display: "flex",
+                  flexDirection: "column",
+                  background: plan.popular ? "linear-gradient(180deg,rgba(45,212,255,.07),rgba(45,212,255,.01))" : "rgba(255,255,255,.022)",
+                  border: plan.popular ? "1px solid rgba(45,212,255,.4)" : "1px solid rgba(125,165,205,.10)",
+                  boxShadow: plan.popular ? "0 0 50px -12px rgba(45,212,255,.4)" : undefined,
+                }}
+              >
+                {plan.popular && (
+                  <div style={{ position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)", padding: "5px 14px", borderRadius: 999, background: GRAD, color: "#04222e", font: "700 11px Manrope" }}>Most popular</div>
+                )}
+                <div style={{ font: `600 11px ${MONO}`, letterSpacing: ".14em", color: plan.popular ? "#9fdcef" : "#8593a6" }}>{plan.name}</div>
+                <div style={{ margin: "14px 0 4px" }}>
+                  <span style={{ font: "800 38px Sora", color: plan.popular ? "#f1f7fc" : "#eaf1f8" }}>{plan.price}</span>{" "}
+                  <span style={{ font: "500 14px Manrope", color: plan.popular ? "#9fdcef" : "#7d8a9c" }}>{plan.period}</span>
                 </div>
-                <h2 className={`text-3xl md:text-4xl font-bold mb-5 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Your AI agents should remember what you already told them.</h2>
-                <p className={`text-base md:text-lg leading-relaxed mb-6 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                  Voice dump your thoughts into SaveMe, then let trusted agents like Hermes, OpenClaw, Claude, Codex, or Cursor search the same memory before they work. It stays your memory layer, not another scattered chat history.
-                </p>
-                <Link to={isAuthenticated ? "/settings#connect-agent" : "/signup"} onClick={() => trackActivationEvent(isAuthenticated ? "agent_connect_clicked" : "signup_started", { source: "agent_memory_teaser" })} className={`inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-                  Connect an agent
-                  <ArrowRight className="w-4 h-4" />
+                <div style={{ font: "500 13.5px Manrope", color: plan.popular ? "#8ea0b3" : "#8593a6", marginBottom: 22 }}>{plan.blurb}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 11, flex: 1 }}>
+                  {plan.features.map((feat) => <CheckRow key={feat} text={feat} color={accentText} />)}
+                </div>
+                <Link
+                  to={getPlanHref(plan.name)}
+                  onClick={() => trackActivationEvent("subscription_clicked", { source: "landing_pricing", plan: plan.name.toLowerCase() })}
+                  className={plan.popular ? "lp-cta" : "lp-ghost"}
+                  style={{
+                    marginTop: 24,
+                    textAlign: "center",
+                    padding: 12,
+                    borderRadius: 11,
+                    font: "700 13.5px Manrope",
+                    textDecoration: "none",
+                    ...(plan.popular
+                      ? { background: GRAD, color: "#04222e", boxShadow: "0 0 24px rgba(45,212,255,.4)" }
+                      : { background: "rgba(255,255,255,.04)", border: "1px solid rgba(125,165,205,.14)", color: "#dbe4ee" }),
+                  }}
+                >
+                  {plan.cta}
                 </Link>
               </div>
-              <div className={`rounded-2xl border p-5 space-y-4 ${theme === 'dark' ? 'bg-black/30 border-zinc-800/70' : 'bg-white border-zinc-200'}`}>
-                {[
-                  ['1', 'Speak naturally', 'Brain Dump captures raw thoughts.'],
-                  ['2', 'Nova organizes', 'Memories become searchable facts, tasks, and context.'],
-                  ['3', 'Agents retrieve', 'Your tools use the same durable context when you allow it.'],
-                ].map(([num, title, desc]) => (
-                  <div key={num} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold shrink-0">{num}</div>
-                    <div>
-                      <p className={`font-semibold text-sm ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>{title}</p>
-                      <p className={`text-sm ${theme === 'dark' ? 'text-zinc-400' : 'text-zinc-600'}`}>{desc}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className={`pt-4 border-t flex items-center gap-2 text-xs ${theme === 'dark' ? 'border-zinc-800 text-zinc-400' : 'border-zinc-200 text-zinc-500'}`}>
-                  <PlugZap className="w-4 h-4 text-primary" />
-                  API keys are created per agent with read/write scopes.
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+            );
+          })}
+        </div>
+      </section>
 
-        {/* Demo Section */}
-        <section className={`py-24 px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
-          <div className="max-w-5xl mx-auto text-center">
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-8 reveal ${theme === 'dark' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
-              Pure voice. Zero friction.
+      {/* PRIVACY */}
+      <section className="lp-section" style={{ padding: "70px 40px", textAlign: "center", maxWidth: 1140, margin: "0 auto" }}>
+        <div style={eyebrow}>PRIVACY & SECURITY</div>
+        <h2 style={{ font: "700 clamp(28px,4.5vw,42px)/1.12 Sora", letterSpacing: "-.02em", margin: "14px 0 44px" }}>Your second brain, kept private.</h2>
+        <div className="lp-3grid" style={{ textAlign: "left" }}>
+          {PRIVACY.map((p) => (
+            <div key={p.title} style={{ ...cardBase, padding: 26 }}>
+              <div style={{ ...featureIconWrap, width: 44, height: 44 }}>{p.icon}</div>
+              <div style={{ font: "700 17px Sora", color: "#eaf1f8", marginBottom: 9 }}>{p.title}</div>
+              <div style={{ font: "500 13.5px/1.6 Manrope", color: "#8593a6" }}>{p.desc}</div>
             </div>
-            <h2 className={`text-3xl md:text-5xl font-bold mb-8 reveal stagger-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>See It in Action</h2>
-            <p className={`mb-16 max-w-2xl mx-auto text-lg reveal stagger-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Watch how SaveMe transforms your voice into organized, searchable knowledge — in seconds</p>
-            <div className={`p-3 md:p-4 reveal stagger-3 relative group rounded-3xl overflow-hidden border shadow-2xl ${theme === 'dark' ? 'bg-zinc-900/50 border-zinc-800/50 shadow-black/30' : 'bg-white border-zinc-200 shadow-zinc-200/60'}`}>
-              <div className={`absolute inset-0 pointer-events-none opacity-60 ${theme === 'dark' ? 'bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_45%)]' : 'bg-[radial-gradient(circle_at_top,rgba(24,24,27,0.05),transparent_45%)]'}`} />
-              <div className={`relative overflow-hidden rounded-2xl border ${theme === 'dark' ? 'border-zinc-800/70 bg-black' : 'border-zinc-200 bg-zinc-950'}`}>
-                <VoiceDemoAnimation theme={theme} muted={demoMuted} onMuteToggle={() => setDemoMuted(m => !m)} />
-              </div>
-            </div>
-          </div>
-        </section>
+          ))}
+        </div>
+      </section>
 
-        {/* Pain Points */}
-        <section className={`py-24 px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
-          <div className="max-w-5xl mx-auto">
-            <div className={`p-12 md:p-20 relative overflow-hidden rounded-2xl ${theme === 'dark' ? 'bg-zinc-900/30 border border-zinc-800/50' : 'bg-zinc-50 border border-zinc-200'}`}>
-              <h2 className={`text-3xl md:text-4xl font-bold mb-16 text-center reveal ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Sound familiar?</h2>
-              <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
-                {[
-                  { title: "Scattered Info", desc: "Important stuff spread across notes, emails, texts, and sticky notes" },
-                  { title: "Can't Find It", desc: "You know you saved it somewhere... but where?" },
-                  { title: "Wrong Device", desc: "The info you need is always on your other phone/laptop" },
-                  { title: "No Time to Organize", desc: "Life moves too fast for manual tagging and folder sorting" },
-                  { title: "Info Overload", desc: "Too much data, no system to make it actionable" },
-                  { title: "Lost Ideas", desc: "That insight from the shower is gone forever" }
-                ].map((pain, i) => (
-                  <div key={i} className="flex items-start gap-4 group reveal stagger-1" style={{ animationDelay: `${0.2 + i * 0.05}s` }}>
-                    <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0"></div>
-                    <div>
-                      <span className="text-sm font-semibold text-primary block mb-1">{pain.title}</span>
-                      <p className={`text-sm transition-colors ${theme === 'dark' ? 'text-zinc-300 group-hover:text-zinc-200' : 'text-zinc-600 group-hover:text-zinc-700'}`}>{pain.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className={`text-center mt-20 pt-12 border-t ${theme === 'dark' ? 'border-zinc-800/20' : 'border-zinc-200'}`}>
-                <p className={`text-sm mb-8 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>If this is you — just start talking</p>
-                <Link to={isAuthenticated ? "/brain-dump" : "/signup?next=%2Fbrain-dump"} onClick={() => trackActivationEvent(isAuthenticated ? "brain_dump_start_clicked" : "signup_started", { source: "landing_pain_cta" })} className={`inline-flex px-8 py-3 rounded-lg font-medium transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>Try Voice Capture Now</Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing */}
-        <section className={`py-24 px-8 border-t ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-20">
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium mb-8 reveal ${theme === 'dark' ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
-                Simple Pricing
-              </div>
-              <h2 className={`text-3xl md:text-5xl font-bold mb-8 reveal stagger-1 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Choose your plan</h2>
-              <p className={`text-sm reveal stagger-2 ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Start free. Upgrade when you're ready. No lock-in.</p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8">
-              {plans.map((plan, i) => (
-                <div key={i} className={`p-8 rounded-2xl relative transition-all group reveal ${plan.popular ? 'border-2 border-primary/40 shadow-lg shadow-primary/10' : 'border'} ${theme === 'dark' ? 'bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700' : 'bg-white border-zinc-200 hover:border-zinc-300'}`} style={{ animationDelay: `${0.3 + i * 0.1}s` }}>
-                  {plan.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2"><span className="px-4 py-1 bg-primary text-white text-xs font-semibold rounded-full">Most Popular</span></div>}
-                  <div className="text-center mb-10 pt-4">
-                    <h3 className={`text-sm font-semibold mb-4 ${theme === 'dark' ? 'text-zinc-100' : 'text-zinc-900'}`}>{plan.name}</h3>
-                    <div className="flex items-baseline justify-center gap-1 mb-4">
-                      <span className="text-5xl font-bold tracking-tight text-primary">{plan.price}</span>
-                      <span className={`text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>/{plan.period === "Forever" ? "free" : "mo"}</span>
-                    </div>
-                    <p className={`text-sm ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>{plan.description}</p>
-                  </div>
-                  <ul className={`space-y-4 mb-10 border-t pt-8 ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
-                    {plan.features.map((feature, j) => (
-                      <li key={j} className={`flex items-center gap-3 text-sm ${theme === 'dark' ? 'text-zinc-200' : 'text-zinc-600'}`}>
-                        <Check className="w-4 h-4 text-primary shrink-0" />{feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to={getPlanHref(plan.name)} onClick={() => trackActivationEvent("subscription_clicked", { source: "landing_pricing", plan: plan.name.toLowerCase() })} className={`block w-full px-6 py-3 rounded-lg font-medium text-center transition-all ${plan.popular ? (theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800') : (theme === 'dark' ? 'border border-zinc-600 text-zinc-100 hover:border-zinc-500 hover:bg-zinc-800/80' : 'border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50')}`}>
-                    {plan.price === "$0" ? "Start Free" : "Get Started"}
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <section className={`py-24 px-8 border-t text-center ${theme === 'dark' ? 'border-zinc-800/50' : 'border-zinc-200'}`}>
-          <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${theme === 'dark' ? 'text-white' : 'text-zinc-900'}`}>Ready to <span className="text-primary">offload your brain?</span></h2>
-          <p className={`text-lg mb-8 max-w-xl mx-auto ${theme === 'dark' ? 'text-zinc-300' : 'text-zinc-600'}`}>Your external memory is one voice command away.</p>
-          <Link to="/signup?next=%2Fbrain-dump" onClick={() => trackActivationEvent("signup_started", { source: "landing_final_cta" })} className={`inline-flex items-center gap-2 px-8 py-4 text-lg rounded-lg font-semibold transition-all ${theme === 'dark' ? 'bg-white text-zinc-900 hover:bg-zinc-100 shadow-sm hover:shadow-md' : 'bg-zinc-900 text-white hover:bg-zinc-800'}`}>
-            <Mic className="w-5 h-5" />
-            Start Free — No Card Needed
+      {/* FINAL CTA */}
+      <section style={{ position: "relative", padding: "96px 24px", textAlign: "center", overflow: "hidden", background: "radial-gradient(700px 420px at 50% 60%,rgba(45,212,255,.13),transparent 66%)" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(125,165,205,.10) 1px,transparent 1px)", backgroundSize: "26px 26px", WebkitMaskImage: "radial-gradient(560px 320px at 50% 50%,#000,transparent 72%)", maskImage: "radial-gradient(560px 320px at 50% 50%,#000,transparent 72%)" }} aria-hidden="true" />
+        <div style={{ position: "relative" }}>
+          <h2 style={{ font: "800 clamp(30px,5.5vw,50px)/1.1 Sora", letterSpacing: "-.025em", margin: 0 }}>Ready to offload your brain?</h2>
+          <p style={{ font: "500 16px/1.6 Manrope", color: "#8593a6", margin: "18px auto 0", maxWidth: 520 }}>
+            Your external memory is one voice command away. Start free — no card needed.
+          </p>
+          <Link to={brainDumpHref} onClick={() => trackBrainDump("landing_final_cta")} className="lp-cta" style={{ ...ctaPrimary, marginTop: 34, padding: "16px 30px", fontSize: 16 }}>
+            Start free <span style={{ fontSize: 17 }}>→</span>
           </Link>
-        </section>
+        </div>
+      </section>
 
-        {/* Footer */}
-        <footer className={`mt-auto border-t py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-8 text-sm ${theme === 'dark' ? 'border-zinc-800/50 text-zinc-300' : 'border-zinc-200 text-zinc-500'}`}>
-          <div>© 2026 SaveMe.Space — Your External Memory</div>
-          <div className="flex items-center gap-8">
-            <a href="mailto:info@saveme.space" className={`hover:text-primary transition-colors flex items-center gap-2 ${theme === 'dark' ? 'text-zinc-200' : ''}`}><Mail className="w-4 h-4" />Contact</a>
-            <Link to="/privacy" className={`hover:text-primary transition-colors ${theme === 'dark' ? 'text-zinc-200' : ''}`}>Privacy</Link>
-            <Link to="/terms" className={`hover:text-primary transition-colors ${theme === 'dark' ? 'text-zinc-200' : ''}`}>Terms</Link>
+      {/* FOOTER */}
+      <footer style={{ padding: "56px 40px 34px", borderTop: "1px solid rgba(125,165,205,.07)" }}>
+        <div className="lp-foot-grid">
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 16 }}>
+              <img src="/logo.png" alt="SaveMe" width={32} height={32} style={{ display: "block", objectFit: "contain" }} />
+              <span style={{ font: "700 17px Sora", color: "#eaf3fa" }}>SaveMe</span>
+            </div>
+            <p style={{ font: "500 13.5px/1.6 Manrope", color: "#7d8a9c", maxWidth: 300, margin: 0 }}>
+              Your voice-powered memory. Speak it once — SaveMe captures, organizes, and recalls every idea, task, and note.
+            </p>
           </div>
-          <div className={`flex items-center gap-2 ${theme === 'dark' ? 'text-zinc-200' : ''}`}><span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>Secure & Encrypted</div>
-        </footer>
-      </div>
-
-      {activeDemoVideo && <VideoModal open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen} videoUrl={activeDemoVideo.url} title={activeDemoVideo.title} />}
+          <div>
+            <div style={{ font: "700 13px Sora", color: "#c4cedb", marginBottom: 16 }}>Product</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+              <a href="#how" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>How it works</a>
+              <a href="#agents" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>For agents</a>
+              <a href="#pricing" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>Pricing</a>
+            </div>
+          </div>
+          <div>
+            <div style={{ font: "700 13px Sora", color: "#c4cedb", marginBottom: 16 }}>Company</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+              <Link to="/privacy" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>Privacy</Link>
+              <Link to="/terms" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>Terms</Link>
+              <a href="mailto:info@saveme.space" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>Contact</a>
+            </div>
+          </div>
+          <div>
+            <div style={{ font: "700 13px Sora", color: "#c4cedb", marginBottom: 16 }}>Resources</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+              <Link to="/user-guide" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>Docs</Link>
+              <a href="mailto:info@saveme.space" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>Support</a>
+              <Link to="/privacy" className="lp-foot" style={{ font: "500 13.5px Manrope", textDecoration: "none" }}>Security</Link>
+            </div>
+          </div>
+        </div>
+        <div style={{ maxWidth: 1200, margin: "40px auto 0", paddingTop: 22, borderTop: "1px solid rgba(125,165,205,.07)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+          <span style={{ font: "500 12.5px Manrope", color: "#5d6a7b" }}>© 2026 SaveMe. Your external memory.</span>
+          <span style={{ font: "500 12.5px Manrope", color: "#5d6a7b" }}>Encrypted in transit · We never sell your data.</span>
+        </div>
+      </footer>
     </div>
   );
 };

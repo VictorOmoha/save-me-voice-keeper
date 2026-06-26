@@ -1,14 +1,15 @@
 
 import React, { useMemo } from "react";
-import { FileText, Users, Shield, Zap, Star, Table, Grid3X3, Heart, DollarSign, User, LucideIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { FileText, Users, Table, Grid3X3, Heart, DollarSign, User, Mic, Plus, Upload, Search, Sparkles, Radar, LucideIcon } from "lucide-react";
 import { EnhancedRecentEntries } from "@/components/entries";
 import { StatsCards } from "@/components/StatsCards";
-import { NewQuickActions } from "@/components/NewQuickActions";
 import { SavedEntry } from "@/types/dashboard";
 import { DashboardIntelligencePanel } from "@/components/dashboard/DashboardIntelligencePanel";
 import { SharedMemoryPanel } from "@/components/dashboard/SharedMemoryPanel";
 import { SharedMemoryDevPanel } from "@/components/dev/SharedMemoryDevPanel";
 import { TaskReminderCard } from "@/components/task-reminders/TaskReminderCard";
+import { trackActivationEvent } from "@/lib/analytics";
 
 interface DashboardMainContentProps {
   userName?: string;
@@ -45,7 +46,6 @@ const CategoriesGrid = React.memo(({
   savedEntries: SavedEntry[];
   onCategorySelect: (category: string) => void;
 }) => {
-  // Pre-compute category counts once
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const entry of savedEntries) {
@@ -57,24 +57,20 @@ const CategoriesGrid = React.memo(({
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-foreground mb-6">Browse by Category</h2>
+      <h2 className="text-lg font-semibold text-foreground mb-5">Browse by category</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {categories.map((category, index) => (
           <div
             key={category.name}
-            className="p-6 rounded-xl border cursor-pointer group reveal transition-all hover:shadow-lg"
+            className="skeleton-cell cursor-pointer group reveal hover:border-primary/40"
             onClick={() => onCategorySelect(category.name)}
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-              <category.icon className="w-6 h-6 text-primary" />
+            <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+              <category.icon className="w-5 h-5 text-primary" />
             </div>
-            <h3 className="text-sm font-semibold text-foreground mb-1">
-              {category.name}
-            </h3>
-            <p className="text-xs text-muted-foreground mb-3 line-clamp-2 hidden sm:block">
-              {category.description}
-            </p>
+            <h3 className="text-sm font-semibold text-foreground mb-1">{category.name}</h3>
+            <p className="text-xs text-muted-foreground mb-3 line-clamp-2 hidden sm:block">{category.description}</p>
             <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground">
               {categoryCounts[category.name] || 0} {(categoryCounts[category.name] || 0) === 1 ? 'item' : 'items'}
             </span>
@@ -85,6 +81,8 @@ const CategoriesGrid = React.memo(({
   );
 });
 CategoriesGrid.displayName = 'CategoriesGrid';
+
+const STEPS = ["1. Speak naturally", "2. Review the structured memory", "3. Search and open it later"];
 
 export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   userName,
@@ -102,58 +100,110 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
   onViewAllEntries,
   onViewDocument,
 }) => {
+  const navigate = useNavigate();
+
+  const startVoiceDump = () => {
+    trackActivationEvent("brain_dump_start_clicked", { source: "dashboard_first_memory_path" });
+    navigate("/brain-dump");
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
+    <div className="space-y-6">
+      {/* Welcome */}
       <div className="text-center reveal">
-        <h1 className="text-3xl md:text-4xl font-bold mb-3">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
           Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}
         </h1>
+        <p className="text-sm text-muted-foreground">Your secure knowledge vault — all data encrypted</p>
         {userTier && (
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+          <span className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
             {userTier} Plan
           </span>
         )}
-        <p className="text-sm text-muted-foreground mt-3">
-          Your secure knowledge vault — all data encrypted
+      </div>
+
+      {/* First memory path */}
+      <div className="rounded-2xl p-6 md:p-7 border border-primary/20 bg-gradient-to-b from-primary/[0.07] to-primary/[0.01]">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+          <div className="flex-1 min-w-0">
+            <div className="mono text-[11px] tracking-[0.14em] text-primary mb-2.5 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> FIRST MEMORY PATH
+            </div>
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">Say one thing you don't want to forget.</h2>
+            <p className="text-sm md:text-[15px] text-muted-foreground mt-2">Speak. Nova will turn it into structured memory you own.</p>
+          </div>
+          <button
+            onClick={startVoiceDump}
+            className="shrink-0 inline-flex items-center gap-2.5 px-5 py-3 rounded-xl font-semibold bg-primary text-primary-foreground hover:brightness-110 transition-all"
+            style={{ boxShadow: "0 0 28px hsla(190,100%,59%,0.4)" }}
+          >
+            <Mic className="w-4 h-4" />
+            Start voice dump
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+          {STEPS.map((s) => (
+            <div key={s} className="px-4 py-3 rounded-xl bg-card/60 border text-[13px] font-medium text-foreground/90">{s}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div>
+        <h2 className="text-lg font-semibold text-foreground">Quick actions</h2>
+        <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Capture by voice first. Use manual save only when you already know the details.</p>
+        <div className="flex flex-wrap gap-3">
+          <button onClick={onAddEntry} className="inline-flex items-center gap-2.5 px-4 py-3 rounded-xl bg-card border text-sm font-semibold text-foreground hover:border-primary/40 transition-colors">
+            <Plus className="w-4 h-4 text-primary" /> Save a memory manually
+          </button>
+          <button onClick={onCreateDocument} className="inline-flex items-center gap-2.5 px-4 py-3 rounded-xl bg-card border text-sm font-semibold text-foreground hover:border-primary/40 transition-colors">
+            <Upload className="w-4 h-4 text-primary" /> Upload document
+          </button>
+          <div className="flex-1 min-w-[240px] flex items-center gap-2.5 h-12 px-4 rounded-xl bg-card border">
+            <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+            <input
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search entries…"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
+            />
+            <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+          </div>
+        </div>
+      </div>
+
+      {/* Task alarm (real reminder creator) */}
+      <TaskReminderCard />
+
+      {/* Stat cards (real data) */}
+      <StatsCards totalEntries={savedEntries.length} entries={savedEntries} userTier={userTier} />
+
+      {/* Daily briefing */}
+      <div className="rounded-2xl p-5 md:p-6 border bg-card/60">
+        <div className="flex items-center gap-2.5 text-base font-semibold text-foreground">
+          <Radar className="w-4 h-4 text-primary" /> Daily briefing
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          Nova is carrying {savedEntries.length} {savedEntries.length === 1 ? 'memory' : 'memories'} for continuity.
         </p>
       </div>
 
-      {/* Quick Actions */}
-      <NewQuickActions
-        onAddEntry={onAddEntry}
-        onCreateDocument={onCreateDocument}
-        entries={savedEntries}
-        searchQuery={searchQuery}
-        onSearchChange={onSearchChange}
-        onEntrySelect={onViewDocument}
-      />
-
-      <TaskReminderCard />
-
-      {/* Stats Cards */}
-      <StatsCards
-        totalEntries={savedEntries.length}
-        entries={savedEntries}
-        userTier={userTier}
-      />
-
-      {/* Intelligence Layer */}
+      {/* Intelligence layer (real data) */}
       <DashboardIntelligencePanel entries={savedEntries} />
 
       <SharedMemoryPanel />
       {import.meta.env.DEV && <SharedMemoryDevPanel />}
 
-      {/* View All Entries */}
+      {/* View all entries */}
       {savedEntries.length > 0 && (
-        <div className="p-6 rounded-xl border bg-card">
+        <div className="p-6 rounded-2xl border bg-card/60">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <Table className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-foreground">View All Entries</h3>
+                <h3 className="text-lg font-semibold text-foreground">View all entries</h3>
                 <p className="text-sm text-muted-foreground">Browse and manage your saved data</p>
               </div>
             </div>
@@ -163,38 +213,25 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
               </span>
               <button
                 onClick={onViewAllEntries}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold bg-primary text-primary-foreground hover:brightness-110 transition-all"
               >
                 <Table className="w-4 h-4" />
-                Open Table View
+                Open table view
               </button>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-6 mt-4 pt-4 border-t text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Grid3X3 className="w-4 h-4" />
-              <span>Sortable</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span>Bulk Actions</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span>Export</span>
-            </div>
+            <div className="flex items-center gap-2"><Grid3X3 className="w-4 h-4" /><span>Sortable</span></div>
+            <div className="flex items-center gap-2"><FileText className="w-4 h-4" /><span>Bulk actions</span></div>
+            <div className="flex items-center gap-2"><Users className="w-4 h-4" /><span>Export</span></div>
           </div>
         </div>
       )}
 
-      {/* Categories Grid - Skeletal */}
-      <CategoriesGrid
-        categories={categories}
-        savedEntries={savedEntries}
-        onCategorySelect={onCategorySelect}
-      />
+      {/* Categories */}
+      <CategoriesGrid categories={categories} savedEntries={savedEntries} onCategorySelect={onCategorySelect} />
 
-      {/* Recent Entries - Enhanced Display */}
+      {/* Recent entries (real data) */}
       <EnhancedRecentEntries
         entries={savedEntries}
         maxEntries={6}
@@ -204,44 +241,9 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         onDelete={onDeleteEntry}
         onView={onViewDocument}
         onViewAll={onViewAllEntries}
-        title="Recent Entries"
+        title="Recent entries"
         showViewToggle={true}
       />
-
-      {/* Features Preview */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-8 border-t">
-        <div className="p-6 rounded-xl border bg-card text-center reveal transition-all hover:shadow-lg">
-          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Secure Storage</h3>
-          <p className="text-xs text-muted-foreground">
-            Your data is encrypted and stored securely
-          </p>
-        </div>
-
-        <div className="p-6 rounded-xl border bg-card text-center reveal transition-all hover:shadow-lg" style={{ animationDelay: '100ms' }}>
-          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Zap className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Quick Access</h3>
-          <p className="text-xs text-muted-foreground">
-            Find what you need instantly with powerful search
-          </p>
-        </div>
-
-        <div className="p-6 rounded-xl border bg-card text-center reveal transition-all hover:shadow-lg" style={{ animationDelay: '200ms' }}>
-          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Star className="w-6 h-6 text-primary" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Smart Features</h3>
-          <p className="text-xs text-muted-foreground">
-            Voice commands, templates, and auto organization
-          </p>
-        </div>
-      </div>
-
-      {/* Nova AI handles voice — see NovaFloat in App.tsx */}
     </div>
   );
 };

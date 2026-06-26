@@ -1,4 +1,5 @@
 import { SavedEntry } from "@/types/dashboard";
+import { entryMatchesQuery } from "@/utils/entrySearch";
 
 export interface SearchSuggestion {
   id: string;
@@ -237,8 +238,16 @@ class SearchIntelligence {
         }
       });
 
+      // Metadata fallback (category, tags, summary, entities, action items,
+      // nested table cells) via the shared haystack — guarantees anything the
+      // entry-list filter can find also appears as a suggestion.
+      if (confidence <= 0.3 && entryMatchesQuery(entry, correctedQuery)) {
+        confidence = 0.45;
+        matchText = entry.summary || entry.tags?.join(", ") || entry.title;
+      }
+
       // Boost confidence for preferred categories
-      if (options.userPreferences?.some(pref => 
+      if (options.userPreferences?.some(pref =>
         entry.title.toLowerCase().includes(pref.toLowerCase())
       )) {
         confidence *= 1.2;

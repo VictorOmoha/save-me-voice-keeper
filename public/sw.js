@@ -1,5 +1,5 @@
 // Bump this on every deploy to force cache invalidation
-const CACHE_VERSION = 'saveme-v5-transcribe-first';
+const CACHE_VERSION = 'saveme-v6-navigate-network-first';
 const CACHE_NAME = CACHE_VERSION;
 
 // Only cache the shell — everything else goes to network-first
@@ -55,12 +55,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for JS/CSS/HTML so new deploys take effect immediately
+  // Network-first for JS/CSS/HTML and all page navigations so new deploys
+  // take effect immediately (navigations matter for BrowserRouter deep links
+  // like /dashboard, which aren't covered by the extension checks).
   const isCodeAsset = url.pathname.endsWith('.js') ||
                       url.pathname.endsWith('.css') ||
                       url.pathname.endsWith('.html') ||
                       url.pathname === '/' ||
-                      url.pathname.includes('/assets/');
+                      url.pathname.includes('/assets/') ||
+                      event.request.mode === 'navigate';
 
   if (isCodeAsset) {
     event.respondWith(

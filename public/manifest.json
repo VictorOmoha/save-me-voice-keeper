@@ -22,7 +22,7 @@
     }
   ],
   "share_target": {
-    "action": "/#/share",
+    "action": "/share",
     "method": "GET",
     "enctype": "application/x-www-form-urlencoded",
     "params": {
@@ -36,21 +36,21 @@
       "name": "Nova — Quick Capture",
       "short_name": "Capture",
       "description": "Open Nova for instant voice capture",
-      "url": "/#/dashboard?nova=open",
+      "url": "/dashboard?nova=open",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Brain Dump",
       "short_name": "Dump",
       "description": "Start a brain dump session",
-      "url": "/#/brain-dump",
+      "url": "/brain-dump",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "All Entries",
       "short_name": "Entries",
       "description": "Browse your vault",
-      "url": "/#/all-entries",
+      "url": "/all-entries",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],

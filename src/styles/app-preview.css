@@ -1,0 +1,79 @@
+/* ========================================
+   APP PREVIEW — SaveMe.dc.html port
+   Standalone design prototype (route: /preview/app)
+   Sora display · Manrope body · JetBrains Mono labels
+   ======================================== */
+
+.ap-root {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  overflow: hidden;
+  font-family: Manrope, system-ui, sans-serif;
+  color: #e7eef6;
+  background: radial-gradient(1200px 700px at 30% -10%, rgba(45, 212, 255, 0.05), transparent 60%), #070a11;
+}
+.ap-root ::selection { background: rgba(45, 212, 255, 0.28); }
+.ap-root ::-webkit-scrollbar { width: 10px; height: 10px; }
+.ap-root ::-webkit-scrollbar-thumb { background: rgba(125, 165, 205, 0.16); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+
+/* The app's index.css forces light-theme heading colors with !important; this
+   prototype is always dark — neutralize them. */
+.ap-root h1, .ap-root h2,
+.light .ap-root h1, .light .ap-root h2 { color: #f1f7fc !important; }
+
+@keyframes ap-micpulse {
+  0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.5; }
+  100% { transform: translate(-50%, -50%) scale(1.55); opacity: 0; }
+}
+@keyframes ap-itemin {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ap-spin { to { transform: rotate(360deg); } }
+@keyframes ap-softglow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(45, 212, 255, 0.4), 0 0 38px rgba(45, 212, 255, 0.45), 0 0 90px rgba(45, 212, 255, 0.22); }
+  50% { box-shadow: 0 0 0 1px rgba(45, 212, 255, 0.5), 0 0 54px rgba(45, 212, 255, 0.6), 0 0 120px rgba(45, 212, 255, 0.3); }
+}
+
+/* Hover states */
+.ap-hover-row:hover { background: rgba(255, 255, 255, 0.04); }
+.ap-hover-row-soft:hover { background: rgba(255, 255, 255, 0.035); }
+.ap-hover-btn:hover { background: rgba(255, 255, 255, 0.06); }
+.ap-hover-bright:hover { filter: brightness(1.07); }
+.ap-hover-accent:hover { background: rgba(45, 212, 255, 0.14); }
+.ap-hover-violet:hover { background: rgba(124, 108, 255, 0.18); }
+
+/* Sidebar + main */
+.ap-sidebar {
+  width: 248px;
+  flex: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #0a0e16;
+  border-right: 1px solid rgba(125, 165, 205, 0.08);
+  padding: 22px 16px;
+}
+.ap-main { flex: 1; height: 100%; display: flex; flex-direction: column; min-width: 0; }
+.ap-voice-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 100%; }
+
+/* Mobile screen switcher (hidden on desktop) */
+.ap-mobile-switch { display: none; }
+
+@media (max-width: 900px) {
+  .ap-sidebar { display: none; }
+  .ap-mobile-switch { display: flex; }
+  .ap-voice-grid { grid-template-columns: 1fr; }
+  .ap-voice-memory { border-left: none !important; border-top: 1px solid rgba(125, 165, 205, 0.08); }
+  .ap-topbar-id { display: none !important; }
+}
+@media (max-width: 720px) {
+  .ap-grid-3, .ap-grid-4, .ap-grid-2 { grid-template-columns: 1fr !important; }
+  .ap-brain-cols { grid-template-columns: 1fr !important; }
+  .ap-alarm-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-root *, .ap-root *::before, .ap-root *::after { animation: none !important; }
+}

@@ -111,7 +111,11 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         </div>
 
         {/* Actions - keep capture CTAs in the dashboard body to avoid duplication */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: "rgba(45,212,255,.08)", border: "1px solid rgba(45,212,255,.18)" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 8px #34d399" }} />
+            <span className="mono text-[11px] tracking-[0.08em] text-[#9fdcef]">NOVA ONLINE</span>
+          </div>
           <button
             onClick={onAllEntriesSelect}
             className="btn-galvanized btn-galvanized-secondary"

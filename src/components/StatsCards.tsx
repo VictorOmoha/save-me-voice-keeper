@@ -95,9 +95,9 @@ export const StatsCards: React.FC<StatsCardsProps> = ({ totalEntries, entries, u
                 </p>
                 {stat.showProgress && (
                   <div className="mt-3">
-                    <div className="h-1 bg-zinc-800 overflow-hidden">
+                    <div className="h-1 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full bg-primary transition-all duration-500"
+                        className="h-full rounded-full bg-primary transition-all duration-500"
                         style={{ width: `${stat.progress}%` }}
                       />
                     </div>

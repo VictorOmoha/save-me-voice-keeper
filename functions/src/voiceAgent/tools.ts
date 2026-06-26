@@ -172,13 +172,14 @@ Examples:
       },
       {
         name: "deleteEntry",
-        description: "Delete an entry by ID.",
+        description: "Delete an entry. Pass `title` with the entry's name/topic (it will be matched), or pass `id` if you have a real id from a prior searchEntries result. NEVER invent an id.",
         parameters: {
           type: "OBJECT",
           properties: {
-            id: {type: "STRING", description: "Entry ID to delete"},
+            id: {type: "STRING", description: "Entry id from a prior searchEntries result (optional — only if you actually have it)"},
+            title: {type: "STRING", description: "The entry's title or topic to match (use this when you don't have a real id)"},
           },
-          required: ["id"],
+          required: [],
         },
       },
       // ── Settings Operations ───────────────────────────────────────────────

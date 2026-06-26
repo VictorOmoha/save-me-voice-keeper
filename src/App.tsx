@@ -37,6 +37,7 @@ const BrainDump = React.lazy(() => import("./pages/BrainDump.tsx"));
 const Insights = React.lazy(() => import("./pages/Insights.tsx"));
 const NovaBriefing = React.lazy(() => import("./pages/NovaBriefing.tsx"));
 const Onboarding = React.lazy(() => import("./pages/Onboarding.tsx"));
+const AppPreview = React.lazy(() => import("./pages/AppPreview.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const App = () => (
                         <Route path="/user-guide" element={<UserGuide />} />
                         <Route path="/brain-dump" element={<PrivateRoute><BrainDump /></PrivateRoute>} />
                         <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
+                        <Route path="/preview/app" element={<AppPreview />} />
                         <Route path="/terms" element={<TermsOfService />} />
                         <Route path="/privacy" element={<PrivacyPolicy />} />
                         <Route path="/share" element={<PrivateRoute><Dashboard /></PrivateRoute>} />

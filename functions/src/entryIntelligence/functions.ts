@@ -4,7 +4,7 @@ import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
 import {fetchWithRetry} from "../common/fetchWithRetry";
 
-const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 interface ExtractedEntityRecord {
   name?: string;
@@ -584,7 +584,7 @@ Only include patterns with confidence >= 0.6. Return empty array if no clear pat
 // and surfaces patterns/connections/gaps as in-app notifications.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const GEMINI_FLASH_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_FLASH_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 async function generateUserInsights(
   userId: string,

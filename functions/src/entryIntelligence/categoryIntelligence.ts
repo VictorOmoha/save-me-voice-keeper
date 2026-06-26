@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import {fetchWithRetry} from "../common/fetchWithRetry";
 
-const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 /**
  * Predict the best category for an entry based on user's history + learned patterns.

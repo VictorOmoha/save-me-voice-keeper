@@ -251,7 +251,7 @@ export async function handleIntelligenceTool(
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
         contents: [{role: "user", parts: [{text: synthesisPrompt}]}],
-        generationConfig: {maxOutputTokens: 512, temperature: 0.3},
+        generationConfig: {maxOutputTokens: 512, temperature: 0.3, thinkingConfig: {thinkingBudget: 0}},
       }),
     });
 

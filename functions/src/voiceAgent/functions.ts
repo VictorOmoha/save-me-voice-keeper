@@ -249,7 +249,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
             tools: VOICE_AGENT_TOOLS,
             toolConfig: {functionCallingConfig: {mode: "AUTO"}},
             contents,
-            generationConfig: {maxOutputTokens: 512, temperature: 0.5},
+            // thinkingBudget: 0 disables gemini-2.5-flash "thinking", which would
+            // otherwise consume the whole token budget and return an empty reply.
+            generationConfig: {maxOutputTokens: 512, temperature: 0.5, thinkingConfig: {thinkingBudget: 0}},
           }),
         });
 

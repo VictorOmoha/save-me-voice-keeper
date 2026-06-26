@@ -90,6 +90,7 @@ Return JSON only: {"category": "string", "confidence": 0.0}`;
           maxOutputTokens: 64,
           temperature: 0.1,
           responseMimeType: "application/json",
+          thinkingConfig: {thinkingBudget: 0},
         },
       }),
     });

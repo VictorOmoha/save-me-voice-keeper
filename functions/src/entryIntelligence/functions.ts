@@ -170,6 +170,7 @@ export const processEntryDeep = functions.firestore
             maxOutputTokens: 1024,
             temperature: 0.1,
             responseMimeType: "application/json",
+            thinkingConfig: {thinkingBudget: 0},
           },
         }),
       });
@@ -518,7 +519,7 @@ Only include patterns with confidence >= 0.6. Return empty array if no clear pat
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
             contents: [{role: "user", parts: [{text: analysisPrompt}]}],
-            generationConfig: {maxOutputTokens: 512, temperature: 0.2, responseMimeType: "application/json"},
+            generationConfig: {maxOutputTokens: 512, temperature: 0.2, responseMimeType: "application/json", thinkingConfig: {thinkingBudget: 0}},
           }),
         });
 
@@ -687,6 +688,7 @@ Return JSON only:
         maxOutputTokens: 512,
         temperature: 0.75,
         responseMimeType: "application/json",
+        thinkingConfig: {thinkingBudget: 0},
       },
     }),
   });

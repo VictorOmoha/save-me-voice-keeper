@@ -50,7 +50,7 @@ Rules:
                 {text: "Output the literal words spoken in this audio. If unclear or silent, output [NO_SPEECH]."},
               ],
             }],
-            generationConfig: {maxOutputTokens: 2048, temperature: 0, topP: 0.1, topK: 1},
+            generationConfig: {maxOutputTokens: 2048, temperature: 0, topP: 0.1, topK: 1, thinkingConfig: {thinkingBudget: 0}},
           }),
         },
         3,

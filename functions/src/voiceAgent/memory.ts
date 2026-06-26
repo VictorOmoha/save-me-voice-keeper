@@ -109,7 +109,7 @@ Rules:
 - Return JSON array: [{"content": "string", "category": "personal|health|finance|work|contacts|preferences|schedule"}]
 - Return empty array [] if nothing worth remembering
 - Be selective — only genuinely useful long-term facts`}]}],
-        generationConfig: {maxOutputTokens: 256, temperature: 0.1, responseMimeType: "application/json"},
+        generationConfig: {maxOutputTokens: 256, temperature: 0.1, responseMimeType: "application/json", thinkingConfig: {thinkingBudget: 0}},
       }),
     });
 

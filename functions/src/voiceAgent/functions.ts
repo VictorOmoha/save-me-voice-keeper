@@ -12,6 +12,27 @@ import {executeVoiceTool, ConversationPart, ConversationTurnRecord, ActionExecut
 import {summarizeToolArgs} from "../voiceToolValidation";
 import {fail} from "../voiceToolResults";
 
+/**
+ * gemini-2.5-flash strictly requires every functionResponse to immediately
+ * follow its functionCall. Restored/capped session history can slice between a
+ * tool call and its response, leaving orphans that 400 the whole request.
+ * Reduce prior history to plain text turns (audio -> placeholder; tool
+ * call/response parts dropped). The live tool-call loop within a single request
+ * is built fresh and stays correctly paired, so this only affects context from
+ * earlier turns.
+ */
+function sanitizeHistoryTurns(turns: ConversationTurnRecord[]): ConversationTurnRecord[] {
+  if (!Array.isArray(turns)) return [];
+  return turns
+    .map((turn) => ({
+      role: turn.role,
+      parts: (turn.parts || [])
+        .map((part: ConversationPart) => (part.inlineData ? {text: "[voice message]"} : part))
+        .filter((part: ConversationPart) => typeof part.text === "string" && part.text.length > 0),
+    }))
+    .filter((turn) => turn.parts.length > 0);
+}
+
 // ── Voice Agent Function ──────────────────────────────────────────────────────
 /**
  * Canonical Nova backend execution endpoint.
@@ -92,8 +113,9 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
         ? [{inlineData: {mimeType: inputAudioMimeType || "audio/webm", data: audioData}}]
         : [{text: userText}];
 
-      // Cap history to last 10 turns to prevent large payloads
-      const cappedHistory = conversationHistory.slice(-10);
+      // Cap history to last 10 turns, then strip tool-call/response parts so
+      // gemini-2.5-flash doesn't reject orphaned function turns from slicing.
+      const cappedHistory = sanitizeHistoryTurns(conversationHistory.slice(-10));
 
       // Build contents array from history + new user message
       const contents: ConversationTurnRecord[] = [

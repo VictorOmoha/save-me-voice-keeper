@@ -1,7 +1,7 @@
 
 import React, { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Users, Table, Grid3X3, Heart, DollarSign, User, Mic, Plus, Upload, Search, Sparkles, Radar, LucideIcon } from "lucide-react";
+import { FileText, Users, Table, Grid3X3, Heart, DollarSign, User, Mic, Plus, Upload, Search, Sparkles, LucideIcon } from "lucide-react";
 import { EnhancedRecentEntries } from "@/components/entries";
 import { StatsCards } from "@/components/StatsCards";
 import { SavedEntry } from "@/types/dashboard";
@@ -178,17 +178,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       {/* Stat cards (real data) */}
       <StatsCards totalEntries={savedEntries.length} entries={savedEntries} userTier={userTier} />
 
-      {/* Daily briefing */}
-      <div className="rounded-2xl p-5 md:p-6 border bg-card/60">
-        <div className="flex items-center gap-2.5 text-base font-semibold text-foreground">
-          <Radar className="w-4 h-4 text-primary" /> Daily briefing
-        </div>
-        <p className="text-sm text-muted-foreground mt-2">
-          Nova is carrying {savedEntries.length} {savedEntries.length === 1 ? 'memory' : 'memories'} for continuity.
-        </p>
-      </div>
-
-      {/* Intelligence layer (real data) */}
+      {/* Intelligence layer — includes its own Daily Briefing (real data) */}
       <DashboardIntelligencePanel entries={savedEntries} />
 
       <SharedMemoryPanel />

@@ -1,19 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Heart, Users, DollarSign, User, Briefcase, Lightbulb, Plane, ShoppingCart, GraduationCap, Sparkles, Radio } from "lucide-react";
+import { FileText, Heart, Users, DollarSign, User, Briefcase, Lightbulb, Plane, ShoppingCart, GraduationCap, Sparkles, Radio, X } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useVoiceAgent, type AgentStatus } from "@/hooks/useVoiceAgent";
 import { useAuth } from "@/contexts/AuthContext";
+import type { SavedEntry } from "@/types/dashboard";
 import "@/styles/app-preview.css"; // ap-micpulse / ap-softglow / ap-spin / ap-itemin / ap-badgein keyframes
 
+const DataEntryForm = lazy(() => import("@/components/DataEntryForm").then((m) => ({ default: m.DataEntryForm })));
+const EnhancedDocumentViewer = lazy(() => import("@/components/documents/EnhancedDocumentViewer").then((m) => ({ default: m.EnhancedDocumentViewer })));
+
 /**
- * VoiceCapture — the live conversational voice screen. Driven by useVoiceAgent
- * (mic → transcribe → Nova → tool execution), it lets the user talk to Nova and
- * watch auto-categorized memories land in the Memory panel as Nova files them.
- * Animated to match the landing hero: reactive voice-print waveform, pulsing
- * mic, and cards that slide in with a SAVED badge.
+ * VoiceCapture — the live conversational voice screen. Driven by useVoiceAgent,
+ * the user talks to Nova; auto-categorized memories land in the Memory panel,
+ * and when Nova opens a form or an entry, that UI surfaces inline below the mic.
  */
 
 interface MemItem {
@@ -57,7 +59,7 @@ const categoryIcon = (cat: string) => CATEGORY_ICON[cat.toLowerCase()] || <Spark
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
 
-const Waveform = ({ status }: { status: AgentStatus }) => {
+const Waveform = ({ status, compact }: { status: AgentStatus; compact: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const statusRef = useRef<AgentStatus>(status);
   const energyRef = useRef<number | null>(null);
@@ -132,17 +134,33 @@ const Waveform = ({ status }: { status: AgentStatus }) => {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} aria-hidden="true" />;
+  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: compact ? 0.7 : 1 }} aria-hidden="true" />;
 };
 
 const VoiceCapture = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { savedEntries, searchQuery, setSearchQuery, saveEntry, editEntry, deleteEntry, handleCancelEdit, handleAddEntry } = useDashboard();
+  const {
+    savedEntries, searchQuery, setSearchQuery, saveEntry, editEntry, deleteEntry,
+    handleAddEntry, handleCancelEdit, getFormMode, getFormTitle, isSaving,
+    showAddEntry, editingEntry, fillingEntry, templateEntry,
+  } = useDashboard();
+
+  const [viewerEntry, setViewerEntry] = useState<SavedEntry | null>(null);
 
   const { status, transcript, responseText, error, actions, continuous, setContinuous, startListening, stopListening, resetConversation } = useVoiceAgent({
     continuous: true,
     onNavigate: (route) => navigate(route),
+    onOpenEntryForm: () => handleAddEntry(),
+    onStartBrainDump: () => navigate("/brain-dump"),
+    onProcessBrainDump: () => navigate("/brain-dump"),
+    onSaveBrainDump: () => navigate("/brain-dump"),
+    onGoBack: () => navigate(-1),
+    onOpenEntry: (id, title) => {
+      const match = savedEntries.find((e) => e.id === id || e.title === title);
+      if (match) setViewerEntry(match);
+      else navigate("/all-entries");
+    },
   });
 
   const [items, setItems] = useState<MemItem[]>([]);
@@ -150,8 +168,8 @@ const VoiceCapture = () => {
   const seenRef = useRef<Set<string>>(new Set());
 
   const isSupported = typeof window !== "undefined" && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia;
+  const formActive = showAddEntry || !!editingEntry || !!fillingEntry || !!templateEntry;
 
-  // Recording timer
   useEffect(() => {
     if (status !== "listening") {
       setSeconds(0);
@@ -175,6 +193,14 @@ const VoiceCapture = () => {
       window.dispatchEvent(new CustomEvent("nova:entries-changed"));
     }
   }, [actions]);
+
+  // Manual form save → persist, surface in Memory panel, refresh counts.
+  const handleFormSave = async (entry: Omit<SavedEntry, "id" | "createdAt" | "updatedAt">) => {
+    await saveEntry(entry);
+    const category = entry.category || "Memory";
+    setItems((prev) => [{ kind: category.toUpperCase(), title: entry.title, note: "Saved to your vault", category }, ...prev].slice(0, 10));
+    window.dispatchEvent(new CustomEvent("nova:entries-changed"));
+  };
 
   const micClick = () => {
     if (status === "idle") startListening();
@@ -207,18 +233,18 @@ const VoiceCapture = () => {
     >
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_330px] gap-px min-h-[74vh] -m-4 md:-m-6 rounded-2xl overflow-hidden">
         {/* Capture */}
-        <div className="flex flex-col items-center justify-center text-center p-6 md:p-10 bg-card/40">
+        <div className={`flex flex-col items-center ${formActive ? "justify-start" : "justify-center"} text-center p-6 md:p-10 bg-card/40`}>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5" style={{ background: "rgba(45,212,255,.07)", border: "1px solid rgba(45,212,255,.16)" }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#2dd4ff", boxShadow: "0 0 10px #2dd4ff" }} />
             <span style={{ font: `600 11px ${MONO}`, color: "#7fd9f0", letterSpacing: "0.16em" }}>{KICKER[status]}</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground">Voice capture</h1>
+          {!formActive && <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground">Voice capture</h1>}
           <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-md min-h-[1.5rem]">
             {isSupported ? SUB_TEXT[status] : "Voice capture needs a modern browser with microphone access. Try Chrome, Edge, or Safari."}
           </p>
 
-          <div className="relative w-full max-w-[680px] h-[220px] mt-2 flex items-center justify-center">
-            <Waveform status={status} />
+          <div className={`relative w-full max-w-[680px] mt-2 flex items-center justify-center transition-all ${formActive ? "h-[130px]" : "h-[220px]"}`}>
+            <Waveform status={status} compact={formActive} />
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               {showRings && [0, 1, 2].map((i) => (
                 <div key={i} className="absolute left-1/2 top-1/2 w-[120px] h-[120px] rounded-full" style={{ border: `1px solid rgba(45,212,255,${0.34 - i * 0.06})`, animation: "ap-micpulse 3s ease-out infinite", animationDelay: `${i}s` }} />
@@ -227,13 +253,13 @@ const VoiceCapture = () => {
                 onClick={micClick}
                 disabled={micDisabled}
                 aria-label={status === "listening" ? "Stop voice capture" : "Start voice capture"}
-                className="relative flex items-center justify-center w-[108px] h-[108px] rounded-full border-none cursor-pointer disabled:cursor-not-allowed"
+                className={`relative flex items-center justify-center rounded-full border-none cursor-pointer disabled:cursor-not-allowed transition-all ${formActive ? "w-[84px] h-[84px]" : "w-[108px] h-[108px]"}`}
                 style={{ background: "radial-gradient(circle at 50% 36%,#8eecff,#1cb8e8 58%,#0b8fc4)", animation: showRings ? "ap-softglow 2.8s ease-in-out infinite" : undefined, boxShadow: "0 0 0 1px rgba(45,212,255,.4), 0 0 38px rgba(45,212,255,.4)", opacity: micDisabled && !showRings ? 0.7 : 1 }}
               >
                 {status === "thinking" || status === "acting" ? (
-                  <span className="w-8 h-8 rounded-full border-[3px] border-[#06283a]/30 border-t-[#06283a]" style={{ animation: "ap-spin .8s linear infinite" }} />
+                  <span className="w-7 h-7 rounded-full border-[3px] border-[#06283a]/30 border-t-[#06283a]" style={{ animation: "ap-spin .8s linear infinite" }} />
                 ) : (
-                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#06283a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width={formActive ? 26 : 34} height={formActive ? 26 : 34} viewBox="0 0 24 24" fill="none" stroke="#06283a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="9" y="2.5" width="6" height="11.5" rx="3" fill="#06283a" stroke="none" />
                     <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
                     <path d="M12 17.5V21" />
@@ -244,7 +270,6 @@ const VoiceCapture = () => {
             </div>
           </div>
 
-          {/* Continuous toggle */}
           <button
             onClick={() => setContinuous(!continuous)}
             className="mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
@@ -255,16 +280,14 @@ const VoiceCapture = () => {
             {continuous ? "Auto-listen on" : "Manual mode"}
           </button>
 
-          {/* Live transcript */}
           {transcript && (
-            <div className="mt-4 max-w-xl px-4 py-3 rounded-xl bg-card border">
+            <div className="mt-4 w-full max-w-xl px-4 py-3 rounded-xl bg-card border">
               <span className="text-sm md:text-[15px] leading-relaxed text-foreground/90">“{transcript}”</span>
             </div>
           )}
 
-          {/* Nova response */}
           {responseText && status !== "listening" && (
-            <div className="mt-3 max-w-xl px-4 py-3 rounded-xl" style={{ background: "rgba(45,212,255,.06)", border: "1px solid rgba(45,212,255,.16)" }}>
+            <div className="mt-3 w-full max-w-xl px-4 py-3 rounded-xl text-left" style={{ background: "rgba(45,212,255,.06)", border: "1px solid rgba(45,212,255,.16)" }}>
               <span style={{ font: `600 11px ${MONO}`, color: "#5fd6f0", letterSpacing: "0.12em" }}>NOVA</span>
               <p className="text-sm leading-relaxed text-foreground/90 mt-1">{responseText}</p>
             </div>
@@ -282,7 +305,35 @@ const VoiceCapture = () => {
             </div>
           )}
 
-          {status === "idle" && items.length > 0 && (
+          {/* Inline action surface — the form Nova (or you) opens, right here below the mic */}
+          {formActive && (
+            <div className="mt-6 w-full max-w-2xl text-left rounded-2xl border bg-card overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3 border-b">
+                <div>
+                  <p className="font-semibold text-foreground">{getFormTitle()}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Fill it in and save — or keep talking to Nova.</p>
+                </div>
+                <button onClick={handleCancelEdit} aria-label="Close form" className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-muted transition-colors">
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+              <div className="p-4 md:p-5">
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading form…</div>}>
+                  <DataEntryForm
+                    mode={getFormMode()}
+                    editEntry={editingEntry || fillingEntry}
+                    templateEntry={templateEntry}
+                    onSave={handleFormSave}
+                    onCancel={handleCancelEdit}
+                    isVoiceActive={status === "listening"}
+                    isSaving={isSaving}
+                  />
+                </Suspense>
+              </div>
+            </div>
+          )}
+
+          {status === "idle" && !formActive && items.length > 0 && (
             <button onClick={clearSession} className="mt-5 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors">Start a new session</button>
           )}
         </div>
@@ -326,6 +377,23 @@ const VoiceCapture = () => {
           )}
         </aside>
       </div>
+
+      {/* Entry/document viewer Nova opens via "open entry" */}
+      <Suspense fallback={null}>
+        {viewerEntry && (
+          <EnhancedDocumentViewer
+            isOpen={!!viewerEntry}
+            onClose={() => setViewerEntry(null)}
+            entry={viewerEntry}
+            onEdit={(e: SavedEntry) => {
+              setViewerEntry(null);
+              editEntry(e);
+            }}
+            allEntries={savedEntries}
+            onOpenRelatedEntry={(e: SavedEntry) => setViewerEntry(e)}
+          />
+        )}
+      </Suspense>
     </DashboardLayout>
   );
 };

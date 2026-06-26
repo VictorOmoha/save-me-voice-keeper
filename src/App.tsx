@@ -34,6 +34,7 @@ const NotFound = React.lazy(() => import("./pages/NotFound.tsx"));
 const TermsOfService = React.lazy(() => import("./pages/TermsOfService.tsx"));
 const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy.tsx"));
 const BrainDump = React.lazy(() => import("./pages/BrainDump.tsx"));
+const VoiceCapture = React.lazy(() => import("./pages/VoiceCapture.tsx"));
 const Insights = React.lazy(() => import("./pages/Insights.tsx"));
 const NovaBriefing = React.lazy(() => import("./pages/NovaBriefing.tsx"));
 const Onboarding = React.lazy(() => import("./pages/Onboarding.tsx"));
@@ -112,6 +113,7 @@ const App = () => (
                         <Route path="/connect-agent" element={<Navigate to="/settings?tab=automation&connect=agent" replace />} />
                         <Route path="/user-guide" element={<UserGuide />} />
                         <Route path="/brain-dump" element={<PrivateRoute><BrainDump /></PrivateRoute>} />
+                        <Route path="/voice-capture" element={<PrivateRoute><VoiceCapture /></PrivateRoute>} />
                         <Route path="/onboarding" element={<PrivateRoute><Onboarding /></PrivateRoute>} />
                         <Route path="/preview/app" element={<AppPreview />} />
                         <Route path="/terms" element={<TermsOfService />} />

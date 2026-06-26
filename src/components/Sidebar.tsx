@@ -12,6 +12,7 @@ import {
   Plus,
   Settings,
   Brain,
+  Mic,
   X
 } from "lucide-react";
 import { SavedEntry } from "@/types/dashboard";
@@ -93,6 +94,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </Link>
 
+          <Link to="/voice-capture" onClick={handleNavClick}>
+            <div className={navItemClass(location.pathname === "/voice-capture")}>
+              <Mic className="w-4 h-4" />
+              <span>Voice capture</span>
+            </div>
+          </Link>
+
           <Link to="/all-entries" onClick={handleNavClick}>
             <div className={navItemClass(activeSection ? activeSection === "all-entries" : location.pathname === "/all-entries")}>
               <FileText className="w-4 h-4" />
@@ -106,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link to="/brain-dump" onClick={handleNavClick}>
             <div className={navItemClass(activeSection ? activeSection === "brain-dump" : location.pathname === "/brain-dump")}>
               <Brain className="w-4 h-4" />
-              <span>Start Voice Dump</span>
+              <span>Brain dump</span>
             </div>
           </Link>
 

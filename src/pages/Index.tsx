@@ -198,8 +198,8 @@ const Index = () => {
           borderBottom: "1px solid rgba(125,165,205,.07)",
         }}
       >
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 11, textDecoration: "none" }}>
-          <div style={{ width: 30, height: 30, borderRadius: 9, background: GRAD, display: "flex", alignItems: "center", justifyContent: "center", font: "800 16px Sora", color: "#04222e", boxShadow: "0 0 16px rgba(45,212,255,.45)" }}>S</div>
+        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none" }}>
+          <img src="/logo.png" alt="SaveMe" width={36} height={36} style={{ display: "block", objectFit: "contain", filter: "drop-shadow(0 0 14px rgba(45,212,255,.35))" }} />
           <span style={{ font: "700 18px Sora", color: "#eaf3fa" }}>SaveMe</span>
         </Link>
         <div className="lp-nav-links" style={{ display: "flex", alignItems: "center", gap: 34 }}>
@@ -445,7 +445,7 @@ const Index = () => {
         <div className="lp-foot-grid">
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 16 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 8, background: GRAD, display: "flex", alignItems: "center", justifyContent: "center", font: "800 15px Sora", color: "#04222e" }}>S</div>
+              <img src="/logo.png" alt="SaveMe" width={32} height={32} style={{ display: "block", objectFit: "contain" }} />
               <span style={{ font: "700 17px Sora", color: "#eaf3fa" }}>SaveMe</span>
             </div>
             <p style={{ font: "500 13.5px/1.6 Manrope", color: "#7d8a9c", maxWidth: 300, margin: 0 }}>

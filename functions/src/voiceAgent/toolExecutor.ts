@@ -117,6 +117,35 @@ const scoreEntryMatch = (entry: EntrySearchRecord, query: string): number => {
   return score;
 };
 
+/**
+ * Resolve the entry a user referred to, by id OR by title/topic. Nova sometimes
+ * invents an entry id (e.g. a Mongo-style 24-hex string), or only knows the
+ * title — so when the id is missing or doesn't resolve, fall back to a scored
+ * title match over the user's entries instead of failing with "not found".
+ */
+async function resolveOwnedEntryDoc(
+  entriesRef: admin.firestore.CollectionReference,
+  userId: string,
+  args: Record<string, unknown>,
+): Promise<admin.firestore.DocumentSnapshot | null> {
+  const id = typeof args.id === "string" ? args.id.trim() : "";
+  // Firestore auto-ids are ~20-char alphanumeric; a 24-char hex string is a
+  // hallucinated Mongo-style id, so don't waste a read on it.
+  const looksReal = id.length > 0 && /^[A-Za-z0-9_-]{12,40}$/.test(id) && !/^[0-9a-f]{24}$/.test(id);
+  if (looksReal) {
+    const doc = await entriesRef.doc(id).get();
+    if (doc.exists && doc.data()?.user_id === userId) return doc;
+  }
+  const query = String(args.title || args.query || "").trim();
+  if (!query) return null;
+  const snap = await entriesRef.where("user_id", "==", userId).orderBy("updated_at", "desc").limit(500).get();
+  const scored = snap.docs
+    .map((d) => ({doc: d, score: scoreEntryMatch(toEntrySearchRecord(d), query)}))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score);
+  return scored.length ? scored[0].doc : null;
+}
+
 export async function executeVoiceTool(
   toolName: string,
   args: Record<string, unknown>,
@@ -340,18 +369,14 @@ export async function executeVoiceTool(
   }
 
   case "deleteEntry": {
-    const entryId = typeof args.id === "string" ? args.id : "";
-    const delDoc = await entriesRef.doc(entryId).get();
-    if (!delDoc.exists) {
+    const delDoc = await resolveOwnedEntryDoc(entriesRef, userId, args);
+    if (!delDoc) {
       return fail("Entry not found");
     }
     const delData = delDoc.data() || {};
-    if (delData.user_id !== userId) {
-      return fail("Entry not found");
-    }
     const delTitle = typeof delData.title === "string" ? delData.title : "Entry";
-    await entriesRef.doc(entryId).delete();
-    return novaAction("delete_entry", { id: entryId, title: delTitle }, { id: entryId, title: delTitle });
+    await delDoc.ref.delete();
+    return novaAction("delete_entry", { id: delDoc.id, title: delTitle }, { id: delDoc.id, title: delTitle });
   }
   }
 

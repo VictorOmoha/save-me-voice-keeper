@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import type { JSX } from "react";
+import type { JSX, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Heart, Users, DollarSign, User, Briefcase, Lightbulb, Plane, ShoppingCart, GraduationCap, Sparkles, Radio, X } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/hooks/useDashboard";
-import { useVoiceAgent, type AgentStatus } from "@/hooks/useVoiceAgent";
+import { useVoiceAgent, MAX_RECORDING_SECONDS, type AgentStatus } from "@/hooks/useVoiceAgent";
 import { useAuth } from "@/contexts/AuthContext";
 import type { SavedEntry } from "@/types/dashboard";
 import "@/styles/app-preview.css"; // ap-micpulse / ap-softglow / ap-spin / ap-itemin / ap-badgein keyframes
@@ -34,10 +34,10 @@ const KICKER: Record<AgentStatus, string> = {
 };
 const SUB_TEXT: Record<AgentStatus, string> = {
   idle: "Tap the mic and talk to Nova — it captures and files what matters.",
-  listening: "Nova is listening — say what's on your mind.",
+  listening: "Nova is listening — pause when you're done and it sends automatically.",
   thinking: "Nova is understanding your thought…",
   acting: "Nova is filing it into your memory…",
-  speaking: "Nova is responding…",
+  speaking: "Nova is responding — tap the mic to interrupt.",
 };
 
 const MONO = "'JetBrains Mono'";
@@ -59,7 +59,7 @@ const categoryIcon = (cat: string) => CATEGORY_ICON[cat.toLowerCase()] || <Spark
 
 const fmt = (sec: number) => `${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, "0")}`;
 
-const Waveform = ({ status, compact }: { status: AgentStatus; compact: boolean }) => {
+const Waveform = ({ status, compact, levelRef }: { status: AgentStatus; compact: boolean; levelRef?: { current: number } }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const statusRef = useRef<AgentStatus>(status);
   const energyRef = useRef<number | null>(null);
@@ -90,7 +90,9 @@ const Waveform = ({ status, compact }: { status: AgentStatus; compact: boolean }
         const t = performance.now() / 1000;
         const s = statusRef.current;
         let energy: number;
-        if (s === "listening") energy = 0.42 + 0.45 * Math.abs(Math.sin(t * 2.1) * Math.sin(t * 0.6)) + Math.random() * 0.08;
+        const liveLevel = levelRef?.current ?? 0;
+        // While listening, the wave follows the actual mic input; other states animate.
+        if (s === "listening") energy = 0.16 + Math.min(1, liveLevel * 6.5);
         else if (s === "speaking") energy = 0.38 + 0.2 * Math.abs(Math.sin(t * 3.4));
         else if (s === "thinking" || s === "acting") energy = 0.24 + 0.14 * Math.sin(t * 5);
         else energy = 0.12;
@@ -132,7 +134,7 @@ const Waveform = ({ status, compact }: { status: AgentStatus; compact: boolean }
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [levelRef]);
 
   return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: compact ? 0.7 : 1 }} aria-hidden="true" />;
 };
@@ -148,7 +150,7 @@ const VoiceCapture = () => {
 
   const [viewerEntry, setViewerEntry] = useState<SavedEntry | null>(null);
 
-  const { status, transcript, responseText, error, actions, continuous, setContinuous, startListening, stopListening, resetConversation } = useVoiceAgent({
+  const { status, transcript, error, actions, conversationHistory, continuous, setContinuous, startListening, stopListening, sendText, resetConversation, inputLevelRef } = useVoiceAgent({
     continuous: true,
     onNavigate: (route) => navigate(route),
     onOpenEntryForm: () => handleAddEntry(),
@@ -165,7 +167,22 @@ const VoiceCapture = () => {
 
   const [items, setItems] = useState<MemItem[]>([]);
   const [seconds, setSeconds] = useState(0);
+  const [textInput, setTextInput] = useState("");
   const seenRef = useRef<Set<string>>(new Set());
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  // Conversation thread: full history plus the in-flight user turn (text sends
+  // show up before the backend echoes them back in conversationHistory).
+  const thread = conversationHistory
+    .map((turn) => ({ role: turn.role, text: turn.parts.map((p) => p.text || "").join(" ").trim() }))
+    .filter((turn) => turn.text);
+  const lastUserText = [...thread].reverse().find((t) => t.role === "user")?.text;
+  const pendingUserTurn = (status === "thinking" || status === "acting") && transcript && transcript !== lastUserText;
+
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [thread.length, status]);
 
   const isSupported = typeof window !== "undefined" && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia;
   const formActive = showAddEntry || !!editingEntry || !!fillingEntry || !!templateEntry;
@@ -203,8 +220,22 @@ const VoiceCapture = () => {
   };
 
   const micClick = () => {
-    if (status === "idle") startListening();
+    if (status === "idle" || status === "speaking") startListening(); // speaking → barge-in
     else if (status === "listening") stopListening();
+  };
+
+  const submitText = (e: FormEvent) => {
+    e.preventDefault();
+    const text = textInput.trim();
+    if (!text || status !== "idle") return;
+    setTextInput("");
+    sendText(text);
+  };
+
+  const openMemoryItem = (item: MemItem) => {
+    const match = savedEntries.find((e) => e.title === item.title);
+    if (match) setViewerEntry(match);
+    else navigate("/all-entries");
   };
 
   const clearSession = () => {
@@ -213,7 +244,7 @@ const VoiceCapture = () => {
     setItems([]);
   };
 
-  const micDisabled = !isSupported || status === "thinking" || status === "acting" || status === "speaking";
+  const micDisabled = !isSupported || status === "thinking" || status === "acting";
   const showRings = status === "listening" || status === "speaking";
   const userName = user?.displayName || user?.email || "User";
 
@@ -239,12 +270,12 @@ const VoiceCapture = () => {
             <span style={{ font: `600 11px ${MONO}`, color: "#7fd9f0", letterSpacing: "0.16em" }}>{KICKER[status]}</span>
           </div>
           {!formActive && <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-foreground">Voice capture</h1>}
-          <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-md min-h-[1.5rem]">
+          <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-md min-h-[1.5rem]" aria-live="polite">
             {isSupported ? SUB_TEXT[status] : "Voice capture needs a modern browser with microphone access. Try Chrome, Edge, or Safari."}
           </p>
 
           <div className={`relative w-full max-w-[680px] mt-2 flex items-center justify-center transition-all ${formActive ? "h-[130px]" : "h-[220px]"}`}>
-            <Waveform status={status} compact={formActive} />
+            <Waveform status={status} compact={formActive} levelRef={inputLevelRef} />
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               {showRings && [0, 1, 2].map((i) => (
                 <div key={i} className="absolute left-1/2 top-1/2 w-[120px] h-[120px] rounded-full" style={{ border: `1px solid rgba(45,212,255,${0.34 - i * 0.06})`, animation: "ap-micpulse 3s ease-out infinite", animationDelay: `${i}s` }} />
@@ -252,8 +283,8 @@ const VoiceCapture = () => {
               <button
                 onClick={micClick}
                 disabled={micDisabled}
-                aria-label={status === "listening" ? "Stop voice capture" : "Start voice capture"}
-                className={`relative flex items-center justify-center rounded-full border-none cursor-pointer disabled:cursor-not-allowed transition-all ${formActive ? "w-[84px] h-[84px]" : "w-[108px] h-[108px]"}`}
+                aria-label={status === "listening" ? "Stop and send" : status === "speaking" ? "Interrupt Nova and speak" : "Start voice capture"}
+                className={`relative flex items-center justify-center rounded-full border-none cursor-pointer disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2dd4ff] focus-visible:ring-offset-2 focus-visible:ring-offset-background ${formActive ? "w-[84px] h-[84px]" : "w-[108px] h-[108px]"}`}
                 style={{ background: "radial-gradient(circle at 50% 36%,#8eecff,#1cb8e8 58%,#0b8fc4)", animation: showRings ? "ap-softglow 2.8s ease-in-out infinite" : undefined, boxShadow: "0 0 0 1px rgba(45,212,255,.4), 0 0 38px rgba(45,212,255,.4)", opacity: micDisabled && !showRings ? 0.7 : 1 }}
               >
                 {status === "thinking" || status === "acting" ? (
@@ -280,29 +311,76 @@ const VoiceCapture = () => {
             {continuous ? "Auto-listen on" : "Manual mode"}
           </button>
 
-          {transcript && (
-            <div className="mt-4 w-full max-w-xl px-4 py-3 rounded-xl bg-card border">
-              <span className="text-sm md:text-[15px] leading-relaxed text-foreground/90">“{transcript}”</span>
-            </div>
-          )}
-
-          {responseText && status !== "listening" && (
-            <div className="mt-3 w-full max-w-xl px-4 py-3 rounded-xl text-left" style={{ background: "rgba(45,212,255,.06)", border: "1px solid rgba(45,212,255,.16)" }}>
-              <span style={{ font: `600 11px ${MONO}`, color: "#5fd6f0", letterSpacing: "0.12em" }}>NOVA</span>
-              <p className="text-sm leading-relaxed text-foreground/90 mt-1">{responseText}</p>
-            </div>
-          )}
-
-          {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
-
           {status === "listening" && (
-            <div className="mt-4 flex items-center gap-3" style={{ font: `600 12px ${MONO}` }}>
+            <div className="mt-1 flex items-center gap-3" style={{ font: `600 12px ${MONO}` }}>
               <span className="flex items-center gap-2 text-[#7fd9f0]">
                 <span className="w-2 h-2 rounded-full bg-red-500" style={{ boxShadow: "0 0 10px #ff5d6c" }} />
-                REC {fmt(seconds)}
+                REC {fmt(seconds)} / {fmt(MAX_RECORDING_SECONDS)}
               </span>
-              <span className="text-muted-foreground">· tap the mic to send</span>
+              <span className="text-muted-foreground">· pause to send, or tap the mic</span>
             </div>
+          )}
+
+          {/* Conversation thread — the full back-and-forth with Nova this session */}
+          {(thread.length > 0 || pendingUserTurn || status === "thinking" || status === "acting") && (
+            <div ref={threadRef} aria-live="polite" className={`mt-4 w-full max-w-xl flex flex-col gap-2.5 overflow-y-auto text-left ${formActive ? "max-h-[160px]" : "max-h-[300px]"}`}>
+              {thread.map((turn, i) =>
+                turn.role === "user" ? (
+                  <div key={i} className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-card border">
+                    <span className="text-sm md:text-[15px] leading-relaxed text-foreground/90">{turn.text}</span>
+                  </div>
+                ) : (
+                  <div key={i} className="self-start max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md" style={{ background: "rgba(45,212,255,.06)", border: "1px solid rgba(45,212,255,.16)" }}>
+                    <span style={{ font: `600 10.5px ${MONO}`, color: "#5fd6f0", letterSpacing: "0.12em" }}>NOVA</span>
+                    <p className="text-sm leading-relaxed text-foreground/90 mt-0.5">{turn.text}</p>
+                  </div>
+                )
+              )}
+              {pendingUserTurn && (
+                <div className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-card border">
+                  <span className="text-sm md:text-[15px] leading-relaxed text-foreground/90">{transcript}</span>
+                </div>
+              )}
+              {(status === "thinking" || status === "acting") && (
+                <div className="self-start px-4 py-2.5 rounded-2xl rounded-bl-md" style={{ background: "rgba(45,212,255,.06)", border: "1px solid rgba(45,212,255,.16)" }}>
+                  <span className="inline-flex gap-1 items-center" aria-label="Nova is thinking">
+                    {[0, 1, 2].map((i) => (
+                      <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#5fd6f0] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                    ))}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 flex items-center gap-3">
+              <p className="text-sm text-red-400">{error}</p>
+              <button onClick={startListening} className="text-sm font-semibold text-foreground underline underline-offset-2 hover:text-primary transition-colors">
+                Try again
+              </button>
+            </div>
+          )}
+
+          {/* Text fallback — for quiet places, or when the mic isn't an option */}
+          {!formActive && isSupported && (
+            <form onSubmit={submitText} className="mt-4 w-full max-w-xl flex gap-2">
+              <input
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="Or type to Nova instead…"
+                aria-label="Type a message to Nova"
+                disabled={status !== "idle"}
+                className="flex-1 h-10 px-3.5 rounded-xl bg-card border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={status !== "idle" || !textInput.trim()}
+                className="h-10 px-4 rounded-xl border text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Send
+              </button>
+            </form>
           )}
 
           {/* Inline action surface — the form Nova (or you) opens, right here below the mic */}
@@ -333,7 +411,7 @@ const VoiceCapture = () => {
             </div>
           )}
 
-          {status === "idle" && !formActive && items.length > 0 && (
+          {status === "idle" && !formActive && (items.length > 0 || thread.length > 0) && (
             <button onClick={clearSession} className="mt-5 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors">Start a new session</button>
           )}
         </div>
@@ -342,7 +420,7 @@ const VoiceCapture = () => {
         <aside className="bg-card/20 border-l border-border p-6 md:p-7 flex flex-col">
           <div className="text-xl font-bold text-foreground">Memory</div>
           <div className="text-[13px] text-muted-foreground mt-1">Auto-categorized items</div>
-          <div className="flex flex-col gap-3 mt-5 flex-1">
+          <div className="flex flex-col gap-3 mt-5 flex-1" aria-live="polite">
             {items.length === 0 ? (
               <div className="flex flex-col gap-3">
                 {[0.16, 0.13, 0.1].map((op, i) => (
@@ -352,7 +430,14 @@ const VoiceCapture = () => {
               </div>
             ) : (
               items.map((item, i) => (
-                <div key={`${item.title}-${i}`} className="relative rounded-2xl border bg-card px-4 py-3.5 overflow-hidden" style={{ animation: "ap-itemin .5s cubic-bezier(.2,.8,.2,1) both" }}>
+                <button
+                  key={`${item.title}-${i}`}
+                  type="button"
+                  onClick={() => openMemoryItem(item)}
+                  aria-label={`Open saved entry ${item.title}`}
+                  className="relative w-full text-left cursor-pointer rounded-2xl border bg-card px-4 py-3.5 overflow-hidden transition-colors hover:border-[#2dd4ff]/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2dd4ff]/60"
+                  style={{ animation: "ap-itemin .5s cubic-bezier(.2,.8,.2,1) both" }}
+                >
                   <div className="absolute left-0 top-3.5 bottom-3.5 w-[3px] rounded-full" style={{ background: "#2dd4ff", boxShadow: "0 0 9px rgba(45,212,255,.7)" }} />
                   <div className="flex items-center justify-between mb-2 pl-2">
                     <span className="flex items-center gap-1.5 text-[#5fd6f0]" style={{ font: `600 10.5px ${MONO}`, letterSpacing: "0.13em" }}>
@@ -366,7 +451,7 @@ const VoiceCapture = () => {
                   </div>
                   <div className="text-[15px] font-semibold text-foreground pl-2">{item.title}</div>
                   <div className="text-[12.5px] text-muted-foreground mt-0.5 pl-2">{item.note}</div>
-                </div>
+                </button>
               ))
             )}
           </div>

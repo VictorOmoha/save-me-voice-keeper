@@ -56,44 +56,11 @@ export const CategoryView: React.FC<CategoryViewProps> = ({
   const { downloadingFiles, handleDownload } = useDownload();
   const { filterEntriesByCategory } = useCategoryFilter();
 
-  console.log('DIAGNOSTIC: CategoryView rendered with:', {
-    categoryName,
-    showDocumentCreator,
-    showAddEntry,
-    editingEntry: editingEntry?.title,
-    templateEntry: templateEntry?.title,
-    totalEntries: entries.length
-  });
-
-  // Enhanced diagnostic logging for entries
-  console.log('DIAGNOSTIC: All entries details:', entries.map(entry => ({
-    id: entry.id,
-    title: entry.title,
-    category: entry.fields.category,
-    documentType: entry.fields.documentType,
-    fileName: entry.fields.fileName,
-    hasUploadedFile: entry.fields.hasUploadedFile,
-    allFields: Object.keys(entry.fields)
-  })));
-
   const handleCreateEntry = () => {
-    console.log('DIAGNOSTIC: Create button clicked for category:', categoryName);
     onCreateEntry(categoryName);
   };
 
   const categoryEntries = filterEntriesByCategory(entries, categoryName);
-
-  console.log('DIAGNOSTIC: Filtered entries for', categoryName, ':', {
-    totalEntries: entries.length,
-    categoryEntries: categoryEntries.length,
-    categoryEntriesList: categoryEntries.map(e => ({ 
-      id: e.id,
-      title: e.title, 
-      category: e.fields.category,
-      documentType: e.fields.documentType,
-      fileName: e.fields.fileName
-    }))
-  });
 
   return (
     <div className="space-y-6">

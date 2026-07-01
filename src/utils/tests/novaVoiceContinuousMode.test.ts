@@ -24,7 +24,11 @@ describe("Nova continuous voice mode", () => {
     expect(playAudioBlock).toContain("audio.onended");
     expect(playAudioBlock).toContain("audio.onerror");
     expect(playAudioBlock).toContain("await audio.play()");
-    expect(playAudioBlock.match(/restartIfContinuous\(\);/g)?.length).toBeGreaterThanOrEqual(3);
+    // Completion, playback error, and blocked-autoplay all route through finish(),
+    // which re-arms continuous mode.
+    expect(playAudioBlock).toContain("restartIfContinuous();");
+    expect(playAudioBlock).toContain("audio.onended = finish");
+    expect(playAudioBlock.match(/finish\(\);/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it("distinguishes automatic recorder stops from a user pressing stop", () => {
@@ -36,7 +40,7 @@ describe("Nova continuous voice mode", () => {
     const autoTimerBlock = block(
       hookSource,
       "autoStopTimerRef.current = setTimeout",
-      "}, 10000);"
+      "}, MAX_RECORDING_SECONDS * 1000);"
     );
 
     expect(stopBlock).toContain("manualStopRef.current = true");

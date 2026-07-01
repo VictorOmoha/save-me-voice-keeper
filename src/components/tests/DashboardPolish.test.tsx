@@ -20,6 +20,10 @@ vi.mock('@/lib/firebase', () => ({
   auth: {},
 }));
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { displayName: 'Victor Omoha', email: 'victor@example.com' } }),
+}));
+
 vi.mock('firebase/auth', () => ({
   signOut: vi.fn(),
 }));

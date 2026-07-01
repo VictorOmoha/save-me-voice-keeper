@@ -6,12 +6,20 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import type { MutableRefObject } from "react";
 import { toast } from "sonner";
 import { getCloudFunctionUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 
 const VOICE_AGENT_URL = getCloudFunctionUrl('voiceAgent');
 
 export type AgentStatus = "idle" | "listening" | "thinking" | "acting" | "speaking";
+
+/** Hard cap on a single recording; silence detection usually sends well before this. */
+export const MAX_RECORDING_SECONDS = 30;
+// Auto-send once the user has spoken and then stayed quiet this long.
+const SILENCE_STOP_MS = 1800;
+// RMS mic level above which we consider the user to be speaking.
+const SPEECH_RMS_THRESHOLD = 0.045;
 
 export interface ActionEvent {
   tool: string;
@@ -96,6 +104,8 @@ interface UseVoiceAgentReturn {
   stopListening: () => void;
   sendText: (text: string) => Promise<void>;
   resetConversation: () => void;
+  /** Live mic RMS level (0..~1) while recording; 0 otherwise. Read inside rAF loops — updates do not re-render. */
+  inputLevelRef: MutableRefObject<number>;
 }
 
 // Human-readable labels for tool calls
@@ -183,6 +193,10 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const audioChunksRef = useRef<Blob[]>([]);
   const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  const inputLevelRef = useRef(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const levelRafRef = useRef(0);
   const continuousRef = useRef(continuous);
   const manualStopRef = useRef(false);
   const statusRef = useRef<AgentStatus>(status);
@@ -192,6 +206,21 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   const setAgentStatus = useCallback((nextStatus: AgentStatus) => {
     statusRef.current = nextStatus;
     setStatus(nextStatus);
+  }, []);
+
+  // Stop Nova's TTS playback without firing onended (used for barge-in and reset).
+  const stopPlayback = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.onended = null;
+      audio.onerror = null;
+      audio.pause();
+      audioRef.current = null;
+    }
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
   }, []);
 
   const setContinuous = useCallback((value: boolean) => {
@@ -297,8 +326,11 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   // ── Start recording via MediaRecorder ────────────────────────────────────
   const startListening = useCallback(async () => {
     const recorderBusy = mediaRecorderRef.current?.state === "recording";
-    const agentBusy = ["listening", "thinking", "acting", "speaking"].includes(statusRef.current);
+    const agentBusy = ["listening", "thinking", "acting"].includes(statusRef.current);
     if (recorderBusy || agentBusy) return;
+
+    // Barge-in: starting to talk while Nova is speaking interrupts her.
+    if (statusRef.current === "speaking") stopPlayback();
 
     manualStopRef.current = false;
     setError(null);
@@ -321,9 +353,13 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       };
 
       recorder.onstop = async () => {
-        // Stop all mic tracks
+        // Stop all mic tracks + level metering
         stream.getTracks().forEach((t) => t.stop());
         if (autoStopTimerRef.current) clearTimeout(autoStopTimerRef.current);
+        cancelAnimationFrame(levelRafRef.current);
+        inputLevelRef.current = 0;
+        audioCtxRef.current?.close().catch(() => {});
+        audioCtxRef.current = null;
 
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
         if (blob.size < 500) {
@@ -345,12 +381,49 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       mediaRecorderRef.current = recorder;
       setAgentStatus("listening");
 
-      // Auto-stop after 10 seconds
+      // Real mic level for the waveform + auto-send when the user stops talking.
+      // Best-effort: if AudioContext is unavailable, recording still works.
+      try {
+        const audioCtx = new AudioContext();
+        audioCtxRef.current = audioCtx;
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        audioCtx.createMediaStreamSource(stream).connect(analyser);
+        const buf = new Uint8Array(analyser.fftSize);
+        let spokeAt = 0;
+        let lastVoiceAt = performance.now();
+        const tick = () => {
+          if (mediaRecorderRef.current !== recorder || recorder.state !== "recording") return;
+          analyser.getByteTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = (buf[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / buf.length);
+          inputLevelRef.current = rms;
+          const now = performance.now();
+          if (rms > SPEECH_RMS_THRESHOLD) {
+            if (!spokeAt) spokeAt = now;
+            lastVoiceAt = now;
+          }
+          if (spokeAt && now - lastVoiceAt > SILENCE_STOP_MS) {
+            recorder.stop();
+            return;
+          }
+          levelRafRef.current = requestAnimationFrame(tick);
+        };
+        levelRafRef.current = requestAnimationFrame(tick);
+      } catch {
+        // level meter unavailable — fall back to timer/manual stop only
+      }
+
+      // Hard cap per recording
       autoStopTimerRef.current = setTimeout(() => {
         if (mediaRecorderRef.current?.state === "recording") {
           mediaRecorderRef.current.stop();
         }
-      }, 10000);
+      }, MAX_RECORDING_SECONDS * 1000);
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
@@ -362,7 +435,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
       );
       setAgentStatus("idle");
     }
-  }, [restartIfContinuous, setAgentStatus]);
+  }, [restartIfContinuous, setAgentStatus, stopPlayback]);
 
   // ── Stop recording ────────────────────────────────────────────────────────
   const stopListening = useCallback(() => {
@@ -378,7 +451,7 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
   // ── Audio playback + auto-restart ─────────────────────────────────────────
   const playAudio = useCallback(async (base64Audio: string, mimeType = "audio/pcm") => {
     setAgentStatus("speaking");
-    audioRef.current?.pause();
+    stopPlayback();
 
     const binary = atob(base64Audio);
     const bytes = new Uint8Array(binary.length);
@@ -393,28 +466,27 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audioRef.current = audio;
+    audioUrlRef.current = url;
 
-    audio.onended = () => {
+    const finish = () => {
       URL.revokeObjectURL(url);
+      if (audioUrlRef.current === url) audioUrlRef.current = null;
       setAgentStatus("idle");
       restartIfContinuous();
     };
+    audio.onended = finish;
     audio.onerror = (event) => {
       console.warn("[useVoiceAgent] Audio element failed to play Nova response", event);
-      URL.revokeObjectURL(url);
-      setAgentStatus("idle");
-      restartIfContinuous();
+      finish();
     };
 
     try {
       await audio.play();
     } catch (event) {
       console.warn("[useVoiceAgent] Browser blocked or failed Nova response playback", event);
-      URL.revokeObjectURL(url);
-      setAgentStatus("idle");
-      restartIfContinuous();
+      finish();
     }
-  }, [restartIfContinuous, setAgentStatus]);
+  }, [restartIfContinuous, setAgentStatus, stopPlayback]);
 
   // ── Core agent call ───────────────────────────────────────────────────────
   const callAgent = useCallback(async (input: AgentInput) => {
@@ -527,15 +599,16 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}): UseVoiceAgent
     setActions([]);
     setAgentStatus("idle");
     setError(null);
-    audioRef.current?.pause();
+    stopPlayback();
     setSessionId(null);
     localStorage.removeItem("nova_session_id");
-  }, [setAgentStatus]);
+  }, [setAgentStatus, stopPlayback]);
 
   return {
     status, transcript, responseText, error, actions,
     conversationHistory, continuous, setContinuous,
     startListening, stopListening, sendText, resetConversation,
+    inputLevelRef,
   };
 };
 

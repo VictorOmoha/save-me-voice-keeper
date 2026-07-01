@@ -122,24 +122,10 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('DIAGNOSTIC: DocumentCreator handleSubmit called with data:', {
-      documentName,
-      documentType,
-      description,
-      tags,
-      location,
-      dateCreated,
-      notes,
-      hasUploadedFile: !!uploadedFile,
-      fileName: uploadedFile?.name,
-      documentContent: documentContent?.substring(0, 50) + '...'
-    });
 
     // Validation - require at least a document name
     if (!documentName.trim()) {
       toast.error("Please enter a document name");
-      console.log('DIAGNOSTIC: Validation failed - no document name');
       return;
     }
     
@@ -177,32 +163,20 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       ]
     };
 
-    console.log('DIAGNOSTIC: Calling onSave with documentEntry:', {
-      title: documentEntry.title,
-      category: documentEntry.fields.category,
-      fieldsCount: Object.keys(documentEntry.fields).length,
-      allFieldKeys: Object.keys(documentEntry.fields)
-    });
-
     // Upload file to Firebase Storage and save entry
     if (uploadedFile) {
-      console.log('DIAGNOSTIC: Processing file upload to Firebase Storage...');
-      
       // Use a timestamp-based ID for the upload
       const entryId = `temp-${Date.now()}`;
-      
+
       // Upload to Firebase Storage
       const uploadPath = await uploadDocumentToStorage(uploadedFile, entryId);
       if (uploadPath) {
-        console.log('DIAGNOSTIC: File uploaded to storage at:', uploadPath);
-        // Update the entry with the storage path
         documentEntry.fields.storagePath = uploadPath;
       }
-      
+
       // Save the entry with storage path
       onSave(documentEntry);
     } else {
-      console.log('DIAGNOSTIC: No file to upload, calling onSave directly...');
       onSave(documentEntry);
     }
   };

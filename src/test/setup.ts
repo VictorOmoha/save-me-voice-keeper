@@ -67,3 +67,24 @@ Object.defineProperty(window, 'speechSynthesis', {
     getVoices: () => [],
   },
 });
+
+// jsdom does not implement canvas rendering. Voice UI tests only need a
+// harmless drawing surface so component effects can mount and clean up.
+Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+  configurable: true,
+  value: () => ({
+    beginPath: () => {},
+    clearRect: () => {},
+    lineTo: () => {},
+    moveTo: () => {},
+    setTransform: () => {},
+    stroke: () => {},
+    globalAlpha: 1,
+    lineCap: 'round',
+    lineJoin: 'round',
+    lineWidth: 1,
+    shadowBlur: 0,
+    shadowColor: '',
+    strokeStyle: '',
+  } as unknown as CanvasRenderingContext2D),
+});

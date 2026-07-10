@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const source = readFileSync("src/hooks/useBrainDumpCapture.ts", "utf8");
+const source = readFileSync("src/hooks/useBrainDumpCapture.ts", "utf8").replace(/\r\n?/g, "\n");
 
 const block = (marker: string, nextMarker: string) => {
   const start = source.indexOf(marker);

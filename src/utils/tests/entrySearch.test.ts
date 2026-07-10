@@ -56,7 +56,14 @@ describe("entryMatchesQuery", () => {
       fields: {
         table: {
           headers: ["item", "cost"],
-          rows: [["contractor invoice", "1200"]],
+          rows: [
+            {
+              cells: [
+                { value: "contractor invoice" },
+                { value: "1200" },
+              ],
+            },
+          ],
         },
       },
     });

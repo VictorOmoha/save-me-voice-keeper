@@ -18,8 +18,10 @@ export const normalizeSearchText = (text: string): string =>
     // combining marks range U+0300-U+036F
     .replace(/[̀-ͯ]/g, "");
 
+const MAX_SEARCH_NESTING = 8;
+
 const collectText = (value: unknown, out: string[], depth = 0): void => {
-  if (value === null || value === undefined || depth > 4) return;
+  if (value === null || value === undefined || depth > MAX_SEARCH_NESTING) return;
   if (typeof value === "string") {
     if (value) out.push(value);
     return;

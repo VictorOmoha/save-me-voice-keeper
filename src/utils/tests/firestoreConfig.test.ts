@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 const repoRoot = resolve(__dirname, "../../..");
 
 const readRepoFile = (relativePath: string) =>
-  readFileSync(resolve(repoRoot, relativePath), "utf8");
+  readFileSync(resolve(repoRoot, relativePath), "utf8").replace(/\r\n?/g, "\n");
 
 describe("Firestore production config", () => {
   it("allows authenticated users to create their own task reminders", () => {

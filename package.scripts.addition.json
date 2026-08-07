@@ -1,0 +1,8 @@
+{
+  "_comment": "SAVE-005 lane V3 — ADD these keys to the existing \"scripts\" object in the repo-root package.json. Do NOT modify or remove any existing script. Delivered as a fragment because Vector Platform has no GitHub write access; Chief O merges this verbatim into package.json.",
+  "scripts": {
+    "test:emulator": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme node test/emulator/run.mjs",
+    "test:emulator:ci": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme CI=true node test/emulator/run.mjs --ci --reporter=junit --outputFile=test-results/emulator-junit.xml",
+    "test:emulator:cleanup": "node test/emulator/run.mjs --cleanup-only"
+  }
+}

@@ -7,9 +7,22 @@
  * touch live infrastructure.
  *
  * What it enforces:
- *  - The Firestore, Auth, Functions, and Storage emulator host env vars are set
+ *  - The Firestore, Auth, and Storage emulator host env vars are set
  *    (i.e. the Firebase emulator suite is actually running).
  *  - No production-shaped Google/Firebase credentials or endpoints are present.
+ *  - The RESOLVED project id is emulator-style ("demo-" / "test-" prefixed, or
+ *    saveme-emulator).
+ *
+ * SAVE-005 remediation (Sentinel F-005-1):
+ *  GCLOUD_PROJECT is no longer treated as a blanket presence-based production
+ *  indicator. The harness itself (test/emulator/run.mjs and the root
+ *  package.json scripts) injects GCLOUD_PROJECT=demo-saveme, and gcloud-style
+ *  tooling sets GCLOUD_PROJECT for BOTH real and demo projects — so mere
+ *  presence is not a production signal. Instead, GCLOUD_PROJECT participates in
+ *  project-id resolution (step 3 below) and is refused only when it holds a
+ *  NON-emulator-style value. GCP_PROJECT, GOOGLE_APPLICATION_CREDENTIALS, and
+ *  FIREBASE_CONFIG remain presence-based refusals because they are only ever
+ *  set by real (non-emulator) contexts.
  *
  * This is a pure guard — it never mutates anything.
  */
@@ -20,12 +33,13 @@ const REQUIRED_EMULATOR_VARS = [
   "FIREBASE_STORAGE_EMULATOR_HOST",
 ] as const;
 
-// Env vars that indicate a production / non-emulator Google Cloud context.
-// If any of these are set to a real value, we refuse to run.
+// Env vars that indicate a production / non-emulator Google Cloud context and
+// are ONLY ever set by real infrastructure. If any of these is set to a
+// non-empty value, we refuse to run. (GCLOUD_PROJECT is deliberately NOT in
+// this list — see the header comment; it is evaluated by value in step 3.)
 const PRODUCTION_INDICATOR_VARS = [
   "GOOGLE_APPLICATION_CREDENTIALS", // service-account key file path
-  "GCLOUD_PROJECT", // set by gcloud for real projects
-  "GCP_PROJECT", // real project id
+  "GCP_PROJECT", // real project id (never set by the emulator harness)
   "FIREBASE_CONFIG", // present on deployed Cloud Functions / hosting
 ] as const;
 
@@ -62,6 +76,7 @@ export function assertEmulatorOnly(options: EmulatorGuardOptions = {}): string {
   }
 
   // 2. Production credentials / endpoints must NOT be present.
+  //    (presence-based: these vars only exist in real, non-emulator contexts)
   const productionHits = PRODUCTION_INDICATOR_VARS.filter((v) => {
     const val = process.env[v];
     return val !== undefined && val !== "";
@@ -74,7 +89,11 @@ export function assertEmulatorOnly(options: EmulatorGuardOptions = {}): string {
     );
   }
 
-  // 3. Project id must be an emulator-style id (never the real project id).
+  // 3. The RESOLVED project id must be emulator-style (never the real id).
+  //    GCLOUD_PROJECT is evaluated BY VALUE here: demo-saveme / demo-* / test-*
+  //    / saveme-emulator are allowed; a real project id (e.g. saveme-f5af0) is
+  //    refused. This is the branch Sentinel F-005-1 requires to be demonstrable
+  //    in both directions.
   const envProject =
     process.env.GCLOUD_PROJECT ?? process.env.GCP_PROJECT ?? projectId;
   if (!isEmulatorProjectId(envProject)) {

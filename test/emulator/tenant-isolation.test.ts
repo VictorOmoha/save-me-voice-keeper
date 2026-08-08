@@ -10,12 +10,21 @@
  *
  * These tests assume the seed in `test/emulator/seed.ts` has run (tenant A and
  * tenant B each own an `entries` doc; tenant A owns agent keys).
+ *
+ * SAVE-005 remediation (Sentinel F-005-5): extended the negative-test matrix
+ * beyond entries / api_keys / nova_memories to cover more of the rules-matched
+ * collections: shared_memories, users (doc-id = uid), reminders,
+ * pending_notifications, and the demo_videos signed-in-read boundary. All new
+ * cases follow the existing owner-allow / cross-tenant-deny pattern and assert
+ * against the real baseline rules (extend-only; no rule was weakened).
  */
 
 import { assertEmulatorOnly } from "./emulator-guard";
 import {
   TENANT_A_UID,
   TENANT_B_UID,
+  TENANT_A_EMAIL,
+  TENANT_B_EMAIL,
 } from "./seed";
 
 // @firebase/rules-unit-testing is a devDependency provided by the harness
@@ -83,6 +92,47 @@ async function seedMinimal() {
       key_hash: "canary",
       is_active: true,
       permissions: ["read"],
+    });
+
+    // ── SAVE-005 F-005-5 extension fixtures (synthetic canaries only) ────────
+    // shared_memories: tenant A owns one, tenant B owns one (cross-tenant read).
+    await setDoc(doc(db, "shared_memories", "sm-a"), {
+      user_id: TENANT_A_UID,
+      content: "tenant A synthetic shared memory",
+    });
+    await setDoc(doc(db, "shared_memories", "sm-b"), {
+      user_id: TENANT_B_UID,
+      content: "tenant B synthetic shared memory",
+    });
+
+    // users: doc id IS the uid (rules use isOwner(userId)).
+    await setDoc(doc(db, "users", TENANT_A_UID), {
+      email: TENANT_A_EMAIL,
+      subscriptionStatus: "active",
+    });
+    await setDoc(doc(db, "users", TENANT_B_UID), {
+      email: TENANT_B_EMAIL,
+      subscriptionStatus: "free",
+    });
+
+    // reminders: tenant A owns one (read/create owner-allow; update/delete deny).
+    await setDoc(doc(db, "reminders", "rem-a"), {
+      user_id: TENANT_A_UID,
+      label: "synthetic reminder",
+      status: "pending",
+    });
+
+    // pending_notifications: tenant A owns one (read owner; update = status→dismissed only).
+    await setDoc(doc(db, "pending_notifications", "pn-a"), {
+      user_id: TENANT_A_UID,
+      kind: "synthetic",
+      status: "pending",
+    });
+
+    // demo_videos: signed-in-read boundary doc (no user_id — public-to-authed).
+    await setDoc(doc(db, "demo_videos", "dv-1"), {
+      title: "synthetic demo video",
+      url: "https://example.invalid/video.mp4",
     });
   });
 }
@@ -186,5 +236,241 @@ describe("tenant isolation — server-only collections", () => {
     });
     const ctx = testEnv.authenticatedContext(TENANT_B_UID);
     await assertFails(getDoc(doc(ctx.firestore(), "nova_memories", "m-a")));
+  });
+});
+
+// ─── SAVE-005 remediation (Sentinel F-005-5) — extended matrix ───────────────
+// Each block asserts owner-allow AND cross-tenant-deny (and the relevant
+// server-only or signed-in boundary) against the real baseline rules.
+
+describe("tenant isolation — shared_memories", () => {
+  beforeEach(seedMinimal);
+
+  it("allows the owner to read their own shared memory", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(getDoc(doc(ctx.firestore(), "shared_memories", "sm-a")));
+  });
+
+  it("denies a different tenant reading the shared memory", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertFails(getDoc(doc(ctx.firestore(), "shared_memories", "sm-a")));
+  });
+
+  it("denies an unauthenticated read", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(ctx.firestore(), "shared_memories", "sm-a")));
+  });
+
+  it("denies all client writes (writes go through Cloud Functions)", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    // rules: allow write: if false — even the owner cannot write via client SDK.
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "shared_memories", "sm-a2"), {
+        user_id: TENANT_A_UID,
+        content: "owner write attempt",
+      })
+    );
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "shared_memories", "sm-a"), {
+        user_id: TENANT_A_UID,
+        content: "overwrite attempt",
+      })
+    );
+  });
+});
+
+describe("tenant isolation — users (doc id = uid)", () => {
+  beforeEach(seedMinimal);
+
+  it("allows a user to read their own users doc", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(getDoc(doc(ctx.firestore(), "users", TENANT_A_UID)));
+  });
+
+  it("denies a user reading another tenant's users doc", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertFails(getDoc(doc(ctx.firestore(), "users", TENANT_A_UID)));
+  });
+
+  it("allows a user to write their own users doc", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(
+      setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
+        email: TENANT_A_EMAIL,
+        subscriptionStatus: "active",
+        displayName: "Tenant A",
+      })
+    );
+  });
+
+  it("denies a user writing another tenant's users doc (privilege-escalation guard)", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_B_UID);
+    // Tenant B attempts to overwrite tenant A's doc (e.g. to flip role/status).
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
+        email: TENANT_A_EMAIL,
+        role: "admin",
+      })
+    );
+  });
+
+  it("denies an unauthenticated read of a users doc", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(ctx.firestore(), "users", TENANT_A_UID)));
+  });
+});
+
+describe("tenant isolation — reminders", () => {
+  beforeEach(seedMinimal);
+
+  it("allows the owner to read their own reminder", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(getDoc(doc(ctx.firestore(), "reminders", "rem-a")));
+  });
+
+  it("denies a different tenant reading the reminder", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertFails(getDoc(doc(ctx.firestore(), "reminders", "rem-a")));
+  });
+
+  it("allows a user to create a reminder with their own user_id", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(
+      setDoc(doc(ctx.firestore(), "reminders", "rem-a2"), {
+        user_id: TENANT_A_UID,
+        label: "owner-created reminder",
+        status: "pending",
+      })
+    );
+  });
+
+  it("denies creating a reminder with someone else's user_id", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "reminders", "rem-evil"), {
+        user_id: TENANT_B_UID,
+        label: "spoofed reminder",
+        status: "pending",
+      })
+    );
+  });
+
+  it("denies client update and delete (server-only mutations)", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    // rules: allow update, delete: if false — even the owner cannot mutate.
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "reminders", "rem-a"), {
+        user_id: TENANT_A_UID,
+        label: "updated",
+        status: "done",
+      })
+    );
+    await assertFails(deleteDoc(doc(ctx.firestore(), "reminders", "rem-a")));
+  });
+});
+
+describe("tenant isolation — pending_notifications", () => {
+  beforeEach(seedMinimal);
+
+  it("allows the owner to read their own notification", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(
+      getDoc(doc(ctx.firestore(), "pending_notifications", "pn-a"))
+    );
+  });
+
+  it("denies a different tenant reading the notification", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertFails(
+      getDoc(doc(ctx.firestore(), "pending_notifications", "pn-a"))
+    );
+  });
+
+  it("allows the owner to dismiss (status -> dismissed only)", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    // rules: update allowed iff ONLY 'status' changes and new status == 'dismissed'.
+    await assertSucceeds(
+      setDoc(
+        doc(ctx.firestore(), "pending_notifications", "pn-a"),
+        { status: "dismissed" },
+        { merge: true }
+      )
+    );
+  });
+
+  it("denies the owner changing a field other than status", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), "pending_notifications", "pn-a"),
+        { kind: "tampered" },
+        { merge: true }
+      )
+    );
+  });
+
+  it("denies a non-dismissed status transition", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), "pending_notifications", "pn-a"),
+        { status: "sent" },
+        { merge: true }
+      )
+    );
+  });
+
+  it("denies a different tenant dismissing the owner's notification", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), "pending_notifications", "pn-a"),
+        { status: "dismissed" },
+        { merge: true }
+      )
+    );
+  });
+
+  it("denies client create and delete (server-only)", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    // rules: allow create, delete: if false.
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "pending_notifications", "pn-new"), {
+        user_id: TENANT_A_UID,
+        kind: "synthetic",
+        status: "pending",
+      })
+    );
+    await assertFails(
+      deleteDoc(doc(ctx.firestore(), "pending_notifications", "pn-a"))
+    );
+  });
+});
+
+describe("demo_videos — signed-in-read boundary", () => {
+  beforeEach(seedMinimal);
+
+  it("allows any signed-in user to read a demo video", async () => {
+    const ctxA = testEnv.authenticatedContext(TENANT_A_UID);
+    const ctxB = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertSucceeds(getDoc(doc(ctxA.firestore(), "demo_videos", "dv-1")));
+    await assertSucceeds(getDoc(doc(ctxB.firestore(), "demo_videos", "dv-1")));
+  });
+
+  it("denies an unauthenticated read (signed-in boundary)", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(ctx.firestore(), "demo_videos", "dv-1")));
+  });
+
+  it("denies all client writes (admin-only server-side)", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    // rules: allow write: if false.
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "demo_videos", "dv-evil"), {
+        title: "injected",
+        url: "https://example.invalid/evil.mp4",
+      })
+    );
+    await assertFails(deleteDoc(doc(ctx.firestore(), "demo_videos", "dv-1")));
   });
 });

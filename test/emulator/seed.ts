@@ -11,7 +11,7 @@
  *
  * Entry point contract (consumed by Vector Platform's CI lane):
  *   - Exports `seedEmulator(): Promise<SeedResult>`.
- *   - Runnable directly: `node --loader ts-node/esm test/emulator/seed.ts`
+ *   - Runnable directly: `npx tsx test/emulator/seed.ts`
  *     (or via the root script Vector wires up).
  *   - Requires the emulator suite to be running; `assertEmulatorOnly()` is
  *     called first and will abort on any production-shaped environment.
@@ -148,8 +148,26 @@ export async function seedEmulator(): Promise<SeedResult> {
   };
 }
 
-// Allow direct execution: `node test/emulator/seed.ts` (via a loader).
-if (require.main === module) {
+// Allow direct execution: `npx tsx test/emulator/seed.ts`.
+// SAVE-005 remediation: the frozen ref used `if (require.main === module)`,
+// but this package is `"type": "module"`, so `require` is undefined at module
+// scope and that line throws ReferenceError under any ESM TS runner — the seed
+// could never self-execute. Use the ESM-correct entry check instead: compare
+// the invoked script path (process.argv[1]) against this module's file URL.
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+
+const invokedAsScript = (() => {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return path.resolve(entry) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedAsScript) {
   seedEmulator()
     .then((r) => {
       // eslint-disable-next-line no-console

@@ -1,4 +1,11 @@
-name: Emulator Tests
+- name: Print emulator test report
+        if: failure()
+        run: |
+          if [ -f test-results/emulator-junit.xml ]; then
+            sed -n '1,240p' test-results/emulator-junit.xml
+          else
+            echo "JUnit report missing"
+          finame: Emulator Tests
 
 on:
   push:

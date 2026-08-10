@@ -727,3 +727,251 @@ describe("tenant isolation — storage_usage", () => {
     );
   });
 });
+
+
+// ─── Operation-level closure after independent adversarial review ────────────
+
+describe("operation completeness — entries", () => {
+  beforeEach(seedMinimal);
+
+  it("allows owner update/delete and denies ownership reassignment", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(
+      setDoc(doc(owner.firestore(), "entries", "entry-a"), {
+        title: "owner update",
+        user_id: TENANT_A_UID,
+        fields: { content: "updated", category: "Work" },
+      })
+    );
+    await assertFails(
+      setDoc(doc(owner.firestore(), "entries", "entry-a"), {
+        title: "ownership transfer",
+        user_id: TENANT_B_UID,
+        fields: { content: "x", category: "Work" },
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(owner.firestore(), "entries", "entry-a")));
+  });
+});
+
+describe("operation completeness — nova_memories", () => {
+  beforeEach(async () => {
+    await seedMinimal();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "nova_memories", "owner-memory"), {
+        user_id: TENANT_A_UID,
+        content: "synthetic owner memory",
+      });
+    });
+  });
+
+  it("allows positive owner read and denies unauthenticated read", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    const unauthenticated = testEnv.unauthenticatedContext();
+    await assertSucceeds(
+      getDoc(doc(owner.firestore(), "nova_memories", "owner-memory"))
+    );
+    await assertFails(
+      getDoc(doc(unauthenticated.firestore(), "nova_memories", "owner-memory"))
+    );
+  });
+});
+
+describe("operation completeness — action_items", () => {
+  beforeEach(async () => {
+    await seedMinimal();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "action_items", "action-complete"), {
+        user_id: TENANT_A_UID,
+        title: "synthetic action",
+      });
+    });
+  });
+
+  it("allows owner update, rejects ownership reassignment, and denies unauthenticated access", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    const unauthenticated = testEnv.unauthenticatedContext();
+    await assertSucceeds(
+      setDoc(doc(owner.firestore(), "action_items", "action-complete"), {
+        user_id: TENANT_A_UID,
+        title: "owner update",
+      })
+    );
+    await assertFails(
+      setDoc(doc(owner.firestore(), "action_items", "action-complete"), {
+        user_id: TENANT_B_UID,
+        title: "transfer attempt",
+      })
+    );
+    await assertFails(
+      getDoc(doc(unauthenticated.firestore(), "action_items", "action-complete"))
+    );
+  });
+});
+
+describe("operation completeness — api_keys", () => {
+  beforeEach(seedMinimal);
+
+  it("denies unauthenticated read and client create/update separately", async () => {
+    const unauthenticated = testEnv.unauthenticatedContext();
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(getDoc(doc(unauthenticated.firestore(), "api_keys", "key-a")));
+    await assertFails(
+      setDoc(doc(owner.firestore(), "api_keys", "key-new"), {
+        user_id: TENANT_A_UID,
+        key_hash: "canary-new",
+        is_active: true,
+      })
+    );
+    await assertFails(
+      setDoc(
+        doc(owner.firestore(), "api_keys", "key-a"),
+        { is_active: false },
+        { merge: true }
+      )
+    );
+  });
+});
+
+for (const collectionName of SERVER_ONLY_USER_ID_COLLECTIONS) {
+  describe(`operation completeness — ${collectionName} update denial`, () => {
+    const ownedDocId = `${collectionName}-update-a`;
+
+    beforeEach(async () => {
+      await seedMinimal();
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), collectionName, ownedDocId), {
+          user_id: TENANT_A_UID,
+          value: "synthetic",
+        });
+      });
+    });
+
+    it("denies owner client update explicitly", async () => {
+      const owner = testEnv.authenticatedContext(TENANT_A_UID);
+      await assertFails(
+        setDoc(
+          doc(owner.firestore(), collectionName, ownedDocId),
+          { value: "update attempt" },
+          { merge: true }
+        )
+      );
+    });
+  });
+}
+
+describe("operation completeness — reminders authentication", () => {
+  beforeEach(seedMinimal);
+
+  it("denies unauthenticated read and create", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(ctx.firestore(), "reminders", "rem-a")));
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "reminders", "rem-unauth"), {
+        user_id: TENANT_A_UID,
+        status: "pending",
+      })
+    );
+  });
+});
+
+describe("operation completeness — pending_notifications authentication", () => {
+  beforeEach(seedMinimal);
+
+  it("denies unauthenticated read and update", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(
+      getDoc(doc(ctx.firestore(), "pending_notifications", "pn-a"))
+    );
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), "pending_notifications", "pn-a"),
+        { status: "dismissed" },
+        { merge: true }
+      )
+    );
+  });
+});
+
+for (const collectionName of CREATE_READ_ONLY_COLLECTIONS) {
+  describe(`operation completeness — ${collectionName} authentication`, () => {
+    const ownedDocId = `${collectionName}-auth-a`;
+
+    beforeEach(async () => {
+      await seedMinimal();
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), collectionName, ownedDocId), {
+          user_id: TENANT_A_UID,
+          value: "synthetic",
+        });
+      });
+    });
+
+    it("denies unauthenticated read and create", async () => {
+      const ctx = testEnv.unauthenticatedContext();
+      await assertFails(getDoc(doc(ctx.firestore(), collectionName, ownedDocId)));
+      await assertFails(
+        setDoc(doc(ctx.firestore(), collectionName, `${collectionName}-unauth`), {
+          user_id: TENANT_A_UID,
+          value: "unauth create",
+        })
+      );
+    });
+  });
+}
+
+for (const collectionName of UID_KEYED_COLLECTIONS) {
+  describe(`operation completeness — ${collectionName} delete/write boundaries`, () => {
+    beforeEach(async () => {
+      await seedMinimal();
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), collectionName, TENANT_A_UID), {
+          value: "synthetic",
+        });
+      });
+    });
+
+    it("allows owner delete and denies cross-tenant delete", async () => {
+      const other = testEnv.authenticatedContext(TENANT_B_UID);
+      await assertFails(deleteDoc(doc(other.firestore(), collectionName, TENANT_A_UID)));
+      const owner = testEnv.authenticatedContext(TENANT_A_UID);
+      await assertSucceeds(deleteDoc(doc(owner.firestore(), collectionName, TENANT_A_UID)));
+    });
+
+    it("denies unauthenticated create/update/delete", async () => {
+      const ctx = testEnv.unauthenticatedContext();
+      await assertFails(
+        setDoc(doc(ctx.firestore(), collectionName, TENANT_A_UID), {
+          value: "unauth write",
+        })
+      );
+      await assertFails(deleteDoc(doc(ctx.firestore(), collectionName, TENANT_A_UID)));
+    });
+  });
+}
+
+describe("operation completeness — storage_usage", () => {
+  beforeEach(async () => {
+    await seedMinimal();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "storage_usage", TENANT_A_UID), {
+        user_id: TENANT_A_UID,
+        bytes: 123,
+      });
+    });
+  });
+
+  it("denies unauthenticated read and client create", async () => {
+    const unauthenticated = testEnv.unauthenticatedContext();
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      getDoc(doc(unauthenticated.firestore(), "storage_usage", TENANT_A_UID))
+    );
+    await assertFails(
+      setDoc(doc(owner.firestore(), "storage_usage", "storage-new"), {
+        user_id: TENANT_A_UID,
+        bytes: 1,
+      })
+    );
+  });
+});

@@ -1,14 +1,14 @@
 {
   "$comment": "SAVE-005 emulator-only config. Vector Platform merges/invokes this for the CI lane. Never point this at a production project. Use a demo-* project id.",
   "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "rules": "../../firestore.rules",
+    "indexes": "../../firestore.indexes.json"
   },
   "functions": {
-    "source": "functions"
+    "source": "../../functions"
   },
   "storage": {
-    "rules": "storage.rules"
+    "rules": "../../storage.rules"
   },
   "emulators": {
     "auth": {

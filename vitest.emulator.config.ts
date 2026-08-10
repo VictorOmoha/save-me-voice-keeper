@@ -26,6 +26,9 @@ export default defineConfig({
     // Node environment — these tests exercise the Firestore emulator over the
     // network, not a browser DOM.
     environment: "node",
+    // The emulator suites use Vitest lifecycle/test APIs as globals, matching
+    // the repository's existing test convention, without loading DOM setup.
+    globals: true,
     // Only the emulator rules tests live here.
     include: ["test/emulator/**/*.test.ts"],
     // No DOM setup file, no global jsdom bootstrap.

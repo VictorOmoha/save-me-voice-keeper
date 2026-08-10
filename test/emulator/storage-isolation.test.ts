@@ -1,13 +1,4 @@
-/**
- * SAVE-005 / D-009 — Firebase Storage path-contract and isolation tests.
- *
- * Exercises the source-controlled storage.rules against the real Storage
- * emulator. The test matrix proves the current application prefixes
- * (documents/{uid}/... and images/{uid}/...), preserves the legacy/future
- * users/{uid}/... prefix, confirms demo-videos public-read/client-write-deny,
- * and verifies the default-deny catch-all.
- */
-
+/** SAVE-109 — Firebase Storage contract, validation, and isolation tests. */
 import { assertEmulatorOnly } from "./emulator-guard";
 import { TENANT_A_UID, TENANT_B_UID } from "./seed";
 import {
@@ -23,11 +14,17 @@ import path from "node:path";
 const PROJECT_ID = process.env.EMULATOR_PROJECT_ID ?? "demo-saveme";
 const RULES_PATH = path.resolve(process.cwd(), "storage.rules");
 const STORAGE_PORT = Number(process.env.FIREBASE_STORAGE_EMULATOR_PORT ?? 9199);
-const BYTES = new Uint8Array([0x53, 0x41, 0x56, 0x45]); // "SAVE" canary
+const SMALL = new Uint8Array([0x53, 0x41, 0x56, 0x45]);
+const MiB = 1024 * 1024;
 
 let testEnv: RulesTestEnvironment;
 let sequence = 0;
-const unique = (prefix: string) => `${prefix}/case-${++sequence}.bin`;
+const nextName = (extension = "bin") => `case-${++sequence}.${extension}`;
+const imagePath = (uid: string, extension = "png") =>
+  `images/${uid}/${nextName(extension)}`;
+const documentPath = (uid: string, extension = "pdf") =>
+  `documents/${uid}/entry-${++sequence}/${nextName(extension)}`;
+const legacyPath = (uid: string) => `users/${uid}/${nextName()}`;
 
 beforeAll(async () => {
   assertEmulatorOnly({ projectId: PROJECT_ID });
@@ -45,94 +42,219 @@ afterAll(async () => {
   await testEnv?.cleanup();
 });
 
-async function seedWithoutRules(objectPath: string) {
+async function seedWithoutRules(objectPath: string, bytes = SMALL) {
   await testEnv.withSecurityRulesDisabled(async (context) => {
-    await uploadBytes(ref(context.storage(), objectPath), BYTES, {
+    await uploadBytes(ref(context.storage(), objectPath), bytes, {
       contentType: "application/octet-stream",
     });
   });
 }
 
-for (const prefix of ["users", "documents", "images"] as const) {
-  describe(`Storage isolation — ${prefix}/{uid}/**`, () => {
-    it("allows the owner to upload, read, and delete", async () => {
-      const objectPath = unique(`${prefix}/${TENANT_A_UID}`);
-      const ownerRef = ref(
-        testEnv.authenticatedContext(TENANT_A_UID).storage(),
-        objectPath
-      );
-
-      await assertSucceeds(uploadBytes(ownerRef, BYTES));
-      await assertSucceeds(getBytes(ownerRef));
-      await assertSucceeds(deleteObject(ownerRef));
-    });
-
-    it("denies cross-user upload and read", async () => {
-      const objectPath = unique(`${prefix}/${TENANT_A_UID}`);
-      await seedWithoutRules(objectPath);
-      const attackerRef = ref(
-        testEnv.authenticatedContext(TENANT_B_UID).storage(),
-        objectPath
-      );
-
-      await assertFails(uploadBytes(attackerRef, BYTES));
-      await assertFails(getBytes(attackerRef));
-    });
-
-    it("denies unauthenticated upload and read", async () => {
-      const objectPath = unique(`${prefix}/${TENANT_A_UID}`);
-      await seedWithoutRules(objectPath);
-      const anonymousRef = ref(testEnv.unauthenticatedContext().storage(), objectPath);
-
-      await assertFails(uploadBytes(anonymousRef, BYTES));
-      await assertFails(getBytes(anonymousRef));
-    });
-  });
+async function ownerUpload(
+  objectPath: string,
+  contentType: string,
+  bytes: Uint8Array = SMALL
+) {
+  return uploadBytes(
+    ref(testEnv.authenticatedContext(TENANT_A_UID).storage(), objectPath),
+    bytes,
+    { contentType }
+  );
 }
 
-describe("Storage boundary — demo-videos/**", () => {
-  it("allows unauthenticated and authenticated reads", async () => {
-    const objectPath = unique("demo-videos");
-    await seedWithoutRules(objectPath);
-
-    await assertSucceeds(
-      getBytes(ref(testEnv.unauthenticatedContext().storage(), objectPath))
-    );
-    await assertSucceeds(
-      getBytes(
-        ref(testEnv.authenticatedContext(TENANT_A_UID).storage(), objectPath)
-      )
-    );
+describe.each([
+  ["images", () => imagePath(TENANT_A_UID), "image/png"],
+  ["documents", () => documentPath(TENANT_A_UID), "application/pdf"],
+  ["users", () => legacyPath(TENANT_A_UID), "application/octet-stream"],
+] as const)("owner isolation — %s", (_prefix, makePath, contentType) => {
+  it("allows owner create/read/delete", async () => {
+    const objectPath = makePath();
+    const ownerRef = ref(testEnv.authenticatedContext(TENANT_A_UID).storage(), objectPath);
+    await assertSucceeds(uploadBytes(ownerRef, SMALL, { contentType }));
+    await assertSucceeds(getBytes(ownerRef));
+    await assertSucceeds(deleteObject(ownerRef));
   });
 
-  it("denies client writes, including authenticated clients", async () => {
-    const anonymousRef = ref(
-      testEnv.unauthenticatedContext().storage(),
-      unique("demo-videos")
-    );
-    const authenticatedRef = ref(
-      testEnv.authenticatedContext(TENANT_A_UID).storage(),
-      unique("demo-videos")
-    );
+  it("denies cross-user create/read/delete", async () => {
+    const objectPath = makePath();
+    await seedWithoutRules(objectPath);
+    const attackerRef = ref(testEnv.authenticatedContext(TENANT_B_UID).storage(), objectPath);
+    await assertFails(uploadBytes(attackerRef, SMALL, { contentType }));
+    await assertFails(getBytes(attackerRef));
+    await assertFails(deleteObject(attackerRef));
+  });
 
-    await assertFails(uploadBytes(anonymousRef, BYTES));
-    await assertFails(uploadBytes(authenticatedRef, BYTES));
+  it("denies unauthenticated create/read/delete", async () => {
+    const objectPath = makePath();
+    await seedWithoutRules(objectPath);
+    const anonymousRef = ref(testEnv.unauthenticatedContext().storage(), objectPath);
+    await assertFails(uploadBytes(anonymousRef, SMALL, { contentType }));
+    await assertFails(getBytes(anonymousRef));
+    await assertFails(deleteObject(anonymousRef));
   });
 });
 
-describe("Storage boundary — unmatched paths", () => {
-  it("default-denies reads and writes for authenticated and anonymous clients", async () => {
-    const objectPath = unique("unmatched-private-prefix");
-    await seedWithoutRules(objectPath);
+const IMAGE_MIMES = [
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/gif", "gif"],
+  ["image/webp", "webp"],
+  ["image/avif", "avif"],
+  ["image/svg+xml", "svg"],
+] as const;
 
-    const ownerRef = ref(
-      testEnv.authenticatedContext(TENANT_A_UID).storage(),
-      objectPath
+describe("images MIME and size validation", () => {
+  it.each(IMAGE_MIMES)("allows approved MIME %s", async (contentType, extension) => {
+    await assertSucceeds(ownerUpload(imagePath(TENANT_A_UID, extension), contentType));
+  });
+
+  it.each(["application/pdf", "image/bmp", "text/plain", "application/octet-stream"])(
+    "denies unapproved MIME %s",
+    async (contentType) => {
+      await assertFails(ownerUpload(imagePath(TENANT_A_UID), contentType));
+    }
+  );
+
+  it("allows exactly 10 MiB and denies one byte over", async () => {
+    await assertSucceeds(
+      ownerUpload(imagePath(TENANT_A_UID), "image/png", new Uint8Array(10 * MiB))
     );
-    const anonymousRef = ref(testEnv.unauthenticatedContext().storage(), objectPath);
+    await assertFails(
+      ownerUpload(imagePath(TENANT_A_UID), "image/png", new Uint8Array(10 * MiB + 1))
+    );
+  });
+});
 
-    await assertFails(getBytes(ownerRef));
-    await assertFails(uploadBytes(ownerRef, BYTES));
-    await assertFails(getBytes(anonymousRef));
+const DOCUMENT_MIMES = [
+  ["application/pdf", "pdf"],
+  ["application/msword", "doc"],
+  ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"],
+  ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"],
+  ["application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx"],
+  ["application/vnd.ms-excel", "xls"],
+  ["application/vnd.ms-powerpoint", "ppt"],
+  ["application/vnd.oasis.opendocument.text", "odt"],
+  ["application/vnd.oasis.opendocument.spreadsheet", "ods"],
+  ["application/vnd.oasis.opendocument.presentation", "odp"],
+  ["text/plain", "txt"],
+  ["text/markdown", "md"],
+  ["text/x-markdown", "markdown"],
+  ["text/csv", "csv"],
+  ["application/json", "json"],
+  ["application/rtf", "rtf"],
+  ["text/rtf", "rtf"],
+  ["application/zip", "zip"],
+  ["application/x-zip-compressed", "zip"],
+  ["audio/mpeg", "mp3"],
+  ["audio/wav", "wav"],
+  ["video/mp4", "mp4"],
+  ["video/webm", "webm"],
+] as const;
+
+describe("documents MIME and size validation", () => {
+  it.each(DOCUMENT_MIMES)("allows approved MIME %s", async (contentType, extension) => {
+    await assertSucceeds(ownerUpload(documentPath(TENANT_A_UID, extension), contentType));
+  });
+
+  it.each(["image/png", "application/octet-stream", "application/x-msdownload"])(
+    "denies unapproved MIME %s",
+    async (contentType) => {
+      await assertFails(ownerUpload(documentPath(TENANT_A_UID), contentType));
+    }
+  );
+
+  it("allows exactly 25 MiB and denies one byte over", async () => {
+    await assertSucceeds(
+      ownerUpload(documentPath(TENANT_A_UID), "application/pdf", new Uint8Array(25 * MiB))
+    );
+    await assertFails(
+      ownerUpload(documentPath(TENANT_A_UID), "application/pdf", new Uint8Array(25 * MiB + 1))
+    );
+  });
+});
+
+describe("legacy users size boundary", () => {
+  it("allows exactly 25 MiB regardless of MIME and denies one byte over", async () => {
+    await assertSucceeds(
+      ownerUpload(legacyPath(TENANT_A_UID), "application/octet-stream", new Uint8Array(25 * MiB))
+    );
+    await assertFails(
+      ownerUpload(legacyPath(TENANT_A_UID), "application/octet-stream", new Uint8Array(25 * MiB + 1))
+    );
+  });
+});
+
+describe("path-shape validation", () => {
+  it.each([
+    `images/${TENANT_A_UID}/nested/${nextName("png")}`,
+    `images/${TENANT_A_UID}//${nextName("png")}`,
+    `images/${TENANT_A_UID}/..evil.png`,
+    `images/${TENANT_A_UID}/bad\\name.png`,
+    `documents/${TENANT_A_UID}/${nextName("pdf")}`,
+    `documents/${TENANT_A_UID}//${nextName("pdf")}`,
+    `documents/${TENANT_A_UID}/entry/nested/${nextName("pdf")}`,
+    `documents/${TENANT_A_UID}/../escape.pdf`,
+    `documents/${TENANT_A_UID}/entry/bad\\name.pdf`,
+    `users/${TENANT_A_UID}/nested/${nextName()}`,
+    `users/${TENANT_A_UID}//${nextName()}`,
+    `users/${TENANT_A_UID}/bad\\name.bin`,
+  ])("denies malformed or over-nested path %s", async (objectPath) => {
+    const contentType = objectPath.startsWith("images/") ? "image/png" : "application/pdf";
+    await assertFails(ownerUpload(objectPath, contentType));
+  });
+});
+
+describe.each(["demo-videos", "admin-public"])("public/Admin-SDK-only boundary — %s", (prefix) => {
+  it("allows public reads of a safe, server-seeded object", async () => {
+    const objectPath = `${prefix}/${nextName("mp4")}`;
+    await seedWithoutRules(objectPath);
+    await assertSucceeds(getBytes(ref(testEnv.unauthenticatedContext().storage(), objectPath)));
+    await assertSucceeds(
+      getBytes(ref(testEnv.authenticatedContext(TENANT_A_UID).storage(), objectPath))
+    );
+  });
+
+  it("denies anonymous and authenticated client writes and deletes", async () => {
+    const existingPath = `${prefix}/${nextName("mp4")}`;
+    await seedWithoutRules(existingPath);
+    for (const context of [
+      testEnv.unauthenticatedContext(),
+      testEnv.authenticatedContext(TENANT_A_UID),
+    ]) {
+      await assertFails(
+        uploadBytes(ref(context.storage(), `${prefix}/${nextName("mp4")}`), SMALL, {
+          contentType: "video/mp4",
+        })
+      );
+      await assertFails(deleteObject(ref(context.storage(), existingPath)));
+    }
+  });
+
+  it("denies malformed and nested public paths", async () => {
+    for (const objectPath of [
+      `${prefix}/nested/${nextName("mp4")}`,
+      `${prefix}//${nextName("mp4")}`,
+      `${prefix}/bad\\name.mp4`,
+      `${prefix}/..evil.mp4`,
+    ]) {
+      await seedWithoutRules(objectPath);
+      await assertFails(getBytes(ref(testEnv.unauthenticatedContext().storage(), objectPath)));
+    }
+  });
+});
+
+describe("default deny", () => {
+  it("denies reads, creates, and deletes on unmatched paths", async () => {
+    const objectPath = `unmatched/${nextName()}`;
+    await seedWithoutRules(objectPath);
+    for (const context of [
+      testEnv.unauthenticatedContext(),
+      testEnv.authenticatedContext(TENANT_A_UID),
+    ]) {
+      const objectRef = ref(context.storage(), objectPath);
+      await assertFails(getBytes(objectRef));
+      await assertFails(uploadBytes(objectRef, SMALL));
+      await assertFails(deleteObject(objectRef));
+    }
   });
 });

@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Legacy/future user-scoped objects.
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Current application document contract.
+    // Source: src/utils/documentStorage.ts and document viewer/editor fallbacks.
+    match /documents/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Current application image-upload contract.
+    // Source: src/components/forms/ImageUpload.tsx.
+    match /images/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+
+    // Public demo assets. Client writes are forbidden; trusted server/admin
+    // operations use the Admin SDK and do not depend on client Security Rules.
+    match /demo-videos/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Deny every path not explicitly covered above.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

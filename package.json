@@ -2,7 +2,7 @@
   "name": "saveme-voice-keeper",
   "private": true,
   "version": "1.0.0",
-  "description": "SaveMe.Space — Voice-first external memory system powered by Nova AI. Capture thoughts by voice, organize them with intelligence, export structured documents.",
+  "description": "SaveMe.Space \u2014 Voice-first external memory system powered by Nova AI. Capture thoughts by voice, organize them with intelligence, export structured documents.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,10 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:legacy-voice": "vitest run --config vitest.legacy.config.ts",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:emulator": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme node test/emulator/run.mjs",
+    "test:emulator:ci": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme CI=true node test/emulator/run.mjs --ci --reporter=junit --outputFile=test-results/emulator-junit.xml",
+    "test:emulator:cleanup": "node test/emulator/run.mjs --cleanup-only"
   },
   "dependencies": {
     "@11labs/client": "^0.1.4",
@@ -87,6 +90,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
@@ -96,12 +100,14 @@
     "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
+    "firebase-admin": "^12.7.0",
     "firebase-tools": "^15.14.0",
     "globals": "^15.9.0",
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "terser": "^5.46.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
     "vite": "^7.3.1"

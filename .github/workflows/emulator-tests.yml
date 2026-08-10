@@ -1,0 +1,76 @@
+name: Emulator Tests
+
+# SAVE-005 (lane V3) — runs the Firebase emulator harness as a one-command path
+# and uploads content-safe artifacts. The emulator suite, seed, and rules tests
+# are owned by Atlas Backend; this workflow only invokes the runner.
+# No production credentials or deployment steps are present.
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: emulator-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emulator:
+    name: Firestore/Storage rules (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java (for Firebase emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Pre-fetch emulator binaries
+        run: npx firebase setup:emulators:firestore && npx firebase setup:emulators:storage
+
+      - name: Run emulator harness
+        run: npm run test:emulator:ci
+        env:
+          SAVE_ME_EMULATOR: "1"
+          GCLOUD_PROJECT: demo-saveme
+          CI: "true"
+
+      - name: Upload emulator JUnit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-junit
+          path: test-results/emulator-junit.xml
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload emulator logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-logs
+          path: |
+            firebase-debug.log
+            firestore-debug.log
+            ui-debug.log
+            emulator-*.log
+          if-no-files-found: warn
+          retention-days: 14

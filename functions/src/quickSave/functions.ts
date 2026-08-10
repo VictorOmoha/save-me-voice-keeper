@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
 import {predictCategory, recordCategorySignal} from "../entryIntelligence/categoryIntelligence";
+import {assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, SERVICE_CAPS, SERVICE_QUOTAS} from "../common/abuseControl";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QUICK SAVE — Lightweight endpoint for browser extension capture
@@ -16,6 +17,16 @@ export const quickSave = functions.https.onRequest(
     if (req.method !== "POST") { res.status(405).json({error: "Method not allowed"}); return; }
 
     const {title, content, url, pageTitle, dryRun} = req.body;
+    try {
+      assertUtf8Bytes(req.body, SERVICE_CAPS.requestBytes);
+      assertStringCap(title, SERVICE_CAPS.textChars, "title");
+      assertStringCap(content, SERVICE_CAPS.textChars, "content");
+      assertStringCap(pageTitle, SERVICE_CAPS.textChars, "pageTitle");
+      await enforceAbuseControls({endpoint: "quickSave", user, req, policies: SERVICE_QUOTAS.quickSave});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
     if (!title && !content && !pageTitle) {
       res.status(400).json({error: "title, content, or pageTitle required"});
       return;

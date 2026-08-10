@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
 import {fetchWithRetry} from "../common/fetchWithRetry";
+import {assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, SERVICE_CAPS, SERVICE_QUOTAS} from "../common/abuseControl";
 
 const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
@@ -44,6 +45,14 @@ export const enhanceBrainDump = functions.https.onRequest(
     }
 
     const {text, mode} = req.body;
+    try {
+      assertUtf8Bytes(req.body, SERVICE_CAPS.requestBytes);
+      assertStringCap(text, SERVICE_CAPS.textChars, "text");
+      await enforceAbuseControls({endpoint: "enhanceBrainDump", user, req, policies: SERVICE_QUOTAS.enhanceBrainDump});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
 
     if (!text) {
       res.status(400).json({error: "Text is required"});

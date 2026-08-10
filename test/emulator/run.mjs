@@ -59,7 +59,13 @@ const PORTS = {
   ui: 4000,
 };
 
-const PROJECT_ID = process.env.EMULATOR_PROJECT_ID ?? "demo-saveme";
+// Resolve every supported project source before the no-production check. An
+// inherited GCLOUD_PROJECT must never be silently replaced: if it names a real
+// project, assertNoProduction() rejects it before firebase-tools is spawned.
+const PROJECT_ID =
+  process.env.EMULATOR_PROJECT_ID ??
+  process.env.GCLOUD_PROJECT ??
+  "demo-saveme";
 const IS_CI = process.env.CI === "true" || process.argv.includes("--ci");
 
 function log(...args) {

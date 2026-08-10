@@ -1,10 +1,5 @@
 name: Emulator Tests
 
-# SAVE-005 (lane V3) — runs the Firebase emulator harness as a one-command path
-# and uploads content-safe artifacts. The emulator suite, seed, and rules tests
-# are owned by Atlas Backend; this workflow only invokes the runner.
-# No production credentials or deployment steps are present.
-
 on:
   push:
     branches: ["main", "master"]
@@ -23,16 +18,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
 
       - name: Setup Java (for Firebase emulators)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -42,6 +37,9 @@ jobs:
 
       - name: Install Functions dependencies
         run: npm --prefix functions ci
+
+      - name: Build Functions
+        run: npm --prefix functions run build
 
       - name: Pre-fetch emulator binaries
         run: npx firebase setup:emulators:firestore && npx firebase setup:emulators:storage
@@ -55,7 +53,7 @@ jobs:
 
       - name: Upload emulator JUnit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: emulator-junit
           path: test-results/emulator-junit.xml
@@ -64,7 +62,7 @@ jobs:
 
       - name: Upload emulator logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: emulator-logs
           path: |

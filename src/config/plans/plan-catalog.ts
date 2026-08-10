@@ -5,16 +5,14 @@
  * source of truth for plan identity, display copy, price, trial, entitlements,
  * quotas, and the Stripe price mapping per environment.
  *
- * ⚠️  DO NOT WIRE THIS INTO PRODUCTION. ⚠️
+ * ⚠️  M0 CONTRACT ARTIFACT — NOT YET WIRED INTO PRODUCTION. ⚠️
  *
- * - Nothing in the live app imports this module yet.
- * - The Stripe price IDs below are PLACEHOLDER KEYS, not live price IDs. The
- *   real IDs continue to live in environment variables (`STRIPE_BASIC_PRICE_ID`,
- *   `STRIPE_PREMIUM_PRICE_ID`) read by `functions/src/billing/safety.ts`.
- * - The entitlement and quota values below reflect the *audit-consistent* values
- *   chosen for the catalog schema, NOT a ratified commercial model. Final values
- *   are pending Victor's decision D-004 (due 2026-08-11). See
- *   `docs/hardening/plan-claims-audit.md` and `docs/hardening/plan-lifecycle.md`.
+ * - Victor approved D-004 on 2026-08-10; the plan, price, quota, trial, and
+ *   entitlement values below are the ratified launch contract.
+ * - Nothing in the live app imports this module yet. SAVE-105 owns server-side
+ *   enforcement and shared client consumption.
+ * - The Stripe price IDs below are PLACEHOLDER KEYS, not live price IDs. Real
+ *   IDs remain environment-controlled. Unknown IDs must fail closed and alert.
  *
  * Location rationale: this lives under `src/config/plans/` because it is shared,
  * typed configuration consumed (eventually) by both the client (display) and —
@@ -31,11 +29,10 @@
  * Stable plan IDs. These are the canonical, never-renamed identifiers stored on
  * `users/{uid}.subscriptionTier` and used as lookup keys everywhere. Display
  * names change; IDs do not.
- *
- * `enterprise` is included because the type system and webhook already admit it,
- * but it is marked `sellable: false` until D-004 decides whether it is real.
+ * D-004 ratifies exactly three launch IDs. Pro, Teams, and Enterprise are not
+ * launch plans and must not appear in the canonical catalog.
  */
-export type PlanId = "free" | "basic" | "premium" | "enterprise";
+export type PlanId = "free" | "basic" | "premium";
 
 /** Billing period for a payable plan. `none` = the free plan. */
 export type BillingPeriod = "none" | "month" | "year";
@@ -210,7 +207,7 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanDefinition>> = {
       voiceInput: true,
       dataExport: true,
       dataBackup: false,
-      agentApiAccess: true, // NOTE: universal today (audit C-22/C-42); D-004 may gate it
+      agentApiAccess: false,
       customIntegrations: false,
       enhancedPrivacyControls: false,
       platforms: ["web"],
@@ -233,12 +230,12 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanDefinition>> = {
       advancedSearch: true,
       voiceInput: true,
       dataExport: true,
-      dataBackup: true,
-      agentApiAccess: true,
+      dataBackup: false,
+      agentApiAccess: false,
       customIntegrations: false,
       enhancedPrivacyControls: false,
       platforms: ["web", "browser-extension"],
-      supportLevel: "priority",
+      supportLevel: "standard",
     },
     sellable: true,
     stripe: {
@@ -264,12 +261,12 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanDefinition>> = {
       advancedSearch: true,
       voiceInput: true,
       dataExport: true,
-      dataBackup: true,
+      dataBackup: false,
       agentApiAccess: true,
-      customIntegrations: true,
-      enhancedPrivacyControls: true,
+      customIntegrations: false,
+      enhancedPrivacyControls: false,
       platforms: ["web", "browser-extension"],
-      supportLevel: "priority",
+      supportLevel: "standard",
     },
     sellable: true,
     stripe: {
@@ -282,30 +279,6 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanDefinition>> = {
     },
   },
 
-  enterprise: {
-    id: "enterprise",
-    displayName: "Enterprise",
-    copyKey: "plans.enterprise",
-    price: { amount: 0, currency: "USD", period: "none" }, // custom pricing; not a dollar amount
-    trial: { days: 0, cardRequired: false },
-    entitlements: {
-      maxEntries: null,
-      maxStorageBytes: 500 * 1024 * 1024 * 1024, // 500 GB
-      maxCategories: null,
-      advancedSearch: true,
-      voiceInput: true,
-      dataExport: true,
-      dataBackup: true,
-      agentApiAccess: true,
-      customIntegrations: true,
-      enhancedPrivacyControls: true,
-      platforms: ["web", "browser-extension"],
-      supportLevel: "dedicated",
-    },
-    // Not sellable via self-serve checkout; D-004 decides whether it exists at all.
-    sellable: false,
-    stripe: {},
-  },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -317,7 +290,6 @@ export const PLANS_IN_ORDER: ReadonlyArray<PlanDefinition> = [
   PLAN_CATALOG.free,
   PLAN_CATALOG.basic,
   PLAN_CATALOG.premium,
-  PLAN_CATALOG.enterprise,
 ];
 
 /** Look up a plan by ID. Returns `undefined` for unknown IDs — callers must handle it. */

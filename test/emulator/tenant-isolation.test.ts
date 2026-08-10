@@ -14,9 +14,11 @@
  * SAVE-005 remediation (Sentinel F-005-5): extended the negative-test matrix
  * beyond entries / api_keys / nova_memories to cover more of the rules-matched
  * collections: shared_memories, users (doc-id = uid), reminders,
- * pending_notifications, and the demo_videos signed-in-read boundary. All new
- * cases follow the existing owner-allow / cross-tenant-deny pattern and assert
- * against the real baseline rules (extend-only; no rule was weakened).
+ * pending_notifications, and the demo_videos signed-in-read boundary. Final
+ * remediation extends dynamic coverage to every tenant-owned Firestore match: all
+ * user_id-owned collections, all uid-keyed settings collections, and storage_usage.
+ * Cases follow the owner-allow / cross-tenant-deny pattern against the real rules;
+ * no rule is weakened.
  */
 
 import { assertEmulatorOnly } from "./emulator-guard";
@@ -472,5 +474,256 @@ describe("demo_videos — signed-in-read boundary", () => {
       })
     );
     await assertFails(deleteDoc(doc(ctx.firestore(), "demo_videos", "dv-1")));
+  });
+});
+
+
+// ─── Final F-005-5 closure — exhaustive tenant-owned match coverage ──────────
+
+const SERVER_ONLY_USER_ID_COLLECTIONS = [
+  "nova_conversations",
+  "entry_links",
+  "entry_entities",
+  "entity_graph",
+  "user_patterns",
+  "user_category_patterns",
+] as const;
+
+for (const collectionName of SERVER_ONLY_USER_ID_COLLECTIONS) {
+  describe(`tenant isolation — ${collectionName}`, () => {
+    const ownedDocId = `${collectionName}-a`;
+
+    beforeEach(async () => {
+      await seedMinimal();
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), collectionName, ownedDocId), {
+          user_id: TENANT_A_UID,
+          value: "synthetic owner data",
+        });
+      });
+    });
+
+    it("allows the owner to read and denies another tenant", async () => {
+      const owner = testEnv.authenticatedContext(TENANT_A_UID);
+      const other = testEnv.authenticatedContext(TENANT_B_UID);
+      await assertSucceeds(getDoc(doc(owner.firestore(), collectionName, ownedDocId)));
+      await assertFails(getDoc(doc(other.firestore(), collectionName, ownedDocId)));
+    });
+
+    it("denies unauthenticated reads and all client writes", async () => {
+      const unauthenticated = testEnv.unauthenticatedContext();
+      const owner = testEnv.authenticatedContext(TENANT_A_UID);
+      await assertFails(
+        getDoc(doc(unauthenticated.firestore(), collectionName, ownedDocId))
+      );
+      await assertFails(
+        setDoc(doc(owner.firestore(), collectionName, `${collectionName}-new`), {
+          user_id: TENANT_A_UID,
+          value: "client write attempt",
+        })
+      );
+      await assertFails(
+        deleteDoc(doc(owner.firestore(), collectionName, ownedDocId))
+      );
+    });
+  });
+}
+
+describe("tenant isolation — action_items", () => {
+  const ownedDocId = "action-a";
+
+  beforeEach(async () => {
+    await seedMinimal();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "action_items", ownedDocId), {
+        user_id: TENANT_A_UID,
+        title: "synthetic action",
+      });
+    });
+  });
+
+  it("allows owner CRUD and denies cross-tenant access", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    const other = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertSucceeds(getDoc(doc(owner.firestore(), "action_items", ownedDocId)));
+    await assertFails(getDoc(doc(other.firestore(), "action_items", ownedDocId)));
+    await assertSucceeds(
+      setDoc(doc(owner.firestore(), "action_items", "action-new"), {
+        user_id: TENANT_A_UID,
+        title: "owner action",
+      })
+    );
+    await assertFails(
+      setDoc(doc(owner.firestore(), "action_items", "action-spoofed"), {
+        user_id: TENANT_B_UID,
+        title: "spoof attempt",
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(owner.firestore(), "action_items", ownedDocId)));
+  });
+});
+
+const CREATE_READ_ONLY_COLLECTIONS = [
+  "search_analytics",
+  "webhook_events",
+  "support_tickets",
+] as const;
+
+for (const collectionName of CREATE_READ_ONLY_COLLECTIONS) {
+  describe(`tenant isolation — ${collectionName}`, () => {
+    const ownedDocId = `${collectionName}-a`;
+
+    beforeEach(async () => {
+      await seedMinimal();
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), collectionName, ownedDocId), {
+          user_id: TENANT_A_UID,
+          value: "synthetic owner data",
+        });
+      });
+    });
+
+    it("allows owner read/create and denies cross-tenant access or spoofed ownership", async () => {
+      const owner = testEnv.authenticatedContext(TENANT_A_UID);
+      const other = testEnv.authenticatedContext(TENANT_B_UID);
+      await assertSucceeds(getDoc(doc(owner.firestore(), collectionName, ownedDocId)));
+      await assertFails(getDoc(doc(other.firestore(), collectionName, ownedDocId)));
+      await assertSucceeds(
+        setDoc(doc(owner.firestore(), collectionName, `${collectionName}-new`), {
+          user_id: TENANT_A_UID,
+          value: "owner create",
+        })
+      );
+      await assertFails(
+        setDoc(doc(owner.firestore(), collectionName, `${collectionName}-spoofed`), {
+          user_id: TENANT_B_UID,
+          value: "spoof attempt",
+        })
+      );
+    });
+
+    it("denies client update and delete", async () => {
+      const owner = testEnv.authenticatedContext(TENANT_A_UID);
+      await assertFails(
+        setDoc(
+          doc(owner.firestore(), collectionName, ownedDocId),
+          { value: "update attempt" },
+          { merge: true }
+        )
+      );
+      await assertFails(deleteDoc(doc(owner.firestore(), collectionName, ownedDocId)));
+    });
+  });
+}
+
+const UID_KEYED_COLLECTIONS = [
+  "profiles",
+  "user_preferences",
+  "search_preferences",
+] as const;
+
+for (const collectionName of UID_KEYED_COLLECTIONS) {
+  describe(`tenant isolation — ${collectionName} (doc id = uid)`, () => {
+    beforeEach(async () => {
+      await seedMinimal();
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), collectionName, TENANT_A_UID), {
+          value: "tenant A synthetic settings",
+        });
+      });
+    });
+
+    it("allows owner read/write and denies another tenant", async () => {
+      const owner = testEnv.authenticatedContext(TENANT_A_UID);
+      const other = testEnv.authenticatedContext(TENANT_B_UID);
+      await assertSucceeds(getDoc(doc(owner.firestore(), collectionName, TENANT_A_UID)));
+      await assertSucceeds(
+        setDoc(doc(owner.firestore(), collectionName, TENANT_A_UID), {
+          value: "owner update",
+        })
+      );
+      await assertFails(getDoc(doc(other.firestore(), collectionName, TENANT_A_UID)));
+      await assertFails(
+        setDoc(doc(other.firestore(), collectionName, TENANT_A_UID), {
+          value: "cross-tenant write",
+        })
+      );
+    });
+
+    it("denies unauthenticated access", async () => {
+      const ctx = testEnv.unauthenticatedContext();
+      await assertFails(getDoc(doc(ctx.firestore(), collectionName, TENANT_A_UID)));
+    });
+  });
+}
+
+describe("tenant isolation — nova_user_profile (doc id = uid, server writes)", () => {
+  beforeEach(async () => {
+    await seedMinimal();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "nova_user_profile", TENANT_A_UID), {
+        value: "tenant A synthetic profile",
+      });
+    });
+  });
+
+  it("allows owner read and denies cross-tenant or unauthenticated reads", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    const other = testEnv.authenticatedContext(TENANT_B_UID);
+    const unauthenticated = testEnv.unauthenticatedContext();
+    await assertSucceeds(
+      getDoc(doc(owner.firestore(), "nova_user_profile", TENANT_A_UID))
+    );
+    await assertFails(
+      getDoc(doc(other.firestore(), "nova_user_profile", TENANT_A_UID))
+    );
+    await assertFails(
+      getDoc(doc(unauthenticated.firestore(), "nova_user_profile", TENANT_A_UID))
+    );
+  });
+
+  it("denies all client writes", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(doc(owner.firestore(), "nova_user_profile", TENANT_A_UID), {
+        value: "client write attempt",
+      })
+    );
+  });
+});
+
+describe("tenant isolation — storage_usage", () => {
+  beforeEach(async () => {
+    await seedMinimal();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "storage_usage", TENANT_A_UID), {
+        user_id: TENANT_A_UID,
+        bytes: 123,
+      });
+    });
+  });
+
+  it("allows only the matching uid owner to read", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    const other = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertSucceeds(
+      getDoc(doc(owner.firestore(), "storage_usage", TENANT_A_UID))
+    );
+    await assertFails(
+      getDoc(doc(other.firestore(), "storage_usage", TENANT_A_UID))
+    );
+  });
+
+  it("denies all client writes", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(doc(owner.firestore(), "storage_usage", TENANT_A_UID), {
+        user_id: TENANT_A_UID,
+        bytes: 456,
+      })
+    );
+    await assertFails(
+      deleteDoc(doc(owner.firestore(), "storage_usage", TENANT_A_UID))
+    );
   });
 });

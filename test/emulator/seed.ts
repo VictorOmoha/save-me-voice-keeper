@@ -81,7 +81,7 @@ export async function seedEmulator(): Promise<SeedResult> {
   await db.collection("users").doc(TENANT_A_UID).set({
     email: TENANT_A_EMAIL,
     subscriptionStatus: "active",
-    subscriptionTier: "pro",
+    subscriptionTier: "premium",
     created_at: now,
     updated_at: now,
   });

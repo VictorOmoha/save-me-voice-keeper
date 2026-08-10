@@ -45,11 +45,11 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const EMULATOR_CONFIG = path.join(__dirname, "firebase.emulator.json");
+const EMULATOR_CONFIG = path.join(REPO_ROOT, "firebase.emulator.json");
 const SEED_FILE = path.join(__dirname, "seed.ts");
 const TEST_GLOB_DIR = __dirname;
 
-// Fixed ports — must match test/emulator/firebase.emulator.json and
+// Fixed ports — must match firebase.emulator.json and
 // docs/hardening/emulator-harness.md (both lanes' contract).
 const PORTS = {
   auth: 9099,

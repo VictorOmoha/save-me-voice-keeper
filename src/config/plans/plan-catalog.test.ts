@@ -25,10 +25,9 @@ import {
 } from "./plan-catalog";
 
 describe("PLAN_CATALOG — identity", () => {
-  it("contains exactly the four known plan IDs", () => {
+  it("contains exactly the three D-004 launch plan IDs", () => {
     expect(Object.keys(PLAN_CATALOG).sort()).toEqual([
       "basic",
-      "enterprise",
       "free",
       "premium",
     ]);
@@ -47,12 +46,11 @@ describe("PLAN_CATALOG — identity", () => {
     }
   });
 
-  it("exposes plans in stable display order: free, basic, premium, enterprise", () => {
+  it("exposes plans in stable display order: free, basic, premium", () => {
     expect(PLANS_IN_ORDER.map((p) => p.id)).toEqual([
       "free",
       "basic",
       "premium",
-      "enterprise",
     ]);
   });
 });
@@ -76,10 +74,6 @@ describe("PLAN_CATALOG — pricing", () => {
   it("only basic and premium are sellable via self-serve checkout", () => {
     const sellable = PLANS_IN_ORDER.filter((p) => p.sellable).map((p) => p.id);
     expect(sellable.sort()).toEqual(["basic", "premium"]);
-  });
-
-  it("enterprise is not self-serve sellable", () => {
-    expect(PLAN_CATALOG.enterprise.sellable).toBe(false);
   });
 
   it("no paid plan carries a real Stripe price ID in source (placeholders only)", () => {
@@ -107,22 +101,34 @@ describe("PLAN_CATALOG — entitlements", () => {
     expect(PLAN_CATALOG.premium.entitlements.maxEntries).toBeNull();
   });
 
-  it("storage quotas increase monotonically free < basic < premium < enterprise", () => {
+  it("storage quotas increase monotonically free < basic < premium", () => {
     const f = PLAN_CATALOG.free.entitlements.maxStorageBytes!;
     const b = PLAN_CATALOG.basic.entitlements.maxStorageBytes!;
     const p = PLAN_CATALOG.premium.entitlements.maxStorageBytes!;
-    const e = PLAN_CATALOG.enterprise.entitlements.maxStorageBytes!;
     expect(f).toBeLessThan(b);
     expect(b).toBeLessThan(p);
-    expect(p).toBeLessThan(e);
   });
 
   it("free storage matches the client hook (500 MB)", () => {
     expect(PLAN_CATALOG.free.entitlements.maxStorageBytes).toBe(500 * 1024 * 1024);
   });
 
-  it("no plan claims mobile or desktop platforms (they do not exist)", () => {
+  it("implements D-004's real feature gates", () => {
+    expect(PLAN_CATALOG.free.entitlements.platforms).toEqual(["web"]);
+    expect(PLAN_CATALOG.basic.entitlements.platforms).toContain("browser-extension");
+    expect(PLAN_CATALOG.premium.entitlements.platforms).toContain("browser-extension");
+    expect(PLAN_CATALOG.free.entitlements.advancedSearch).toBe(false);
+    expect(PLAN_CATALOG.basic.entitlements.advancedSearch).toBe(true);
+    expect(PLAN_CATALOG.free.entitlements.agentApiAccess).toBe(false);
+    expect(PLAN_CATALOG.basic.entitlements.agentApiAccess).toBe(false);
+    expect(PLAN_CATALOG.premium.entitlements.agentApiAccess).toBe(true);
     for (const plan of PLANS_IN_ORDER) {
+      expect(plan.entitlements.voiceInput).toBe(true);
+      expect(plan.entitlements.dataExport).toBe(true);
+      expect(plan.entitlements.dataBackup).toBe(false);
+      expect(plan.entitlements.customIntegrations).toBe(false);
+      expect(plan.entitlements.enhancedPrivacyControls).toBe(false);
+      expect(plan.entitlements.supportLevel).toBe("standard");
       expect(plan.entitlements.platforms).not.toContain("mobile");
       expect(plan.entitlements.platforms).not.toContain("desktop");
     }
@@ -131,7 +137,7 @@ describe("PLAN_CATALOG — entitlements", () => {
 
 describe("getPlan / isPlanId", () => {
   it("round-trips known IDs", () => {
-    for (const id of ["free", "basic", "premium", "enterprise"] as PlanId[]) {
+    for (const id of ["free", "basic", "premium"] as PlanId[]) {
       expect(isPlanId(id)).toBe(true);
       expect(getPlan(id)?.id).toBe(id);
     }
@@ -227,7 +233,7 @@ describe("catalog ↔ audit consistency", () => {
     expect(premium).toHaveProperty("customIntegrations");
   });
 
-  it("does not invent a trial the server cannot create (days: 0 until D-004)", () => {
+  it("implements D-004's no-paid-trial contract", () => {
     for (const plan of PLANS_IN_ORDER) {
       expect(plan.trial.days).toBe(0);
     }

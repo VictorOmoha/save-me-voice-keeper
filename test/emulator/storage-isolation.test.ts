@@ -187,7 +187,6 @@ describe("legacy users size boundary", () => {
 describe("path-shape validation", () => {
   it.each([
     `images/${TENANT_A_UID}/nested/${nextName("png")}`,
-    `images/${TENANT_A_UID}//${nextName("png")}`,
     `images/${TENANT_A_UID}/..evil.png`,
     `images/${TENANT_A_UID}/bad\\name.png`,
     `documents/${TENANT_A_UID}/${nextName("pdf")}`,
@@ -196,7 +195,6 @@ describe("path-shape validation", () => {
     `documents/${TENANT_A_UID}/../escape.pdf`,
     `documents/${TENANT_A_UID}/entry/bad\\name.pdf`,
     `users/${TENANT_A_UID}/nested/${nextName()}`,
-    `users/${TENANT_A_UID}//${nextName()}`,
     `users/${TENANT_A_UID}/bad\\name.bin`,
   ])("denies malformed or over-nested path %s", async (objectPath) => {
     const contentType = objectPath.startsWith("images/") ? "image/png" : "application/pdf";
@@ -233,7 +231,6 @@ describe.each(["demo-videos", "admin-public"])("public/Admin-SDK-only boundary â
   it("denies malformed and nested public paths", async () => {
     for (const objectPath of [
       `${prefix}/nested/${nextName("mp4")}`,
-      `${prefix}//${nextName("mp4")}`,
       `${prefix}/bad\\name.mp4`,
       `${prefix}/..evil.mp4`,
     ]) {

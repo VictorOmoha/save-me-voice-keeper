@@ -1,10 +1,6 @@
 # SAVE-004 — Browser Extension Authentication Protocol
 
-**Status:** ⚠️ **PROPOSAL DOCUMENT — NOT RATIFIED.** UX flows in §8 are proposals
-awaiting Victor's decision **D-005** (due 2026-08-12). The security mechanisms
-(origin restrictions, no-DOM-relay, sender validation, scoped credentials) are
-recommended controls, graded by Sentinel Security against the threat model.
-Nothing here is wired into production.
+**Status:** **RATIFIED by Victor under D-005 on 2026-08-10.** The one-time pairing flow, strict revoke-and-reconnect account model, 15-minute in-memory access tokens, rotating refresh credentials, and recovery behavior in §8 are approved. Sentinel passed the security design. Nothing here is wired into production; SAVE-107 and SAVE-108 own implementation.
 
 **Baseline:** `main @ 569225b68333d165a942dbd7f258cccc3413ca45`
 **Author:** Vector Platform (client/protocol lead)
@@ -272,10 +268,9 @@ permission to the canonical origin and removes the separate
 - **Server-initiated:** anomaly detection (T4) or admin action sets `revokedAt`;
   the extension learns on its next call (401) and transitions to signed-out.
 
-## 8. UX flows (PROPOSALS — pending Victor D-005)
+## 8. Approved UX flows (D-005)
 
-> Everything in this section is a proposal for the D-005 session. The security
-> mechanism above does not depend on which UX is chosen.
+> Victor approved the pairing, strict revoke-and-reconnect, 15-minute silent-renewal, and recovery flows below on 2026-08-10.
 
 ### 8.1 Connect (first run)
 Popup shows "Connect to SaveMe" → opens

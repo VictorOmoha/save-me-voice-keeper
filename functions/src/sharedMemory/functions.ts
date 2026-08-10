@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {withCors} from "../common/http";
-import {hasPermission, requirePermission, verifyAuth} from "../common/auth";
+import {AuthenticatedUser, hasPermission, requirePermission, verifyAuth} from "../common/auth";
 import {createSharedMemory} from "./create";
 import {searchSharedMemories} from "./search";
 import {getSharedMemory} from "./get";
@@ -10,6 +10,23 @@ import {updateSharedMemory} from "./update";
 import {batchCreateSharedMemories} from "./batchCreate";
 import {SharedMemoryCreateInput, SharedMemorySearchInput} from "./types";
 import {generateAgentApiKey, hashAgentApiKey, normalizeAgentPermissions} from "./agentKeys";
+import {assertArrayCap, assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, SERVICE_CAPS, SERVICE_QUOTAS} from "../common/abuseControl";
+import {assertAdvancedSearchAccess, assertAgentApiAccess, readUserEntitlements, sendEntitlementError} from "../entitlements/entitlements";
+
+const enforceAgentApiPlan = async (user: AuthenticatedUser): Promise<void> => {
+  if (!user.saveMeApiKey) return;
+  assertAgentApiAccess(await readUserEntitlements(user.uid));
+};
+
+const authorizeAgentRequest = async (user: AuthenticatedUser, res: functions.Response): Promise<boolean> => {
+  try {
+    await enforceAgentApiPlan(user);
+    return true;
+  } catch (error) {
+    if (sendEntitlementError(res, error)) return false;
+    throw error;
+  }
+};
 
 export const sharedMemoryAgentStatus = functions.https.onRequest(
   withCors(async (req, res) => {
@@ -23,6 +40,7 @@ export const sharedMemoryAgentStatus = functions.https.onRequest(
       res.status(405).json({error: "Method not allowed"});
       return;
     }
+    if (!await authorizeAgentRequest(user, res)) return;
 
     res.json({
       ok: true,
@@ -63,6 +81,13 @@ export const sharedMemoryCreateAgentKey = functions.https.onRequest(
     if (!user || user.saveMeApiKey) {
       res.status(401).json({error: "Firebase user session required"});
       return;
+    }
+
+    try {
+      assertAgentApiAccess(await readUserEntitlements(user.uid));
+    } catch (error) {
+      if (sendEntitlementError(res, error)) return;
+      throw error;
     }
 
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
@@ -117,6 +142,7 @@ export const sharedMemoryCreate = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "write", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -124,6 +150,15 @@ export const sharedMemoryCreate = functions.https.onRequest(
     }
 
     const input = req.body as SharedMemoryCreateInput;
+    try {
+      assertUtf8Bytes(input, SERVICE_CAPS.requestBytes);
+      assertStringCap(input?.title, SERVICE_CAPS.textChars, "title");
+      assertStringCap(input?.content, SERVICE_CAPS.textChars, "content");
+      await enforceAbuseControls({endpoint: "sharedMemoryCreate", user, req, policies: SERVICE_QUOTAS.sharedMemoryCreate});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
     if (!input?.title || !input?.content || !input?.type || !input?.source) {
       res.status(400).json({error: "title, content, type, and source are required"});
       return;
@@ -148,6 +183,7 @@ export const sharedMemorySearch = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "read", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -155,6 +191,21 @@ export const sharedMemorySearch = functions.https.onRequest(
     }
 
     const input = (req.body || {}) as SharedMemorySearchInput;
+    try {
+      // This endpoint is the representative server-owned advanced-search path.
+      // Agent-key requests already passed the Premium-only API gate above.
+      assertAdvancedSearchAccess(await readUserEntitlements(user.uid));
+      assertUtf8Bytes(input, SERVICE_CAPS.requestBytes);
+      assertStringCap(input.query, SERVICE_CAPS.searchQueryChars, "query");
+      if (typeof input.limit === "number" && input.limit > SERVICE_CAPS.searchLimit) {
+        res.status(400).json({error: {code: "INVALID_ARGUMENT", message: `limit must be at most ${SERVICE_CAPS.searchLimit}`}});
+        return;
+      }
+      await enforceAbuseControls({endpoint: "sharedMemorySearch", user, req, policies: SERVICE_QUOTAS.sharedMemorySearch});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
 
     try {
       const db = admin.firestore();
@@ -175,6 +226,7 @@ export const sharedMemoryGet = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "read", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -210,6 +262,7 @@ export const sharedMemoryList = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "read", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -237,6 +290,7 @@ export const sharedMemoryUpdate = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "write", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -277,6 +331,7 @@ export const sharedMemoryBatchCreate = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "write", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -284,6 +339,20 @@ export const sharedMemoryBatchCreate = functions.https.onRequest(
     }
 
     const memories = req.body?.memories as SharedMemoryCreateInput[] | undefined;
+    try {
+      assertUtf8Bytes(req.body, SERVICE_CAPS.requestBytes);
+      assertArrayCap(memories, SERVICE_CAPS.batchItems, "memories");
+      if (Array.isArray(memories)) {
+        for (const memory of memories) {
+          assertStringCap(memory?.title, SERVICE_CAPS.textChars, "memory.title");
+          assertStringCap(memory?.content, SERVICE_CAPS.textChars, "memory.content");
+        }
+      }
+      await enforceAbuseControls({endpoint: "sharedMemoryBatchCreate", user, req, policies: SERVICE_QUOTAS.sharedMemoryBatchCreate});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
     if (!Array.isArray(memories) || memories.length === 0) {
       res.status(400).json({error: "memories array is required"});
       return;

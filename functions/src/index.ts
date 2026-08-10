@@ -30,6 +30,10 @@ export {
 } from "./quickSave/functions";
 
 export {
+  storageUploadAdmission,
+} from "./entitlements/functions";
+
+export {
   enhanceBrainDump,
   processEntryDeep,
   checkReminders,

@@ -20,9 +20,10 @@
  *  tooling sets GCLOUD_PROJECT for BOTH real and demo projects — so mere
  *  presence is not a production signal. Instead, GCLOUD_PROJECT participates in
  *  project-id resolution (step 3 below) and is refused only when it holds a
- *  NON-emulator-style value. GCP_PROJECT, GOOGLE_APPLICATION_CREDENTIALS, and
- *  FIREBASE_CONFIG remain presence-based refusals because they are only ever
- *  set by real (non-emulator) contexts.
+ *  NON-emulator-style value. FIREBASE_CONFIG is also not a blanket refusal:
+ *  firebase-tools sets it inside `emulators:exec`. Safety still requires every
+ *  emulator host plus an emulator-style resolved project id. GCP_PROJECT and
+ *  GOOGLE_APPLICATION_CREDENTIALS remain presence-based refusals.
  *
  * This is a pure guard — it never mutates anything.
  */
@@ -40,7 +41,6 @@ const REQUIRED_EMULATOR_VARS = [
 const PRODUCTION_INDICATOR_VARS = [
   "GOOGLE_APPLICATION_CREDENTIALS", // service-account key file path
   "GCP_PROJECT", // real project id (never set by the emulator harness)
-  "FIREBASE_CONFIG", // present on deployed Cloud Functions / hosting
 ] as const;
 
 // Values that are acceptable for the project id in an emulator context.

@@ -1,11 +1,4 @@
-- name: Print emulator test report
-        if: failure()
-        run: |
-          if [ -f test-results/emulator-junit.xml ]; then
-            sed -n '1,240p' test-results/emulator-junit.xml
-          else
-            echo "JUnit report missing"
-          finame: Emulator Tests
+name: Emulator Tests
 
 on:
   push:
@@ -58,11 +51,11 @@ jobs:
           GCLOUD_PROJECT: demo-saveme
           CI: "true"
 
-      - name: Print emulator test failures
+      - name: Print emulator test report
         if: failure()
         run: |
           if [ -f test-results/emulator-junit.xml ]; then
-            node -e 'const fs=require("fs"); const s=fs.readFileSync("test-results/emulator-junit.xml","utf8"); for (const m of s.matchAll(/<testcase[\s\S]*?<failure[\s\S]*?<\/testcase>/g)) console.log(m[0].replace(/<\/?[^>]+>/g," ").replace(/&quot;/g,"\"").replace(/&apos;/g,"\'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&"));'
+            sed -n '1,240p' test-results/emulator-junit.xml
           else
             echo "JUnit report missing"
           fi

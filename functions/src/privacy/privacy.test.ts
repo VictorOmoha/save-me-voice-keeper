@@ -60,6 +60,36 @@ describe("SAVE-101 account deletion foundation", () => {
     expect(calls.filter((call) => call === "auth")).toHaveLength(1);
   });
 
+  it("lets a trusted worker resume an owner-bound receipt after recent auth becomes stale", async () => {
+    const state = new MemoryState();
+    let clock = NOW;
+    let failOnce = true;
+    const calls: string[] = [];
+    const effects: DeletionEffects = {
+      revokeAgentKeys: async () => { calls.push("revoke"); },
+      stopScheduledEffects: async () => { calls.push("stop"); },
+      purgeResource: async (_uid, entry) => {
+        calls.push(entry.location);
+        if (failOnce) {
+          failOnce = false;
+          throw new Error("synthetic retry");
+        }
+      },
+      deleteAuthIdentity: async () => { calls.push("auth"); },
+    };
+    const service = new AccountDeletionService(manifest(), state, effects, "test", () => clock);
+    const staleAuth = auth("user-a");
+
+    expect((await service.run({operationId: "delete-stale", uid: "user-a", auth: staleAuth})).status).toBe("retryable");
+    clock += 6 * 60 * 1000;
+    await expect(service.run({operationId: "delete-stale", uid: "user-a", auth: staleAuth})).rejects.toThrow("recent authentication required");
+    await expect(service.resume("missing", "user-a")).rejects.toThrow("not found");
+    await expect(service.resume("delete-stale", "user-b")).rejects.toThrow("another user");
+    expect((await service.resume("delete-stale", "user-a")).status).toBe("completed");
+    expect(calls.filter((call) => call === "revoke")).toHaveLength(1);
+    expect(calls[calls.length - 1]).toBe("auth");
+  });
+
   it("binds idempotency state and recent-auth proof to one user", async () => {
     const state = new MemoryState();
     const touched = new Map<string, number>();
@@ -160,6 +190,42 @@ describe("SAVE-102 export archive foundation", () => {
     clock = Date.parse(completed.expiresAt);
     expect((await asyncService.get("async-1", "user-a")).status).toBe("expired");
     expect((await asyncService.get("async-1", "user-a")).archive).toBeUndefined();
+  });
+
+  it("lets a trusted worker resume an owner-bound export job after recent auth becomes stale", async () => {
+    class MemoryJobs implements ExportJobStore {
+      readonly jobs = new Map<string, ExportJob>();
+      async load(id: string) { return this.jobs.get(id) ?? null; }
+      async save(job: ExportJob) { this.jobs.set(job.archiveId, structuredClone(job)); }
+    }
+    let clock = NOW;
+    let reads = 0;
+    const jobs = new MemoryJobs();
+    const exporter = new UserExportService(manifest(), {
+      readResource: async (uid) => {
+        reads += 1;
+        if (reads === 1) throw new Error("synthetic retry");
+        return [{id: "owned", data: {user_id: uid}}];
+      },
+      readOriginalFiles: async () => [],
+    }, "test", () => clock);
+    const asyncService = new AsyncUserExportService(jobs, exporter, "test", () => clock);
+    const staleRequest = {archiveId: "async-stale", requesterUid: "user-a", ownerUid: "user-a", auth: auth("user-a")};
+
+    expect((await asyncService.run(staleRequest)).status).toBe("retryable");
+    clock += 6 * 60 * 1000;
+    await expect(asyncService.run(staleRequest)).rejects.toThrow("recent authentication required");
+    await expect(asyncService.resume("missing", "user-a")).rejects.toThrow("not found");
+    await expect(asyncService.resume("async-stale", "user-b")).rejects.toThrow("another user");
+    const completed = await asyncService.resume("async-stale", "user-a");
+    expect(completed.status).toBe("completed");
+    expect(completed.attempts).toBe(2);
+    expect(completed.archive?.ownerUid).toBe("user-a");
+  });
+
+  it("does not let the trusted exporter path be invoked without its internal capability", async () => {
+    const exporter = new UserExportService(manifest(), {readResource: async () => []}, "test", () => NOW);
+    await expect(exporter.createForTrustedWorker("new-export", "user-a", Symbol("untrusted"))).rejects.toThrow("trusted export worker required");
   });
 
   it("fails closed for unknown manifest policy configuration", () => {

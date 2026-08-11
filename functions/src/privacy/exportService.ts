@@ -13,6 +13,7 @@ import {
 import {assertNonProductionPrivacyEnvironment, assertRecentAuth, validateManifest} from "./safety";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const TRUSTED_EXPORT_WORKER = Symbol("trusted-export-worker");
 const SECRET_FIELD = /(^|_)(secret|token|password|api_key|key_hash|private_key)$/i;
 
 const stableJson = (value: unknown): string => {
@@ -73,6 +74,19 @@ export class UserExportService {
   async create(request: CreateExportRequest): Promise<ExportArchiveV1> {
     if (request.requesterUid !== request.ownerUid) throw new Error("cross-user export denied");
     assertRecentAuth(request.ownerUid, request.auth, this.now());
+    return this.createArchive(request.archiveId, request.ownerUid);
+  }
+
+  async createForTrustedWorker(
+    archiveId: string,
+    ownerUid: string,
+    trustedWorker: symbol
+  ): Promise<ExportArchiveV1> {
+    if (trustedWorker !== TRUSTED_EXPORT_WORKER) throw new Error("trusted export worker required");
+    return this.createArchive(archiveId, ownerUid);
+  }
+
+  private async createArchive(archiveId: string, ownerUid: string): Promise<ExportArchiveV1> {
     const exportEntries = this.manifest.entries
       .filter((entry) => !["not-applicable", "not-user-owned", "client-side-only"].includes(entry.exportPolicy))
       .filter((entry) => entry.ownerSelector !== "publicRead" && entry.ownerSelector !== "publicCreate")
@@ -81,14 +95,14 @@ export class UserExportService {
     const resourceCounts: Record<string, number> = {};
 
     for (const entry of exportEntries) {
-      const records = (await this.source.readResource(request.ownerUid, entry)).map((record) => sanitizeRecord(entry, record));
+      const records = (await this.source.readResource(ownerUid, entry)).map((record) => sanitizeRecord(entry, record));
       resourceCounts[entry.location] = records.length;
       const content = stableJson({schema: "save-me.resource/v1", sourceManifestVersion: this.manifest.schemaVersion,
         resource: entry.location, resourceType: entry.resourceType, records});
       files.push(archiveFile(`data/${entry.resourceType}/${safePathSegment(entry.location)}.json`, "application/json", content));
       if (entry.resourceType === "storagePrefix") {
         if (!this.source.readOriginalFiles) throw new Error(`original-file export adapter missing for ${entry.location}`);
-        const originals = await this.source.readOriginalFiles(request.ownerUid, entry);
+        const originals = await this.source.readOriginalFiles(ownerUid, entry);
         resourceCounts[`${entry.location}:originalFiles`] = originals.length;
         for (const original of originals) {
           const pathSegments = original.path.split("/");
@@ -105,17 +119,17 @@ export class UserExportService {
     const createdAtMs = this.now();
     const createdAt = new Date(createdAtMs).toISOString();
     const expiresAt = new Date(createdAtMs + SEVEN_DAYS_MS).toISOString();
-    const indexContent = ["# Save Me data export", "", `Archive: ${request.archiveId}`, `Created: ${createdAt}`,
+    const indexContent = ["# Save Me data export", "", `Archive: ${archiveId}`, `Created: ${createdAt}`,
       `Expires: ${expiresAt}`, "", "## Resources", ...Object.entries(resourceCounts).map(([location, count]) => `- ${location}: ${count}`), "",
       "JSON resources use save-me.resource/v1. Original uploaded files are under originals/.",
       "SHA-256 checksums and byte lengths are in ARCHIVE_MANIFEST.json.",
       "Credentials, key hashes, tokens, passwords, private keys, and BYOK secrets are excluded; agent keys contain safe metadata only.", ""].join("\n");
     files.unshift(archiveFile("INDEX.md", "text/markdown", indexContent));
     const archiveManifestContent = stableJson({schema: "save-me.archive-manifest/v1", schemaVersion: "1.0.0",
-      sourceManifestVersion: this.manifest.schemaVersion, archiveId: request.archiveId, ownerUid: request.ownerUid, createdAt, expiresAt,
+      sourceManifestVersion: this.manifest.schemaVersion, archiveId, ownerUid, createdAt, expiresAt,
       files: files.map(({path, mediaType, encoding, sha256: checksum, sizeBytes}) => ({path, mediaType, encoding, sha256: checksum, sizeBytes}))});
     files.unshift(archiveFile("ARCHIVE_MANIFEST.json", "application/json", archiveManifestContent));
-    return {schema: "save-me.export/v1", archiveId: request.archiveId, ownerUid: request.ownerUid, createdAt, expiresAt,
+    return {schema: "save-me.export/v1", archiveId, ownerUid, createdAt, expiresAt,
       manifest: {path: "ARCHIVE_MANIFEST.json", schemaVersion: "1.0.0", sourceManifestVersion: this.manifest.schemaVersion},
       files, index: {path: "INDEX.md", resourceCounts}};
   }
@@ -148,13 +162,25 @@ export class AsyncUserExportService {
   }
 
   async run(request: CreateExportRequest): Promise<ExportJob> {
-    let job = await this.request(request);
+    const job = await this.request(request);
+    return this.execute(job);
+  }
+
+  async resume(archiveId: string, ownerUid: string): Promise<ExportJob> {
+    const job = await this.jobs.load(archiveId);
+    if (!job) throw new Error("export operation not found");
+    if (job.ownerUid !== ownerUid) throw new Error("export operation belongs to another user");
+    return this.execute(job);
+  }
+
+  private async execute(existing: ExportJob): Promise<ExportJob> {
+    let job = existing;
     if (job.status === "completed" || job.status === "expired") return job;
     job = {...job, status: "running", attempts: job.attempts + 1, updatedAt: new Date(this.now()).toISOString()};
     delete job.lastError;
     await this.jobs.save(job);
     try {
-      const archive = await this.exporter.create(request);
+      const archive = await this.exporter.createForTrustedWorker(job.archiveId, job.ownerUid, TRUSTED_EXPORT_WORKER);
       job = {...job, status: "completed", archive, expiresAt: archive.expiresAt, updatedAt: new Date(this.now()).toISOString()};
     } catch (error) {
       job = {...job, status: "retryable", lastError: error instanceof Error ? error.message : "unknown export error",

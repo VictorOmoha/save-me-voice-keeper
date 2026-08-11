@@ -46,6 +46,17 @@ export class AccountDeletionService {
         updatedAt: new Date(this.now()).toISOString(),
       };
     }
+    return this.execute(receipt);
+  }
+
+  async resume(operationId: string, ownerUid: string): Promise<DeletionReceipt> {
+    const receipt = await this.state.load(operationId);
+    if (!receipt) throw new Error("deletion operation not found");
+    if (receipt.uid !== ownerUid) throw new Error("deletion operation belongs to another user");
+    return this.execute(receipt);
+  }
+
+  private async execute(receipt: DeletionReceipt): Promise<DeletionReceipt> {
     if (receipt.status === "completed") return receipt;
 
     receipt.attempts += 1;
@@ -60,13 +71,13 @@ export class AccountDeletionService {
       .sort((a, b) => a.deleteOrder - b.deleteOrder || a.location.localeCompare(b.location));
 
     const steps: Array<{id: string; execute: () => Promise<void>}> = [
-      {id: "agent-keys:revoke", execute: () => this.effects.revokeAgentKeys(request.uid)},
-      {id: "scheduled-effects:stop", execute: () => this.effects.stopScheduledEffects(request.uid)},
+      {id: "agent-keys:revoke", execute: () => this.effects.revokeAgentKeys(receipt.uid)},
+      {id: "scheduled-effects:stop", execute: () => this.effects.stopScheduledEffects(receipt.uid)},
       ...purgeEntries.map((entry) => ({
         id: `purge:${entry.resourceType}:${entry.location}`,
-        execute: () => this.effects.purgeResource(request.uid, entry),
+        execute: () => this.effects.purgeResource(receipt.uid, entry),
       })),
-      {id: `auth:delete:${authEntries[0].location}`, execute: () => this.effects.deleteAuthIdentity(request.uid)},
+      {id: `auth:delete:${authEntries[0].location}`, execute: () => this.effects.deleteAuthIdentity(receipt.uid)},
     ];
 
     for (const step of steps) {

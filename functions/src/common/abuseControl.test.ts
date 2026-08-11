@@ -5,6 +5,7 @@ import {
   assertStringCap,
   enforceAbuseControls,
   InMemoryAtomicCounterStore,
+  isAppCheckEnforcementEnabled,
   principalIdentity,
 } from "./abuseControl";
 import {AuthenticatedUser} from "./auth";
@@ -41,17 +42,30 @@ describe("SAVE-104 abuse controls", () => {
     expect((await caught(enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req(), policies: policy, store: sustainedStore, runtime, nowMs: 3_100}))).code).toBe("RATE_LIMITED");
   });
 
-  it("requires valid App Check for Firebase users only in production", async () => {
+  it("defaults App Check enforcement off so existing first-party clients keep working", async () => {
     const prod = {production: true, emulator: false, test: false};
-    const store = new InMemoryAtomicCounterStore();
-    expect((await caught(enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req(), policies: policy, store, runtime: prod}))).code).toBe("APP_CHECK_REQUIRED");
-
-    const verifier = {verifyToken: vi.fn().mockRejectedValue(new Error("bad"))};
-    expect((await caught(enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req("invalid"), policies: policy, store, runtime: prod, appCheckVerifier: verifier}))).code).toBe("APP_CHECK_INVALID");
+    await enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req(), policies: policy, store: new InMemoryAtomicCounterStore(), runtime: prod});
+    expect(isAppCheckEnforcementEnabled({} as NodeJS.ProcessEnv)).toBe(false);
+    expect(isAppCheckEnforcementEnabled({APP_CHECK_ENFORCEMENT_ENABLED: "false"} as NodeJS.ProcessEnv)).toBe(false);
   });
 
-  it("keeps emulator/test App Check bypass explicit", async () => {
-    await enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req(), policies: policy, store: new InMemoryAtomicCounterStore(), runtime: {production: true, emulator: true, test: false}});
+  it("requires and verifies App Check when the rollout flag is enabled", async () => {
+    const prod = {production: true, emulator: false, test: false};
+    const store = new InMemoryAtomicCounterStore();
+    expect((await caught(enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req(), policies: policy, store, runtime: prod, appCheckEnforcementEnabled: true}))).code).toBe("APP_CHECK_REQUIRED");
+
+    const invalidVerifier = {verifyToken: vi.fn().mockRejectedValue(new Error("bad"))};
+    expect((await caught(enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req("invalid"), policies: policy, store, runtime: prod, appCheckVerifier: invalidVerifier, appCheckEnforcementEnabled: true}))).code).toBe("APP_CHECK_INVALID");
+
+    const validVerifier = {verifyToken: vi.fn().mockResolvedValue({appId: "app-id"})};
+    await enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req("valid"), policies: policy, store: new InMemoryAtomicCounterStore(), runtime: prod, appCheckVerifier: validVerifier, appCheckEnforcementEnabled: true});
+    expect(validVerifier.verifyToken).toHaveBeenCalledWith("valid");
+    expect(isAppCheckEnforcementEnabled({APP_CHECK_ENFORCEMENT_ENABLED: " TRUE "} as NodeJS.ProcessEnv)).toBe(true);
+  });
+
+  it("keeps emulator/test and agent-key App Check bypasses explicit when enforcement is on", async () => {
+    await enforceAbuseControls({endpoint: "test", user: firebaseUser(), req: req(), policies: policy, store: new InMemoryAtomicCounterStore(), runtime: {production: true, emulator: true, test: false}, appCheckEnforcementEnabled: true});
+    await enforceAbuseControls({endpoint: "test", user: agentUser("key-a"), req: req(), policies: policy, store: new InMemoryAtomicCounterStore(), runtime: {production: true, emulator: false, test: false}, appCheckEnforcementEnabled: true});
   });
 
   it("uses stable per-agent-key identities and isolates their throttles", async () => {

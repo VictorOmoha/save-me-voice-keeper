@@ -112,6 +112,10 @@ export interface AppCheckVerifier {
   verifyToken(token: string): Promise<unknown>;
 }
 
+export function isAppCheckEnforcementEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.APP_CHECK_ENFORCEMENT_ENABLED?.trim().toLowerCase() === "true";
+}
+
 export class AbuseControlError extends Error {
   constructor(
     public readonly code: "APP_CHECK_REQUIRED" | "APP_CHECK_INVALID" | "RATE_LIMITED" | "PAYLOAD_TOO_LARGE" | "INVALID_ARGUMENT",
@@ -156,6 +160,7 @@ export interface EnforceAbuseOptions {
   metrics?: AbuseMetrics;
   runtime?: AbuseRuntime;
   appCheckVerifier?: AppCheckVerifier;
+  appCheckEnforcementEnabled?: boolean;
   nowMs?: number;
 }
 
@@ -171,8 +176,10 @@ export async function enforceAbuseControls(options: EnforceAbuseOptions): Promis
   const principal = principalIdentity(options.user);
   const nowMs = options.nowMs ?? Date.now();
 
-  // Agent keys cannot present Firebase App Check. They have a distinct stable-key throttle below.
-  if (principal.type === "firebase_user" && runtime.production && !runtime.emulator && !runtime.test) {
+  // Roll out enforcement explicitly only after all first-party clients propagate App Check.
+  // Agent keys cannot present Firebase App Check and remain on their distinct stable-key throttle below.
+  const appCheckEnforcementEnabled = options.appCheckEnforcementEnabled ?? isAppCheckEnforcementEnabled();
+  if (appCheckEnforcementEnabled && principal.type === "firebase_user" && runtime.production && !runtime.emulator && !runtime.test) {
     const rawHeader = options.req.headers["x-firebase-appcheck"];
     const token = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
     if (!token) {

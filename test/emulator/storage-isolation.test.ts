@@ -137,6 +137,9 @@ const DOCUMENT_MIMES = [
   ["application/vnd.oasis.opendocument.spreadsheet", "ods"],
   ["application/vnd.oasis.opendocument.presentation", "odp"],
   ["text/plain", "txt"],
+  ["text/html", "html"],
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
   ["text/markdown", "md"],
   ["text/x-markdown", "markdown"],
   ["text/csv", "csv"],
@@ -156,7 +159,7 @@ describe("documents MIME and size validation", () => {
     await assertSucceeds(ownerUpload(documentPath(TENANT_A_UID, extension), contentType));
   });
 
-  it.each(["image/png", "application/octet-stream", "application/x-msdownload"])(
+  it.each(["image/gif", "application/octet-stream", "application/x-msdownload"])(
     "denies unapproved MIME %s",
     async (contentType) => {
       await assertFails(ownerUpload(documentPath(TENANT_A_UID), contentType));
@@ -186,9 +189,29 @@ describe("legacy users size boundary", () => {
 
 describe("path-shape validation", () => {
   it.each([
+    [
+      `images/${TENANT_A_UID}/Sam's photo (final) — 東京.png`,
+      "image/png",
+    ],
+    [
+      `documents/${TENANT_A_UID}/Résumé (été)/Owner's résumé (final) — 東京.pdf`,
+      "application/pdf",
+    ],
+    [
+      `users/${TENANT_A_UID}/Owner's archive (旧).bin`,
+      "application/octet-stream",
+    ],
+  ])("allows harmless punctuation and Unicode in %s", async (objectPath, contentType) => {
+    await assertSucceeds(ownerUpload(objectPath, contentType));
+  });
+
+  it.each([
     `images/${TENANT_A_UID}/nested/${nextName("png")}`,
     `images/${TENANT_A_UID}/..evil.png`,
     `images/${TENANT_A_UID}/bad\\name.png`,
+    `images/${TENANT_A_UID}/bad\u0000name.png`,
+    `images/${TENANT_A_UID}/bad\u001fname.png`,
+    `images/${TENANT_A_UID}/bad\u007fname.png`,
     `documents/${TENANT_A_UID}/${nextName("pdf")}`,
     `documents/${TENANT_A_UID}//${nextName("pdf")}`,
     `documents/${TENANT_A_UID}/entry/nested/${nextName("pdf")}`,

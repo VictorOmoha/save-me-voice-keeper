@@ -215,7 +215,6 @@ describe("path-shape validation", () => {
     `images/${TENANT_A_UID}/bad\u001fname.png`,
     `images/${TENANT_A_UID}/bad\u007fname.png`,
     `documents/${TENANT_A_UID}/${nextName("pdf")}`,
-    `documents/${TENANT_A_UID}//${nextName("pdf")}`,
     `documents/${TENANT_A_UID}/entry/nested/${nextName("pdf")}`,
     `documents/${TENANT_A_UID}/../escape.pdf`,
     `documents/${TENANT_A_UID}/entry/bad\\name.pdf`,

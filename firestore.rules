@@ -106,6 +106,16 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    match /billing_entitlements/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // billing/plan authority is server-only
+    }
+
+    match /entitlement_usage/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // quota ledger is server-only
+    }
+
     match /profiles/{userId} {
       allow read, write: if isOwner(userId);
     }

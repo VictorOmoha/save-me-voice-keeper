@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {withCors} from "../common/http";
-import {AuthenticatedUser, hasPermission, requirePermission, verifyAuth} from "../common/auth";
+import {AuthenticatedUser, hasPermission, legacyAgentFallbackAllowed, requirePermission, verifyAuth} from "../common/auth";
 import {createSharedMemory} from "./create";
 import {searchSharedMemories} from "./search";
 import {getSharedMemory} from "./get";
@@ -13,9 +13,16 @@ import {generateAgentApiKey, hashAgentApiKey, normalizeAgentPermissions} from ".
 import {assertArrayCap, assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, SERVICE_CAPS, SERVICE_QUOTAS} from "../common/abuseControl";
 import {assertAdvancedSearchAccess, assertAgentApiAccess, readUserEntitlements, sendEntitlementError} from "../entitlements/entitlements";
 
-const enforceAgentApiPlan = async (user: AuthenticatedUser): Promise<void> => {
+export const enforceAgentApiPlan = async (
+  user: AuthenticatedUser,
+  readEntitlements = readUserEntitlements,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<void> => {
   if (!user.saveMeApiKey) return;
-  assertAgentApiAccess(await readUserEntitlements(user.uid));
+  // Compatibility is narrow: only the historical unbound credential can bypass
+  // plan lookup, and only outside production or behind an explicit migration flag.
+  if (legacyAgentFallbackAllowed(user, env)) return;
+  assertAgentApiAccess(await readEntitlements(user.uid));
 };
 
 const authorizeAgentRequest = async (user: AuthenticatedUser, res: functions.Response): Promise<boolean> => {
@@ -203,7 +210,7 @@ export const sharedMemorySearch = functions.https.onRequest(
       }
       await enforceAbuseControls({endpoint: "sharedMemorySearch", user, req, policies: SERVICE_QUOTAS.sharedMemorySearch});
     } catch (error) {
-      if (sendAbuseError(res, error)) return;
+      if (sendAbuseError(res, error) || sendEntitlementError(res, error)) return;
       throw error;
     }
 

@@ -27,18 +27,33 @@ export const createEntryWithAdmission = async (
   entry: Record<string, unknown>,
   db: admin.firestore.Firestore
 ): Promise<admin.firestore.DocumentReference> => {
+  if (entry.user_id !== uid) {
+    throw new Error("Entry owner must match the admitted user");
+  }
+
   const entryRef = db.collection("entries").doc();
   if (plan.entryLimit === null) {
     await entryRef.create(entry);
     return entryRef;
   }
 
+  const entryLimit = plan.entryLimit;
   const usageRef = db.collection("entitlement_usage").doc(uid);
-  const existingCount = await countOwnedEntries(uid, db);
   await db.runTransaction(async (transaction) => {
     const usageSnapshot = await transaction.get(usageRef);
     const recorded = usageSnapshot.data()?.entries;
-    const used = typeof recorded === "number" && Number.isSafeInteger(recorded) && recorded >= 0 ? recorded : existingCount;
+    let used: number;
+    if (typeof recorded === "number" && Number.isSafeInteger(recorded) && recorded >= 0) {
+      used = recorded;
+    } else {
+      // Bootstrap inside the transaction. The matching query participates in
+      // Firestore's serializable transaction and is retried if a concurrent
+      // creator changes its result; an out-of-transaction count can undercount.
+      const existingEntries = await transaction.get(
+        db.collection("entries").where("user_id", "==", uid).limit(entryLimit + 1)
+      );
+      used = existingEntries.size;
+    }
     assertEntryAdmission(plan, used, 1);
     transaction.set(usageRef, {user_id: uid, entries: used + 1, updated_at: admin.firestore.FieldValue.serverTimestamp()}, {merge: true});
     transaction.create(entryRef, entry);

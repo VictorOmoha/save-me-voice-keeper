@@ -1,4 +1,4 @@
-import {describe, expect, it} from "vitest";
+import {describe, expect, it, vi} from "vitest";
 import {
   assertAdvancedSearchAccess,
   assertAgentApiAccess,
@@ -10,6 +10,7 @@ import {
   entitlementErrorEnvelope,
   EntitlementError,
   PLAN_CATALOG,
+  readUserEntitlements,
   resolvePlan,
 } from "./entitlements";
 
@@ -53,6 +54,16 @@ describe("D-004 entitlement catalog", () => {
         error: {code: "ENTITLEMENT_UNKNOWN_PLAN", message: "Account plan is not recognized"},
       });
     }
+  });
+
+  it("reads plan authority only from the server-owned billing collection", async () => {
+    const get = vi.fn(async () => ({exists: true, data: () => ({plan: "premium"})}));
+    const doc = vi.fn(() => ({get}));
+    const collection = vi.fn(() => ({doc}));
+    const db = {collection} as any;
+    expect((await readUserEntitlements("owner-1", db)).id).toBe("premium");
+    expect(collection).toHaveBeenCalledWith("billing_entitlements");
+    expect(doc).toHaveBeenCalledWith("owner-1");
   });
 });
 

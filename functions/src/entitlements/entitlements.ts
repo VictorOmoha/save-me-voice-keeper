@@ -77,9 +77,11 @@ export const readUserEntitlements = async (
   uid: string,
   db: admin.firestore.Firestore = admin.firestore()
 ): Promise<PlanEntitlements> => {
-  const snapshot = await db.collection("users").doc(uid).get();
+  // Entitlements must come from a server-owned document. `users/{uid}` remains
+  // client-writable profile data and is never authoritative for paid access.
+  const snapshot = await db.collection("billing_entitlements").doc(uid).get();
   const data = snapshot.exists ? snapshot.data() : undefined;
-  return resolvePlan(data?.subscriptionTier ?? data?.plan, snapshot.exists);
+  return resolvePlan(data?.plan, snapshot.exists);
 };
 
 export const assertCapability = (plan: PlanEntitlements, capability: Capability): void => {

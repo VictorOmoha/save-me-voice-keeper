@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
+import {verifyExtensionAccess} from "../extensionAuth/functions";
 import {predictCategory, recordCategorySignal} from "../entryIntelligence/categoryIntelligence";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -11,11 +12,14 @@ import {predictCategory, recordCategorySignal} from "../entryIntelligence/catego
 
 export const quickSave = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
-    if (!user) { res.status(401).json({error: "Unauthorized"}); return; }
     if (req.method !== "POST") { res.status(405).json({error: "Method not allowed"}); return; }
 
     const {title, content, url, pageTitle, dryRun} = req.body;
+    const requiredScope = dryRun ? "category:predict" : "entries:create";
+    const extensionUser = await verifyExtensionAccess(req, requiredScope);
+    const webUser = extensionUser ? null : await verifyAuth(req);
+    const user = extensionUser || webUser;
+    if (!user) { res.status(401).json({error: "Unauthorized"}); return; }
     if (!title && !content && !pageTitle) {
       res.status(400).json({error: "title, content, or pageTitle required"});
       return;

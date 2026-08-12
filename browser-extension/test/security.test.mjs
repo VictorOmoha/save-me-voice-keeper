@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+const root=new URL('..',import.meta.url).pathname;const read=(f)=>readFile(root+f,'utf8');
+test('production manifest is canonical and least privilege',async()=>{const m=JSON.parse(await read('/manifest.json'));assert.deepEqual(m.host_permissions,['https://saveme.space/*']);assert.equal(m.content_scripts,undefined);assert(!m.permissions.includes('scripting'));assert.equal(m.commands.nova.description,'Open Nova Brain Dump');});
+test('compromised page script has no relay or injectable content boundary',async()=>{const bg=await read('/background.js');assert(!/relay-auth-token|saveme:auth-token|saveme:request-token|postMessage|CustomEvent/.test(bg));assert.match(bg,/sender\?\.id===chrome\.runtime\.id/);assert.match(bg,/!sender\.tab/);});
+test('only refresh artifact and metadata are persisted',async()=>{const bg=await read('/background.js');assert(!/set\(\{[^}]*accessToken/.test(bg));assert.match(bg,/refreshToken:d\.refreshToken/);assert.match(bg,/renewalPromise/);});
+test('BrowserRouter routes use canonical real paths',async()=>{const bg=await read('/background.js'),popup=await read('/popup.js');for(const text of [bg,popup]){assert(!text.includes('/#/'));assert(!text.includes('web.app'));assert.match(text,/https:\/\/saveme\.space/);}});

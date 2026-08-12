@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { getAuthErrorInfo, getGoogleAuthFailureMode } from './authErrors';
 import { logAuth } from '@/utils/logger';
+import { revokeExtensionCredentials } from './extensionCredentialService';
 
 const RESET_PASSWORD_MESSAGE = 'If an account exists for that email, a password reset link has been sent.';
 
@@ -110,6 +111,7 @@ export const authService = {
 
   logout: async (): Promise<void> => {
     try {
+      await revokeExtensionCredentials();
       await signOut(auth);
     } catch (error) {
       const { code } = getAuthErrorInfo(error);

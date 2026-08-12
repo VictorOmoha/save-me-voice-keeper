@@ -110,8 +110,8 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
+    await revokeExtensionCredentials().catch((error) => logAuth('extension credential revocation failed', {code: getAuthErrorInfo(error).code}));
     try {
-      await revokeExtensionCredentials();
       await signOut(auth);
     } catch (error) {
       const { code } = getAuthErrorInfo(error);

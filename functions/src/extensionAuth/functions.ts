@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {createHash, randomBytes, randomUUID, timingSafeEqual} from "crypto";
 import {verifyAuth} from "../common/auth";
+import {getChromeExtensionOrigin} from "../common/http";
 
 const ORIGIN = "https://saveme.space";
 const SCOPE = ["entries:create", "category:predict"] as const;
@@ -126,6 +127,7 @@ export const extensionRevokeAll = functions.https.onRequest(async (req, res) => 
 });
 
 export async function verifyExtensionAccess(req: functions.https.Request, requiredScope: typeof SCOPE[number]) {
+  if (!getChromeExtensionOrigin(req.get("origin"))) return null;
   const match = /^Bearer (sme_a_[A-Za-z0-9_-]+)$/.exec(req.get("authorization") || ""); if (!match) return null;
   const db = admin.firestore(); const accessSnap = await db.collection("extensionAccessTokens").doc(hash(match[1])).get(); const access = accessSnap.data();
   if (!access || access.expiresAt <= Date.now() || !access.scope?.includes(requiredScope)) return null;

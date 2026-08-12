@@ -1,5 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getGoogleAuthFailureMode } from "@/services/authErrors";
+
+const {signOutMock, revokeMock} = vi.hoisted(() => ({
+  signOutMock: vi.fn(),
+  revokeMock: vi.fn(),
+}));
+
+vi.mock("@/lib/firebase", () => ({auth: {currentUser: {getIdToken: vi.fn()}}}));
+vi.mock("firebase/auth", () => ({
+  signInWithEmailAndPassword: vi.fn(),
+  createUserWithEmailAndPassword: vi.fn(),
+  signOut: signOutMock,
+  sendPasswordResetEmail: vi.fn(),
+  sendEmailVerification: vi.fn(),
+  updateProfile: vi.fn(),
+  GoogleAuthProvider: class { setCustomParameters() {} },
+  signInWithPopup: vi.fn(),
+  signInWithRedirect: vi.fn(),
+}));
+vi.mock("@/services/extensionCredentialService", () => ({revokeExtensionCredentials: revokeMock}));
+vi.mock("@/utils/logger", () => ({logAuth: vi.fn()}));
+
+import {authService} from "@/services/authService";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("getGoogleAuthFailureMode", () => {
   it("uses redirect fallback for generic Google iframe DOMExceptions", () => {
@@ -18,5 +44,14 @@ describe("getGoogleAuthFailureMode", () => {
       shouldTryRedirect: false,
       message: "Sign-in was cancelled",
     });
+  });
+});
+
+describe("authService.logout", () => {
+  it("still performs Firebase local sign-out when extension revocation is unavailable", async () => {
+    revokeMock.mockRejectedValueOnce(new Error("revocation outage"));
+
+    await expect(authService.logout()).resolves.toBeUndefined();
+    expect(signOutMock).toHaveBeenCalledOnce();
   });
 });

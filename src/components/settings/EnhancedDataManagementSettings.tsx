@@ -9,11 +9,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { Bot, Database, Download, Trash2, Shield, RefreshCw } from "lucide-react";
+import { buildAccountDeletionSupportHref } from "@/lib/accountDeletionSupport";
 
 export const EnhancedDataManagementSettings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [storageStats, setStorageStats] = useState({
     entries: 0,
     sharedMemories: 0,
@@ -22,7 +23,6 @@ export const EnhancedDataManagementSettings = () => {
     lastBackup: null as Date | null,
   });
   const [isExporting, setIsExporting] = useState(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const loadStorageStats = useCallback(async () => {
     if (!user) return;
@@ -178,29 +178,7 @@ export const EnhancedDataManagementSettings = () => {
     }, 100);
   };
 
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-
-    setIsDeletingAccount(true);
-    try {
-      toast({
-        title: "Account deletion requested",
-        description: "Please contact support to complete account deletion.",
-      });
-
-      await logout();
-      window.location.href = "/";
-    } catch (error) {
-      console.error("Error deleting account:", error);
-      toast({
-        title: "Deletion failed",
-        description: "Failed to delete account. Please contact support.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeletingAccount(false);
-    }
-  };
+  const deletionSupportHref = buildAccountDeletionSupportHref(user);
 
   const storageUsedPercent = Math.min((storageStats.totalSize / (10 * 1024 * 1024)) * 100, 100);
   const hasExportableData = storageStats.entries + storageStats.sharedMemories + storageStats.apiKeys > 0;
@@ -311,13 +289,13 @@ export const EnhancedDataManagementSettings = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Request account deletion</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The automated account purge is not implemented yet. Continuing records a support-directed request, signs you out, and does not itself delete account data. Contact support to verify the request and scope. Subscription cancellation is separate and does not delete data. See the <Link className="underline underline-offset-2" to="/privacy">Privacy Policy</Link> for the approved target workflow and current limitations.
+                    The automated account purge is not implemented yet. Continuing opens a prefilled email to support; it does not record or complete a request, delete data, or sign you out. Send the email and wait for support confirmation. Subscription cancellation is separate and does not delete data. See the <Link className="underline underline-offset-2" to="/privacy">Privacy Policy</Link> for the currently effective policy.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => void handleDeleteAccount()} disabled={isDeletingAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    {isDeletingAccount ? "Submitting..." : "Continue to support request"}
+                  <AlertDialogAction asChild className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <a href={deletionSupportHref}>Open prefilled support email</a>
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

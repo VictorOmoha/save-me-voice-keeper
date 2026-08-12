@@ -1,27 +1,195 @@
-import { useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import { LEGAL_METADATA } from "@/content/legalContent";
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 const TermsOfService = () => {
-  useEffect(() => window.scrollTo(0, 0), []);
-  return <div className="min-h-screen bg-background">
-    <header className="border-b"><div className="container mx-auto px-4 py-4"><Button asChild variant="ghost"><Link to="/"><ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to Home</Link></Button></div></header>
-    <main className="container mx-auto px-4 py-12 max-w-4xl"><article className="prose prose-slate dark:prose-invert max-w-none">
-      <h1>Terms of Service</h1>
-      <div className="border border-amber-500/40 bg-amber-500/10 rounded-lg p-4" role="status"><strong>Engineering draft — human legal approval required.</strong> These operational terms are not effective until approved by qualified counsel and the product owner.</div>
-      <p className="text-muted-foreground"><strong>Status:</strong> {LEGAL_METADATA.status}<br /><strong>Draft prepared:</strong> {LEGAL_METADATA.prepared}<br /><strong>Version:</strong> {LEGAL_METADATA.version}</p>
-      <h2>1. Service</h2><p>SaveMe Voice Keeper is a cloud service operated by Omoha Solutions for capturing, storing, organizing, searching, and exporting user content through text, uploaded files, voice input, AI processing, and optional agent or webhook connections. Features can be changed, interrupted, or unavailable, and AI output and transcription may contain errors.</p>
-      <h2>2. Accounts and acceptable use</h2><p>Users must provide accurate account information, protect their credentials and agent keys, and use the service lawfully. Users must not attempt unauthorized access, disrupt the service, upload malicious code, or use SaveMe to violate another person's rights. Age eligibility, parental-consent language, governing law, dispute terms, warranty exclusions, and liability terms require counsel approval and are not concluded by this engineering draft.</p>
-      <h2>3. Voice, AI, and memory</h2><p>Voice audio is transmitted to Google Gemini through Google Cloud for transcription and agent processing; the implemented SaveMe server does not persist raw microphone audio in Firestore or Cloud Storage. Transcript and conversation text can be stored. Relevant content and memory context can be processed by Google and, in specific implemented paths, OpenAI. Text-to-speech may use Google, ElevenLabs, MiniMax, or browser/OS speech services. See the <Link to="/privacy">Privacy Policy engineering draft</Link> for details and known operational limits.</p>
-      <p>Nova may automatically extract and store facts from conversations, including sensitive facts a user chooses to provide, and can mirror them to shared memory. Users are responsible for reviewing AI-created content and deciding what to provide.</p>
-      <h2>4. Connected agents and integrations</h2><p>A user who creates and supplies an agent key directs SaveMe to let that third-party agent access shared memory according to the key's read/write permissions. A read key can expose the shared-memory corpus; a write key can change it. Current visibility labels do not provide a verified per-agent record boundary. Users should connect only trusted agents, protect raw keys, and use the least permission needed. Self-service revocation is not yet implemented as a verified reliable path and must not be relied on as instantaneous.</p><p>User-configured webhooks and Zapier destinations can receive full entry objects and account email. The user is responsible for the destination and its terms.</p>
-      <h2>5. Plans, billing, cancellation, and refunds</h2><p>The approved launch catalog is Free ($0, 50 entries, 500 MB), Basic ($9/month, unlimited entries, 5 GB), and Premium ($19/month, unlimited entries, 50 GB). Plans are monthly. The Free plan is the no-card evaluation path; there is no paid trial. Stripe-hosted card checkout is the only launch payment method.</p><p>Upgrades take effect immediately with Stripe proration. Downgrades and cancellations take effect at the end of the paid period. A past-due paid subscription has a seven-day grace period. After downgrade or grace expiry, existing content remains readable and exportable while over-limit writes may be locked. Cancellation stops renewal and does not delete account data. No partial-month refunds are offered except where required by law.</p>
-      <h2>6. Export and account deletion</h2><p>The current product offers a limited JSON export of entries, shared memories, preferences, and agent-key metadata. It is not a backup or a complete portable archive. The approved full archive and restore-independent data-rights workflow remain under implementation.</p><p>Account deletion is separate from cancellation. Current settings direct users to support and do not implement the approved asynchronous purge. The approved target requires recent authentication, agent/scheduled-access revocation first, manifest-driven deletion of application, derived, mirrored, storage, and applicable device-side data, and Auth identity deletion last, as soon as practical and no later than 30 days after a valid request, subject to narrowly documented retention exceptions. This target is not a claim that the current workflow is operational.</p>
-      <h2>7. Contact and legal gate</h2><p>Questions may be sent to <a href="mailto:victor@omohasolutions.com">victor@omohasolutions.com</a>. Counsel must approve final assent mechanics, operator/contact details, age and jurisdiction terms, intellectual-property terms, suspension rights, warranty and liability language, dispute process, statutory consumer terms, notice procedures, and effective/version metadata before publication.</p>
-      <nav aria-label="Legal documents" className="mt-10 flex gap-4"><Link to="/privacy">Privacy Policy</Link><a href="mailto:victor@omohasolutions.com?subject=Terms%20Inquiry%20-%20SaveMe">Contact</a></nav>
-    </article></main>
-  </div>;
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4">
+          <Link to="/">
+            <Button variant="ghost" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      {/* Content */}
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <div className="prose prose-slate dark:prose-invert max-w-none">
+          <h1>Terms of Service</h1>
+          <p className="text-muted-foreground">
+            <strong>Effective Date:</strong> January 15, 2026<br />
+            <strong>Last Updated:</strong> November 17, 2025
+          </p>
+
+          <h2>1. AGREEMENT TO TERMS</h2>
+          <p>
+            By accessing or using SaveMe Voice Keeper ("SaveMe," "the Service," "we," "us," or "our"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these Terms, you may not access the Service.
+          </p>
+          <p>
+            <strong>SaveMe Voice Keeper</strong> is a voice-enabled data management platform operated by:
+          </p>
+          <p>
+            <strong>Omoha Solutions</strong><br />
+            1300 South Blvd STE 30101<br />
+            Charlotte, NC 28203<br />
+            Email: victor@omohasolutions.com
+          </p>
+
+          <h2>2. SERVICE DESCRIPTION</h2>
+          <p>SaveMe provides a cloud-based data management platform with the following features:</p>
+          <ul>
+            <li><strong>Voice Input & Commands:</strong> Natural language voice interaction for data entry and navigation</li>
+            <li><strong>Data Storage & Organization:</strong> Store and organize text, documents, notes, and files</li>
+            <li><strong>Multi-Format Document Support:</strong> Handle PDF, DOCX, Excel, and other file formats</li>
+            <li><strong>AI Processing:</strong> Voice-to-text conversion and natural language understanding</li>
+            <li><strong>Category Management:</strong> Organize data into custom categories</li>
+            <li><strong>Export Functionality:</strong> Download your data in various formats</li>
+            <li><strong>Search & Analytics:</strong> Find and analyze your stored information</li>
+          </ul>
+
+          <h2>3. USER ACCOUNTS</h2>
+          <h3>3.1 Account Creation</h3>
+          <ul>
+            <li>You must provide accurate, complete, and current information during registration</li>
+            <li>You must be at least 18 years old or have parental consent to use SaveMe</li>
+            <li>You are responsible for maintaining the security of your account credentials</li>
+            <li>You are responsible for all activities that occur under your account</li>
+          </ul>
+
+          <h3>3.2 Account Security</h3>
+          <ul>
+            <li>Do not share your password with others</li>
+            <li>Notify us immediately of any unauthorized access or security breach</li>
+            <li>We are not liable for any loss or damage from your failure to maintain account security</li>
+          </ul>
+
+          <h2>4. VOICE DATA & AI PROCESSING</h2>
+          <p>By using SaveMe's voice features, you understand and agree that:</p>
+          <ul>
+            <li><strong>Voice recordings are processed</strong> using third-party AI services (currently 11Labs)</li>
+            <li><strong>Voice data is converted to text</strong> and stored in our database</li>
+            <li><strong>Audio recordings are NOT permanently stored</strong> unless you explicitly save them</li>
+            <li><strong>Temporary voice clips</strong> may be cached for processing but are deleted after conversion</li>
+            <li><strong>Voice commands</strong> are processed to control the application and enter data</li>
+          </ul>
+
+          <h2>5. SUBSCRIPTION & PAYMENT TERMS</h2>
+          <h3>5.1 Pricing Plans</h3>
+
+          <h4>Free Tier:</h4>
+          <ul>
+            <li>100 entries maximum</li>
+            <li>50MB storage</li>
+            <li>Basic voice commands</li>
+            <li>3 categories</li>
+            <li>PDF export only</li>
+            <li>No payment required</li>
+          </ul>
+
+          <h4>Pro Tier - $12/month or $120/year:</h4>
+          <ul>
+            <li>Unlimited entries</li>
+            <li>5GB storage</li>
+            <li>Advanced voice commands</li>
+            <li>Unlimited categories</li>
+            <li>All export formats</li>
+            <li>Priority support</li>
+          </ul>
+
+          <h3>5.2 Billing Terms</h3>
+          <ul>
+            <li>Subscriptions are billed in advance on a monthly or annual basis</li>
+            <li>Annual plans are billed once per year and offer a discount</li>
+            <li>All fees are in U.S. Dollars (USD)</li>
+            <li>Payments are processed through Stripe</li>
+          </ul>
+
+          <h3>5.3 Refund Policy</h3>
+          <ul>
+            <li><strong>Monthly subscriptions:</strong> No refunds for partial months</li>
+            <li><strong>Annual subscriptions:</strong> Prorated refund if cancelled within 30 days</li>
+            <li>Refunds are issued to the original payment method within 5-10 business days</li>
+          </ul>
+
+          <h2>6. ACCEPTABLE USE POLICY</h2>
+          <p>You agree NOT to:</p>
+          <ul>
+            <li>Use SaveMe for any illegal purpose</li>
+            <li>Violate any laws, regulations, or third-party rights</li>
+            <li>Attempt to gain unauthorized access to our systems</li>
+            <li>Interfere with or disrupt the Service</li>
+            <li>Reverse engineer, decompile, or attempt to extract source code</li>
+            <li>Upload viruses, malware, or harmful code</li>
+          </ul>
+
+          <h2>7. DISCLAIMERS & WARRANTIES</h2>
+          <p className="uppercase font-bold">
+            THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.
+          </p>
+          <ul>
+            <li>Voice recognition technology may produce errors - you must review all voice-transcribed content</li>
+            <li>We are not liable for inaccuracies in voice-to-text conversion</li>
+            <li>We recommend maintaining backup copies of important data</li>
+          </ul>
+
+          <h2>8. LIMITATION OF LIABILITY</h2>
+          <p className="uppercase font-bold">
+            OUR TOTAL LIABILITY TO YOU FOR ANY CLAIMS SHALL NOT EXCEED:
+          </p>
+          <ul>
+            <li>For Free tier users: $100 USD</li>
+            <li>For paid users: The amount you paid in the last 12 months</li>
+          </ul>
+
+          <h2>9. CONTACT INFORMATION</h2>
+          <p>For questions regarding these Terms, contact us:</p>
+          <p>
+            <strong>Omoha Solutions</strong><br />
+            1300 South Blvd STE 30101<br />
+            Charlotte, NC 28203<br />
+            United States
+          </p>
+          <p>
+            <strong>Email:</strong> victor@omohasolutions.com<br />
+            <strong>Website:</strong> www.saveme.space
+          </p>
+
+          <div className="mt-12 p-6 bg-muted rounded-lg">
+            <p className="text-sm uppercase font-bold">
+              BY USING SAVEME VOICE KEEPER, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREE TO BE BOUND BY THESE TERMS OF SERVICE.
+            </p>
+            <p className="text-sm mt-4">
+              If you do not agree to these Terms, you must not use the Service.
+            </p>
+            <p className="text-xs text-muted-foreground mt-4">
+              <strong>Document Version:</strong> 1.0<br />
+              <strong>Effective Date:</strong> January 15, 2026<br />
+              <strong>Last Reviewed:</strong> November 17, 2025
+            </p>
+            <p className="text-xs text-muted-foreground mt-2 italic">
+              These Terms of Service should be reviewed by a licensed attorney before public deployment.
+            </p>
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link to="/">
+              <Button>Return to Home</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
+
 export default TermsOfService;

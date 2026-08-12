@@ -63,14 +63,22 @@ export const sendEntitlementError = (res: functions.Response, error: unknown): b
   return true;
 };
 
-export const resolvePlan = (rawPlan: unknown, userDocumentExists = true): PlanEntitlements => {
-  // Migration rule: a missing user doc or absent/null/blank plan is Free. An
-  // explicit unrecognized value is never upgraded or silently normalized.
+export const resolvePlan = (
+  rawPlan: unknown,
+  userDocumentExists = true,
+  entitled?: unknown
+): PlanEntitlements => {
+  // Migration rule: a missing entitlement doc or absent/null/blank plan is Free.
+  // An explicit unrecognized value is never upgraded or silently normalized.
   if (!userDocumentExists || rawPlan === undefined || rawPlan === null || rawPlan === "") return PLAN_CATALOG.free;
-  if (typeof rawPlan === "string" && Object.prototype.hasOwnProperty.call(PLAN_CATALOG, rawPlan)) {
-    return PLAN_CATALOG[rawPlan as PlanId];
+  if (typeof rawPlan !== "string" || !Object.prototype.hasOwnProperty.call(PLAN_CATALOG, rawPlan)) {
+    throw new EntitlementError("ENTITLEMENT_UNKNOWN_PLAN", "Account plan is not recognized", 403);
   }
-  throw new EntitlementError("ENTITLEMENT_UNKNOWN_PLAN", "Account plan is not recognized", 403);
+  const plan = PLAN_CATALOG[rawPlan as PlanId];
+  // SAVE-106 lifecycle projection is authoritative: a paid plan identifier alone
+  // cannot grant access when the normalized lifecycle is non-entitled.
+  if (plan.id !== "free" && entitled !== true) return PLAN_CATALOG.free;
+  return plan;
 };
 
 export const readUserEntitlements = async (
@@ -81,7 +89,7 @@ export const readUserEntitlements = async (
   // client-writable profile data and is never authoritative for paid access.
   const snapshot = await db.collection("billing_entitlements").doc(uid).get();
   const data = snapshot.exists ? snapshot.data() : undefined;
-  return resolvePlan(data?.plan, snapshot.exists);
+  return resolvePlan(data?.plan, snapshot.exists, data?.entitled);
 };
 
 export const assertCapability = (plan: PlanEntitlements, capability: Capability): void => {

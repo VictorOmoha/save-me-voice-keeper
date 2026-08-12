@@ -76,18 +76,13 @@ describe("PLAN_CATALOG — pricing", () => {
     expect(sellable.sort()).toEqual(["basic", "premium"]);
   });
 
-  it("no paid plan carries a real Stripe price ID in source (placeholders only)", () => {
-    // Guard against someone committing a live price ID into the catalog.
-    // Live Stripe price IDs start with "price_" followed by a long random suffix;
-    // the placeholders here are short, human-readable sentinels shared with
-    // functions/src/billing/functions.ts.
+  it("stores only environment variable names, never Stripe price IDs", () => {
     for (const plan of PLANS_IN_ORDER) {
       for (const env of ["test", "live"] as const) {
         const byPeriod = plan.stripe[env];
         if (!byPeriod) continue;
         for (const period of Object.keys(byPeriod) as Array<"month" | "year">) {
-          const mapping = byPeriod[period];
-          expect(mapping?.resolvedFromEnv).toBe(false);
+          expect(byPeriod[period]?.envVar).toMatch(/^STRIPE_(TEST|LIVE)_/);
         }
       }
     }
@@ -152,21 +147,15 @@ describe("getPlan / isPlanId", () => {
 });
 
 describe("resolveStripePriceId", () => {
-  it("returns the placeholder when no env var is set", () => {
-    expect(resolveStripePriceId("basic", "month", "test", {})).toBe(
-      "price_basic_monthly"
-    );
-    expect(resolveStripePriceId("premium", "month", "live", {})).toBe(
-      "price_premium_monthly"
-    );
+  it("fails closed when an environment price is unconfigured", () => {
+    expect(resolveStripePriceId("basic", "month", "test", {})).toBeNull();
+    expect(resolveStripePriceId("premium", "month", "live", {})).toBeNull();
   });
 
-  it("prefers a real env var over the placeholder", () => {
-    expect(
-      resolveStripePriceId("basic", "month", "live", {
-        STRIPE_BASIC_PRICE_ID: "price_REAL_from_env",
-      })
-    ).toBe("price_REAL_from_env");
+  it("resolves the environment-specific immutable price", () => {
+    expect(resolveStripePriceId("basic", "month", "live", {
+      STRIPE_LIVE_BASIC_MONTHLY_PRICE_ID: "price_REAL_from_env",
+    })).toBe("price_REAL_from_env");
   });
 
   it("returns null for the free plan (no price)", () => {
@@ -179,9 +168,13 @@ describe("resolveStripePriceId", () => {
 });
 
 describe("planFromStripePriceId", () => {
-  it("maps known placeholder prices to their plans", () => {
-    expect(planFromStripePriceId("price_basic_monthly")).toBe("basic");
-    expect(planFromStripePriceId("price_premium_monthly")).toBe("premium");
+  it("maps configured environment prices to their plans", () => {
+    const env = {
+      STRIPE_TEST_BASIC_MONTHLY_PRICE_ID: "price_basic_test",
+      STRIPE_TEST_PREMIUM_MONTHLY_PRICE_ID: "price_premium_test",
+    };
+    expect(planFromStripePriceId("price_basic_test", env)).toBe("basic");
+    expect(planFromStripePriceId("price_premium_test", env)).toBe("premium");
   });
 
   it("returns undefined for an unknown price ID (never defaults to a paid plan)", () => {

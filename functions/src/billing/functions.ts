@@ -1,265 +1,161 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import type Stripe from "stripe";
 import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
-import {
-  getCheckoutPlanConfig,
-  getSafeOrigin,
-  sanitizeReturnUrl,
-} from "./safety";
+import {getCheckoutPlanConfig, getSafeOrigin, sanitizeReturnUrl} from "./safety";
+import {BillingConfigurationError, customerBelongsToUser, loadPriceCatalog, normalizeLifecycle, type BillingEntitlement, type LifecycleEvent} from "./core";
+import {getStripeClient} from "./stripeClient";
 
-/**
- * Stripe Create Checkout Session
- */
-export const createCheckout = functions.https.onRequest(
-  withCors(async (req, res) => {
-    // Verify authentication
-    const user = await verifyAuth(req);
-    if (!user) {
-      res.status(401).json({error: "Unauthorized"});
-      return;
-    }
+const configurationFailure = (res: functions.Response, error: unknown): boolean => {
+  if (!(error instanceof BillingConfigurationError)) return false;
+  console.error("Billing configuration error:", error.message);
+  res.status(503).json({error: "Billing is not configured"});
+  return true;
+};
 
-    if (req.method !== "POST") {
-      res.status(405).json({error: "Method not allowed"});
-      return;
-    }
-
-    const {plan} = req.body;
-    const checkoutPlan = getCheckoutPlanConfig(plan);
-
-    if (!checkoutPlan) {
-      res.status(400).json({error: "Valid plan is required"});
-      return;
-    }
-
-    // Get Stripe secret key from Firebase config
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeSecretKey) {
-      res.status(500).json({error: "Stripe not configured"});
-      return;
-    }
-
-    // Dynamic import for Stripe
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
-    });
-
-    try {
-      // Get or create Stripe customer
-      const db = admin.firestore();
-      const userDoc = await db.collection("users").doc(user.uid).get();
-      let customerId = userDoc.data()?.stripeCustomerId;
-
-      if (!customerId) {
-        // Create new Stripe customer
-        const customer = await stripe.customers.create({
-          email: user.email || undefined,
-          metadata: {
-            firebaseUserId: user.uid,
-          },
-        });
-        customerId = customer.id;
-
-        // Save customer ID to Firestore
-        await db.collection("users").doc(user.uid).set({
-          stripeCustomerId: customerId,
-        }, {merge: true});
-      }
-
-      // Create checkout session
-      const requestOrigin = getSafeOrigin(req.headers.origin);
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        payment_method_types: ["card"],
-        line_items: [
-          {
-            price: checkoutPlan.priceId,
-            quantity: 1,
-          },
-        ],
-        mode: "subscription",
-        success_url: `${requestOrigin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${requestOrigin}/subscription`,
-        metadata: {
-          firebaseUserId: user.uid,
-          plan: checkoutPlan.plan,
-        },
-      });
-
-      res.json({sessionId: session.id, url: session.url});
-    } catch (error) {
-      console.error("Stripe checkout error:", error);
-      res.status(500).json({error: "Failed to create checkout session"});
-    }
-  })
-);
-
-/**
- * Stripe Customer Portal
- */
-export const customerPortal = functions.https.onRequest(
-  withCors(async (req, res) => {
-    // Verify authentication
-    const user = await verifyAuth(req);
-    if (!user) {
-      res.status(401).json({error: "Unauthorized"});
-      return;
-    }
-
-    if (req.method !== "POST") {
-      res.status(405).json({error: "Method not allowed"});
-      return;
-    }
-
-    const {returnUrl} = req.body;
-
-    // Get Stripe secret key from Firebase config
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeSecretKey) {
-      res.status(500).json({error: "Stripe not configured"});
-      return;
-    }
-
-    // Dynamic import for Stripe
-    const Stripe = (await import("stripe")).default;
-    const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
-    });
-
-    try {
-      // Get Stripe customer ID from Firestore
-      const db = admin.firestore();
-      const userDoc = await db.collection("users").doc(user.uid).get();
-      const customerId = userDoc.data()?.stripeCustomerId;
-
-      if (!customerId) {
-        res.status(400).json({error: "No subscription found"});
-        return;
-      }
-
-      // Create portal session
-      const session = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: sanitizeReturnUrl(returnUrl, req.headers.origin, "/settings"),
-      });
-
-      res.json({url: session.url});
-    } catch (error) {
-      console.error("Customer portal error:", error);
-      res.status(500).json({error: "Failed to create portal session"});
-    }
-  })
-);
-
-/**
- * Stripe Webhook Handler
- */
-export const stripeWebhook = functions.https.onRequest(async (req, res) => {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!stripeSecretKey || !webhookSecret) {
-    res.status(500).json({error: "Stripe not configured"});
-    return;
-  }
-
-  // Dynamic import for Stripe
-  const Stripe = (await import("stripe")).default;
-  const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2023-10-16",
-  });
-
-  const sig = req.headers["stripe-signature"];
-  if (!sig) {
-    res.status(400).json({error: "Missing signature"});
-    return;
-  }
-
-  const rawBody = req.rawBody || req.body;
-  if (!rawBody) {
-    console.error("Stripe webhook: no rawBody available on request");
-    res.status(400).json({error: "Missing request body"});
-    return;
-  }
-
-  let event;
+export const createCheckout = functions.https.onRequest(withCors(async (req, res) => {
+  const user = await verifyAuth(req);
+  if (!user) return void res.status(401).json({error: "Unauthorized"});
+  if (req.method !== "POST") return void res.status(405).json({error: "Method not allowed"});
   try {
-    event = stripe.webhooks.constructEvent(
-      rawBody,
-      sig,
-      webhookSecret
-    );
-  } catch (err) {
-    console.error("Webhook signature verification failed:", err);
-    res.status(400).json({error: "Invalid signature"});
-    return;
-  }
-
-  const db = admin.firestore();
-
-  // Handle the event
-  switch (event.type) {
-  case "checkout.session.completed": {
-    const session = event.data.object as { metadata?: { firebaseUserId?: string }; subscription?: string | null };
-    const userId = session.metadata?.firebaseUserId;
-
-    if (userId) {
-      await db.collection("users").doc(userId).set({
-        subscriptionStatus: "active",
-        subscriptionId: session.subscription,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
+    const checkoutPlan = getCheckoutPlanConfig(req.body?.plan);
+    if (!checkoutPlan) return void res.status(400).json({error: "Valid plan is required"});
+    const stripe = getStripeClient();
+    const db = admin.firestore();
+    const userRef = db.collection("users").doc(user.uid);
+    const userDoc = await userRef.get();
+    let customerId = userDoc.data()?.stripeCustomerId as string | undefined;
+    if (customerId) {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (!customerBelongsToUser(customer as Stripe.Customer | Stripe.DeletedCustomer, user.uid)) {
+        console.error("Checkout customer ownership mismatch", {uid: user.uid, customerId});
+        return void res.status(409).json({error: "Billing customer ownership mismatch"});
+      }
+    } else {
+      const customer = await stripe.customers.create({email: user.email || undefined, metadata: {firebaseUserId: user.uid}}, {idempotencyKey: `firebase-customer-${user.uid}`});
+      customerId = customer.id;
+      await userRef.set({stripeCustomerId: customerId}, {merge: true});
     }
-    break;
+    const requestOrigin = getSafeOrigin(req.headers.origin);
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      line_items: [{price: checkoutPlan.priceId, quantity: 1}],
+      mode: "subscription",
+      success_url: `${requestOrigin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${requestOrigin}/subscription`,
+      client_reference_id: user.uid,
+      metadata: {firebaseUserId: user.uid, plan: checkoutPlan.plan},
+      subscription_data: {metadata: {firebaseUserId: user.uid}},
+    });
+    res.json({sessionId: session.id, url: session.url});
+  } catch (error) {
+    if (configurationFailure(res, error)) return;
+    console.error("Stripe checkout error:", error);
+    res.status(500).json({error: "Failed to create checkout session"});
   }
+}));
 
-  case "customer.subscription.updated":
-  case "customer.subscription.deleted": {
-    const subscription = event.data.object as { customer?: string; status?: string; items?: { data?: Array<{ price?: { id?: string } }> } };
-    const customerId = subscription.customer;
-
-    // Find user by customer ID
-    const usersSnapshot = await db.collection("users")
-      .where("stripeCustomerId", "==", customerId)
-      .limit(1)
-      .get();
-
-    if (!usersSnapshot.empty) {
-      const userDoc = usersSnapshot.docs[0];
-      await userDoc.ref.set({
-        subscriptionStatus: subscription.status,
-        subscriptionTier: subscription.status === "active" ?
-          getPlanFromPriceId(subscription.items?.data?.[0]?.price?.id || "") : "free",
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, {merge: true});
+export const customerPortal = functions.https.onRequest(withCors(async (req, res) => {
+  const user = await verifyAuth(req);
+  if (!user) return void res.status(401).json({error: "Unauthorized"});
+  if (req.method !== "POST") return void res.status(405).json({error: "Method not allowed"});
+  try {
+    const stripe = getStripeClient();
+    const userDoc = await admin.firestore().collection("users").doc(user.uid).get();
+    const customerId = userDoc.data()?.stripeCustomerId as string | undefined;
+    if (!customerId) return void res.status(400).json({error: "No subscription found"});
+    const customer = await stripe.customers.retrieve(customerId);
+    if (!customerBelongsToUser(customer as Stripe.Customer | Stripe.DeletedCustomer, user.uid)) {
+      console.error("Portal customer ownership mismatch", {uid: user.uid, customerId});
+      return void res.status(403).json({error: "Billing customer ownership mismatch"});
     }
-    break;
+    const session = await stripe.billingPortal.sessions.create({customer: customerId, return_url: sanitizeReturnUrl(req.body?.returnUrl, req.headers.origin, "/settings")});
+    res.json({url: session.url});
+  } catch (error) {
+    if (configurationFailure(res, error)) return;
+    console.error("Customer portal error:", error);
+    res.status(500).json({error: "Failed to create portal session"});
   }
+}));
 
-  default:
-    console.log(`Unhandled event type: ${event.type}`);
+const customerIdOf = (value: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null => typeof value === "string" ? value : value?.id || null;
+
+export const lifecycleFromEvent = async (
+  event: Stripe.Event,
+  stripe: Pick<Stripe, "subscriptions">
+): Promise<LifecycleEvent | null> => {
+  if (event.type.startsWith("customer.subscription.")) {
+    const subscription = event.data.object as Stripe.Subscription;
+    return {id: event.id, created: event.created, type: event.type, status: event.type === "customer.subscription.deleted" ? "canceled" : subscription.status, priceId: subscription.items.data[0]?.price.id, customerId: customerIdOf(subscription.customer), subscriptionId: subscription.id, currentPeriodEnd: subscription.current_period_end};
   }
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object as Stripe.Invoice;
+    const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+    // A failed one-off invoice is not a subscription lifecycle event. Projecting it
+    // would incorrectly downgrade or grant grace to the customer's subscription.
+    if (!subscriptionId) return null;
+    // Stripe's subscription is authoritative for both lifecycle and price. Invoice
+    // lines can represent one-off adjustments and the subscription may already be
+    // terminal (`unpaid`) by the time this webhook is handled.
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    return {id: event.id, created: event.created, type: event.type, status: subscription.status, priceId: subscription.items.data[0]?.price.id, customerId: customerIdOf(subscription.customer), subscriptionId: subscription.id, currentPeriodEnd: subscription.current_period_end};
+  }
+  return null;
+};
 
-  res.json({received: true});
+const findOwnerUid = async (db: FirebaseFirestore.Firestore, customerId: string): Promise<string | null> => {
+  const snapshot = await db.collection("users").where("stripeCustomerId", "==", customerId).limit(2).get();
+  if (snapshot.size !== 1) {
+    console.error("Stripe customer must map to exactly one user", {customerId, matches: snapshot.size});
+    return null;
+  }
+  return snapshot.docs[0].id;
+};
+
+const applyLifecycleEvent = async (db: FirebaseFirestore.Firestore, uid: string, event: LifecycleEvent): Promise<"processed" | "duplicate"> => {
+  const catalog = loadPriceCatalog();
+  const ledgerRef = db.collection("stripe_event_ledger").doc(event.id);
+  const entitlementRef = db.collection("billing_entitlements").doc(uid);
+  return db.runTransaction(async (transaction) => {
+    if ((await transaction.get(ledgerRef)).exists) return "duplicate";
+    const entitlementDoc = await transaction.get(entitlementRef);
+    const previous = entitlementDoc.exists ? entitlementDoc.data() as BillingEntitlement : undefined;
+    const next = normalizeLifecycle(uid, event, catalog, previous);
+    transaction.create(ledgerRef, {eventId: event.id, eventType: event.type, eventCreated: event.created, uid, processedAt: admin.firestore.FieldValue.serverTimestamp(), stateApplied: !previous || next !== previous});
+    if (next !== previous) {
+      transaction.set(entitlementRef, {...next, updatedAt: admin.firestore.FieldValue.serverTimestamp()});
+      transaction.set(db.collection("users").doc(uid), {subscriptionTier: next.plan, subscriptionStatus: next.status, subscriptionActive: next.entitled, subscriptionId: next.stripeSubscriptionId, billingEntitlementVersion: next.schemaVersion, updatedAt: admin.firestore.FieldValue.serverTimestamp()}, {merge: true});
+    }
+    return "processed";
+  });
+};
+
+export const stripeWebhook = functions.https.onRequest(async (req, res) => {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  if (!webhookSecret) return void res.status(503).json({error: "Billing is not configured"});
+  let event: Stripe.Event;
+  try {
+    const signature = req.headers["stripe-signature"];
+    if (!signature) return void res.status(400).json({error: "Missing signature"});
+    event = getStripeClient().webhooks.constructEvent(req.rawBody || req.body, signature, webhookSecret);
+  } catch (error) {
+    if (configurationFailure(res, error)) return;
+    console.error("Webhook signature verification failed:", error);
+    return void res.status(400).json({error: "Invalid signature"});
+  }
+  try {
+    const lifecycle = await lifecycleFromEvent(event, getStripeClient());
+    if (!lifecycle) return void res.json({received: true, ignored: true});
+    if (!lifecycle.customerId) return void res.status(400).json({error: "Event has no customer"});
+    const db = admin.firestore();
+    const uid = await findOwnerUid(db, lifecycle.customerId);
+    if (!uid) return void res.status(409).json({error: "Customer ownership is not unique"});
+    const result = await applyLifecycleEvent(db, uid, lifecycle);
+    res.json({received: true, duplicate: result === "duplicate"});
+  } catch (error) {
+    if (configurationFailure(res, error)) return;
+    console.error("Stripe webhook processing failed:", {eventId: event.id, error});
+    res.status(500).json({error: "Webhook processing failed"});
+  }
 });
-
-/**
- * Helper to determine plan tier from Stripe price ID
- */
-function getPlanFromPriceId(priceId: string): string {
-  // Map your Stripe price IDs to plan names
-  const priceMap: Record<string, string> = {
-    // Add your actual Stripe price IDs here
-    "price_basic_monthly": "basic",
-    "price_basic_yearly": "basic",
-    "price_premium_monthly": "premium",
-    "price_premium_yearly": "premium",
-    "price_enterprise_monthly": "enterprise",
-    "price_enterprise_yearly": "enterprise",
-  };
-
-  return priceMap[priceId] || "basic";
-}
-

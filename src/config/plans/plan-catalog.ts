@@ -11,8 +11,8 @@
  *   entitlement values below are the ratified launch contract.
  * - Nothing in the live app imports this module yet. SAVE-105 owns server-side
  *   enforcement and shared client consumption.
- * - The Stripe price IDs below are PLACEHOLDER KEYS, not live price IDs. Real
- *   IDs remain environment-controlled. Unknown IDs must fail closed and alert.
+ * - Stripe price IDs are never stored in client source. They are immutable,
+ *   environment-specific server configuration. Unknown IDs fail closed.
  *
  * Location rationale: this lives under `src/config/plans/` because it is shared,
  * typed configuration consumed (eventually) by both the client (display) and —
@@ -93,9 +93,8 @@ export type StripeEnvironment = "test" | "live";
  * from environment variables so this file never carries a live ID.
  */
 export interface StripePriceMapping {
-  priceId: string;
-  /** True when the value came from an env var, false when it is a placeholder. */
-  resolvedFromEnv: boolean;
+  /** Environment variable containing the immutable Stripe price ID (server only). */
+  envVar: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,16 +181,6 @@ export interface PlanDefinition {
 // The catalog
 // ---------------------------------------------------------------------------
 
-/**
- * Placeholder price IDs. These intentionally mirror the placeholders already in
- * `functions/src/billing/functions.ts` so the mapping is greppable, and they are
- * NEVER a live price ID.
- */
-const PLACEHOLDER_PRICE = {
-  basicMonthly: "price_basic_monthly",
-  premiumMonthly: "price_premium_monthly",
-} as const;
-
 export const PLAN_CATALOG: Readonly<Record<PlanId, PlanDefinition>> = {
   free: {
     id: "free",
@@ -239,12 +228,8 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanDefinition>> = {
     },
     sellable: true,
     stripe: {
-      test: {
-        month: { priceId: PLACEHOLDER_PRICE.basicMonthly, resolvedFromEnv: false },
-      },
-      live: {
-        month: { priceId: PLACEHOLDER_PRICE.basicMonthly, resolvedFromEnv: false },
-      },
+      test: { month: { envVar: "STRIPE_TEST_BASIC_MONTHLY_PRICE_ID" } },
+      live: { month: { envVar: "STRIPE_LIVE_BASIC_MONTHLY_PRICE_ID" } },
     },
   },
 
@@ -270,12 +255,8 @@ export const PLAN_CATALOG: Readonly<Record<PlanId, PlanDefinition>> = {
     },
     sellable: true,
     stripe: {
-      test: {
-        month: { priceId: PLACEHOLDER_PRICE.premiumMonthly, resolvedFromEnv: false },
-      },
-      live: {
-        month: { priceId: PLACEHOLDER_PRICE.premiumMonthly, resolvedFromEnv: false },
-      },
+      test: { month: { envVar: "STRIPE_TEST_PREMIUM_MONTHLY_PRICE_ID" } },
+      live: { month: { envVar: "STRIPE_LIVE_PREMIUM_MONTHLY_PRICE_ID" } },
     },
   },
 
@@ -319,16 +300,8 @@ export const resolveStripePriceId = (
   const mapping = plan.stripe[env]?.[period];
   if (!mapping) return null;
 
-  // Real price IDs come from environment variables, never from this file.
-  const envVarName =
-    planId === "basic"
-      ? "STRIPE_BASIC_PRICE_ID"
-      : planId === "premium"
-        ? "STRIPE_PREMIUM_PRICE_ID"
-        : undefined;
-  const fromEnv = envVarName ? envVars[envVarName] : undefined;
-
-  return fromEnv && fromEnv.length > 0 ? fromEnv : mapping.priceId;
+  const fromEnv = envVars[mapping.envVar]?.trim();
+  return fromEnv || null;
 };
 
 /**
@@ -339,13 +312,17 @@ export const resolveStripePriceId = (
  * unrecognized price. Unknown price IDs must map to nothing (and alert), never
  * to a paid plan.
  */
-export const planFromStripePriceId = (priceId: string): PlanId | undefined => {
+export const planFromStripePriceId = (
+  priceId: string,
+  envVars: Record<string, string | undefined> = {}
+): PlanId | undefined => {
   for (const plan of PLANS_IN_ORDER) {
     for (const env of ["test", "live"] as const) {
       const byPeriod = plan.stripe[env];
       if (!byPeriod) continue;
       for (const period of Object.keys(byPeriod) as Array<"month" | "year">) {
-        if (byPeriod[period]?.priceId === priceId) return plan.id;
+        const variable = byPeriod[period]?.envVar;
+        if (variable && envVars[variable]?.trim() === priceId) return plan.id;
       }
     }
   }

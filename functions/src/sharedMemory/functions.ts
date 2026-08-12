@@ -10,6 +10,7 @@ import {updateSharedMemory} from "./update";
 import {batchCreateSharedMemories} from "./batchCreate";
 import {SharedMemoryCreateInput, SharedMemorySearchInput} from "./types";
 import {generateAgentApiKey, hashAgentApiKey, normalizeAgentPermissions} from "./agentKeys";
+import {assertArrayCap, assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, SERVICE_CAPS, SERVICE_QUOTAS} from "../common/abuseControl";
 
 export const sharedMemoryAgentStatus = functions.https.onRequest(
   withCors(async (req, res) => {
@@ -124,6 +125,15 @@ export const sharedMemoryCreate = functions.https.onRequest(
     }
 
     const input = req.body as SharedMemoryCreateInput;
+    try {
+      assertUtf8Bytes(input, SERVICE_CAPS.requestBytes);
+      assertStringCap(input?.title, SERVICE_CAPS.textChars, "title");
+      assertStringCap(input?.content, SERVICE_CAPS.textChars, "content");
+      await enforceAbuseControls({endpoint: "sharedMemoryCreate", user, req, policies: SERVICE_QUOTAS.sharedMemoryCreate});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
     if (!input?.title || !input?.content || !input?.type || !input?.source) {
       res.status(400).json({error: "title, content, type, and source are required"});
       return;
@@ -155,6 +165,18 @@ export const sharedMemorySearch = functions.https.onRequest(
     }
 
     const input = (req.body || {}) as SharedMemorySearchInput;
+    try {
+      assertUtf8Bytes(input, SERVICE_CAPS.requestBytes);
+      assertStringCap(input.query, SERVICE_CAPS.searchQueryChars, "query");
+      if (typeof input.limit === "number" && input.limit > SERVICE_CAPS.searchLimit) {
+        res.status(400).json({error: {code: "INVALID_ARGUMENT", message: `limit must be at most ${SERVICE_CAPS.searchLimit}`}});
+        return;
+      }
+      await enforceAbuseControls({endpoint: "sharedMemorySearch", user, req, policies: SERVICE_QUOTAS.sharedMemorySearch});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
 
     try {
       const db = admin.firestore();
@@ -284,6 +306,20 @@ export const sharedMemoryBatchCreate = functions.https.onRequest(
     }
 
     const memories = req.body?.memories as SharedMemoryCreateInput[] | undefined;
+    try {
+      assertUtf8Bytes(req.body, SERVICE_CAPS.requestBytes);
+      assertArrayCap(memories, SERVICE_CAPS.batchItems, "memories");
+      if (Array.isArray(memories)) {
+        for (const memory of memories) {
+          assertStringCap(memory?.title, SERVICE_CAPS.textChars, "memory.title");
+          assertStringCap(memory?.content, SERVICE_CAPS.textChars, "memory.content");
+        }
+      }
+      await enforceAbuseControls({endpoint: "sharedMemoryBatchCreate", user, req, policies: SERVICE_QUOTAS.sharedMemoryBatchCreate});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
     if (!Array.isArray(memories) || memories.length === 0) {
       res.status(400).json({error: "memories array is required"});
       return;

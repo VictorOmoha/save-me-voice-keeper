@@ -189,6 +189,7 @@ describe("legacy users size boundary", () => {
 
 // The Firebase Storage client canonicalizes duplicate slashes before rules evaluation;
 // this matrix tests malformed names that can actually reach the rules engine.
+// Verified again after rebasing onto the merged data-rights baseline.
 describe("path-shape validation", () => {
   it.each([
     [

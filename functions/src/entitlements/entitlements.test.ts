@@ -34,8 +34,13 @@ describe("D-004 entitlement catalog", () => {
     expect(PLAN_CATALOG.premium.storageLimitBytes).toBe(50 * 1024 ** 3);
   });
 
-  it.each(["free", "basic", "premium"] as const)("resolves %s exactly", (plan) => {
-    expect(resolvePlan(plan)).toBe(PLAN_CATALOG[plan]);
+  it.each(["free", "basic", "premium"] as const)("resolves entitled %s exactly", (plan) => {
+    expect(resolvePlan(plan, true, true)).toBe(PLAN_CATALOG[plan]);
+  });
+
+  it("does not grant a paid plan when lifecycle projection is non-entitled", () => {
+    expect(resolvePlan("basic", true, false)).toBe(PLAN_CATALOG.free);
+    expect(resolvePlan("premium", true, undefined)).toBe(PLAN_CATALOG.free);
   });
 
   it("defaults missing user documents and missing plans to Free for migration", () => {
@@ -57,7 +62,7 @@ describe("D-004 entitlement catalog", () => {
   });
 
   it("reads plan authority only from the server-owned billing collection", async () => {
-    const get = vi.fn(async () => ({exists: true, data: () => ({plan: "premium"})}));
+    const get = vi.fn(async () => ({exists: true, data: () => ({plan: "premium", entitled: true})}));
     const doc = vi.fn(() => ({get}));
     const collection = vi.fn(() => ({doc}));
     const db = {collection} as any;

@@ -322,6 +322,38 @@ describe("tenant isolation — users (doc id = uid)", () => {
   });
 });
 
+describe("tenant isolation — billing authority", () => {
+  beforeEach(seedMinimal);
+
+  it("allows only the owner to read the server-owned entitlement", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "billing_entitlements", TENANT_A_UID), {
+        schemaVersion: 1,
+        uid: TENANT_A_UID,
+        plan: "premium",
+        status: "active",
+        entitled: true,
+      });
+    });
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    const other = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertSucceeds(getDoc(doc(owner.firestore(), "billing_entitlements", TENANT_A_UID)));
+    await assertFails(getDoc(doc(other.firestore(), "billing_entitlements", TENANT_A_UID)));
+  });
+
+  it("denies clients writing entitlements or reading the Stripe event ledger", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(setDoc(doc(owner.firestore(), "billing_entitlements", TENANT_A_UID), {
+      plan: "premium",
+      entitled: true,
+    }));
+    await assertFails(getDoc(doc(owner.firestore(), "stripe_event_ledger", "evt_canary")));
+    await assertFails(setDoc(doc(owner.firestore(), "stripe_event_ledger", "evt_canary"), {
+      uid: TENANT_A_UID,
+    }));
+  });
+});
+
 describe("tenant isolation — reminders", () => {
   beforeEach(seedMinimal);
 

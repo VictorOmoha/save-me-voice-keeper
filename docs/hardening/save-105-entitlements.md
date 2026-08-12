@@ -5,7 +5,7 @@
 
 ## Implemented contract
 
-`functions/src/entitlements/entitlements.ts` is the centralized server catalog and policy boundary. It reads the server-owned `billing_entitlements/{uid}.plan` through `readUserEntitlements` and recognizes only `free`, `basic`, and `premium`. Client-writable `users/{uid}` profile fields are not plan authority.
+`functions/src/entitlements/entitlements.ts` is the centralized server catalog and policy boundary. It reads the server-owned `billing_entitlements/{uid}` contract through `readUserEntitlements` and recognizes only `free`, `basic`, and `premium`. After SAVE-106 projection, paid capabilities require both a recognized paid `plan` and `entitled: true`; terminal lifecycle states therefore fail closed to Free. Client-writable `users/{uid}` profile fields are not plan authority.
 
 - Missing user document or missing/null/blank plan defaults to Free for migration.
 - An explicit unknown plan fails closed with HTTP 403 and `ENTITLEMENT_UNKNOWN_PLAN`.

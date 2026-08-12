@@ -8,14 +8,11 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { auth } from "@/lib/firebase";
 import { trackActivationEvent } from "@/lib/analytics";
-
-// Cloud Functions URL - set after deployment
-const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
+import { billingClient } from "@/services/billingClient";
 
 const Subscription = () => {
-  const { user, isAuthenticated, session } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [searchParams] = useSearchParams();
@@ -44,9 +41,9 @@ const Subscription = () => {
       features: [
         "Unlimited entries",
         "Advanced search & filters",
-        "All platforms (Web, Mobile, Desktop)",
+        "Web + browser extension",
         "Voice input & commands",
-        "Priority support"
+        "Standard support"
       ],
       current: user?.subscriptionTier === 'basic'
     },
@@ -54,14 +51,14 @@ const Subscription = () => {
       name: "Premium",
       price: "$19",
       period: "per month",
-      description: "For teams and professionals",
+      description: "For advanced personal workflows",
       features: [
         "Everything in Basic",
-        "Data export & backup",
-        "Enhanced privacy controls",
-        "API access",
-        "Custom integrations",
-        "24/7 support"
+        "50 GB storage",
+        "Portable data export",
+        "Agent API access",
+        "Web + browser extension",
+        "Standard support"
       ],
       current: user?.subscriptionTier === 'premium'
     }
@@ -74,51 +71,17 @@ const Subscription = () => {
       return;
     }
 
-    if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Billing is not configured in this environment yet.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to upgrade your plan');
-      return;
-    }
-
     setLoadingPlan(planName);
 
     try {
-      const token = await currentUser.getIdToken();
       const plan = planName.toLowerCase();
-
       if (plan !== 'basic' && plan !== 'premium') {
         toast.error('Invalid plan selected');
         return;
       }
-
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/createCheckout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          plan,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        trackActivationEvent("subscription_checkout_opened", { plan: planName.toLowerCase() });
-        window.location.href = url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
+      const { url } = await billingClient.createCheckout(plan);
+      trackActivationEvent("subscription_checkout_opened", { plan });
+      window.location.href = url;
     } catch (err) {
       trackActivationEvent("subscription_checkout_failed", { plan: planName.toLowerCase() });
       toast.error('An error occurred. Please try again.');
@@ -128,44 +91,13 @@ const Subscription = () => {
   };
 
   const handleManageBilling = async () => {
-    if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Billing is not configured in this environment yet.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to manage billing');
-      return;
-    }
-
     trackActivationEvent("billing_portal_clicked");
     setLoadingPortal(true);
 
     try {
-      const token = await currentUser.getIdToken();
-
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/customerPortal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create portal session');
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        trackActivationEvent("billing_portal_opened");
-        window.location.href = url;
-      } else {
-        throw new Error('No portal URL returned');
-      }
+      const { url } = await billingClient.createPortal(window.location.href);
+      trackActivationEvent("billing_portal_opened");
+      window.location.href = url;
     } catch (err) {
       toast.error('An error occurred. Please try again.');
     } finally {
@@ -310,7 +242,7 @@ const Subscription = () => {
                 </Button>
                 {!plan.current && plan.name !== "Free" && (
                   <p className="text-xs text-gray-600 text-center mt-2">
-                    14-day free trial included
+                    No trial; billed monthly
                   </p>
                 )}
               </CardContent>
@@ -332,15 +264,15 @@ const Subscription = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Free Trial:</span>
-                <span className="font-medium text-gray-900">14 days on paid plans</span>
+                <span className="font-medium text-gray-900">No paid-plan trial</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Payment Methods:</span>
-                <span className="font-medium text-gray-900">Credit/Debit Cards, PayPal</span>
+                <span className="font-medium text-gray-900">Managed securely in Stripe Checkout</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Refund Policy:</span>
-                <span className="font-medium text-gray-900">Pro-rated refunds available</span>
+                <span className="text-gray-700">Plan Changes:</span>
+                <span className="font-medium text-gray-900">Manage or cancel in the billing portal</span>
               </div>
             </div>
           </CardContent>

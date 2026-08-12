@@ -4,6 +4,8 @@ import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
 import {predictCategory, recordCategorySignal} from "../entryIntelligence/categoryIntelligence";
 import {assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, SERVICE_CAPS, SERVICE_QUOTAS} from "../common/abuseControl";
+import {assertBrowserExtensionAccess, PlanEntitlements, readUserEntitlements, sendEntitlementError} from "../entitlements/entitlements";
+import {createEntryWithAdmission} from "../entitlements/admission";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QUICK SAVE — Lightweight endpoint for browser extension capture
@@ -33,6 +35,14 @@ export const quickSave = functions.https.onRequest(
     }
 
     const db = admin.firestore();
+    let plan: PlanEntitlements;
+    try {
+      plan = await readUserEntitlements(user.uid, db);
+      assertBrowserExtensionAccess(plan);
+    } catch (error) {
+      if (sendEntitlementError(res, error)) return;
+      throw error;
+    }
     const geminiKey = process.env.GEMINI_API_KEY;
 
     const finalTitle = (title || pageTitle || "Saved from web").slice(0, 200);
@@ -71,7 +81,9 @@ export const quickSave = functions.https.onRequest(
       field_definitions.push({id: "url", name: "Source URL", type: "text"});
     }
 
-    const docRef = await db.collection("entries").add({
+    let docRef;
+    try {
+      docRef = await createEntryWithAdmission(user.uid, plan, {
       title: finalTitle,
       fields,
       field_definitions,
@@ -82,7 +94,11 @@ export const quickSave = functions.https.onRequest(
       category_predicted: categoryPredicted,
       created_at: admin.firestore.FieldValue.serverTimestamp(),
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      }, db);
+    } catch (error) {
+      if (sendEntitlementError(res, error)) return;
+      throw error;
+    }
 
     // Record signal for category learning
     if (geminiKey) {

@@ -8,6 +8,8 @@ export type AuthenticatedUser = admin.auth.DecodedIdToken & {
     name?: string;
     prefix?: string;
     permissions: SharedMemoryPermission[];
+    legacy?: boolean;
+    legacyFallback?: boolean;
   };
 };
 
@@ -26,6 +28,17 @@ const buildAgentDecodedToken = (
   firebase: {identities: {}, sign_in_provider: "agent-key"},
   saveMeApiKey: apiKey,
 } as AuthenticatedUser);
+
+export const isProductionRuntime = (env: NodeJS.ProcessEnv = process.env): boolean =>
+  env.NODE_ENV === "production" || Boolean(env.K_SERVICE);
+
+export const legacyAgentFallbackAllowed = (
+  user: AuthenticatedUser,
+  env: NodeJS.ProcessEnv = process.env
+): boolean => Boolean(
+  user.saveMeApiKey?.legacyFallback &&
+  (!isProductionRuntime(env) || env.ALLOW_LEGACY_AGENT_FALLBACK === "true")
+);
 
 export const hasPermission = (user: AuthenticatedUser, permission: SharedMemoryPermission) => {
   // Firebase user sessions are first-party and keep full account access.
@@ -87,15 +100,19 @@ export const verifyAuth = async (req: functions.https.Request): Promise<Authenti
     }
   }
 
-  // Legacy global agent API key — kept for existing Nia/OpenClaw integrations
-  // that predate user-minted keys. Writes go to a shared "nia-openclaw-agent"
-  // bucket. Prefer sm_ keys for new integrations.
+  // Legacy global agent API key — kept for existing Nia/OpenClaw integrations.
+  // AGENT_USER_ID explicitly binds it to an account whose current plan is
+  // enforced. The historical fallback uid remains usable only outside production
+  // unless an operator deliberately enables the migration flag.
   const agentApiKey = process.env.AGENT_API_KEY;
   if (agentApiKey && token === agentApiKey) {
-    const agentUserId = process.env.AGENT_USER_ID || "nia-openclaw-agent";
+    const configuredOwner = process.env.AGENT_USER_ID?.trim();
+    const agentUserId = configuredOwner || "nia-openclaw-agent";
     return buildAgentDecodedToken(agentUserId, "agent-key", {
       name: "Legacy OpenClaw agent key",
       permissions: ["read", "write"],
+      legacy: true,
+      legacyFallback: !configuredOwner,
     });
   }
 

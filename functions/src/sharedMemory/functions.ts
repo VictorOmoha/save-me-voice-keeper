@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import {withCors} from "../common/http";
-import {hasPermission, requirePermission, verifyAuth} from "../common/auth";
+import {AuthenticatedUser, hasPermission, legacyAgentFallbackAllowed, requirePermission, verifyAuth} from "../common/auth";
 import {createSharedMemory} from "./create";
 import {searchSharedMemories} from "./search";
 import {getSharedMemory} from "./get";
@@ -11,6 +11,29 @@ import {batchCreateSharedMemories} from "./batchCreate";
 import {SharedMemoryCreateInput, SharedMemorySearchInput} from "./types";
 import {generateAgentApiKey, hashAgentApiKey, normalizeAgentPermissions} from "./agentKeys";
 import {assertArrayCap, assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, SERVICE_CAPS, SERVICE_QUOTAS} from "../common/abuseControl";
+import {assertAdvancedSearchAccess, assertAgentApiAccess, readUserEntitlements, sendEntitlementError} from "../entitlements/entitlements";
+
+export const enforceAgentApiPlan = async (
+  user: AuthenticatedUser,
+  readEntitlements = readUserEntitlements,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<void> => {
+  if (!user.saveMeApiKey) return;
+  // Compatibility is narrow: only the historical unbound credential can bypass
+  // plan lookup, and only outside production or behind an explicit migration flag.
+  if (legacyAgentFallbackAllowed(user, env)) return;
+  assertAgentApiAccess(await readEntitlements(user.uid));
+};
+
+const authorizeAgentRequest = async (user: AuthenticatedUser, res: functions.Response): Promise<boolean> => {
+  try {
+    await enforceAgentApiPlan(user);
+    return true;
+  } catch (error) {
+    if (sendEntitlementError(res, error)) return false;
+    throw error;
+  }
+};
 
 export const sharedMemoryAgentStatus = functions.https.onRequest(
   withCors(async (req, res) => {
@@ -24,6 +47,7 @@ export const sharedMemoryAgentStatus = functions.https.onRequest(
       res.status(405).json({error: "Method not allowed"});
       return;
     }
+    if (!await authorizeAgentRequest(user, res)) return;
 
     res.json({
       ok: true,
@@ -64,6 +88,13 @@ export const sharedMemoryCreateAgentKey = functions.https.onRequest(
     if (!user || user.saveMeApiKey) {
       res.status(401).json({error: "Firebase user session required"});
       return;
+    }
+
+    try {
+      assertAgentApiAccess(await readUserEntitlements(user.uid));
+    } catch (error) {
+      if (sendEntitlementError(res, error)) return;
+      throw error;
     }
 
     const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
@@ -118,6 +149,7 @@ export const sharedMemoryCreate = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "write", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -158,6 +190,7 @@ export const sharedMemorySearch = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "read", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -166,6 +199,9 @@ export const sharedMemorySearch = functions.https.onRequest(
 
     const input = (req.body || {}) as SharedMemorySearchInput;
     try {
+      // This endpoint is the representative server-owned advanced-search path.
+      // Agent-key requests already passed the Premium-only API gate above.
+      assertAdvancedSearchAccess(await readUserEntitlements(user.uid));
       assertUtf8Bytes(input, SERVICE_CAPS.requestBytes);
       assertStringCap(input.query, SERVICE_CAPS.searchQueryChars, "query");
       if (typeof input.limit === "number" && input.limit > SERVICE_CAPS.searchLimit) {
@@ -174,7 +210,7 @@ export const sharedMemorySearch = functions.https.onRequest(
       }
       await enforceAbuseControls({endpoint: "sharedMemorySearch", user, req, policies: SERVICE_QUOTAS.sharedMemorySearch});
     } catch (error) {
-      if (sendAbuseError(res, error)) return;
+      if (sendAbuseError(res, error) || sendEntitlementError(res, error)) return;
       throw error;
     }
 
@@ -197,6 +233,7 @@ export const sharedMemoryGet = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "read", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -232,6 +269,7 @@ export const sharedMemoryList = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "read", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -259,6 +297,7 @@ export const sharedMemoryUpdate = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "write", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});
@@ -299,6 +338,7 @@ export const sharedMemoryBatchCreate = functions.https.onRequest(
       return;
     }
     if (!requirePermission(user, "write", res)) return;
+    if (!await authorizeAgentRequest(user, res)) return;
 
     if (req.method !== "POST") {
       res.status(405).json({error: "Method not allowed"});

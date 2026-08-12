@@ -114,6 +114,9 @@ const Signup = () => {
               isLoading={isGoogleLoading}
               text="Continue with Google"
             />
+            <p className="mt-3 text-xs text-muted-foreground text-center leading-relaxed">
+              By continuing, you acknowledge the <Link className="underline underline-offset-2" to="/terms">Terms of Service</Link> and confirm you have read the <Link className="underline underline-offset-2" to="/privacy">Privacy Policy</Link>. Both are engineering drafts pending legal approval.
+            </p>
 
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">

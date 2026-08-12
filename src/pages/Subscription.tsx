@@ -310,7 +310,7 @@ const Subscription = () => {
                 </Button>
                 {!plan.current && plan.name !== "Free" && (
                   <p className="text-xs text-gray-600 text-center mt-2">
-                    14-day free trial included
+                    Monthly card subscription; no paid trial
                   </p>
                 )}
               </CardContent>
@@ -331,16 +331,16 @@ const Subscription = () => {
                 <span className="font-medium text-gray-900">Monthly (cancel anytime)</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Free Trial:</span>
-                <span className="font-medium text-gray-900">14 days on paid plans</span>
+                <span className="text-gray-700">Evaluation:</span>
+                <span className="font-medium text-gray-900">Free plan; no paid trial</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Payment Methods:</span>
-                <span className="font-medium text-gray-900">Credit/Debit Cards, PayPal</span>
+                <span className="text-gray-700">Payment Method:</span>
+                <span className="font-medium text-gray-900">Card through Stripe</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-700">Refund Policy:</span>
-                <span className="font-medium text-gray-900">Pro-rated refunds available</span>
+                <span className="font-medium text-gray-900">No partial-month refunds except where required by law</span>
               </div>
             </div>
           </CardContent>

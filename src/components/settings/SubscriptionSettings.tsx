@@ -129,7 +129,7 @@ export const SubscriptionSettings = () => {
               <DialogHeader>
                 <DialogTitle>Choose Your Plan</DialogTitle>
                 <p className="text-sm text-muted-foreground">
-                  Clear pricing • Monthly billing • Cancel anytime • 14-day free trial on paid plans
+                  Monthly billing • Card payments through Stripe • Free plan available • No paid trial
                 </p>
               </DialogHeader>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -186,7 +186,7 @@ export const SubscriptionSettings = () => {
                       </Button>
                       {!plan.current && plan.name !== "Free" && plan.name !== "Enterprise" && (
                         <p className="text-xs text-muted-foreground text-center mt-2">
-                          14-day free trial
+                          Monthly card subscription; no paid trial
                         </p>
                       )}
                     </div>

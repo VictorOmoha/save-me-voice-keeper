@@ -1,234 +1,41 @@
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { KNOWN_PROCESSORS, LEGAL_METADATA, USER_DIRECTED_RECIPIENTS } from "@/content/legalContent";
 
 const PrivacyPolicy = () => {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
+  useEffect(() => window.scrollTo(0, 0), []);
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <Link to="/">
-            <Button variant="ghost" className="gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      {/* Content */}
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="prose prose-slate dark:prose-invert max-w-none">
-          <h1>Privacy Policy</h1>
-          <p className="text-muted-foreground">
-            <strong>Effective Date:</strong> January 15, 2026<br />
-            <strong>Last Updated:</strong> November 17, 2025
-          </p>
-
-          <h2>1. INTRODUCTION</h2>
-          <p>
-            Welcome to SaveMe Voice Keeper ("SaveMe," "we," "us," or "our"). We respect your privacy and are committed to protecting your personal data.
-          </p>
-          <p>
-            <strong>Operator Information:</strong>
-          </p>
-          <p>
-            <strong>Omoha Solutions</strong><br />
-            1300 South Blvd STE 30101<br />
-            Charlotte, NC 28203<br />
-            United States<br />
-            Email: victor@omohasolutions.com
-          </p>
-
-          <h2>2. INFORMATION WE COLLECT</h2>
-
-          <h3>2.1 Information You Provide Directly</h3>
-          <ul>
-            <li><strong>Account Information:</strong> Name, email address, password (encrypted), phone number (optional)</li>
-            <li><strong>Payment Information:</strong> Credit card details (processed by Stripe, not stored by us), billing address</li>
-            <li><strong>User Content:</strong> Text entries, uploaded documents, categories, search queries, voice transcriptions</li>
-          </ul>
-
-          <h3>2.2 Voice Data Collection</h3>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg my-4">
-            <p className="font-bold">IMPORTANT: How We Handle Voice Data</p>
-            <p>When you use SaveMe's voice features:</p>
-          </div>
-
-          <p><strong>What We Collect:</strong></p>
-          <ul>
-            <li><strong>Voice audio clips</strong> (temporarily, during processing only)</li>
-            <li><strong>Voice-to-text transcriptions</strong> (stored permanently as your data)</li>
-            <li><strong>Voice command metadata</strong> (timestamp, command type, success/failure)</li>
-          </ul>
-
-          <p><strong>How Voice Processing Works:</strong></p>
-          <ol>
-            <li>You speak into SaveMe</li>
-            <li>Audio is sent to 11Labs (our voice AI provider) via secure connection</li>
-            <li>11Labs converts speech to text</li>
-            <li>Text is returned to SaveMe and stored in your account</li>
-            <li><strong>Audio is immediately deleted</strong> after transcription</li>
-            <li>Only the text transcription is permanently stored</li>
-          </ol>
-
-          <p><strong>What We DON'T Do:</strong></p>
-          <ul>
-            <li>❌ We do NOT permanently store voice recordings</li>
-            <li>❌ We do NOT use your voice to train AI models (without explicit consent)</li>
-            <li>❌ We do NOT share voice data with third parties (except 11Labs for processing)</li>
-            <li>❌ We do NOT sell your voice data</li>
-          </ul>
-
-          <h3>2.3 Information We Collect Automatically</h3>
-          <ul>
-            <li><strong>Usage Data:</strong> Pages visited, features used, time spent</li>
-            <li><strong>Technical Data:</strong> Browser type, operating system, device type, IP address</li>
-            <li><strong>Performance Data:</strong> Error logs, page load times, feature usage frequency</li>
-          </ul>
-
-          <h2>3. HOW WE USE YOUR INFORMATION</h2>
-          <p>We use your information to:</p>
-          <ul>
-            <li><strong>Provide the Service:</strong> Create and manage your account, store your data, process voice commands</li>
-            <li><strong>Improve the Service:</strong> Analyze usage patterns, fix bugs, develop new features</li>
-            <li><strong>Communicate with You:</strong> Send service announcements, respond to support requests</li>
-            <li><strong>Security:</strong> Detect and prevent unauthorized access, identify abuse</li>
-          </ul>
-
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg my-4">
-            <p className="font-bold">We will NEVER:</p>
-            <ul className="mt-2">
-              <li>❌ Sell your personal data to third parties</li>
-              <li>❌ Use your content for advertising</li>
-              <li>❌ Share your data with competitors</li>
-              <li>❌ Train AI models on your private data without consent</li>
-            </ul>
-          </div>
-
-          <h2>4. HOW WE SHARE YOUR INFORMATION</h2>
-          <p>We do NOT sell your personal data. We may share data only in these limited circumstances:</p>
-
-          <h3>4.1 Service Providers (Third-Party Processors)</h3>
-          <ul>
-            <li><strong>Firebase / Google Cloud:</strong> Stores your user data and content, provides authentication, and runs backend processing</li>
-            <li><strong>11Labs:</strong> Processes voice-to-text conversion (audio deleted after processing)</li>
-            <li><strong>Stripe:</strong> Processes subscription payments (we do NOT see your full credit card details)</li>
-          </ul>
-
-          <h3>4.2 Legal Requirements</h3>
-          <p>We may disclose your information if required by law to comply with court orders, subpoenas, or legal processes.</p>
-
-          <h2>5. DATA SECURITY</h2>
-          <p><strong>How We Protect Your Data:</strong></p>
-          <ul>
-            <li><strong>Encryption:</strong> All data encrypted in transit (HTTPS/TLS) and at rest</li>
-            <li><strong>Access Controls:</strong> Role-based access, multi-factor authentication available</li>
-            <li><strong>Infrastructure:</strong> Hosted on secure cloud providers including Firebase / Google Cloud</li>
-          </ul>
-
-          <p className="text-sm italic">
-            While we implement industry-standard security measures, no system is 100% secure. We cannot guarantee absolute security against all threats.
-          </p>
-
-          <h2>6. DATA RETENTION</h2>
-          <ul>
-            <li><strong>Active accounts:</strong> Data retained as long as account is active</li>
-            <li><strong>Cancelled accounts:</strong> 30 days to export data, then permanently deleted</li>
-            <li><strong>Voice data:</strong>
-              <ul>
-                <li>Audio clips: Deleted immediately after transcription (&lt; 1 minute)</li>
-                <li>Transcriptions: Retained as user content (until you delete)</li>
-                <li>Voice metadata: Retained for 90 days</li>
-              </ul>
-            </li>
-            <li><strong>Backups:</strong> May persist in backups for up to 90 days</li>
-          </ul>
-
-          <h2>7. YOUR PRIVACY RIGHTS</h2>
-          <p>All users have the right to:</p>
-          <ul>
-            <li><strong>Access:</strong> View and download your personal data</li>
-            <li><strong>Correction:</strong> Update inaccurate information</li>
-            <li><strong>Deletion:</strong> Request deletion of your account and data</li>
-            <li><strong>Export:</strong> Download your data in portable formats (JSON, CSV, PDF, DOCX)</li>
-            <li><strong>Opt-Out:</strong> Unsubscribe from marketing emails</li>
-          </ul>
-
-          <h3>GDPR Rights (EEA/UK Users)</h3>
-          <p>If you are in the European Economic Area or UK, you also have:</p>
-          <ul>
-            <li>Right to Erasure ("Right to be Forgotten")</li>
-            <li>Right to Restriction of Processing</li>
-            <li>Right to Data Portability</li>
-            <li>Right to Object to Processing</li>
-            <li>Right to Lodge a Complaint with your data protection authority</li>
-          </ul>
-
-          <h3>CCPA Rights (California Users)</h3>
-          <p>If you are a California resident:</p>
-          <ul>
-            <li>Right to Know what personal information we collect</li>
-            <li>Right to Delete your personal information</li>
-            <li>Right to Opt-Out of Sale (Note: We do NOT sell personal information)</li>
-            <li>Right to Non-Discrimination for exercising your rights</li>
-          </ul>
-
-          <h2>8. CHILDREN'S PRIVACY</h2>
-          <p>
-            SaveMe is not intended for users under 18 years old. We do not knowingly collect data from children under 18.
-            If we discover we have collected data from a child, we will delete it immediately.
-          </p>
-
-          <h2>9. CONTACT US</h2>
-          <p>For privacy questions, concerns, or requests:</p>
-          <p>
-            <strong>Privacy Contact:</strong><br />
-            Email: victor@omohasolutions.com<br />
-            Subject Line: "Privacy Inquiry - SaveMe"
-          </p>
-          <p>
-            <strong>Mailing Address:</strong><br />
-            Omoha Solutions<br />
-            1300 South Blvd STE 30101<br />
-            Charlotte, NC 28203<br />
-            United States
-          </p>
-          <p><strong>Response Time:</strong> Within 30 days</p>
-
-          <div className="mt-12 p-6 bg-muted rounded-lg">
-            <h3 className="text-lg font-bold">SUMMARY: KEY PRIVACY POINTS</h3>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li><strong>Voice Data:</strong> Audio deleted immediately after transcription; only text stored</li>
-              <li><strong>Data Sharing:</strong> Only with service providers (Firebase / Google Cloud, 11Labs, Stripe) - we NEVER sell data</li>
-              <li><strong>Your Rights:</strong> Access, correct, delete, export your data anytime</li>
-              <li><strong>Security:</strong> Encrypted in transit and at rest, industry-standard protection</li>
-            </ul>
-            <p className="text-xs text-muted-foreground mt-4">
-              <strong>Document Version:</strong> 1.0<br />
-              <strong>Effective Date:</strong> January 15, 2026<br />
-              <strong>Last Reviewed:</strong> November 17, 2025
-            </p>
-            <p className="text-xs text-muted-foreground mt-2 italic">
-              This Privacy Policy should be reviewed by a licensed attorney specializing in privacy law before public deployment.
-            </p>
-          </div>
-
-          <div className="mt-8 text-center">
-            <Link to="/">
-              <Button>Return to Home</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <header className="border-b"><div className="container mx-auto px-4 py-4"><Button asChild variant="ghost"><Link to="/"><ArrowLeft className="w-4 h-4" aria-hidden="true" /> Back to Home</Link></Button></div></header>
+      <main className="container mx-auto px-4 py-12 max-w-4xl"><article className="prose prose-slate dark:prose-invert max-w-none">
+        <h1>Privacy Policy</h1>
+        <div className="border border-amber-500/40 bg-amber-500/10 rounded-lg p-4" role="status"><strong>Engineering draft — human legal approval required.</strong> This text describes repository behavior and is not a legal conclusion or an effective policy.</div>
+        <p className="text-muted-foreground"><strong>Status:</strong> {LEGAL_METADATA.status}<br /><strong>Draft prepared:</strong> {LEGAL_METADATA.prepared}<br /><strong>Version:</strong> {LEGAL_METADATA.version}</p>
+        <h2>1. Who operates SaveMe</h2><p>SaveMe Voice Keeper is operated by Omoha Solutions. Privacy questions and data-rights requests may be sent to <a href="mailto:victor@omohasolutions.com">victor@omohasolutions.com</a>.</p>
+        <h2>2. Data SaveMe processes</h2><ul>
+          <li><strong>Account and billing:</strong> name, email, authentication records, profile and preference data, and Stripe customer/subscription identifiers. Password authentication is handled by Firebase; SaveMe does not receive full card numbers.</li>
+          <li><strong>Content:</strong> entries, documents, images, categories, URLs, search queries, transcripts, conversations, reminders, support requests, and content sent through user-configured integrations.</li>
+          <li><strong>Derived memory and intelligence:</strong> summaries, entities, links, action items, patterns, insights, and memory/profile facts that may include health, financial, contact, work, or schedule information when a user supplies it.</li>
+          <li><strong>Technical and usage data:</strong> authentication and device/request data, analytics events, pageviews, error and service logs, webhook event records, and storage/usage metadata.</li>
+          <li><strong>Credentials:</strong> hashed SaveMe agent keys and, if supplied, an ElevenLabs API key stored in user preferences. Agent-key hashing does not describe storage of the optional ElevenLabs key.</li>
+          <li><strong>Device storage:</strong> entries and pending changes may be cached in IndexedDB for offline sync; preferences, session pointers, and integration configuration may be held in browser storage. The browser extension may hold a short-lived Firebase token locally.</li>
+        </ul>
+        <h2>3. Voice and AI processing</h2><p>When the microphone is used, audio is sent over an encrypted connection through SaveMe's Google Cloud backend to Google Gemini for transcription and agent processing. The implemented server flow does not write raw microphone audio to Firestore or Cloud Storage. Transcript text and conversation turns may be stored. Provider-side handling depends on the applicable Google service configuration and contract and requires operational verification.</p>
+        <p>SaveMe also sends relevant text and context to AI services to organize entries, extract memories, produce summaries and insights, and respond as Nova/Anam. This may include stored content, conversation history, profile memories, and derived context. OpenAI is used by the implemented brain-dump enhancement flow. Response or entry text may be sent to Google Cloud Text-to-Speech, ElevenLabs, MiniMax, or browser/OS speech services when those speech paths are selected.</p>
+        <h2>4. Automatic memory and connected agents</h2><p>Nova may extract facts from conversations and store them in SaveMe memory. Current implementation can mirror those facts into shared memory. An agent key with read permission can read shared-memory records; write permission lets the connected agent add or change them. Visibility labels are not a substitute for a per-agent access boundary in the current implementation. Connect only agents you trust and do not give a key more permission than needed.</p>
+        <p>Agent revocation and deletion workflows are being hardened. The current settings client may not successfully revoke every key, so the product must not promise immediate self-service revocation until that path is verified.</p>
+        <h2>5. Purposes</h2><p>SaveMe uses data to authenticate users, provide storage and search, process voice and AI requests, organize and retrieve content, run user-requested integrations, administer subscriptions, provide support, secure and debug the service, and understand product usage. Any legal-basis, sensitive-data, international-transfer, or statutory-rights conclusion remains for counsel.</p>
+        <h2>6. Processors and recipients</h2><p>The known source-evidenced processors are:</p><ul>{KNOWN_PROCESSORS.map((processor) => <li key={processor.name}><strong>{processor.name}:</strong> {processor.role}</li>)}</ul><p>Data can also go to user-directed recipients:</p><ul>{USER_DIRECTED_RECIPIENTS.map((recipient) => <li key={recipient}>{recipient}</li>)}</ul><p>SaveMe may also disclose information where required by law. Public claims about sale, sharing, targeted advertising, model training, DPAs, or transfer safeguards require counsel and contract verification and are intentionally not stated as absolute promises here.</p>
+        <h2>7. Retention, export, deletion, and cancellation</h2><p>Current application records generally have no implemented automatic TTL and may remain until changed or deleted. Cloud logs, analytics, and processor-held data follow configured or provider retention that must be verified operationally. Raw microphone audio is not intentionally persisted by the implemented SaveMe server flow.</p>
+        <p>The current in-product export is a limited JSON download containing entries, shared memories, preferences, and agent-key metadata; it is not a complete portable archive and does not include raw keys. The approved data-rights foundation calls for a server-generated archive with versioned JSON, original files, checksums, schema metadata, and an index, expiring after seven days, but that production workflow is not yet implemented.</p>
+        <p>Subscription cancellation stops renewal but does not delete the account or its data. Current account deletion requires contacting support and does not yet run the approved manifest-driven purge. The approved target requires recent authentication, immediate revocation of agent and scheduled access, asynchronous deletion of user content, derived records, mirrors, storage objects, and applicable local data, with Firebase Auth deleted last. The target maximum is 30 days after a valid request, subject only to documented, minimized legal, billing, fraud, security, or deletion-receipt exceptions. Do not rely on that target as a description of the current unimplemented workflow.</p>
+        <h2>8. Security and choices</h2><p>Traffic uses HTTPS/TLS and Google Cloud/Firebase provide infrastructure encryption at rest. Access controls are implemented for many user-owned records, but no system is completely secure. Multi-factor authentication is not currently implemented.</p><p>Users can edit many account settings and records, download the limited export described above, disconnect user-configured webhook destinations, and request privacy assistance by email. Analytics consent/opt-out and comprehensive self-service rights workflows are not currently implemented.</p>
+        <h2>9. Legal review questions</h2><p>Counsel must approve the effective date and version, controller identity/contact details, jurisdiction and age terms, legal bases, statutory notices and request timelines, sensitive-data treatment, sale/share/advertising characterizations, processor contracts and training/retention terms, international-transfer language, and retention exceptions before release.</p>
+        <nav aria-label="Legal documents" className="mt-10 flex gap-4"><Link to="/terms">Terms of Service</Link><a href="mailto:victor@omohasolutions.com?subject=Privacy%20Inquiry%20-%20SaveMe">Privacy contact</a></nav>
+      </article></main>
     </div>
   );
 };
-
 export default PrivacyPolicy;

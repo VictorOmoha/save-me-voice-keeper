@@ -34,6 +34,9 @@ describe('Signup', () => {
     expect(screen.getByText('Or use email')).toBeTruthy();
     expect(screen.getByText('Sign in')).toBeTruthy();
     expect(screen.getByText('Secure connection active')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Terms of Service' }).getAttribute('href')).toBe('/terms');
+    expect(screen.getByRole('link', { name: 'Privacy Policy' }).getAttribute('href')).toBe('/privacy');
+    expect(screen.getByText(/pending legal approval/i)).toBeTruthy();
 
     expect(screen.queryByText('CREATE_ACCOUNT')).toBeNull();
     expect(screen.queryByText('SIGN_UP_WITH_GOOGLE')).toBeNull();

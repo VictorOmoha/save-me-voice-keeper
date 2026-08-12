@@ -103,7 +103,7 @@ const PRIVACY = [
   },
   {
     title: "Account-level access",
-    desc: "Only you — and the agents you explicitly authorize — can read your memory.",
+    desc: "Your account gates app access. Connected agents with a read key can access shared memory; connect only agents you trust.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="8" cy="8" r="4.5" />
@@ -113,7 +113,7 @@ const PRIVACY = [
   },
   {
     title: "Your data stays yours",
-    desc: "We never sell or share your information. Export or delete it anytime.",
+    desc: "Review how processors, connected agents, exports, retention, and deletion currently work in our Privacy Policy.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="10" cy="8" r="4" />

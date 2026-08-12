@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "test:emulator": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme node test/emulator/run.mjs",
     "test:emulator:ci": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme CI=true node test/emulator/run.mjs --ci --reporter=junit --outputFile=test-results/emulator-junit.xml",
-    "test:emulator:cleanup": "node test/emulator/run.mjs --cleanup-only"
+    "test:emulator:cleanup": "node test/emulator/run.mjs --cleanup-only",
+    "test:privacy-sources": "node scripts/validate-privacy-sources.mjs"
   },
   "dependencies": {
     "@11labs/client": "^0.1.4",

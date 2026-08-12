@@ -34,6 +34,14 @@ export {
 } from "./entitlements/functions";
 
 export {
+  extensionPairingCode,
+  extensionPair,
+  extensionRefresh,
+  extensionRevoke,
+  extensionRevokeAll,
+} from "./extensionAuth/functions";
+
+export {
   enhanceBrainDump,
   processEntryDeep,
   checkReminders,

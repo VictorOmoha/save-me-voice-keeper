@@ -58,6 +58,12 @@
       }
     ],
     "rewrites": [
+      { "source": "/api/extension/pairing-code", "function": "extensionPairingCode" },
+      { "source": "/api/extension/pair", "function": "extensionPair" },
+      { "source": "/api/extension/refresh", "function": "extensionRefresh" },
+      { "source": "/api/extension/revoke", "function": "extensionRevoke" },
+      { "source": "/api/extension/revoke-all", "function": "extensionRevokeAll" },
+      { "source": "/api/quick-save", "function": "quickSave" },
       {
         "source": "**",
         "destination": "/index.html"

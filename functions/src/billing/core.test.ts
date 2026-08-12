@@ -38,10 +38,25 @@ describe("SAVE-106 billing core", () => {
     expect(stale.plan).toBe("premium");
   });
 
+  it("projects trialing and past_due subscriptions as entitled", () => {
+    expect(normalizeLifecycle("u1", event({status: "trialing"}), catalog)).toMatchObject({
+      plan: "basic", status: "trialing", entitled: true,
+    });
+    expect(normalizeLifecycle("u1", event({status: "past_due"}), catalog)).toMatchObject({
+      plan: "basic", status: "past_due", entitled: true,
+    });
+  });
+
   it("retains paid entitlement during payment failure grace", () => {
     const active = normalizeLifecycle("u1", event(), catalog);
     const failed = normalizeLifecycle("u1", event({id: "evt_fail", created: 101, type: "invoice.payment_failed", status: undefined, priceId: undefined}), catalog, active);
     expect(failed).toMatchObject({plan: "basic", status: "past_due", entitled: true});
+  });
+
+  it("maps Stripe unpaid to terminal free and non-entitled", () => {
+    const active = normalizeLifecycle("u1", event(), catalog);
+    const unpaid = normalizeLifecycle("u1", event({id: "evt_unpaid", created: 101, type: "invoice.payment_failed", status: "unpaid"}), catalog, active);
+    expect(unpaid).toMatchObject({plan: "free", status: "canceled", entitled: false});
   });
 
   it("cancellation safely downgrades to free", () => {

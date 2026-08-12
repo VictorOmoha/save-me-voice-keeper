@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-
-type SubscriptionTier = 'free' | 'basic' | 'premium' | 'enterprise';
+import {projectSubscription, type SubscriptionTier} from './subscriptionProjection';
 
 export const useAuthState = () => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -33,9 +32,11 @@ export const useAuthState = () => {
         unsubFirestoreRef.current = onSnapshot(userDocRef, (snap) => {
           if (!mountedRef.current) return;
           if (snap.exists()) {
-            const data = snap.data();
-            setSubscriptionTier(data.subscriptionTier || 'free');
-            setSubscriptionActive(data.subscriptionStatus === 'active');
+            const data = projectSubscription(snap.data());
+            setSubscriptionTier(data.tier);
+            // The billing server owns lifecycle semantics (trial and payment grace
+            // are entitled; terminal states are not). Do not reinterpret status here.
+            setSubscriptionActive(data.active);
           } else {
             setSubscriptionTier('free');
             setSubscriptionActive(false);

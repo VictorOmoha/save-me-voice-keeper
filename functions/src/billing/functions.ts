@@ -81,15 +81,25 @@ export const customerPortal = functions.https.onRequest(withCors(async (req, res
 
 const customerIdOf = (value: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null => typeof value === "string" ? value : value?.id || null;
 
-const lifecycleFromEvent = (event: Stripe.Event): LifecycleEvent | null => {
+export const lifecycleFromEvent = async (
+  event: Stripe.Event,
+  stripe: Pick<Stripe, "subscriptions">
+): Promise<LifecycleEvent | null> => {
   if (event.type.startsWith("customer.subscription.")) {
     const subscription = event.data.object as Stripe.Subscription;
     return {id: event.id, created: event.created, type: event.type, status: event.type === "customer.subscription.deleted" ? "canceled" : subscription.status, priceId: subscription.items.data[0]?.price.id, customerId: customerIdOf(subscription.customer), subscriptionId: subscription.id, currentPeriodEnd: subscription.current_period_end};
   }
   if (event.type === "invoice.payment_failed") {
     const invoice = event.data.object as Stripe.Invoice;
-    const line = invoice.lines.data.find((item) => Boolean(item.price?.id));
-    return {id: event.id, created: event.created, type: event.type, status: "past_due", priceId: line?.price?.id, customerId: customerIdOf(invoice.customer), subscriptionId: typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id || null};
+    const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+    // A failed one-off invoice is not a subscription lifecycle event. Projecting it
+    // would incorrectly downgrade or grant grace to the customer's subscription.
+    if (!subscriptionId) return null;
+    // Stripe's subscription is authoritative for both lifecycle and price. Invoice
+    // lines can represent one-off adjustments and the subscription may already be
+    // terminal (`unpaid`) by the time this webhook is handled.
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    return {id: event.id, created: event.created, type: event.type, status: subscription.status, priceId: subscription.items.data[0]?.price.id, customerId: customerIdOf(subscription.customer), subscriptionId: subscription.id, currentPeriodEnd: subscription.current_period_end};
   }
   return null;
 };
@@ -135,7 +145,7 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     return void res.status(400).json({error: "Invalid signature"});
   }
   try {
-    const lifecycle = lifecycleFromEvent(event);
+    const lifecycle = await lifecycleFromEvent(event, getStripeClient());
     if (!lifecycle) return void res.json({received: true, ignored: true});
     if (!lifecycle.customerId) return void res.status(400).json({error: "Event has no customer"});
     const db = admin.firestore();

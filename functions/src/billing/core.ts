@@ -59,8 +59,8 @@ export const normalizeStripeStatus = (status: unknown): BillingStatus => {
   switch (status) {
   case "trialing": return "trialing";
   case "active": return "active";
-  case "past_due":
-  case "unpaid": return "past_due";
+  case "past_due": return "past_due";
+  case "unpaid":
   case "canceled":
   case "incomplete_expired": return "canceled";
   default: return "free";
@@ -105,7 +105,7 @@ export const normalizeLifecycle = (
   if (previous && event.created < previous.lastStripeEventCreated) return previous;
 
   const paymentFailed = event.type === "invoice.payment_failed";
-  const status = paymentFailed ? "past_due" : normalizeStripeStatus(event.status);
+  const status = paymentFailed && event.status == null ? "past_due" : normalizeStripeStatus(event.status);
   const mappedPlan = planForPrice(event.priceId, catalog);
   const retainedPlan = status === "past_due" && previous?.plan && previous.plan !== "free" ? previous.plan : undefined;
   const plan: PlanId = status === "canceled" || status === "free"

@@ -191,6 +191,7 @@ describe("legacy users size boundary", () => {
 // this matrix tests malformed names that can actually reach the rules engine.
 // Verified after rebasing onto the merged data-rights baseline; the SDK-normalized
 // duplicate-slash case is intentionally not asserted as a rules-engine denial.
+// Reverified after entitlement and billing rule integration.
 describe("path-shape validation", () => {
   it.each([
     [

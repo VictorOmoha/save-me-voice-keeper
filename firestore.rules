@@ -106,6 +106,17 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    // Billing entitlement contract is readable by its owner but server-owned.
+    match /billing_entitlements/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+
+    // Stripe event ledger is server-only and may contain billing identifiers.
+    match /stripe_event_ledger/{eventId} {
+      allow read, write: if false;
+    }
+
     match /profiles/{userId} {
       allow read, write: if isOwner(userId);
     }

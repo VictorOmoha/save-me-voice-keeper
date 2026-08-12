@@ -8,11 +8,8 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { auth } from "@/lib/firebase";
 import { trackActivationEvent } from "@/lib/analytics";
-
-// Cloud Functions URL - set after deployment
-const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
+import { billingClient } from "@/services/billingClient";
 
 const Subscription = () => {
   const { user, isAuthenticated, session } = useAuth();
@@ -74,51 +71,17 @@ const Subscription = () => {
       return;
     }
 
-    if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Billing is not configured in this environment yet.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to upgrade your plan');
-      return;
-    }
-
     setLoadingPlan(planName);
 
     try {
-      const token = await currentUser.getIdToken();
       const plan = planName.toLowerCase();
-
       if (plan !== 'basic' && plan !== 'premium') {
         toast.error('Invalid plan selected');
         return;
       }
-
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/createCheckout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          plan,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        trackActivationEvent("subscription_checkout_opened", { plan: planName.toLowerCase() });
-        window.location.href = url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
+      const { url } = await billingClient.createCheckout(plan);
+      trackActivationEvent("subscription_checkout_opened", { plan });
+      window.location.href = url;
     } catch (err) {
       trackActivationEvent("subscription_checkout_failed", { plan: planName.toLowerCase() });
       toast.error('An error occurred. Please try again.');
@@ -128,44 +91,13 @@ const Subscription = () => {
   };
 
   const handleManageBilling = async () => {
-    if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Billing is not configured in this environment yet.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to manage billing');
-      return;
-    }
-
     trackActivationEvent("billing_portal_clicked");
     setLoadingPortal(true);
 
     try {
-      const token = await currentUser.getIdToken();
-
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/customerPortal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create portal session');
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        trackActivationEvent("billing_portal_opened");
-        window.location.href = url;
-      } else {
-        throw new Error('No portal URL returned');
-      }
+      const { url } = await billingClient.createPortal(window.location.href);
+      trackActivationEvent("billing_portal_opened");
+      window.location.href = url;
     } catch (err) {
       toast.error('An error occurred. Please try again.');
     } finally {

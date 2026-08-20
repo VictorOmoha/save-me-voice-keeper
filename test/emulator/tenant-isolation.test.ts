@@ -1007,3 +1007,112 @@ describe("operation completeness — storage_usage", () => {
     );
   });
 });
+
+
+// ─── SAVE-109 — adjacent Firestore negative paths (final independent review) ─
+// Closes operation gaps for the public/boundary collections that the baseline
+// matrix did not fully enumerate: public_demo_videos (anonymous-read),
+// waiting_list (public create-only), and the users/{uid} delete operation.
+
+describe("negative paths — public_demo_videos (public read, server-only write)", () => {
+  beforeEach(async () => {
+    await seedMinimal();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "public_demo_videos", "pdv-1"), {
+        title: "synthetic public demo",
+        url: "https://example.invalid/pub.mp4",
+      });
+    });
+  });
+
+  it("allows unauthenticated read (public boundary)", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertSucceeds(getDoc(doc(ctx.firestore(), "public_demo_videos", "pdv-1")));
+  });
+
+  it("denies unauthenticated create/update/delete", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "public_demo_videos", "pdv-evil"), {
+        title: "injected",
+      })
+    );
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), "public_demo_videos", "pdv-1"),
+        { title: "tampered" },
+        { merge: true }
+      )
+    );
+    await assertFails(deleteDoc(doc(ctx.firestore(), "public_demo_videos", "pdv-1")));
+  });
+
+  it("denies authenticated client writes (publication is server-only)", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "public_demo_videos", "pdv-new"), {
+        title: "client-published",
+      })
+    );
+    await assertFails(
+      setDoc(
+        doc(ctx.firestore(), "public_demo_videos", "pdv-1"),
+        { title: "client edit" },
+        { merge: true }
+      )
+    );
+    await assertFails(deleteDoc(doc(ctx.firestore(), "public_demo_videos", "pdv-1")));
+  });
+});
+
+describe("negative paths — waiting_list (public create-only)", () => {
+  it("allows unauthenticated create (public signup)", async () => {
+    const ctx = testEnv.unauthenticatedContext();
+    await assertSucceeds(
+      setDoc(doc(ctx.firestore(), "waiting_list", "signup-1"), {
+        email: "person@example.invalid",
+      })
+    );
+  });
+
+  it("denies reads, updates, and deletes for everyone on the client", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "waiting_list", "signup-seed"), {
+        email: "seed@example.invalid",
+      });
+    });
+    const anon = testEnv.unauthenticatedContext();
+    const authed = testEnv.authenticatedContext(TENANT_A_UID);
+    // No client read — signup data must not be listable.
+    await assertFails(getDoc(doc(anon.firestore(), "waiting_list", "signup-seed")));
+    await assertFails(getDoc(doc(authed.firestore(), "waiting_list", "signup-seed")));
+    // No client update/delete.
+    await assertFails(
+      setDoc(
+        doc(authed.firestore(), "waiting_list", "signup-seed"),
+        { email: "taken-over@example.invalid" },
+        { merge: true }
+      )
+    );
+    await assertFails(deleteDoc(doc(authed.firestore(), "waiting_list", "signup-seed")));
+  });
+});
+
+describe("negative paths — users/{uid} delete boundary", () => {
+  beforeEach(seedMinimal);
+
+  it("allows the owner to delete their own users doc", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertSucceeds(deleteDoc(doc(owner.firestore(), "users", TENANT_A_UID)));
+  });
+
+  it("denies a different tenant deleting the users doc", async () => {
+    const other = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertFails(deleteDoc(doc(other.firestore(), "users", TENANT_A_UID)));
+  });
+
+  it("denies unauthenticated delete of the users doc", async () => {
+    const anon = testEnv.unauthenticatedContext();
+    await assertFails(deleteDoc(doc(anon.firestore(), "users", TENANT_A_UID)));
+  });
+});

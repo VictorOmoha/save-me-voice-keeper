@@ -6,6 +6,15 @@
   "storage": {
     "rules": "storage.rules"
   },
+  "emulators": {
+    "$comment": "SAVE-109: mirrors firebase.emulator.json so a bare `firebase emulators:start` uses the same fixed ports as the CI harness (test/emulator/run.mjs) and docs/hardening/emulator-harness.md §3.1. Emulator-only; production deploys ignore this block. Rules deploys are NOT part of CI/hosting — see docs/deployment-preview.md.",
+    "auth": { "port": 9099, "host": "127.0.0.1" },
+    "firestore": { "port": 8080, "host": "127.0.0.1" },
+    "functions": { "port": 5001, "host": "127.0.0.1" },
+    "storage": { "port": 9199, "host": "127.0.0.1" },
+    "ui": { "enabled": true, "port": 4000, "host": "127.0.0.1" },
+    "singleProjectMode": true
+  },
   "functions": {
     "source": "functions",
     "predeploy": [

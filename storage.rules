@@ -1,35 +1,175 @@
 rules_version = '2';
 
+// SAVE-109 (M1) — Storage security hardening.
+//
+// Extends the SAVE-005 owner-isolation baseline with:
+//   1. Approved content-type allowlists per prefix (image/* and document types).
+//   2. Explicit object-size ceilings (request.resource.size).
+//   3. Path-shape validation — wildcard segment values are rejected when they
+//      contain '/' (traversal) or are empty; malformed/unknown paths fall to the
+//      default-deny catch-all.
+//   4. Public/demo boundary kept strict: public read, no client write.
+//   5. Admin publication is verifiable WITHOUT trusting any client-readable role
+//      document: admin status comes exclusively from a Firebase Auth custom claim
+//      (`admin == true`) set by the Admin SDK server-side. A client cannot mint
+//      this claim, and there is NO Storage rule that reads Firestore role docs.
+//      Even with a forged/absent claim, Storage rules deny client writes to the
+//      admin prefix — publication is Admin-SDK-only by design.
+//
+// Ceilings (bytes). Chosen from the real client contracts:
+//   - images/   : client compresses to JPEG ≤1920×1080 q0.8 (typically ≪2 MiB);
+//                 10 MiB ceiling leaves ample headroom.
+//   - documents/: arbitrary user files (pdf, office, text, audio/video, archives);
+//                 25 MiB ceiling covers voice notes and documents.
+//   - users/    : legacy/future user-scoped blobs; 25 MiB.
+//
+// NOTE: `request.resource.contentType` is client-supplied metadata, not magic-byte
+// verification. These allowlists are a validation/contract layer; malware/content
+// scanning is a separate server-side concern (out of SAVE-109 scope).
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Legacy/future user-scoped objects.
-    match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+
+    // ── Tunables ─────────────────────────────────────────────────────────────
+    function maxImageBytes()    { return 10 * 1024 * 1024; }  // 10 MiB
+    function maxDocumentBytes() { return 25 * 1024 * 1024; }  // 25 MiB
+    function maxUserBytes()     { return 25 * 1024 * 1024; }  // 25 MiB
+
+    // A wildcard path segment is only safe if it is non-empty and contains no
+    // path separator. A separator inside a captured segment means the client
+    // supplied extra nesting/traversal that the literal prefix did not intend.
+    function segmentOk(seg) {
+      return seg.size() > 0 && !seg.matches('.*[/\\\\].*');
     }
 
-    // Current application document contract.
-    // Source: src/utils/documentStorage.ts and document viewer/editor fallbacks.
-    match /documents/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // Current application image-upload contract.
-    // Source: src/components/forms/ImageUpload.tsx.
-    match /images/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+    // Verifiable admin check: ONLY the Auth custom claim, never a client doc.
+    // Not used to grant any Storage write — asserted in tests as non-authoritative.
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
     }
 
-    // Public demo assets. Client writes are forbidden; trusted server/admin
-    // operations use the Admin SDK and do not depend on client Security Rules.
-    match /demo-videos/{allPaths=**} {
-      allow read: if true;
+    // ── Content-type allowlists ──────────────────────────────────────────────
+    function isApprovedImageType(ct) {
+      return ct in [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/avif',
+        'image/svg+xml'
+      ];
+    }
+
+    function isApprovedDocumentType(ct) {
+      return ct in [
+        'application/pdf',
+        'text/plain',
+        'text/markdown',
+        'text/csv',
+        'application/json',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/rtf',
+        'application/zip',
+        'audio/mpeg',
+        'audio/wav',
+        'audio/webm',
+        'audio/ogg',
+        'audio/mp4',
+        'video/mp4',
+        'video/webm'
+      ];
+    }
+
+    // Create/update gate for a user-owned prefix: owner + size ceiling + type
+    // allowlist + validated segments. Only evaluated for writes where
+    // request.resource exists (create/update); deletes skip this via the
+    // request.resource != null guard in each rule so request.resource is never
+    // dereferenced on a delete (where it is null).
+    function ownerUpsertOk(userId, fileName, sizeLimit, typeOk) {
+      return request.resource != null
+        && request.resource.size <= sizeLimit
+        && typeOk;
+    }
+
+    // ── Current application image-upload contract ────────────────────────────
+    // Source: src/components/forms/ImageUpload.tsx (images/{uid}/{file}).
+    match /images/{userId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && segmentOk(userId)
+        && segmentOk(fileName)
+        && (request.resource == null || ownerUpsertOk(
+          userId,
+          fileName,
+          maxImageBytes(),
+          isApprovedImageType(request.resource.contentType)
+        ));
+    }
+
+    // ── Current application document contract ────────────────────────────────
+    // Source: src/utils/documentStorage.ts (documents/{uid}/{entryId}/{file}).
+    // entryId is validated as a safe single segment; filename is validated.
+    match /documents/{userId}/{entryId}/{fileName} {
+      allow read: if isSignedIn()
+        && request.auth.uid == userId
+        && segmentOk(entryId);
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && segmentOk(userId)
+        && segmentOk(entryId)
+        && segmentOk(fileName)
+        && (request.resource == null || ownerUpsertOk(
+          userId,
+          fileName,
+          maxDocumentBytes(),
+          isApprovedDocumentType(request.resource.contentType)
+        ));
+    }
+
+    // ── Legacy/future user-scoped objects ────────────────────────────────────
+    // Kept owner-isolated with a size ceiling and filename validation. No type
+    // allowlist here — the legacy prefix has no single client contract.
+    match /users/{userId}/{fileName} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSignedIn()
+        && request.auth.uid == userId
+        && segmentOk(userId)
+        && segmentOk(fileName)
+        && (request.resource == null || request.resource.size <= maxUserBytes());
+    }
+
+    // ── Public demo assets (public read, server-only write) ──────────────────
+    // Client writes are forbidden for everyone, INCLUDING clients presenting an
+    // admin custom claim. Demo publication goes through the Admin SDK, which
+    // bypasses Security Rules; that path is auditable and never depends on a
+    // client-readable role document. Rules assert the client-side invariant.
+    match /demo-videos/{fileName} {
+      allow read: if segmentOk(fileName);
       allow write: if false;
     }
 
-    // Deny every path not explicitly covered above.
+    // ── Admin publication prefix (server-only; verified, not doc-trusted) ────
+    // Landing/marketing assets published by trusted tooling. Rules deny ALL
+    // client writes — even isAdmin() — so publication can only happen via the
+    // Admin SDK. The custom-claim check is documented and tested, but rules do
+    // not grant it storage write power; this removes any client-side privilege-
+    // escalation surface from Storage entirely.
+    match /admin-public/{fileName} {
+      allow read: if isSignedIn() && segmentOk(fileName);
+      allow write: if false;
+    }
+
+    // ── Deny every path not explicitly covered above ─────────────────────────
     match /{allPaths=**} {
       allow read, write: if false;
     }

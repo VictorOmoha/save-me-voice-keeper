@@ -15,7 +15,30 @@ const PROJECT_ID = process.env.EMULATOR_PROJECT_ID ?? "demo-saveme";
 const RULES_PATH = path.resolve(process.cwd(), "storage.rules");
 const STORAGE_PORT = Number(process.env.FIREBASE_STORAGE_EMULATOR_PORT ?? 9199);
 const SMALL = new Uint8Array([0x53, 0x41, 0x56, 0x45]);
-const MiB = 1024 * 1024;
+const KiB = 1024;
+const MiB = 1024 * KiB;
+
+async function uploadSizedBytes(
+  objectPath: string,
+  contentType: string,
+  sizeBytes: number
+) {
+  const objectRef = ref(testEnv.authenticatedContext(TENANT_A_UID).storage(), objectPath);
+  const fullChunk = new Uint8Array(256 * KiB);
+  let offset = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (offset >= sizeBytes) {
+        controller.close();
+        return;
+      }
+      const length = Math.min(fullChunk.byteLength, sizeBytes - offset);
+      controller.enqueue(length === fullChunk.byteLength ? fullChunk : fullChunk.subarray(0, length));
+      offset += length;
+    },
+  });
+  return uploadBytes(objectRef, await new Response(stream).blob(), { contentType });
+}
 
 let testEnv: RulesTestEnvironment;
 let sequence = 0;
@@ -117,10 +140,10 @@ describe("images MIME and size validation", () => {
 
   it("allows exactly 10 MiB and denies one byte over", async () => {
     await assertSucceeds(
-      ownerUpload(imagePath(TENANT_A_UID), "image/png", new Uint8Array(10 * MiB))
+      uploadSizedBytes(imagePath(TENANT_A_UID), "image/png", 10 * MiB)
     );
     await assertFails(
-      ownerUpload(imagePath(TENANT_A_UID), "image/png", new Uint8Array(10 * MiB + 1))
+      uploadSizedBytes(imagePath(TENANT_A_UID), "image/png", 10 * MiB + 1)
     );
   });
 });
@@ -168,10 +191,10 @@ describe("documents MIME and size validation", () => {
 
   it("allows exactly 25 MiB and denies one byte over", async () => {
     await assertSucceeds(
-      ownerUpload(documentPath(TENANT_A_UID), "application/pdf", new Uint8Array(25 * MiB))
+      uploadSizedBytes(documentPath(TENANT_A_UID), "application/pdf", 25 * MiB)
     );
     await assertFails(
-      ownerUpload(documentPath(TENANT_A_UID), "application/pdf", new Uint8Array(25 * MiB + 1))
+      uploadSizedBytes(documentPath(TENANT_A_UID), "application/pdf", 25 * MiB + 1)
     );
   });
 });
@@ -179,10 +202,10 @@ describe("documents MIME and size validation", () => {
 describe("legacy users size boundary", () => {
   it("allows exactly 25 MiB regardless of MIME and denies one byte over", async () => {
     await assertSucceeds(
-      ownerUpload(legacyPath(TENANT_A_UID), "application/octet-stream", new Uint8Array(25 * MiB))
+      uploadSizedBytes(legacyPath(TENANT_A_UID), "application/octet-stream", 25 * MiB)
     );
     await assertFails(
-      ownerUpload(legacyPath(TENANT_A_UID), "application/octet-stream", new Uint8Array(25 * MiB + 1))
+      uploadSizedBytes(legacyPath(TENANT_A_UID), "application/octet-stream", 25 * MiB + 1)
     );
   });
 });

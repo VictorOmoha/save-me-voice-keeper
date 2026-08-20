@@ -2,34 +2,88 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Legacy/future user-scoped objects.
-    match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // Current application document contract.
-    // Source: src/utils/documentStorage.ts and document viewer/editor fallbacks.
-    match /documents/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+    // Exact match shapes below enforce one non-empty path segment and reject
+    // slash nesting. RE2-compatible validation otherwise preserves ordinary
+    // Unicode filenames while excluding backslashes, traversal segments, and
+    // ASCII control characters (including DEL).
+    function isSafeSegment(segment) {
+      return segment != '.'
+        && segment != '..'
+        && !segment.matches('.*\\.\\..*')
+        && segment.matches('^[^\\\\\\x00-\\x1F\\x7F]+$');
     }
 
-    // Current application image-upload contract.
-    // Source: src/components/forms/ImageUpload.tsx.
-    match /images/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null
-        && request.auth.uid == userId;
+    function isImage() {
+      return request.resource.contentType.matches(
+        '^image/(jpeg|png|gif|webp|avif|svg\\+xml)$'
+      );
     }
 
-    // Public demo assets. Client writes are forbidden; trusted server/admin
-    // operations use the Admin SDK and do not depend on client Security Rules.
-    match /demo-videos/{allPaths=**} {
-      allow read: if true;
+    function isDocument() {
+      return request.resource.contentType.matches(
+        '^(application/pdf|application/msword|application/vnd\\.openxmlformats-officedocument\\.(wordprocessingml\\.document|spreadsheetml\\.sheet|presentationml\\.presentation)|application/vnd\\.ms-(excel|powerpoint)|application/vnd\\.oasis\\.opendocument\\.(text|spreadsheet|presentation)|text/plain|text/html|text/markdown|text/x-markdown|text/csv|image/jpeg|image/png|application/json|application/rtf|text/rtf|application/zip|application/x-zip-compressed|audio/[-+.A-Za-z0-9]+|video/[-+.A-Za-z0-9]+)$'
+      );
+    }
+
+    function imageWriteIsValid() {
+      return request.resource.size <= 10 * 1024 * 1024
+        && isImage();
+    }
+
+    function documentWriteIsValid() {
+      return request.resource.size <= 25 * 1024 * 1024
+        && isDocument();
+    }
+
+    function legacyWriteIsValid() {
+      return request.resource.size <= 25 * 1024 * 1024;
+    }
+
+    // Current image contract: images/{uid}/{fileName}.
+    match /images/{userId}/{fileName} {
+      allow read: if isOwner(userId) && isSafeSegment(fileName);
+      allow write: if isOwner(userId)
+        && isSafeSegment(fileName)
+        && (request.resource == null || imageWriteIsValid());
+    }
+
+    // Current document contract: documents/{uid}/{entryId}/{fileName}.
+    match /documents/{userId}/{entryId}/{fileName} {
+      allow read: if isOwner(userId)
+        && isSafeSegment(entryId)
+        && isSafeSegment(fileName);
+      allow write: if isOwner(userId)
+        && isSafeSegment(entryId)
+        && isSafeSegment(fileName)
+        && (request.resource == null || documentWriteIsValid());
+    }
+
+    // Legacy user-scoped contract: users/{uid}/{fileName}.
+    match /users/{userId}/{fileName} {
+      allow read: if isOwner(userId) && isSafeSegment(fileName);
+      allow write: if isOwner(userId)
+        && isSafeSegment(fileName)
+        && (request.resource == null || legacyWriteIsValid());
+    }
+
+    // Public demo assets are provisioned only by trusted Admin SDK code.
+    match /demo-videos/{fileName} {
+      allow read: if isSafeSegment(fileName);
       allow write: if false;
     }
 
-    // Deny every path not explicitly covered above.
+    // Optional public assets use the same Admin-SDK-only write boundary.
+    match /admin-public/{fileName} {
+      allow read: if isSafeSegment(fileName);
+      allow write: if false;
+    }
+
+    // Deny every path not explicitly covered above, including malformed or
+    // over-nested variants of otherwise recognized prefixes.
     match /{allPaths=**} {
       allow read, write: if false;
     }

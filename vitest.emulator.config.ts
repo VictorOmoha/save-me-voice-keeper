@@ -36,5 +36,10 @@ export default defineConfig({
     // The emulator round-trip can exceed the 5s default on a cold start.
     testTimeout: 30000,
     hookTimeout: 30000,
+    // Storage boundary fixtures approach 25 MiB. One worker prevents the hosted
+    // CI runner from retaining several large request bodies at the same time.
+    maxWorkers: 1,
+    fileParallelism: false,
+    maxConcurrency: 1,
   },
 });

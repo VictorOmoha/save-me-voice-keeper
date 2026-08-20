@@ -213,7 +213,9 @@ describe("legacy users size boundary", () => {
 // The Firebase Storage client canonicalizes duplicate slashes before rules evaluation;
 // this matrix tests malformed names that can actually reach the rules engine.
 // Verified after rebasing onto the merged data-rights baseline; the SDK-normalized
-// duplicate-slash case is intentionally not asserted as a rules-engine denial.
+// duplicate-slash and embedded-dot cases are intentionally not asserted as
+// traversal: the SDK canonicalizes the former and exact segment matching makes
+// the latter ordinary filenames rather than directory traversal.
 // Reverified after entitlement and billing rule integration.
 describe("path-shape validation", () => {
   it.each([
@@ -229,13 +231,16 @@ describe("path-shape validation", () => {
       `users/${TENANT_A_UID}/Owner's archive (æ—§).bin`,
       "application/octet-stream",
     ],
+    [
+      `documents/${TENANT_A_UID}/draft..folder/Owner's draft..final.pdf`,
+      "application/pdf",
+    ],
   ])("allows harmless punctuation and Unicode in %s", async (objectPath, contentType) => {
     await assertSucceeds(ownerUpload(objectPath, contentType));
   });
 
   it.each([
     `images/${TENANT_A_UID}/nested/${nextName("png")}`,
-    `images/${TENANT_A_UID}/..evil.png`,
     `images/${TENANT_A_UID}/bad\\name.png`,
     `images/${TENANT_A_UID}/bad\u0000name.png`,
     `images/${TENANT_A_UID}/bad\u001fname.png`,
@@ -282,7 +287,6 @@ describe.each(["demo-videos", "admin-public"])("public/Admin-SDK-only boundary â
     for (const objectPath of [
       `${prefix}/nested/${nextName("mp4")}`,
       `${prefix}/bad\\name.mp4`,
-      `${prefix}/..evil.mp4`,
     ]) {
       await seedWithoutRules(objectPath);
       await assertFails(getBytes(ref(testEnv.unauthenticatedContext().storage(), objectPath)));

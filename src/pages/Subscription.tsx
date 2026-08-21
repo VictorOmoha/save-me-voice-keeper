@@ -10,6 +10,7 @@ import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { trackActivationEvent } from "@/lib/analytics";
 import { billingClient } from "@/services/billingClient";
+import { isSellablePlanId, publicPlanCards } from "@/config/plans/publicPlans";
 
 const Subscription = () => {
   const { user, isAuthenticated } = useAuth();
@@ -19,71 +20,26 @@ const Subscription = () => {
   const autoOpenedPlanRef = useRef<string | null>(null);
   const requestedPlan = searchParams.get('plan');
 
-  const plans = [
-    {
-      name: "Free",
-      price: "$0",
-      period: "Forever",
-      description: "Perfect for getting started",
-      features: [
-        "Up to 50 entries",
-        "Basic search",
-        "Web access only",
-        "Standard support"
-      ],
-      current: user?.subscriptionTier === 'free'
-    },
-    {
-      name: "Basic",
-      price: "$9",
-      period: "per month",
-      description: "For personal power users",
-      features: [
-        "Unlimited entries",
-        "Advanced search & filters",
-        "Web + browser extension",
-        "Voice input & commands",
-        "Standard support"
-      ],
-      current: user?.subscriptionTier === 'basic'
-    },
-    {
-      name: "Premium",
-      price: "$19",
-      period: "per month",
-      description: "For advanced personal workflows",
-      features: [
-        "Everything in Basic",
-        "50 GB storage",
-        "Portable data export",
-        "Agent API access",
-        "Web + browser extension",
-        "Standard support"
-      ],
-      current: user?.subscriptionTier === 'premium'
-    }
-  ];
+  const plans = publicPlanCards().map((plan) => ({
+    ...plan,
+    current: user?.subscriptionTier === plan.id,
+  }));
 
-  const handleUpgrade = async (planName: string) => {
-    trackActivationEvent("subscription_clicked", { source: "subscription_page", plan: planName.toLowerCase() });
+  const handleUpgrade = async (planId: string) => {
+    trackActivationEvent("subscription_clicked", { source: "subscription_page", plan: planId });
 
-    if (planName === "Free") {
+    if (!isSellablePlanId(planId)) {
       return;
     }
 
-    setLoadingPlan(planName);
+    setLoadingPlan(planId);
 
     try {
-      const plan = planName.toLowerCase();
-      if (plan !== 'basic' && plan !== 'premium') {
-        toast.error('Invalid plan selected');
-        return;
-      }
-      const { url } = await billingClient.createCheckout(plan);
-      trackActivationEvent("subscription_checkout_opened", { plan });
+      const { url } = await billingClient.createCheckout(planId);
+      trackActivationEvent("subscription_checkout_opened", { plan: planId });
       window.location.href = url;
     } catch (err) {
-      trackActivationEvent("subscription_checkout_failed", { plan: planName.toLowerCase() });
+      trackActivationEvent("subscription_checkout_failed", { plan: planId });
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPlan(null);
@@ -115,19 +71,13 @@ const Subscription = () => {
       return;
     }
 
-    const matchedPlanName = requestedPlan === 'basic'
-      ? 'Basic'
-      : requestedPlan === 'premium'
-        ? 'Premium'
-        : null;
-
-    if (!matchedPlanName) {
+    if (!isSellablePlanId(requestedPlan)) {
       autoOpenedPlanRef.current = requestedPlan;
       return;
     }
 
     autoOpenedPlanRef.current = requestedPlan;
-    void handleUpgrade(matchedPlanName);
+    void handleUpgrade(requestedPlan);
   }, [requestedPlan, user?.subscriptionTier]);
 
   if (!isAuthenticated) {
@@ -193,8 +143,8 @@ const Subscription = () => {
 
         {/* Available Plans */}
         <div className="grid md:grid-cols-3 gap-8">
-          {plans.map((plan, index) => (
-            <Card key={index} className={`relative hover:shadow-lg transition-shadow bg-white border ${
+          {plans.map((plan) => (
+            <Card key={plan.id} className={`relative hover:shadow-lg transition-shadow bg-white border ${
               plan.current ? 'border-blue-500 border-2 shadow-lg' : 'border-gray-200'
             }`}>
               {plan.current && (
@@ -206,17 +156,17 @@ const Subscription = () => {
                 <CardTitle className="text-2xl text-gray-900">{plan.name}</CardTitle>
                 <div className="flex items-baseline justify-center mb-2">
                   <span className="text-4xl font-bold text-blue-600">{plan.price}</span>
-                  <span className="text-lg text-gray-600 ml-1">/{plan.period === "Forever" ? "forever" : "month"}</span>
+                  <span className="text-lg text-gray-600 ml-1">{plan.period === "forever" ? "/forever" : plan.period}</span>
                 </div>
                 <div className="text-sm text-gray-600 font-medium">
-                  {plan.period === "Forever" ? "No recurring charges" : "Billed monthly"}
+                  {plan.sellable ? "Billed monthly" : "No recurring charges"}
                 </div>
-                <CardDescription className="mt-2 text-gray-600">{plan.description}</CardDescription>
+                <CardDescription className="mt-2 text-gray-600">{plan.blurb}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center">
                       <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
                       <span className="text-sm text-gray-800">{feature}</span>
                     </li>
@@ -224,23 +174,23 @@ const Subscription = () => {
                 </ul>
                 <Button
                   className={`w-full font-medium ${plan.current ? 'bg-gray-400 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                  disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
-                  onClick={() => handleUpgrade(plan.name)}
+                  disabled={plan.current || loadingPlan === plan.id || !plan.sellable}
+                  onClick={() => handleUpgrade(plan.id)}
                 >
-                  {loadingPlan === plan.name ? (
+                  {loadingPlan === plan.id ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Opening...
                     </>
                   ) : plan.current ? (
                     'Current Plan'
-                  ) : plan.name === "Free" ? (
-                    'Free Plan'
+                  ) : plan.sellable ? (
+                    `Open ${plan.name}`
                   ) : (
-                  `Open ${plan.name}`
-                )}
+                    'Free Plan'
+                  )}
                 </Button>
-                {!plan.current && plan.name !== "Free" && (
+                {!plan.current && plan.sellable && (
                   <p className="text-xs text-gray-600 text-center mt-2">
                     No trial; billed monthly
                   </p>

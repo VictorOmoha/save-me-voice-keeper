@@ -5,12 +5,13 @@
  * source of truth for plan identity, display copy, price, trial, entitlements,
  * quotas, and the Stripe price mapping per environment.
  *
- * ⚠️  M0 CONTRACT ARTIFACT — NOT YET WIRED INTO PRODUCTION. ⚠️
+ * Display surfaces (landing, subscription, settings) now read this catalog.
+ * Stripe price IDs remain server-only Functions configuration.
  *
  * - Victor approved D-004 on 2026-08-10; the plan, price, quota, trial, and
  *   entitlement values below are the ratified launch contract.
- * - Nothing in the live app imports this module yet. SAVE-105 owns server-side
- *   enforcement and shared client consumption.
+ * - SAVE-105 owns server-side enforcement. This module is the client display
+ *   contract so public claims cannot drift from the launch catalog.
  * - Stripe price IDs are never stored in client source. They are immutable,
  *   environment-specific server configuration. Unknown IDs fail closed.
  *

@@ -102,8 +102,21 @@ service cloud.firestore {
     }
 
     // --- User profile / settings (doc ID = user UID) ---
+    // Billing identifiers on this document are a compatibility projection.
+    // Clients may own profile fields; they cannot write Stripe/plan fields.
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && !request.resource.data.keys().hasAny([
+          'stripeCustomerId', 'subscriptionTier', 'subscriptionStatus',
+          'subscriptionActive', 'subscriptionId', 'billingEntitlementVersion'
+        ]);
+      allow update: if isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'stripeCustomerId', 'subscriptionTier', 'subscriptionStatus',
+          'subscriptionActive', 'subscriptionId', 'billingEntitlementVersion'
+        ]);
+      allow delete: if isOwner(userId);
     }
 
     // Billing entitlement contract is readable by its owner but server-owned.

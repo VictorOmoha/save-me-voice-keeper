@@ -27,4 +27,14 @@ describe("Firestore security rules", () => {
 
     expect(apiKeyRules).toContain("allow create, update, delete: if false");
   });
+
+  it("keeps Stripe and plan fields on users/{uid} server-owned", () => {
+    const userRules = rules.match(/match \/users\/{userId} \{[\s\S]*?\n {4}\}/)?.[0] || "";
+
+    expect(userRules).toContain("allow read: if isOwner(userId)");
+    expect(userRules).toContain("stripeCustomerId");
+    expect(userRules).toContain("subscriptionTier");
+    expect(userRules).toContain("billingEntitlementVersion");
+    expect(userRules).not.toMatch(/allow read, write: if isOwner\(userId\)/);
+  });
 });

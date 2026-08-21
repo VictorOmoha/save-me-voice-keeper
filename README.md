@@ -27,7 +27,7 @@ That path is implemented in this repo. Whether live Stripe actually charges a ca
 - **Server logic**: Firebase Cloud Functions in `functions/`
 - **Payments**: `createCheckout`, `customerPortal`, `stripeWebhook`
 - **Voice**: `voiceAgent`, plus audio / intelligence / shared-memory functions
-- **No second backend**: the active app is Firebase only. Do not add Supabase, edge functions, or another API client.
+- **Firebase only**: Auth, Firestore, Functions, Storage, and Hosting. Do not add another backend client.
 
 ### AI layer (Nova)
 

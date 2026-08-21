@@ -19,10 +19,20 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-if (process.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+const allowed = new Set([
+  ...required,
+  "VITE_FIREBASE_STORAGE_BUCKET",
+  "VITE_FIREBASE_MESSAGING_SENDER_ID",
+  "VITE_FIREBASE_MEASUREMENT_ID",
+  "VITE_CLOUD_FUNCTIONS_URL",
+  "VITE_GOOGLE_CLOUD_API_KEY",
+]);
+const unexpected = Object.keys(process.env)
+  .filter((name) => name.startsWith("VITE_") && !allowed.has(name) && process.env[name]?.trim());
+if (unexpected.length > 0) {
   console.error(
-    "Leftover Supabase client env is set. SaveMe is Firebase-only; " +
-      "remove those secrets instead of shipping a second backend."
+    "Unexpected VITE_ client env names are set. Production builds only accept Firebase, " +
+      `Cloud Functions, and Google Cloud TTS keys. Remove: ${unexpected.join(", ")}`
   );
   process.exit(1);
 }

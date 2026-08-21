@@ -32,7 +32,15 @@ describe("pay-path wiring", () => {
     const gitignore = read(".gitignore");
     expect(gitignore).toMatch(/^\.env\.production$/m);
     expect(gitignore).toMatch(/^!\.env\.example$/m);
-    expect(read(".env.example")).not.toContain("VITE_SUPABASE");
+    const exampleKeys = read(".env.example")
+      .split("\n")
+      .map((line) => line.match(/^(VITE_[A-Z0-9_]+)=/)?.[1])
+      .filter((name): name is string => Boolean(name));
+    expect(exampleKeys.every((name) =>
+      name.startsWith("VITE_FIREBASE_") ||
+      name === "VITE_CLOUD_FUNCTIONS_URL" ||
+      name === "VITE_GOOGLE_CLOUD_API_KEY"
+    )).toBe(true);
   });
 
   it("CI runs unit tests and deploy fail-closes without client secrets", () => {

@@ -34,7 +34,6 @@ Current public policies (PRIVACY_POLICY.md / TERMS_OF_SERVICE.md, both v1.0) con
 | Google Analytics 4 (via Firebase Analytics) | Product analytics | Bounded event params; device/app-instance IDs | Covered under Google terms if executed — confirm | Confirmed-in-code |
 | User-configured webhooks / Zapier | User-initiated outbound sharing | Full entry content + user email, sent from client | n/a (user-directed) — but disclosure is missing | Confirmed-in-code |
 | Third-party AI agents (OpenClaw/Nia, Hermes, Claude, Codex, Cursor, custom) | Read/write user memory via `sm_` keys; legacy shared static key | Entire shared-memory corpus incl. auto-mirrored personal facts | n/a — user-authorized recipients; **but no disclosure, no per-agent scoping enforcement, revocation broken** | Confirmed-in-code |
-| Supabase | None evidenced (vestigial scaffold) | — | — | Referenced only |
 | Google/Microsoft OAuth | Sign-in (Google only implemented) | Name, email | n/a | Google confirmed; Microsoft referenced only |
 
 ---

@@ -48,6 +48,7 @@ describe("pay-path wiring", () => {
     const deploy = read(".github/workflows/deploy.yml");
     expect(ci).toContain("npm test");
     expect(ci).toContain("npm --prefix functions test");
+    expect(read("vitest.config.ts")).toContain('"**/functions/**"');
     expect(deploy).toContain("scripts/assert-production-env.mjs");
     expect(deploy).toContain("firebase deploy --only functions");
     expect(deploy).toContain("secrets.VITE_FIREBASE_API_KEY");

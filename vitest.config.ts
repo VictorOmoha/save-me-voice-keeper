@@ -13,7 +13,10 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/dist/**",
-      "**/functions/lib/**",
+      // Functions have their own package and `npm --prefix functions test`.
+      // Collecting them here fails in CI because firebase-functions is not
+      // installed until after the root unit-test step.
+      "**/functions/**",
       "**/browser-extension/test/**",
       "**/cypress/**",
       "**/.{idea,git,cache,output,temp}/**",

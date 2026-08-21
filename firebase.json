@@ -88,6 +88,9 @@
       { "source": "/api/extension/revoke", "function": "extensionRevoke" },
       { "source": "/api/extension/revoke-all", "function": "extensionRevokeAll" },
       { "source": "/api/quick-save", "function": "quickSave" },
+      { "source": "/api/billing/webhook", "function": "stripeWebhook" },
+      { "source": "/api/billing/checkout", "function": "createCheckout" },
+      { "source": "/api/billing/portal", "function": "customerPortal" },
       {
         "source": "**",
         "destination": "/index.html"

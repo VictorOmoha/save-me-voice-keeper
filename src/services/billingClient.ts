@@ -1,8 +1,8 @@
 import {auth} from "@/lib/firebase";
-
-const baseUrl = import.meta.env.VITE_CLOUD_FUNCTIONS_URL;
+import {getCloudFunctionsBaseUrl} from "@/utils/cloudFunctions";
 
 const post = async (path: string, body: Record<string, unknown>): Promise<{url: string}> => {
+  const baseUrl = getCloudFunctionsBaseUrl();
   if (!baseUrl) throw new Error("Billing is not configured in this environment");
   const user = auth.currentUser;
   if (!user) throw new Error("Authentication required");

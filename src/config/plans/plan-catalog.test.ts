@@ -6,8 +6,8 @@
  * state machine mapping. They run under the existing Vitest config
  * (`vitest.config.ts`, jsdom environment, `@` alias) with no new dependencies.
  *
- * The catalog is NOT wired into production; these tests guard the design so a
- * future wiring PR can trust the module.
+ * Display surfaces now consume this catalog. These tests still pin the D-004
+ * contract so landing, settings, and checkout copy cannot drift.
  */
 
 import { describe, it, expect } from "vitest";

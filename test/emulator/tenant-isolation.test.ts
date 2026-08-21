@@ -299,9 +299,23 @@ describe("tenant isolation — users (doc id = uid)", () => {
     await assertSucceeds(
       setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
         email: TENANT_A_EMAIL,
-        subscriptionStatus: "active",
         displayName: "Tenant A",
-      })
+      }, {merge: true})
+    );
+  });
+
+  it("denies the owner writing Stripe or plan fields on users/{uid}", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
+        stripeCustomerId: "cus_forged",
+      }, {merge: true})
+    );
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
+        subscriptionTier: "premium",
+        subscriptionActive: true,
+      }, {merge: true})
     );
   });
 

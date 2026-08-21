@@ -1,9 +1,14 @@
 # Environment variables - NEVER commit these
 .env
 .env.local
+.env.production
 .env.*.local
+.env.*
+!.env.example
 functions/.env
 functions/.env.local
+functions/.env.*
+!functions/.env.example
 
 # Logs
 logs

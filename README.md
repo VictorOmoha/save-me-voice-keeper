@@ -1,118 +1,115 @@
 # SaveMe.Space
 
-Voice-first external memory system for people who think out loud.
-
-Capture your thoughts by voice. Nova AI organizes them. Get structured documents, insights, and actionable memory — automatically.
+Voice-first external memory. Capture thoughts by voice. Nova AI organizes them.
 
 **Live**: https://saveme.space
 
-## What It Does
+## How a new user signs up, captures voice, and pays
 
-- **Voice Capture**: Speak naturally. Nova transcribes, categorizes, and structures your thoughts in real time.
-- **Smart Organization**: Automatic entry categorization, semantic search, and pattern recognition across your history.
-- **Document Export**: Generate structured PDFs, DOCX, and CSVs from voice entries.
-- **Nova AI Voice Agent**: Conversational AI layer built on top of your personal memory. Ask questions, get answers based on your captured data.
-- **Brain Dump Processing**: Turn unstructured rambling into structured, actionable entries.
-- **Intelligence Layers**: Recent entries, related entries, activity dashboards, and insights panels.
-- **Offline Support**: PWA with offline sync — capture even when disconnected.
-- **Browser Extension**: Quick capture from any page via Chrome/Firefox extension.
+1. **Sign up** at `/signup` (email + password, or Google). `/login` is the return path. After auth, you land on `/dashboard` unless a `?plan=` or `?next=` link sent you elsewhere.
+2. **Capture voice** from `/voice-capture`, the floating Nova mic, or `/brain-dump`. The browser will ask for the microphone. Audio goes to the Firebase `voiceAgent` function, which transcribes and files an entry.
+3. **Pay** at `/subscription` (also Settings → Subscription). Basic is $9/month. Premium is $19/month. Free is $0 with a 50-entry / 500 MB cap. Checkout and the customer portal are Stripe sessions created by Firebase Functions. There is **no paid trial** and **no annual SKU**.
+
+That path is implemented in this repo. Whether live Stripe actually charges a card still depends on Functions secrets (`STRIPE_MODE`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and the matching `STRIPE_*_MONTHLY_PRICE_ID` values) being set in Firebase. This repo does not contain those values, and this README does not claim checkout works in production.
 
 ## Architecture
 
 ### Frontend
 
-- **Framework**: React 18 + TypeScript + Vite
-- **UI**: shadcn/ui + Tailwind CSS + Radix primitives
-- **State**: React Query, React Context, localStorage
-- **Routing**: React Router v6 (HashRouter)
-- **Rich Text**: TipTap editor
-- **PDF**: jsPDF + pdfjs-dist
-- **Speech**: Web Speech API + ElevenLabs TTS integration
+- React 18 + TypeScript + Vite
+- shadcn/ui + Tailwind CSS
+- React Router v6 **BrowserRouter** (old `/#/dashboard` links are rewritten on load)
+- Firebase Auth + Firestore + Storage clients
 
 ### Backend
 
 - **Auth & DB**: Firebase Auth + Cloud Firestore (`saveme-f5af0`)
 - **Server logic**: Firebase Cloud Functions in `functions/`
-- **Payments**: Stripe checkout, webhooks, and customer portal through Firebase functions
-- **Voice Processing**: Firebase functions for Nova agent execution, audio transcription, TTS, quick save, entry intelligence, and shared memory APIs
-- **Storage**: Firebase Storage for app assets/user files where enabled
-- **No legacy backend clients**: The active app uses Firebase only. Do not add alternate backend clients, edge functions, migrations, docs, or deployment config back into this codebase.
+- **Payments**: `createCheckout`, `customerPortal`, `stripeWebhook`
+- **Voice**: `voiceAgent`, plus audio / intelligence / shared-memory functions
+- **Firebase only**: Auth, Firestore, Functions, Storage, and Hosting. Do not add another backend client.
 
-### AI Layer (Nova)
+### AI layer (Nova)
 
-- NovaFloat → NovaVoiceAgent → useVoiceAgent → Firebase `voiceAgent`
-- Voice commands → Firebase Cloud Functions → Firestore mutations + appCommands/events
-- Shared memory and external agent integration → Firebase shared-memory functions + user-minted `sm_` API keys
+NovaFloat → NovaVoiceAgent → useVoiceAgent → Firebase `voiceAgent`.
 
-## Project Structure
-
-```
-src/
-  components/          # React components
-    settings/          # Settings page sections
-    documents/         # Document viewing and editing
-    categoryView/      # Category entry browsing
-    dashboard/         # Dashboard panels
-    voice/             # Voice recording UI
-    landing/           # Landing page components
-    admin/             # Admin-only components
-  pages/              # Route-level page components
-  hooks/              # Custom React hooks
-  contexts/           # React Context providers
-  utils/              # Shared utilities
-    nlp/              # Legacy voice command NLP (deprecated)
-  lib/                # Core Firebase/API clients
-functions/            # Firebase Cloud Functions (Nova, billing, audio, shared memory)
-public/               # Static assets
-```
-
-## Development
+## Local development
 
 ### Prerequisites
 
 - Node.js 20+ and npm
-- Firebase project (`saveme-f5af0`) with Auth, Firestore, Storage, and Functions enabled
-- Stripe account (payments)
-- Gemini/Google Cloud credentials for Nova voice agent and TTS
-- Optional user-provided ElevenLabs API key for alternate TTS flows
+- Access to Firebase project `saveme-f5af0` (or emulators)
+- Stripe test-mode keys for Functions (not committed)
 
 ### Setup
 
 ```bash
 npm install
-cp .env.example .env  # configure your environment
-npm run dev           # start dev server
+cp .env.example .env.local   # fill VITE_FIREBASE_* and optional VITE_CLOUD_FUNCTIONS_URL
+npm --prefix functions install
+# For Functions: copy functions/.env.example and set secrets in the Firebase console,
+# or use emulators. Never commit .env, .env.local, or .env.production.
+npm run dev
 ```
+
+Production Hosting builds must receive `VITE_*` values from GitHub Actions secrets. See `.github/workflows/deploy.yml`. Do not put those values in git.
 
 ### Testing
 
 ```bash
-npm run test              # default test suite (Vitest, excludes legacy NLP)
-npm run test:legacy-voice # deprecated voice/NLP test suite
+npm test                      # Vitest (excludes legacy NLP)
+npm --prefix functions test   # Functions unit tests
+npm run test:emulator         # Firestore/Storage rules (needs Java + emulators)
+npm run test:legacy-voice     # deprecated voice/NLP suite
 ```
 
 ### Build
 
 ```bash
-npm run build             # production build
-npm run build:dev         # development build
-npm run preview           # preview production build
+npm run build
+npm run preview
 ```
 
-## Key Pages
+## Deploy
 
-- `/` — Landing page with interactive voice demo
-- `/dashboard` — Main workspace (voice capture, recent entries, intelligence)
-- `/entries` — All entries with search and filtering
-- `/category/:id` — Category-specific entry view
-- `/insights` — Pattern analysis and activity dashboard
-- `/nova-briefing` — Nova AI briefing interface
-- `/subscription` — Stripe-powered subscription management
-- `/settings` — Full settings panel (profile, voice, data, subscriptions)
+- **Hosting** deploys from `.github/workflows/deploy.yml` on push to `main`.
+- That workflow now also deploys **Functions**. It will fail closed if required `VITE_*` GitHub secrets are missing, so a broken unconfigured bundle cannot overwrite production.
+- Firestore/Storage rules are not auto-deployed by that workflow. Deploy them deliberately: `npx firebase deploy --only firestore:rules,storage`.
+- Stripe webhook public URL after Hosting rewrite: `https://saveme.space/api/billing/webhook` (the `*.cloudfunctions.net/stripeWebhook` URL still works if already configured).
 
-## Design
+Required GitHub Actions secret **names** (values stay in GitHub / Firebase, never in this repo):
 
-Custom galvanized/skeletal design system — dark, industrial aesthetic with grid blueprint backgrounds, technical typography, and metallic accents. Not a generic template.
+- `FIREBASE_SERVICE_ACCOUNT_SAVEME_F5AF0`
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID`
+- `VITE_CLOUD_FUNCTIONS_URL`
+
+Required Firebase Functions secret **names** (see `functions/.env.example` and `docs/billing/SAVE-106-rollout.md`):
+
+- `STRIPE_MODE` (`test` or `live`)
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_TEST_BASIC_MONTHLY_PRICE_ID` / `STRIPE_TEST_PREMIUM_MONTHLY_PRICE_ID` or the `STRIPE_LIVE_*` pair
+
+## Key pages
+
+- `/` — Landing
+- `/signup`, `/login`, `/reset-password`
+- `/dashboard` — workspace
+- `/voice-capture` — talk to Nova
+- `/brain-dump` — longer capture
+- `/subscription` — pay / manage billing
+- `/settings` — includes the same Stripe actions
+- `/user-guide` — in-app how-to
+
+## Historical docs
+
+Root files such as `BEAST_MODE_PLAN.md`, `VOICE_FLOW_AUDIT.md`, and `docs/hardening/*` are consolidation notes. The commercial contract that launch copy must match is `docs/hardening/decisions/d-004-commercial-contract.md`.
 
 ---
 

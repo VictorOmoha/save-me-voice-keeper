@@ -260,6 +260,9 @@ export const ApiKeysSettings = () => {
                 <DialogTitle>Create agent connection</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-muted-foreground" role="note">
+                  A read key lets this third-party agent read your shared-memory records; a write key lets it add or change records. Current visibility labels do not enforce a verified per-agent record boundary. Raw keys are shown once, so connect only an agent you trust. Self-service revocation is not yet verified as reliable.
+                </div>
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <div className="flex items-center gap-2 text-sm font-medium">
                     <Bot className="w-4 h-4 text-primary" />

@@ -8,12 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { Bot, Database, Download, Trash2, Shield, Archive, RefreshCw } from "lucide-react";
+import { Bot, Database, Download, Trash2, Shield, RefreshCw } from "lucide-react";
+import { buildAccountDeletionSupportHref } from "@/lib/accountDeletionSupport";
 
 export const EnhancedDataManagementSettings = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [storageStats, setStorageStats] = useState({
     entries: 0,
     sharedMemories: 0,
@@ -22,8 +23,6 @@ export const EnhancedDataManagementSettings = () => {
     lastBackup: null as Date | null,
   });
   const [isExporting, setIsExporting] = useState(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
 
   const loadStorageStats = useCallback(async () => {
     if (!user) return;
@@ -165,16 +164,6 @@ export const EnhancedDataManagementSettings = () => {
     return () => window.removeEventListener("nova:export-data", handleNovaExport as EventListener);
   }, [handleExportAllData]);
 
-  const handleCreateBackup = async () => {
-    setIsCreatingBackup(true);
-    try {
-      await handleExportAllData();
-      setStorageStats((prev) => ({ ...prev, lastBackup: new Date() }));
-    } finally {
-      setIsCreatingBackup(false);
-    }
-  };
-
   const handleOpenAgentManagement = () => {
     const target = "/settings?tab=automation&connect=agent";
     window.dispatchEvent(new CustomEvent("saveme:open-settings-tab", { detail: { tab: "automation", connect: "agent" } }));
@@ -189,29 +178,7 @@ export const EnhancedDataManagementSettings = () => {
     }, 100);
   };
 
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-
-    setIsDeletingAccount(true);
-    try {
-      toast({
-        title: "Account deletion requested",
-        description: "Please contact support to complete account deletion.",
-      });
-
-      await logout();
-      window.location.href = "/";
-    } catch (error) {
-      console.error("Error deleting account:", error);
-      toast({
-        title: "Deletion failed",
-        description: "Failed to delete account. Please contact support.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeletingAccount(false);
-    }
-  };
+  const deletionSupportHref = buildAccountDeletionSupportHref(user);
 
   const storageUsedPercent = Math.min((storageStats.totalSize / (10 * 1024 * 1024)) * 100, 100);
   const hasExportableData = storageStats.entries + storageStats.sharedMemories + storageStats.apiKeys > 0;
@@ -223,7 +190,7 @@ export const EnhancedDataManagementSettings = () => {
           <Database className="w-5 h-5" />
           Data Management
         </CardTitle>
-        <p className="text-sm text-muted-foreground">Manage exports, backups, agent access, and account data</p>
+        <p className="text-sm text-muted-foreground">Review the currently implemented export, agent access, and account-deletion request path</p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
@@ -262,7 +229,7 @@ export const EnhancedDataManagementSettings = () => {
             <div className="space-y-1">
               <h3 className="font-medium">Agent Memory Access</h3>
               <p className="text-sm text-muted-foreground">
-                Manage the agents that can read/write your shared memory. Create one key per agent and revoke access anytime.
+                An agent key sends shared-memory records to the third-party agent you give it to. Read permission exposes shared memory; write permission lets the agent change it. Current visibility labels are not verified per-agent access controls, and self-service revocation is not yet reliable.
               </p>
             </div>
           </div>
@@ -278,19 +245,12 @@ export const EnhancedDataManagementSettings = () => {
 
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Data Export</h3>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={() => void handleExportAllData()} disabled={isExporting || !hasExportableData} className="flex-1">
-              <Download className="w-4 h-4 mr-2" />
-              {isExporting ? "Exporting..." : "Export All Data"}
-            </Button>
-
-            <Button onClick={() => void handleCreateBackup()} disabled={isCreatingBackup || !hasExportableData} variant="outline" className="flex-1">
-              <Archive className="w-4 h-4 mr-2" />
-              {isCreatingBackup ? "Creating..." : "Create Backup"}
-            </Button>
-          </div>
+          <Button onClick={() => void handleExportAllData()} disabled={isExporting || !hasExportableData} className="w-full sm:w-auto">
+            <Download className="w-4 h-4 mr-2" />
+            {isExporting ? "Exporting..." : "Download limited JSON export"}
+          </Button>
           <p className="text-xs text-muted-foreground">
-            Export includes entries, shared memories, settings, and API key metadata. Raw API keys are never exported.
+            This is not a complete account export or backup. It includes entries, shared memories, preferences, and API key metadata; it omits other account records, derived data, logs, and uploaded files. Raw API keys are never exported.
           </p>
         </div>
 
@@ -299,13 +259,13 @@ export const EnhancedDataManagementSettings = () => {
           <div className="p-4 border rounded-lg space-y-3">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium">Your data is encrypted and secure</span>
+              <span className="text-sm font-medium">Current privacy and security behavior</span>
             </div>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Data is stored securely with encryption at rest</li>
-              <li>• Agent API keys are hashed and cannot be recovered</li>
-              <li>• Shared memories keep source labels for auditability</li>
-              <li>• You can export your data or revoke agent access at any time</li>
+              <li>• Traffic uses HTTPS/TLS; Firebase/Google Cloud provide infrastructure encryption at rest</li>
+              <li>• SaveMe agent keys are hashed; optional ElevenLabs keys use a different storage path</li>
+              <li>• Shared memories keep source labels but can be read by connected agents with read permission</li>
+              <li>• The current export is limited JSON; complete portable export and deletion workflows are not yet implemented</li>
             </ul>
           </div>
         </div>
@@ -322,29 +282,20 @@ export const EnhancedDataManagementSettings = () => {
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full">
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Account
+                  Request Account Deletion
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Account</AlertDialogTitle>
+                  <AlertDialogTitle>Request account deletion</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
-                    <br /><br />
-                    <strong>This will delete:</strong>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>{storageStats.entries} entries</li>
-                      <li>{storageStats.sharedMemories} shared memories</li>
-                      <li>{storageStats.apiKeys} agent/API keys</li>
-                      <li>All preferences and settings</li>
-                      <li>Account information</li>
-                    </ul>
+                    The automated account purge is not implemented yet. Continuing opens a prefilled email to support; it does not record or complete a request, delete data, or sign you out. Send the email and wait for support confirmation. Subscription cancellation is separate and does not delete data. The public Privacy Policy has not yet been updated to describe this support workflow; this dialog states the current implementation.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => void handleDeleteAccount()} disabled={isDeletingAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    {isDeletingAccount ? "Deleting..." : "Delete Account"}
+                  <AlertDialogAction asChild className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <a href={deletionSupportHref}>Open prefilled support email</a>
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { trackActivationEvent } from "@/lib/analytics";
 import { AppMock } from "@/components/landing/AppMock";
+import { publicPlanCards } from "@/config/plans/publicPlans";
 import "@/styles/landing.css";
 
 const GRAD = "linear-gradient(135deg,#2dd4ff,#0b8fc4)";
@@ -139,45 +140,16 @@ const featureIconWrap: CSSProperties = {
 const Index = () => {
   const { isAuthenticated } = useAuth();
 
-  const getPlanHref = (planName: string) => {
-    const plan = planName.toLowerCase();
-    if (plan === "free") return isAuthenticated ? "/dashboard" : "/signup?plan=free";
-    return isAuthenticated ? `/subscription?plan=${plan}` : `/signup?plan=${plan}`;
+  const getPlanHref = (planId: string) => {
+    if (planId === "free") return isAuthenticated ? "/dashboard" : "/signup?plan=free";
+    return isAuthenticated ? `/subscription?plan=${planId}` : `/signup?plan=${planId}`;
   };
 
   const brainDumpHref = isAuthenticated ? "/brain-dump" : "/signup?next=%2Fbrain-dump";
   const trackBrainDump = (source: string) =>
     trackActivationEvent(isAuthenticated ? "brain_dump_start_clicked" : "signup_started", { source });
 
-  const PLANS = [
-    {
-      name: "FREE",
-      price: "$0",
-      period: "forever",
-      blurb: "Perfect for getting started.",
-      cta: "Start free",
-      popular: false,
-      features: ["Up to 50 entries", "Basic search", "Web access", "Standard support"],
-    },
-    {
-      name: "BASIC",
-      price: "$9",
-      period: "/mo",
-      blurb: "For personal power users.",
-      cta: "Get Basic",
-      popular: true,
-      features: ["Unlimited entries", "Advanced search & filters", "All platforms", "Voice input & commands", "Priority support"],
-    },
-    {
-      name: "PREMIUM",
-      price: "$19",
-      period: "/mo",
-      blurb: "For teams and professionals.",
-      cta: "Get Premium",
-      popular: false,
-      features: ["Everything in Basic", "Data export & backup", "Enhanced privacy controls", "API access for agents", "Custom integrations", "24/7 support"],
-    },
-  ];
+  const PLANS = publicPlanCards();
 
   return (
     <div className="lp-root" style={{ minHeight: "100vh", width: "100%" }}>
@@ -363,7 +335,7 @@ const Index = () => {
             const accentText = plan.popular ? "#dbe4ee" : "#c4cedb";
             return (
               <div
-                key={plan.name}
+                key={plan.id}
                 style={{
                   position: "relative",
                   borderRadius: 18,
@@ -388,8 +360,8 @@ const Index = () => {
                   {plan.features.map((feat) => <CheckRow key={feat} text={feat} color={accentText} />)}
                 </div>
                 <Link
-                  to={getPlanHref(plan.name)}
-                  onClick={() => trackActivationEvent("subscription_clicked", { source: "landing_pricing", plan: plan.name.toLowerCase() })}
+                  to={getPlanHref(plan.id)}
+                  onClick={() => trackActivationEvent("subscription_clicked", { source: "landing_pricing", plan: plan.id })}
                   className={plan.popular ? "lp-cta" : "lp-ghost"}
                   style={{
                     marginTop: 24,

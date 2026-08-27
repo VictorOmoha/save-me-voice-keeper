@@ -1,7 +1,7 @@
 {
   "name": "saveme-voice-keeper",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.1.0",
   "description": "SaveMe.Space \u2014 Voice-first external memory system powered by Nova AI. Capture thoughts by voice, organize them with intelligence, export structured documents.",
   "type": "module",
   "scripts": {
@@ -15,6 +15,8 @@
     "test:emulator": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme node test/emulator/run.mjs",
     "test:emulator:ci": "SAVE_ME_EMULATOR=1 GCLOUD_PROJECT=demo-saveme CI=true node test/emulator/run.mjs --ci --reporter=junit --outputFile=test-results/emulator-junit.xml",
     "test:emulator:cleanup": "node test/emulator/run.mjs --cleanup-only",
+    "test:extension": "node --test browser-extension/test/*.test.mjs",
+    "package:extension": "node scripts/package-extension.mjs",
     "test:privacy-sources": "node scripts/validate-privacy-sources.mjs"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -289,7 +289,7 @@ export const EnhancedDataManagementSettings = () => {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Request account deletion</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The automated account purge is not implemented yet. Continuing opens a prefilled email to support; it does not record or complete a request, delete data, or sign you out. Send the email and wait for support confirmation. Subscription cancellation is separate and does not delete data. See the <Link className="underline underline-offset-2" to="/privacy">Privacy Policy</Link> for the currently effective policy.
+                    The automated account purge is not implemented yet. Continuing opens a prefilled email to support; it does not record or complete a request, delete data, or sign you out. Send the email and wait for support confirmation. Subscription cancellation is separate and does not delete data. The public Privacy Policy has not yet been updated to describe this support workflow; this dialog states the current implementation.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

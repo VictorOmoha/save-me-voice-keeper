@@ -1,5 +1,6 @@
 import { OnboardingStep } from "../OnboardingStep";
 import { Mic } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const examples = [
   {
@@ -28,6 +29,13 @@ export function VoiceStep() {
       description="Don’t worry about saying it perfectly. Just get it out."
     >
       <div className="space-y-6">
+        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left" role="note" aria-label="Voice processing notice">
+          <p className="text-sm font-semibold text-foreground mb-2">Before you use the microphone</p>
+          <p className="text-sm text-muted-foreground">
+            Your audio is sent through Google Cloud to Google Gemini for transcription and AI processing. SaveMe does not intentionally persist the raw microphone recording on its server, but it can store the transcript, conversation, and memory facts extracted from what you say. Learn more in the <Link className="underline underline-offset-2" to="/privacy">Privacy Policy</Link>.
+          </p>
+        </div>
+
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-left">
           <p className="text-sm font-medium text-foreground mb-2">Your first win should feel like this:</p>
           <p className="text-sm text-muted-foreground">

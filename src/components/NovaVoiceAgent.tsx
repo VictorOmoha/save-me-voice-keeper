@@ -124,6 +124,10 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   return (
     <div className="flex flex-col h-full">
 
+      <div className="px-4 py-2 border-b bg-muted/30 text-[11px] text-muted-foreground leading-relaxed" role="note">
+        Voice sends audio and memory context to Google for transcription and AI processing; transcript, conversation, and extracted memories may be stored. <a className="underline underline-offset-2" href="/privacy">Privacy details</a>
+      </div>
+
       {/* ── Controls bar ── */}
       <div className="flex items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
         <div className="flex items-center gap-2">

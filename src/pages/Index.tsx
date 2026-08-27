@@ -75,7 +75,7 @@ const FEATURES = [
   },
   {
     title: "Yours, private",
-    desc: "Encrypted in transit and protected by account-level access. We never sell or share your data.",
+    desc: "Encrypted in transit and protected by account-level access. Connected agents and processors receive data only for the functions you authorize.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 3l7 3v5c0 4.6-3 7.7-7 9-4-1.3-7-4.4-7-9V6z" />
@@ -114,7 +114,7 @@ const PRIVACY = [
   },
   {
     title: "Your data stays yours",
-    desc: "We never sell or share your information. Export or delete it anytime.",
+    desc: "Review how processors, connected agents, exports, retention, and deletion currently work in our Privacy Policy.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="10" cy="8" r="4" />

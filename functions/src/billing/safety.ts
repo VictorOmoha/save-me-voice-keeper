@@ -1,4 +1,6 @@
-export type BillingPlan = "basic" | "premium";
+import {checkoutPrice, loadPriceCatalog, type PaidPlanId} from "./core";
+
+export type BillingPlan = PaidPlanId;
 
 type Env = Record<string, string | undefined>;
 
@@ -38,15 +40,8 @@ export const getCheckoutPlanConfig = (
   requestedPlan: unknown,
   env: Env = process.env
 ): CheckoutPlanConfig | null => {
-  if (requestedPlan !== "basic" && requestedPlan !== "premium") {
-    return null;
-  }
-
-  const priceId = requestedPlan === "basic" ?
-    env.STRIPE_BASIC_PRICE_ID || "price_basic_monthly" :
-    env.STRIPE_PREMIUM_PRICE_ID || "price_premium_monthly";
-
-  return {plan: requestedPlan, priceId};
+  if (requestedPlan !== "basic" && requestedPlan !== "premium") return null;
+  return checkoutPrice(requestedPlan, loadPriceCatalog(env));
 };
 
 export const sanitizeReturnUrl = (

@@ -13,6 +13,30 @@
     ],
     "runtime": "nodejs20"
   },
+  "emulators": {
+    "auth": {
+      "host": "127.0.0.1",
+      "port": 9099
+    },
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    },
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5001
+    },
+    "storage": {
+      "host": "127.0.0.1",
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true,
+      "host": "127.0.0.1",
+      "port": 4000
+    },
+    "singleProjectMode": true
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -58,6 +82,15 @@
       }
     ],
     "rewrites": [
+      { "source": "/api/extension/pairing-code", "function": "extensionPairingCode" },
+      { "source": "/api/extension/pair", "function": "extensionPair" },
+      { "source": "/api/extension/refresh", "function": "extensionRefresh" },
+      { "source": "/api/extension/revoke", "function": "extensionRevoke" },
+      { "source": "/api/extension/revoke-all", "function": "extensionRevokeAll" },
+      { "source": "/api/quick-save", "function": "quickSave" },
+      { "source": "/api/billing/webhook", "function": "stripeWebhook" },
+      { "source": "/api/billing/checkout", "function": "createCheckout" },
+      { "source": "/api/billing/portal", "function": "customerPortal" },
       {
         "source": "**",
         "destination": "/index.html"

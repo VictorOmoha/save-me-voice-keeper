@@ -8,119 +8,38 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { auth } from "@/lib/firebase";
 import { trackActivationEvent } from "@/lib/analytics";
-
-// Cloud Functions URL - set after deployment
-const CLOUD_FUNCTIONS_URL = import.meta.env.VITE_CLOUD_FUNCTIONS_URL || '';
+import { billingClient } from "@/services/billingClient";
+import { isSellablePlanId, publicPlanCards } from "@/config/plans/publicPlans";
 
 const Subscription = () => {
-  const { user, isAuthenticated, session } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
   const [searchParams] = useSearchParams();
   const autoOpenedPlanRef = useRef<string | null>(null);
   const requestedPlan = searchParams.get('plan');
 
-  const plans = [
-    {
-      name: "Free",
-      price: "$0",
-      period: "Forever",
-      description: "Perfect for getting started",
-      features: [
-        "Up to 50 entries",
-        "Basic search",
-        "Web access only",
-        "Standard support"
-      ],
-      current: user?.subscriptionTier === 'free'
-    },
-    {
-      name: "Basic",
-      price: "$9",
-      period: "per month",
-      description: "For personal power users",
-      features: [
-        "Unlimited entries",
-        "Advanced search & filters",
-        "All platforms (Web, Mobile, Desktop)",
-        "Voice input & commands",
-        "Priority support"
-      ],
-      current: user?.subscriptionTier === 'basic'
-    },
-    {
-      name: "Premium",
-      price: "$19",
-      period: "per month",
-      description: "For teams and professionals",
-      features: [
-        "Everything in Basic",
-        "Data export & backup",
-        "Enhanced privacy controls",
-        "API access",
-        "Custom integrations",
-        "24/7 support"
-      ],
-      current: user?.subscriptionTier === 'premium'
-    }
-  ];
+  const plans = publicPlanCards().map((plan) => ({
+    ...plan,
+    current: user?.subscriptionTier === plan.id,
+  }));
 
-  const handleUpgrade = async (planName: string) => {
-    trackActivationEvent("subscription_clicked", { source: "subscription_page", plan: planName.toLowerCase() });
+  const handleUpgrade = async (planId: string) => {
+    trackActivationEvent("subscription_clicked", { source: "subscription_page", plan: planId });
 
-    if (planName === "Free") {
+    if (!isSellablePlanId(planId)) {
       return;
     }
 
-    if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Billing is not configured in this environment yet.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to upgrade your plan');
-      return;
-    }
-
-    setLoadingPlan(planName);
+    setLoadingPlan(planId);
 
     try {
-      const token = await currentUser.getIdToken();
-      const plan = planName.toLowerCase();
-
-      if (plan !== 'basic' && plan !== 'premium') {
-        toast.error('Invalid plan selected');
-        return;
-      }
-
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/createCheckout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          plan,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        trackActivationEvent("subscription_checkout_opened", { plan: planName.toLowerCase() });
-        window.location.href = url;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
+      const { url } = await billingClient.createCheckout(planId);
+      trackActivationEvent("subscription_checkout_opened", { plan: planId });
+      window.location.href = url;
     } catch (err) {
-      trackActivationEvent("subscription_checkout_failed", { plan: planName.toLowerCase() });
+      trackActivationEvent("subscription_checkout_failed", { plan: planId });
       toast.error('An error occurred. Please try again.');
     } finally {
       setLoadingPlan(null);
@@ -128,44 +47,13 @@ const Subscription = () => {
   };
 
   const handleManageBilling = async () => {
-    if (!CLOUD_FUNCTIONS_URL) {
-      toast.info("Billing is not configured in this environment yet.");
-      return;
-    }
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast.error('Please sign in to manage billing');
-      return;
-    }
-
     trackActivationEvent("billing_portal_clicked");
     setLoadingPortal(true);
 
     try {
-      const token = await currentUser.getIdToken();
-
-      const response = await fetch(`${CLOUD_FUNCTIONS_URL}/customerPortal`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create portal session');
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        trackActivationEvent("billing_portal_opened");
-        window.location.href = url;
-      } else {
-        throw new Error('No portal URL returned');
-      }
+      const { url } = await billingClient.createPortal(window.location.href);
+      trackActivationEvent("billing_portal_opened");
+      window.location.href = url;
     } catch (err) {
       toast.error('An error occurred. Please try again.');
     } finally {
@@ -183,19 +71,13 @@ const Subscription = () => {
       return;
     }
 
-    const matchedPlanName = requestedPlan === 'basic'
-      ? 'Basic'
-      : requestedPlan === 'premium'
-        ? 'Premium'
-        : null;
-
-    if (!matchedPlanName) {
+    if (!isSellablePlanId(requestedPlan)) {
       autoOpenedPlanRef.current = requestedPlan;
       return;
     }
 
     autoOpenedPlanRef.current = requestedPlan;
-    void handleUpgrade(matchedPlanName);
+    void handleUpgrade(requestedPlan);
   }, [requestedPlan, user?.subscriptionTier]);
 
   if (!isAuthenticated) {
@@ -261,8 +143,8 @@ const Subscription = () => {
 
         {/* Available Plans */}
         <div className="grid md:grid-cols-3 gap-8">
-          {plans.map((plan, index) => (
-            <Card key={index} className={`relative hover:shadow-lg transition-shadow bg-white border ${
+          {plans.map((plan) => (
+            <Card key={plan.id} className={`relative hover:shadow-lg transition-shadow bg-white border ${
               plan.current ? 'border-blue-500 border-2 shadow-lg' : 'border-gray-200'
             }`}>
               {plan.current && (
@@ -274,17 +156,17 @@ const Subscription = () => {
                 <CardTitle className="text-2xl text-gray-900">{plan.name}</CardTitle>
                 <div className="flex items-baseline justify-center mb-2">
                   <span className="text-4xl font-bold text-blue-600">{plan.price}</span>
-                  <span className="text-lg text-gray-600 ml-1">/{plan.period === "Forever" ? "forever" : "month"}</span>
+                  <span className="text-lg text-gray-600 ml-1">{plan.period === "forever" ? "/forever" : plan.period}</span>
                 </div>
                 <div className="text-sm text-gray-600 font-medium">
-                  {plan.period === "Forever" ? "No recurring charges" : "Billed monthly"}
+                  {plan.sellable ? "Billed monthly" : "No recurring charges"}
                 </div>
-                <CardDescription className="mt-2 text-gray-600">{plan.description}</CardDescription>
+                <CardDescription className="mt-2 text-gray-600">{plan.blurb}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-center">
                       <Check className="w-5 h-5 text-green-600 mr-3 flex-shrink-0" />
                       <span className="text-sm text-gray-800">{feature}</span>
                     </li>
@@ -292,25 +174,25 @@ const Subscription = () => {
                 </ul>
                 <Button
                   className={`w-full font-medium ${plan.current ? 'bg-gray-400 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                  disabled={plan.current || loadingPlan === plan.name || plan.name === "Free"}
-                  onClick={() => handleUpgrade(plan.name)}
+                  disabled={plan.current || loadingPlan === plan.id || !plan.sellable}
+                  onClick={() => handleUpgrade(plan.id)}
                 >
-                  {loadingPlan === plan.name ? (
+                  {loadingPlan === plan.id ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Opening...
                     </>
                   ) : plan.current ? (
                     'Current Plan'
-                  ) : plan.name === "Free" ? (
-                    'Free Plan'
+                  ) : plan.sellable ? (
+                    `Open ${plan.name}`
                   ) : (
-                  `Open ${plan.name}`
-                )}
+                    'Free Plan'
+                  )}
                 </Button>
-                {!plan.current && plan.name !== "Free" && (
+                {!plan.current && plan.sellable && (
                   <p className="text-xs text-gray-600 text-center mt-2">
-                    Monthly card subscription; no paid trial
+                    No trial; billed monthly
                   </p>
                 )}
               </CardContent>
@@ -331,16 +213,16 @@ const Subscription = () => {
                 <span className="font-medium text-gray-900">Monthly (cancel anytime)</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Evaluation:</span>
-                <span className="font-medium text-gray-900">Free plan; no paid trial</span>
+                <span className="text-gray-700">Free Trial:</span>
+                <span className="font-medium text-gray-900">No paid-plan trial</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Payment Method:</span>
-                <span className="font-medium text-gray-900">Card through Stripe</span>
+                <span className="text-gray-700">Payment Methods:</span>
+                <span className="font-medium text-gray-900">Managed securely in Stripe Checkout</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Refund Policy:</span>
-                <span className="font-medium text-gray-900">No partial-month refunds except where required by law</span>
+                <span className="text-gray-700">Plan Changes:</span>
+                <span className="font-medium text-gray-900">Manage or cancel in the billing portal</span>
               </div>
             </div>
           </CardContent>

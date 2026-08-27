@@ -8,8 +8,9 @@ import {
 describe("billing safety helpers", () => {
   it("maps public plan names to server-owned Stripe price IDs", () => {
     const env = {
-      STRIPE_BASIC_PRICE_ID: "price_basic_real",
-      STRIPE_PREMIUM_PRICE_ID: "price_premium_real",
+      STRIPE_MODE: "test",
+      STRIPE_TEST_BASIC_MONTHLY_PRICE_ID: "price_basic_real",
+      STRIPE_TEST_PREMIUM_MONTHLY_PRICE_ID: "price_premium_real",
     };
 
     expect(getCheckoutPlanConfig("basic", env)).toEqual({ plan: "basic", priceId: "price_basic_real" });

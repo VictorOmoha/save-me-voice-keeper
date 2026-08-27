@@ -299,9 +299,23 @@ describe("tenant isolation — users (doc id = uid)", () => {
     await assertSucceeds(
       setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
         email: TENANT_A_EMAIL,
-        subscriptionStatus: "active",
         displayName: "Tenant A",
-      })
+      }, {merge: true})
+    );
+  });
+
+  it("denies the owner writing Stripe or plan fields on users/{uid}", async () => {
+    const ctx = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
+        stripeCustomerId: "cus_forged",
+      }, {merge: true})
+    );
+    await assertFails(
+      setDoc(doc(ctx.firestore(), "users", TENANT_A_UID), {
+        subscriptionTier: "premium",
+        subscriptionActive: true,
+      }, {merge: true})
     );
   });
 
@@ -319,6 +333,38 @@ describe("tenant isolation — users (doc id = uid)", () => {
   it("denies an unauthenticated read of a users doc", async () => {
     const ctx = testEnv.unauthenticatedContext();
     await assertFails(getDoc(doc(ctx.firestore(), "users", TENANT_A_UID)));
+  });
+});
+
+describe("tenant isolation — billing authority", () => {
+  beforeEach(seedMinimal);
+
+  it("allows only the owner to read the server-owned entitlement", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "billing_entitlements", TENANT_A_UID), {
+        schemaVersion: 1,
+        uid: TENANT_A_UID,
+        plan: "premium",
+        status: "active",
+        entitled: true,
+      });
+    });
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    const other = testEnv.authenticatedContext(TENANT_B_UID);
+    await assertSucceeds(getDoc(doc(owner.firestore(), "billing_entitlements", TENANT_A_UID)));
+    await assertFails(getDoc(doc(other.firestore(), "billing_entitlements", TENANT_A_UID)));
+  });
+
+  it("denies clients writing entitlements or reading the Stripe event ledger", async () => {
+    const owner = testEnv.authenticatedContext(TENANT_A_UID);
+    await assertFails(setDoc(doc(owner.firestore(), "billing_entitlements", TENANT_A_UID), {
+      plan: "premium",
+      entitled: true,
+    }));
+    await assertFails(getDoc(doc(owner.firestore(), "stripe_event_ledger", "evt_canary")));
+    await assertFails(setDoc(doc(owner.firestore(), "stripe_event_ledger", "evt_canary"), {
+      uid: TENANT_A_UID,
+    }));
   });
 });
 

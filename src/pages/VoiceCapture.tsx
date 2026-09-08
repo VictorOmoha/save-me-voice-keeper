@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FileText, Heart, Users, DollarSign, User, Briefcase, Lightbulb, Plane, ShoppingCart, GraduationCap, Sparkles, Radio, X } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/hooks/useDashboard";
-import { useVoiceAgent, MAX_RECORDING_SECONDS, type AgentStatus } from "@/hooks/useVoiceAgent";
+import { useVoiceAgent, type AgentStatus } from "@/hooks/useVoiceAgent";
 import { useAuth } from "@/contexts/AuthContext";
 import type { SavedEntry } from "@/types/dashboard";
 import "@/styles/app-preview.css"; // ap-micpulse / ap-softglow / ap-spin / ap-itemin / ap-badgein keyframes
@@ -26,6 +26,7 @@ interface MemItem {
 }
 
 const KICKER: Record<AgentStatus, string> = {
+  connecting: "NOVA · CONNECTING",
   idle: "NOVA · READY",
   listening: "NOVA · LISTENING",
   thinking: "NOVA · THINKING",
@@ -33,8 +34,9 @@ const KICKER: Record<AgentStatus, string> = {
   speaking: "NOVA · SPEAKING",
 };
 const SUB_TEXT: Record<AgentStatus, string> = {
+  connecting: "Connecting realtime voice…",
   idle: "Tap the mic and talk to Nova — it captures and files what matters.",
-  listening: "Nova is listening — pause when you're done and it sends automatically.",
+  listening: "Speak naturally — Nova replies when you finish, and you can interrupt.",
   thinking: "Nova is understanding your thought…",
   acting: "Nova is filing it into your memory…",
   speaking: "Nova is responding — tap the mic to interrupt.",
@@ -150,7 +152,7 @@ const VoiceCapture = () => {
 
   const [viewerEntry, setViewerEntry] = useState<SavedEntry | null>(null);
 
-  const { status, transcript, error, actions, conversationHistory, continuous, setContinuous, startListening, stopListening, sendText, resetConversation, inputLevelRef } = useVoiceAgent({
+  const { status, isConnected, microphoneActive, transcript, error, actions, conversationHistory, continuous, setContinuous, startListening, stopListening, sendText, resetConversation, inputLevelRef } = useVoiceAgent({
     continuous: true,
     onNavigate: (route) => navigate(route),
     onOpenEntryForm: () => handleAddEntry(),
@@ -184,7 +186,7 @@ const VoiceCapture = () => {
     if (el) el.scrollTop = el.scrollHeight;
   }, [thread.length, status]);
 
-  const isSupported = typeof window !== "undefined" && !!window.MediaRecorder && !!navigator.mediaDevices?.getUserMedia;
+  const isSupported = typeof window !== "undefined" && !!window.RTCPeerConnection && !!navigator.mediaDevices?.getUserMedia;
   const formActive = showAddEntry || !!editingEntry || !!fillingEntry || !!templateEntry;
 
   useEffect(() => {
@@ -221,13 +223,13 @@ const VoiceCapture = () => {
 
   const micClick = () => {
     if (status === "idle" || status === "speaking") startListening(); // speaking → barge-in
-    else if (status === "listening") stopListening();
+    else stopListening();
   };
 
   const submitText = (e: FormEvent) => {
     e.preventDefault();
     const text = textInput.trim();
-    if (!text || status !== "idle") return;
+    if (!text || status === "connecting" || status === "acting") return;
     setTextInput("");
     sendText(text);
   };
@@ -244,7 +246,7 @@ const VoiceCapture = () => {
     setItems([]);
   };
 
-  const micDisabled = !isSupported || status === "thinking" || status === "acting";
+  const micDisabled = !isSupported;
   const showRings = status === "listening" || status === "speaking";
   const userName = user?.displayName || user?.email || "User";
 
@@ -274,6 +276,10 @@ const VoiceCapture = () => {
             {isSupported ? SUB_TEXT[status] : "Voice capture needs a modern browser with microphone access. Try Chrome, Edge, or Safari."}
           </p>
 
+          <p className="text-xs text-muted-foreground max-w-md text-center">
+            Realtime voice sends audio and relevant memory context to OpenAI. <a href="/privacy" className="underline">Privacy details</a>
+          </p>
+
           <div className={`relative w-full max-w-[680px] mt-2 flex items-center justify-center transition-all ${formActive ? "h-[130px]" : "h-[220px]"}`}>
             <Waveform status={status} compact={formActive} levelRef={inputLevelRef} />
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
@@ -283,7 +289,7 @@ const VoiceCapture = () => {
               <button
                 onClick={micClick}
                 disabled={micDisabled}
-                aria-label={status === "listening" ? "Stop and send" : status === "speaking" ? "Interrupt Nova and speak" : "Start voice capture"}
+                aria-label={status === "speaking" ? "Interrupt Nova and speak" : status !== "idle" ? "End voice session" : "Start voice capture"}
                 className={`relative flex items-center justify-center rounded-full border-none cursor-pointer disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2dd4ff] focus-visible:ring-offset-2 focus-visible:ring-offset-background ${formActive ? "w-[84px] h-[84px]" : "w-[108px] h-[108px]"}`}
                 style={{ background: "radial-gradient(circle at 50% 36%,#8eecff,#1cb8e8 58%,#0b8fc4)", animation: showRings ? "ap-softglow 2.8s ease-in-out infinite" : undefined, boxShadow: "0 0 0 1px rgba(45,212,255,.4), 0 0 38px rgba(45,212,255,.4)", opacity: micDisabled && !showRings ? 0.7 : 1 }}
               >
@@ -311,13 +317,19 @@ const VoiceCapture = () => {
             {continuous ? "Auto-listen on" : "Manual mode"}
           </button>
 
+          {(isConnected || status === "connecting") && (
+            <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+              <span>{microphoneActive ? "Microphone on · Realtime voice" : "Microphone off"}</span>
+              <button type="button" onClick={stopListening} className="underline">End session</button>
+            </div>
+          )}
           {status === "listening" && (
             <div className="mt-1 flex items-center gap-3" style={{ font: `600 12px ${MONO}` }}>
               <span className="flex items-center gap-2 text-[#7fd9f0]">
                 <span className="w-2 h-2 rounded-full bg-red-500" style={{ boxShadow: "0 0 10px #ff5d6c" }} />
-                REC {fmt(seconds)} / {fmt(MAX_RECORDING_SECONDS)}
+                LIVE {fmt(seconds)}
               </span>
-              <span className="text-muted-foreground">· pause to send, or tap the mic</span>
+              <span className="text-muted-foreground">· pause for a reply, tap stop to end</span>
             </div>
           )}
 
@@ -370,12 +382,12 @@ const VoiceCapture = () => {
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder="Or type to Nova instead…"
                 aria-label="Type a message to Nova"
-                disabled={status !== "idle"}
+                disabled={status === "connecting" || status === "acting"}
                 className="flex-1 h-10 px-3.5 rounded-xl bg-card border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
               />
               <button
                 type="submit"
-                disabled={status !== "idle" || !textInput.trim()}
+                disabled={status === "connecting" || status === "acting" || !textInput.trim()}
                 className="h-10 px-4 rounded-xl border text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Send

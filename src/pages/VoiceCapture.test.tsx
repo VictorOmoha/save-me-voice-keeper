@@ -44,7 +44,7 @@ vi.mock('@/hooks/useDashboard', () => ({
 }));
 
 vi.mock('@/hooks/useVoiceAgent', () => ({
-  MAX_RECORDING_SECONDS: 30,
+
   useVoiceAgent: () => ({
     status: 'idle',
     transcript: '',
@@ -73,8 +73,8 @@ describe('VoiceCapture page', () => {
     startListeningMock.mockReset();
     stopListeningMock.mockReset();
     for (const key of Object.keys(voiceOverrides)) delete voiceOverrides[key];
-    // jsdom has neither MediaRecorder nor mediaDevices — stub so isSupported is true
-    (window as unknown as Record<string, unknown>).MediaRecorder = function MediaRecorderStub() {};
+    // jsdom has neither RTCPeerConnection nor mediaDevices — stub so isSupported is true
+    (window as unknown as Record<string, unknown>).RTCPeerConnection = function PeerStub() {};
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: { getUserMedia: vi.fn() },
@@ -116,12 +116,12 @@ describe('VoiceCapture page', () => {
     expect(screen.getByText('Also remind me to renew my visa')).toBeTruthy();
   });
 
-  it('shows the recording cap while listening', () => {
+  it('shows live voice and an end-session control while listening', () => {
     voiceOverrides.status = 'listening';
     renderPage();
 
-    const rec = screen.getByText(/REC/);
-    expect(rec.textContent).toContain('0:30');
-    expect(screen.getByLabelText('Stop and send')).toBeTruthy();
+    const rec = screen.getByText(/LIVE/);
+    expect(rec.textContent).toContain('0:00');
+    expect(screen.getByLabelText('End voice session')).toBeTruthy();
   });
 });

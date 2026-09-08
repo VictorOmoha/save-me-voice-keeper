@@ -59,27 +59,21 @@ When you use SaveMe's voice features:
 
 **What We Collect:**
 - **Voice audio clips** (temporarily, during processing only)
-- **Voice-to-text transcriptions** (stored permanently as your data)
+- **Voice-to-text transcriptions** (may be stored with your conversation or saved entries)
 - **Voice command metadata** (timestamp, command type, success/failure)
 
 **How Voice Processing Works:**
-1. You speak into SaveMe
-2. Audio is sent to 11Labs (our voice AI provider) via secure connection
-3. 11Labs converts speech to text
-4. Text is returned to SaveMe and stored in your account
-5. **Audio is immediately deleted** after transcription
-6. Only the text transcription is permanently stored
+1. You choose when to enable the microphone. Ending the session stops audio capture.
+2. Realtime Voice Capture and Nova stream audio directly to OpenAI for speech-to-speech responses and captions.
+3. Conversation context, relevant memory summaries, and requested tool results are also sent to OpenAI.
+4. SaveMe authenticates actions on its server and can store conversation captions, session metadata, and requested memories.
+5. Separate Brain Dump transcription, category prediction, and memory enrichment use Google Gemini. Optional speech playback can use other configured providers, including ElevenLabs.
 
-**What We DON'T Do:**
-- ❌ We do NOT permanently store voice recordings
-- ❌ We do NOT use your voice to train AI models (without explicit consent)
-- ❌ We do NOT share voice data with third parties (except 11Labs for processing)
-- ❌ We do NOT sell your voice data
+SaveMe does not intentionally persist raw realtime audio. Provider processing and retention are governed by applicable provider terms; this is not a promise of immediate deletion by those providers.
 
 **Voice Data Retention:**
-- **Audio clips:** Deleted immediately after transcription (< 1 minute)
-- **Transcriptions:** Stored as your user content (until you delete)
-- **Command metadata:** Retained for 90 days for analytics
+- **Raw realtime audio:** Not intentionally persisted by SaveMe.
+- **Transcripts, conversation captions, and session metadata:** Stored in your account. The realtime session timeout does not delete stored conversation records.
 
 ### 2.3 Information We Collect Automatically
 
@@ -186,10 +180,14 @@ We do NOT sell your personal data. We may share data in these limited circumstan
 - Provides authentication, storage, and backend processing services
 - Privacy Policy: https://policies.google.com/privacy
 
-**11Labs (Voice Processing):**
-- Processes voice-to-text conversion
-- Audio is sent securely and deleted after processing
-- Privacy Policy: https://11labs.io/privacy
+**OpenAI:**
+- Processes realtime speech, captions, conversation context, and relevant memory/tool data.
+
+**Google Gemini:**
+- Processes separate audio transcription, entry categorization, and memory enrichment.
+
+**ElevenLabs:**
+- Optional speech playback when configured.
 
 **Stripe (Payment Processing):**
 - Processes subscription payments
@@ -264,9 +262,9 @@ While we implement industry-standard security measures, no system is 100% secure
 - Billing records retained for 7 years (legal requirement)
 
 ### 7.3 Voice Data Retention
-- **Audio clips:** Deleted immediately after transcription (< 1 minute)
+- **Raw realtime audio:** Not intentionally persisted by SaveMe; provider processing is subject to provider terms
 - **Transcriptions:** Retained as user content (until you delete)
-- **Voice metadata:** Retained for 90 days (for analytics)
+- **Voice metadata and conversation captions:** Retained in your account; session expiry does not delete stored records
 
 ### 7.4 Backups
 - Data may persist in backups for up to 90 days
@@ -461,15 +459,15 @@ If you are in the EEA or UK and believe we have violated GDPR, you may lodge a c
 - Account info, payment info, user content, voice transcriptions, usage data
 
 **Voice Data:**
-- Audio clips deleted immediately after transcription
+- Raw realtime audio is not intentionally persisted by SaveMe
 - Only text transcriptions stored permanently
-- Processed by 11Labs securely
+- Realtime voice processed by OpenAI; separate transcription and enrichment use Google Gemini
 
 **How We Use It:**
 - Provide the Service, improve features, customer support, security
 
 **Who We Share With:**
-- Service providers (Firebase / Google Cloud, 11Labs, Stripe)
+- Service providers (Firebase / Google Cloud, Google Gemini, OpenAI, ElevenLabs, Stripe)
 - Legal requirements only
 - We NEVER sell your data
 

@@ -1,5 +1,8 @@
 # SAVE-002 — Data-Flow & Processor Inventory
 
+**2026-09-08 realtime update:** Voice Capture and Nova now use OpenAI GPT-Realtime-2.1 over WebRTC, with GPT-Transcribe captions. Authenticated server endpoints create sessions, execute owned tools, and end calls. Session metadata, call IDs, processed action IDs, and optional text turns remain in `nova_conversations` (no new collection or subcollection). The historical baseline below is unchanged; see [the current realtime integration](../realtime-voice.md) for its data flow and limits.
+
+
 **Ticket:** SAVE-002 (M0 Foundation Sprint) · **Tracking:** GitHub issue #11
 **Baseline:** `main @ 569225b68333d165a942dbd7f258cccc3413ca45`
 **Author:** Covenant Privacy (Omoha Solutions) · **Evidence date:** 2026-08-07

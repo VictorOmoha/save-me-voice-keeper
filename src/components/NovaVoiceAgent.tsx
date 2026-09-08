@@ -11,6 +11,7 @@ import { useVoiceAgent, UseVoiceAgentOptions, AgentStatus } from "@/hooks/useVoi
 import { cn } from "@/lib/utils";
 
 const STATUS_TEXT: Record<AgentStatus, string> = {
+  connecting: "CONNECTING",
   idle: "",
   listening: "",
   thinking: "PROCESSING",
@@ -25,10 +26,10 @@ const formatNovaError = (message: string) => {
   if (lower.includes("not authenticated"))
     return "Sign in again so Anam can save this memory securely.";
   if (lower.includes("provider") || lower.includes("temporarily unavailable") || lower.includes("timed out") || lower.includes("timeout"))
-    return "The AI provider is busy. I saved your message and will retry when you send again.";
+    return "Realtime voice is unavailable. Please try again; check any pending action first.";
   if (lower.includes("mic error") || lower.includes("microphone") || lower.includes("permission") || lower.includes("denied"))
     return message;
-  return "Anam hit a problem while processing this memory. Try again in a moment.";
+  return message;
 };
 
 // Tool name → friendly label
@@ -67,7 +68,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   ...props
 }) => {
   const {
-    status, transcript, responseText, error,
+    status, isConnected, microphoneActive, transcript, responseText, error,
     actions, conversationHistory, continuous, setContinuous,
     startListening, stopListening, sendText, resetConversation,
   } = useVoiceAgent(props);
@@ -82,7 +83,9 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   useEffect(() => {
     if (autoGreet && !hasGreetedRef.current && conversationHistory.length === 0 && status === "idle") {
       hasGreetedRef.current = true;
-      setTimeout(() => { sendText(`__nova_greet__:${displayName || "there"}`); }, 400);
+      let fired = false;
+      const timer = setTimeout(() => { fired = true; sendText(`__nova_greet__:${displayName || "there"}`); }, 400);
+      return () => { clearTimeout(timer); if (!fired) hasGreetedRef.current = false; };
     }
   }, [autoGreet, conversationHistory.length, status, sendText, displayName]);
 
@@ -107,25 +110,25 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   const recordingTime = `${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, "0")}`;
 
   const handleMicClick = () => {
-    if (status === "idle") startListening();
-    else if (status === "listening") stopListening();
+    if (status === "idle" || status === "speaking") startListening();
+    else stopListening();
   };
 
   const handleSend = async () => {
     const text = textInput.trim();
-    if (!text || status !== "idle") return;
+    if (!text || status === "connecting" || status === "acting") return;
     setTextInput("");
     await sendText(text);
   };
 
-  const isDisabled = status === "thinking" || status === "acting" || status === "speaking";
+  const isDisabled = status === "connecting" || status === "acting";
   const displayTurns = conversationHistory.filter(t => t.parts?.some(p => p.text));
 
   return (
     <div className="flex flex-col h-full">
 
       <div className="px-4 py-2 border-b bg-muted/30 text-[11px] text-muted-foreground leading-relaxed" role="note">
-        Voice sends audio and memory context to Google for transcription and AI processing; transcript, conversation, and extracted memories may be stored. <a className="underline underline-offset-2" href="/privacy">Privacy details</a>
+        Realtime voice sends audio, conversation, and relevant memory context to OpenAI. SaveMe can store conversation captions and requested memories. <a className="underline underline-offset-2" href="/privacy">Privacy details</a>
       </div>
 
       {/* ── Controls bar ── */}
@@ -171,7 +174,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               <p className="font-medium text-sm">Hey, I'm Anam</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[220px] leading-relaxed">
                 {continuous
-                  ? "Auto-listen is on, but the mic is off until Anam finishes responding."
+                  ? "Auto-listen is on. Tap the mic to start a realtime conversation."
                   : "Tap the mic when you want Anam to hear you, or type below."}
               </p>
             </div>
@@ -297,7 +300,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
 
           {/* Hint */}
           <p className="text-[11px] text-muted-foreground/60 text-center mt-3">
-            Tap the red stop button when you're done
+            Pause for a reply. Tap stop to end the session.
           </p>
         </div>
       )}
@@ -327,9 +330,9 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
                 : status === "speaking"
                   ? "bg-emerald-600 text-white ring-4 ring-emerald-300"
                   : "bg-primary text-white hover:bg-primary/90",
-              isDisabled && "opacity-60 cursor-not-allowed scale-100"
+              status === "connecting" && "animate-pulse"
             )}
-            aria-label={status === "listening" ? "Stop Anam recording" : "Start Anam recording"}
+            aria-label={status === "speaking" ? "Interrupt Nova and speak" : status !== "idle" ? "End voice session" : "Start Anam recording"}
           >
             {status === "listening"
               ? <Square className="h-4 w-4 fill-white" />
@@ -344,6 +347,13 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               : "Tap mic or type below")}
           </span>
         </div>
+
+        {(isConnected || status === "connecting") && (
+          <div className="flex justify-center items-center gap-3 text-xs text-muted-foreground">
+            <span>{microphoneActive ? "Microphone on · Realtime voice" : "Microphone off"}</span>
+            <button type="button" onClick={stopListening} className="underline">End session</button>
+          </div>
+        )}
 
         {/* Text input */}
         <div className="flex gap-2">

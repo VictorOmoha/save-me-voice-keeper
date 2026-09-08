@@ -64,27 +64,19 @@ const PrivacyPolicy = () => {
           <p><strong>What We Collect:</strong></p>
           <ul>
             <li><strong>Voice audio clips</strong> (temporarily, during processing only)</li>
-            <li><strong>Voice-to-text transcriptions</strong> (stored permanently as your data)</li>
+            <li><strong>Voice-to-text transcriptions</strong> (may be stored with your conversation or saved entries)</li>
             <li><strong>Voice command metadata</strong> (timestamp, command type, success/failure)</li>
           </ul>
 
           <p><strong>How Voice Processing Works:</strong></p>
           <ol>
-            <li>You speak into SaveMe</li>
-            <li>Audio is sent to 11Labs (our voice AI provider) via secure connection</li>
-            <li>11Labs converts speech to text</li>
-            <li>Text is returned to SaveMe and stored in your account</li>
-            <li><strong>Audio is immediately deleted</strong> after transcription</li>
-            <li>Only the text transcription is permanently stored</li>
+            <li>You choose when to enable the microphone. Ending the session stops audio capture.</li>
+            <li>Realtime Voice Capture and Nova stream audio directly to OpenAI for speech-to-speech responses and captions.</li>
+            <li>Conversation context, relevant memory summaries, and requested tool results are also sent to OpenAI.</li>
+            <li>SaveMe authenticates actions on its server and can store conversation captions, session metadata, and memories you request.</li>
+            <li>Separate Brain Dump transcription, category prediction, and memory enrichment use Google Gemini. Optional speech playback can use other configured voice providers, including ElevenLabs.</li>
           </ol>
-
-          <p><strong>What We DON'T Do:</strong></p>
-          <ul>
-            <li>❌ We do NOT permanently store voice recordings</li>
-            <li>❌ We do NOT use your voice to train AI models (without explicit consent)</li>
-            <li>❌ We do NOT share voice data with third parties (except 11Labs for processing)</li>
-            <li>❌ We do NOT sell your voice data</li>
-          </ul>
+          <p>SaveMe does not intentionally persist raw realtime audio. Processing and retention by each provider are governed by its applicable service terms; this is not a promise of immediate deletion by those providers.</p>
 
           <h3>2.3 Information We Collect Automatically</h3>
           <ul>
@@ -118,7 +110,9 @@ const PrivacyPolicy = () => {
           <h3>4.1 Service Providers (Third-Party Processors)</h3>
           <ul>
             <li><strong>Firebase / Google Cloud:</strong> Stores your user data and content, provides authentication, and runs backend processing</li>
-            <li><strong>11Labs:</strong> Processes voice-to-text conversion (audio deleted after processing)</li>
+            <li><strong>OpenAI:</strong> Processes realtime speech, captions, conversation context, and relevant memory/tool data</li>
+            <li><strong>Google Gemini:</strong> Processes separate audio transcription, entry categorization, and memory enrichment</li>
+            <li><strong>ElevenLabs:</strong> Optional speech playback when configured</li>
             <li><strong>Stripe:</strong> Processes subscription payments (we do NOT see your full credit card details)</li>
           </ul>
 
@@ -143,9 +137,9 @@ const PrivacyPolicy = () => {
             <li><strong>Cancelled accounts:</strong> 30 days to export data, then permanently deleted</li>
             <li><strong>Voice data:</strong>
               <ul>
-                <li>Audio clips: Deleted immediately after transcription (&lt; 1 minute)</li>
+                <li>Raw realtime audio: not intentionally persisted by SaveMe; provider processing is subject to provider terms</li>
                 <li>Transcriptions: Retained as user content (until you delete)</li>
-                <li>Voice metadata: Retained for 90 days</li>
+                <li>Voice metadata and conversation captions: retained in your account; the realtime session timeout does not delete stored conversation records</li>
               </ul>
             </li>
             <li><strong>Backups:</strong> May persist in backups for up to 90 days</li>
@@ -205,8 +199,8 @@ const PrivacyPolicy = () => {
           <div className="mt-12 p-6 bg-muted rounded-lg">
             <h3 className="text-lg font-bold">SUMMARY: KEY PRIVACY POINTS</h3>
             <ul className="mt-4 space-y-2 text-sm">
-              <li><strong>Voice Data:</strong> Audio deleted immediately after transcription; only text stored</li>
-              <li><strong>Data Sharing:</strong> Only with service providers (Firebase / Google Cloud, 11Labs, Stripe) - we NEVER sell data</li>
+              <li><strong>Voice Data:</strong> Raw realtime audio is not intentionally stored by SaveMe; conversation captions and session metadata can be stored</li>
+              <li><strong>Data Sharing:</strong> Only with service providers (Firebase / Google Cloud, Google Gemini, OpenAI, ElevenLabs, Stripe) - we NEVER sell data</li>
               <li><strong>Your Rights:</strong> Access, correct, delete, export your data anytime</li>
               <li><strong>Security:</strong> Encrypted in transit and at rest, industry-standard protection</li>
             </ul>

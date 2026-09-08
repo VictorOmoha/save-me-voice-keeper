@@ -53,6 +53,7 @@ export {
 export {
   voiceAgent,
 } from "./voiceAgent/functions";
+export {voiceRealtimeSession, voiceRealtimeTool, voiceRealtimeEnd} from "./voiceAgent/realtime";
 
 // Initialize Firebase Admin
 admin.initializeApp();

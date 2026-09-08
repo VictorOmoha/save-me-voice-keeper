@@ -73,7 +73,7 @@ describe('NovaVoiceAgent', () => {
     render(<NovaVoiceAgent continuous />);
 
     expect(screen.getByText('Auto-listen on')).toBeTruthy();
-    expect(screen.getByText('Auto-listen is on, but the mic is off until Anam finishes responding.')).toBeTruthy();
+    expect(screen.getByText('Auto-listen is on. Tap the mic to start a realtime conversation.')).toBeTruthy();
     expect(screen.queryByText(/\bLive\b/i)).toBeNull();
     expect(screen.queryByText(/Anam can keep the mic on/i)).toBeNull();
   });
@@ -85,8 +85,8 @@ describe('NovaVoiceAgent', () => {
     mockState({ status: 'listening', transcript: 'insurance policy renews in June' });
     rerender(<NovaVoiceAgent />);
     expect(screen.getByText('"insurance policy renews in June"')).toBeTruthy();
-    expect(screen.getByText(/Tap the red stop button when you're done/i)).toBeTruthy();
-    expect(screen.getByLabelText('Stop Anam recording')).toBeTruthy();
+    expect(screen.getByText(/Tap stop to end the session/i)).toBeTruthy();
+    expect(screen.getByLabelText('End voice session')).toBeTruthy();
 
     mockState({ status: 'thinking' });
     rerender(<NovaVoiceAgent />);
@@ -108,7 +108,7 @@ describe('NovaVoiceAgent', () => {
 
     render(<NovaVoiceAgent />);
 
-    expect(screen.getByText('The AI provider is busy. I saved your message and will retry when you send again.')).toBeTruthy();
+    expect(screen.getByText('Realtime voice is unavailable. Please try again; check any pending action first.')).toBeTruthy();
     expect(screen.queryByText(/temporarily unavailable/i)).toBeNull();
   });
 });

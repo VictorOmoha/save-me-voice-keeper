@@ -162,7 +162,9 @@ Requires `write` permission.
 - SaveMe stores SHA-256 key hashes in Firestore.
 - Keys are scoped to one Firebase user account.
 - Keys support `read` and `write` permissions.
-- Revoking a key deletes the Firestore key record.
+- Agent keys work only on shared-memory endpoints. Billing, voice execution, audio, and quick capture require a Firebase user session.
+- Agent reads and updates are limited to memories with `visibility: "shared_with_agents"`. Private records and records marked for selected agents are not exposed to API keys; selected-agent grants are not implemented.
+- Revoking a key uses `POST /sharedMemoryRevokeAgentKey` with `{ "id": "key-document-id" }` and a Firebase user token. The server checks ownership and deletes the key record. Agent keys cannot revoke credentials.
 - `last_used_at` is updated automatically when a key is used.
 
 ## Example cURL

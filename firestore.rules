@@ -103,7 +103,8 @@ service cloud.firestore {
 
     // --- User profile / settings (doc ID = user UID) ---
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow write: if false; // billing identity and entitlements are server-owned
     }
 
     match /profiles/{userId} {

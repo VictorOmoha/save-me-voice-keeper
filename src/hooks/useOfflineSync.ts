@@ -8,12 +8,13 @@ import {
   getOfflineQueue,
   removeFromOfflineQueue,
 } from '@/utils/offlineStorage';
-import { db } from '@/lib/firebase';
-import { doc, setDoc, deleteDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { toast } from 'sonner';
 
 export const useOfflineSync = () => {
   const { user } = useAuth();
+  const userId = user?.uid;
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -21,13 +22,13 @@ export const useOfflineSync = () => {
 
   // Sync pending offline changes to Firestore
   const syncPendingChanges = useCallback(async () => {
-    if (!user || !navigator.onLine || syncingRef.current) return;
+    if (!userId || auth.currentUser?.uid !== userId || !navigator.onLine || syncingRef.current) return;
 
     syncingRef.current = true;
     setIsSyncing(true);
 
     try {
-      const queue = await getOfflineQueue();
+      const queue = await getOfflineQueue(userId);
       if (queue.length === 0) {
         setIsSyncing(false);
         syncingRef.current = false;
@@ -36,12 +37,15 @@ export const useOfflineSync = () => {
 
       let synced = 0;
       for (const item of queue) {
+        if (auth.currentUser?.uid !== userId || !navigator.onLine) break;
+        if (item.userId !== userId) continue;
         try {
           if (item.action === 'create') {
-            const entriesRef = collection(db, 'entries');
-            await addDoc(entriesRef, {
+            // A retry after a failed queue removal must reuse the same document.
+            const entryRef = doc(db, 'entries', `offline_${item.id}`);
+            await setDoc(entryRef, {
               ...item.data,
-              user_id: user.uid,
+              user_id: userId,
               created_at: serverTimestamp(),
               updated_at: serverTimestamp(),
               _syncedFromOffline: true,
@@ -52,11 +56,12 @@ export const useOfflineSync = () => {
               throw new Error('Offline queue item is missing an entry id');
             }
             const entryRef = doc(db, 'entries', entryId);
-            await setDoc(entryRef, {
+            await updateDoc(entryRef, {
               ...item.data,
+              user_id: userId,
               updated_at: serverTimestamp(),
               _syncedFromOffline: true,
-            }, { merge: true });
+            });
           } else if (item.action === 'delete') {
             const entryId = item.data.id;
             if (typeof entryId !== 'string') {
@@ -73,23 +78,27 @@ export const useOfflineSync = () => {
         }
       }
 
-      if (synced > 0) {
+      if (synced > 0 && auth.currentUser?.uid === userId) {
         toast.success(`Synced ${synced} offline change${synced > 1 ? 's' : ''}`);
+        window.dispatchEvent(new Event('nova:entries-changed'));
       }
 
-      setPendingCount((await getOfflineQueue()).length);
+      const remaining = await getOfflineQueue(userId);
+      if (auth.currentUser?.uid === userId) setPendingCount(remaining.length);
     } catch (error) {
       console.error('Sync failed:', error);
     } finally {
       setIsSyncing(false);
       syncingRef.current = false;
     }
-  }, [user]);
+  }, [userId]);
 
   const checkPendingCount = useCallback(async () => {
-    const queue = await getOfflineQueue();
-    setPendingCount(queue.length);
-  }, []);
+    setPendingCount(0);
+    if (!userId) return;
+    const queue = await getOfflineQueue(userId);
+    if (auth.currentUser?.uid === userId) setPendingCount(queue.length);
+  }, [userId]);
 
   // Track online/offline status
   useEffect(() => {
@@ -130,11 +139,12 @@ export const useOfflineSync = () => {
   // Cache entries locally when online
   const cacheEntriesLocally = useCallback(async (entries: SavedEntry[]) => {
     try {
-      await cacheEntries(entries.map(entry => ({ ...entry })));
+      if (!userId) return;
+      await cacheEntries(entries.map(entry => ({ ...entry, user_id: userId })));
     } catch (error) {
       console.warn('Failed to cache entries locally:', error);
     }
-  }, []);
+  }, [userId]);
 
   // Get entries from cache when offline
   const getCachedEntriesForUser = useCallback(async () => {

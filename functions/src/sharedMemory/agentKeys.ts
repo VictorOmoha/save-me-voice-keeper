@@ -13,8 +13,7 @@ export const hashAgentApiKey = (apiKey: string): string => {
 };
 
 export const normalizeAgentPermissions = (permissions: unknown): SharedMemoryPermission[] => {
-  if (!Array.isArray(permissions)) return [...ALLOWED_PERMISSIONS];
-
-  const normalized = ALLOWED_PERMISSIONS.filter((permission) => permissions.includes(permission));
-  return normalized.length > 0 ? normalized : [...ALLOWED_PERMISSIONS];
+  if (permissions === undefined) return [...ALLOWED_PERMISSIONS];
+  if (!Array.isArray(permissions)) return [];
+  return ALLOWED_PERMISSIONS.filter((permission) => permissions.includes(permission));
 };

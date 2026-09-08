@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Key, Plus, Copy, Trash2, Eye, EyeOff, Bot, ShieldCheck, PlugZap, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCloudFunctionUrl, getCloudFunctionsBaseUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 import {
@@ -37,7 +37,7 @@ type CreatedAgentKeyResponse = {
 const permissionLabel = (permissions: AgentPermission[]) => {
   if (permissions.includes("read") && permissions.includes("write")) return "Read + write";
   if (permissions.includes("write")) return "Write only";
-  return "Read only";
+  return permissions.includes("read") ? "Read only" : "No access";
 };
 
 export const ApiKeysSettings = () => {
@@ -74,9 +74,9 @@ export const ApiKeysSettings = () => {
 
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const keyPermissions: AgentPermission[] = Array.isArray(data.permissions) && data.permissions.length > 0
+        const keyPermissions: AgentPermission[] = Array.isArray(data.permissions)
           ? data.permissions.filter((permission: unknown): permission is AgentPermission => permission === "read" || permission === "write")
-          : ["read", "write"];
+          : data.permissions === undefined ? ["read", "write"] : [];
 
         keys.push({
           id: docSnap.id,
@@ -163,8 +163,19 @@ export const ApiKeysSettings = () => {
 
   const handleDeleteApiKey = async (id: string) => {
     try {
-      const keyRef = doc(db, "api_keys", id);
-      await deleteDoc(keyRef);
+      const token = await getFirebaseIdToken();
+      const response = await fetch(getCloudFunctionUrl("sharedMemoryRevokeAgentKey"), {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
 
       void fetchApiKeys();
       toast.success("API key revoked");

@@ -104,11 +104,12 @@ export async function addToOfflineQueue(item: Omit<OfflineQueueItem, 'id' | 'tim
     db.close();
   } catch (error) {
     console.warn('Failed to add to offline queue:', error);
+    throw error;
   }
 }
 
 // Get all items from offline queue
-export async function getOfflineQueue(): Promise<OfflineQueueItem[]> {
+export async function getOfflineQueue(userId: string): Promise<OfflineQueueItem[]> {
   try {
     const db = await openDB();
     const tx = db.transaction(QUEUE_STORE, 'readonly');
@@ -118,7 +119,8 @@ export async function getOfflineQueue(): Promise<OfflineQueueItem[]> {
       const request = store.getAll();
       request.onsuccess = () => {
         db.close();
-        resolve(request.result || []);
+        const items: OfflineQueueItem[] = request.result || [];
+        resolve(items.filter(item => item.userId === userId).sort((a, b) => a.timestamp - b.timestamp));
       };
       request.onerror = () => {
         db.close();
@@ -147,6 +149,7 @@ export async function removeFromOfflineQueue(id: string): Promise<void> {
     db.close();
   } catch (error) {
     console.warn('Failed to remove from offline queue:', error);
+    throw error;
   }
 }
 

@@ -11,6 +11,7 @@ import {GEMINI_API} from "./config";
 import {executeVoiceTool, ConversationPart, ConversationTurnRecord, ActionExecutionRecord} from "./toolExecutor";
 import {summarizeToolArgs} from "../voiceToolValidation";
 import {fail} from "../voiceToolResults";
+import {getOwnedConversationSession} from "./session";
 
 /**
  * gemini-2.5-flash strictly requires every functionResponse to immediately
@@ -75,18 +76,30 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
     const db = admin.firestore();
     const displayName = user.name || user.email?.split("@")[0] || "there";
 
-    // Load conversation from session if client didn't send history (e.g. page refresh)
+    if (incomingSessionId != null &&
+      (typeof incomingSessionId !== "string" || !incomingSessionId.trim() || incomingSessionId.includes("/"))) {
+      res.status(400).json({error: "Invalid session id"});
+      return;
+    }
+
+    // Verify ownership before either execution path can persist session updates.
     let conversationHistory = clientHistory;
     let currentSessionId: string | null = incomingSessionId || null;
-    if (currentSessionId && (!conversationHistory || conversationHistory.length === 0)) {
+    if (currentSessionId) {
       try {
-        const sessionDoc = await db.collection("nova_conversations").doc(currentSessionId).get();
-        if (sessionDoc.exists && sessionDoc.data()?.user_id === user.uid) {
+        const sessionDoc = await getOwnedConversationSession(db, user.uid, currentSessionId);
+        if (!sessionDoc) {
+          res.status(404).json({error: "Conversation not found"});
+          return;
+        }
+        if (!conversationHistory || conversationHistory.length === 0) {
           conversationHistory = sessionDoc.data()?.turns || [];
           console.log(`[VoiceAgent] Restored ${conversationHistory.length} turns from session ${currentSessionId}`);
         }
       } catch (sessionErr) {
         console.warn("[VoiceAgent] Could not load session:", sessionErr);
+        res.status(503).json({error: "Could not load conversation"});
+        return;
       }
     }
 

@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => ({
   build: {
     // Keep dev builds readable, but ship minified production assets.
     minify: mode === 'development' ? false : 'terser',
+    // Avoid spawning a minifier per CPU on machines with constrained memory.
+    terserOptions: { maxWorkers: 1 },
     rollupOptions: {
       output: {
         manualChunks: {

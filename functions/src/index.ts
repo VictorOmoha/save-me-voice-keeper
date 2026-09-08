@@ -3,6 +3,7 @@ import * as admin from "firebase-admin";
 export {
   sharedMemoryAgentStatus,
   sharedMemoryCreateAgentKey,
+  sharedMemoryRevokeAgentKey,
   sharedMemoryCreate,
   sharedMemorySearch,
   sharedMemoryGet,

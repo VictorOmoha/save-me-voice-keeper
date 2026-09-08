@@ -4,7 +4,8 @@ import { SharedMemorySearchInput } from "./types";
 export async function listSharedMemories(
   userId: string,
   input: SharedMemorySearchInput,
-  db: admin.firestore.Firestore
+  db: admin.firestore.Firestore,
+  agentAccess = false
 ) {
   let query: admin.firestore.Query = db.collection("shared_memories")
     .where("user_id", "==", userId)
@@ -16,11 +17,13 @@ export async function listSharedMemories(
   if (input.verification?.length === 1) query = query.where("verification", "==", input.verification[0]);
   if (input.sources?.length === 1) query = query.where("source", "==", input.sources[0]);
   if (input.visibility?.length === 1) query = query.where("visibility", "==", input.visibility[0]);
+  if (agentAccess && !input.visibility?.length) query = query.where("visibility", "==", "shared_with_agents");
 
   const snap = await query.limit(Math.min(input.limit || 20, 50)).get();
   const docs = snap.docs
     .filter((doc) => {
       const data = doc.data();
+      if (agentAccess && data.visibility !== "shared_with_agents") return false;
       if (input.types?.length && !input.types.includes(data.type)) return false;
       if (input.verification?.length && !input.verification.includes(data.verification)) return false;
       if (input.sources?.length && !input.sources.includes(data.source)) return false;

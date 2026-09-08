@@ -13,7 +13,7 @@ import {generateAgentApiKey, hashAgentApiKey, normalizeAgentPermissions} from ".
 
 export const sharedMemoryAgentStatus = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user) {
       res.status(401).json({error: "Unauthorized"});
       return;
@@ -40,6 +40,7 @@ export const sharedMemoryAgentStatus = functions.https.onRequest(
         endpoints: [
           "sharedMemoryAgentStatus",
           "sharedMemoryCreateAgentKey",
+          "sharedMemoryRevokeAgentKey",
           "sharedMemoryCreate",
           "sharedMemoryBatchCreate",
           "sharedMemorySearch",
@@ -59,7 +60,7 @@ export const sharedMemoryCreateAgentKey = functions.https.onRequest(
       return;
     }
 
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user || user.saveMeApiKey) {
       res.status(401).json({error: "Firebase user session required"});
       return;
@@ -75,6 +76,10 @@ export const sharedMemoryCreateAgentKey = functions.https.onRequest(
     const keyHash = hashAgentApiKey(apiKey);
     const keyPrefix = `${apiKey.substring(0, 10)}...`;
     const permissions = normalizeAgentPermissions(req.body?.permissions);
+    if (permissions.length === 0) {
+      res.status(400).json({error: "At least one valid read or write permission is required"});
+      return;
+    }
     const agentType = typeof req.body?.agent_type === "string" ? req.body.agent_type : "custom";
     const agentSource = typeof req.body?.agent_source === "string" ? req.body.agent_source : "custom_agent";
 
@@ -109,9 +114,42 @@ export const sharedMemoryCreateAgentKey = functions.https.onRequest(
   })
 );
 
+export const sharedMemoryRevokeAgentKey = functions.https.onRequest(
+  withCors(async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({error: "Method not allowed"});
+      return;
+    }
+    const user = await verifyAuth(req);
+    if (!user) {
+      res.status(401).json({error: "Firebase user session required"});
+      return;
+    }
+    const id = req.body?.id;
+    if (typeof id !== "string" || !id.trim() || id.includes("/")) {
+      res.status(400).json({error: "A valid key id is required"});
+      return;
+    }
+
+    const db = admin.firestore();
+    const ref = db.collection("api_keys").doc(id);
+    const revoked = await db.runTransaction(async (transaction) => {
+      const key = await transaction.get(ref);
+      if (!key.exists || key.data()?.user_id !== user.uid) return false;
+      transaction.delete(ref);
+      return true;
+    });
+    if (!revoked) {
+      res.status(404).json({error: "API key not found"});
+      return;
+    }
+    res.json({ok: true});
+  })
+);
+
 export const sharedMemoryCreate = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user) {
       res.status(401).json({error: "Unauthorized"});
       return;
@@ -142,7 +180,7 @@ export const sharedMemoryCreate = functions.https.onRequest(
 
 export const sharedMemorySearch = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user) {
       res.status(401).json({error: "Unauthorized"});
       return;
@@ -158,7 +196,7 @@ export const sharedMemorySearch = functions.https.onRequest(
 
     try {
       const db = admin.firestore();
-      const results = await searchSharedMemories(user.uid, input, db);
+      const results = await searchSharedMemories(user.uid, input, db, Boolean(user.saveMeApiKey));
       res.json({ok: true, results});
     } catch (error) {
       console.error("sharedMemorySearch error:", error);
@@ -169,7 +207,7 @@ export const sharedMemorySearch = functions.https.onRequest(
 
 export const sharedMemoryGet = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user) {
       res.status(401).json({error: "Unauthorized"});
       return;
@@ -189,7 +227,7 @@ export const sharedMemoryGet = functions.https.onRequest(
 
     try {
       const db = admin.firestore();
-      const memory = await getSharedMemory(user.uid, id, db);
+      const memory = await getSharedMemory(user.uid, id, db, Boolean(user.saveMeApiKey));
       if (!memory) {
         res.status(404).json({error: "Memory not found"});
         return;
@@ -204,7 +242,7 @@ export const sharedMemoryGet = functions.https.onRequest(
 
 export const sharedMemoryList = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user) {
       res.status(401).json({error: "Unauthorized"});
       return;
@@ -220,7 +258,7 @@ export const sharedMemoryList = functions.https.onRequest(
 
     try {
       const db = admin.firestore();
-      const memories = await listSharedMemories(user.uid, input, db);
+      const memories = await listSharedMemories(user.uid, input, db, Boolean(user.saveMeApiKey));
       res.json({ok: true, memories});
     } catch (error) {
       console.error("sharedMemoryList error:", error);
@@ -231,7 +269,7 @@ export const sharedMemoryList = functions.https.onRequest(
 
 export const sharedMemoryUpdate = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user) {
       res.status(401).json({error: "Unauthorized"});
       return;
@@ -252,7 +290,7 @@ export const sharedMemoryUpdate = functions.https.onRequest(
 
     try {
       const db = admin.firestore();
-      const result = await updateSharedMemory(user.uid, id, patch, db);
+      const result = await updateSharedMemory(user.uid, id, patch, db, Boolean(user.saveMeApiKey));
       if (!result.ok && result.reason === "not_found") {
         res.status(404).json({error: "Memory not found"});
         return;
@@ -271,7 +309,7 @@ export const sharedMemoryUpdate = functions.https.onRequest(
 
 export const sharedMemoryBatchCreate = functions.https.onRequest(
   withCors(async (req, res) => {
-    const user = await verifyAuth(req);
+    const user = await verifyAuth(req, {allowAgentKeys: true});
     if (!user) {
       res.status(401).json({error: "Unauthorized"});
       return;

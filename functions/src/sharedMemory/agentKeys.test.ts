@@ -24,7 +24,10 @@ describe('agent API key helpers', () => {
 
   it('normalizes permissions to read/write and defaults to read/write', () => {
     expect(normalizeAgentPermissions(['read', 'admin', 'write'])).toEqual(['read', 'write']);
-    expect(normalizeAgentPermissions(['admin'])).toEqual(['read', 'write']);
+    expect(normalizeAgentPermissions(['admin'])).toEqual([]);
+    expect(normalizeAgentPermissions([])).toEqual([]);
+    expect(normalizeAgentPermissions(null)).toEqual([]);
+    expect(normalizeAgentPermissions('read')).toEqual([]);
     expect(normalizeAgentPermissions(undefined)).toEqual(['read', 'write']);
   });
 });

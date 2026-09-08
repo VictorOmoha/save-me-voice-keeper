@@ -36,7 +36,8 @@ function scoreMemory(doc: admin.firestore.QueryDocumentSnapshot, query: string, 
 export async function searchSharedMemories(
   userId: string,
   input: SharedMemorySearchInput,
-  db: admin.firestore.Firestore
+  db: admin.firestore.Firestore,
+  agentAccess = false
 ) {
   let query: admin.firestore.Query = db.collection("shared_memories")
     .where("user_id", "==", userId)
@@ -63,6 +64,7 @@ export async function searchSharedMemories(
 
   const filtered = snap.docs.filter((doc) => {
     const data = doc.data();
+    if (agentAccess && data.visibility !== "shared_with_agents") return false;
     if (input.types?.length && !input.types.includes(data.type)) return false;
     if (input.verification?.length && !input.verification.includes(data.verification)) return false;
     if (input.sources?.length && !input.sources.includes(data.source)) return false;

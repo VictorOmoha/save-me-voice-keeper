@@ -4,6 +4,7 @@ import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
 import {
   getCheckoutPlanConfig,
+  getPlanFromPriceId,
   getSafeOrigin,
   sanitizeReturnUrl,
 } from "./safety";
@@ -205,9 +206,12 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
     const session = event.data.object as { metadata?: { firebaseUserId?: string }; subscription?: string | null };
     const userId = session.metadata?.firebaseUserId;
 
-    if (userId) {
+    if (userId && typeof session.subscription === "string") {
+      const subscription = await stripe.subscriptions.retrieve(session.subscription);
       await db.collection("users").doc(userId).set({
-        subscriptionStatus: "active",
+        subscriptionStatus: subscription.status,
+        subscriptionTier: subscription.status === "active" ?
+          getPlanFromPriceId(subscription.items.data[0]?.price.id || "") : "free",
         subscriptionId: session.subscription,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       }, {merge: true});
@@ -244,22 +248,4 @@ export const stripeWebhook = functions.https.onRequest(async (req, res) => {
 
   res.json({received: true});
 });
-
-/**
- * Helper to determine plan tier from Stripe price ID
- */
-function getPlanFromPriceId(priceId: string): string {
-  // Map your Stripe price IDs to plan names
-  const priceMap: Record<string, string> = {
-    // Add your actual Stripe price IDs here
-    "price_basic_monthly": "basic",
-    "price_basic_yearly": "basic",
-    "price_premium_monthly": "premium",
-    "price_premium_yearly": "premium",
-    "price_enterprise_monthly": "enterprise",
-    "price_enterprise_yearly": "enterprise",
-  };
-
-  return priceMap[priceId] || "basic";
-}
 

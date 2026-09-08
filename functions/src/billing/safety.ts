@@ -16,6 +16,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://saveme-f5af0.firebaseapp.com",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
 ]);
 
 export const getAllowedOrigin = (origin?: string | null): string | null => {
@@ -47,6 +49,22 @@ export const getCheckoutPlanConfig = (
     env.STRIPE_PREMIUM_PRICE_ID || "price_premium_monthly";
 
   return {plan: requestedPlan, priceId};
+};
+
+export const getPlanFromPriceId = (priceId: string, env: Env = process.env): string => {
+  // Use the same configured prices for checkout and webhook entitlements.
+  for (const plan of ["basic", "premium"] as const) {
+    if (getCheckoutPlanConfig(plan, env)?.priceId === priceId) return plan;
+  }
+  const legacyPrices: Record<string, string> = {
+    price_basic_monthly: "basic",
+    price_basic_yearly: "basic",
+    price_premium_monthly: "premium",
+    price_premium_yearly: "premium",
+    price_enterprise_monthly: "enterprise",
+    price_enterprise_yearly: "enterprise",
+  };
+  return legacyPrices[priceId] || "free";
 };
 
 export const sanitizeReturnUrl = (

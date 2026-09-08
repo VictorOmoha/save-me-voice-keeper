@@ -1,6 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import {hashAgentApiKey, SharedMemoryPermission} from "../sharedMemory/agentKeys";
+import {hashAgentApiKey, normalizeAgentPermissions, SharedMemoryPermission} from "../sharedMemory/agentKeys";
 
 export type AuthenticatedUser = admin.auth.DecodedIdToken & {
   saveMeApiKey?: {
@@ -43,8 +43,12 @@ export const requirePermission = (
   return false;
 };
 
-// Verify Firebase Auth token OR agent API key
-export const verifyAuth = async (req: functions.https.Request): Promise<AuthenticatedUser | null> => {
+// Agent keys are scoped to the shared-memory API. Account endpoints accept
+// Firebase sessions only unless they explicitly opt into agent authentication.
+export const verifyAuth = async (
+  req: functions.https.Request,
+  {allowAgentKeys = false}: {allowAgentKeys?: boolean} = {}
+): Promise<AuthenticatedUser | null> => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return null;
@@ -56,6 +60,7 @@ export const verifyAuth = async (req: functions.https.Request): Promise<Authenti
   // the `api_keys` Firestore collection by their SHA-256 hash and resolve to
   // the owning Firebase user's uid. Users create these from the Settings UI.
   if (token.startsWith("sm_")) {
+    if (!allowAgentKeys) return null;
     try {
       const keyHash = hashAgentApiKey(token);
       const snap = await admin.firestore()
@@ -69,9 +74,7 @@ export const verifyAuth = async (req: functions.https.Request): Promise<Authenti
       const data = doc.data();
       const userId = data.user_id as string | undefined;
       if (!userId) return null;
-      const permissions: SharedMemoryPermission[] = Array.isArray(data.permissions) && data.permissions.length > 0
-        ? data.permissions.filter((p: unknown): p is SharedMemoryPermission => p === "read" || p === "write")
-        : ["read", "write"];
+      const permissions = normalizeAgentPermissions(data.permissions);
       // Fire-and-forget last-used update; don't block the request on it.
       doc.ref.update({last_used_at: admin.firestore.FieldValue.serverTimestamp()})
         .catch((err) => console.warn("api_keys last_used_at update failed:", err));
@@ -92,6 +95,7 @@ export const verifyAuth = async (req: functions.https.Request): Promise<Authenti
   // bucket. Prefer sm_ keys for new integrations.
   const agentApiKey = process.env.AGENT_API_KEY;
   if (agentApiKey && token === agentApiKey) {
+    if (!allowAgentKeys) return null;
     const agentUserId = process.env.AGENT_USER_ID || "nia-openclaw-agent";
     return buildAgentDecodedToken(agentUserId, "agent-key", {
       name: "Legacy OpenClaw agent key",

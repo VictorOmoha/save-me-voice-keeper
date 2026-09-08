@@ -28,10 +28,7 @@ describe('categoryMatcher', () => {
   });
 
   it('returns null when ambiguous', () => {
-    // Construct input that could match multiple categories with same score
-    // e.g., contains both "docs" and "personal"
-    // Our algorithm will pick the higher score; to force ambiguity, use two equal single-word matches
-    // Here we expect a single category, but ensure null case is handled
-    expect(matchCategory('docs and contacts and personal')).not.toBe(null);
+    // Contacts and Personal have equal scores; choosing either would be arbitrary.
+    expect(matchCategory('docs and contacts and personal')).toBe(null);
   });
 });

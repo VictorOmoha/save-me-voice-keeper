@@ -5,6 +5,16 @@
   },
   "functions": {
     "source": "functions",
+    "ignore": [
+      "node_modules",
+      ".git",
+      ".env*",
+      "serviceAccountKey.json",
+      "**/*.log",
+      "src/**/*.test.ts",
+      "lib/**/*.test.js",
+      "lib/**/*.test.js.map"
+    ],
     "predeploy": [
       "npm --prefix \"$RESOURCE_DIR\" run build"
     ],

@@ -24,7 +24,7 @@ Capture your thoughts by voice. Nova AI organizes them. Get structured documents
 - **Framework**: React 18 + TypeScript + Vite
 - **UI**: shadcn/ui + Tailwind CSS + Radix primitives
 - **State**: React Query, React Context, localStorage
-- **Routing**: React Router v6 (HashRouter)
+- **Routing**: React Router v6 (BrowserRouter with legacy hash-link redirects)
 - **Rich Text**: TipTap editor
 - **PDF**: jsPDF + pdfjs-dist
 - **Speech**: Web Speech API + ElevenLabs TTS integration
@@ -89,6 +89,8 @@ npm run dev           # start dev server
 ```bash
 npm run test              # default test suite (Vitest, excludes legacy NLP)
 npm run test:legacy-voice # deprecated voice/NLP test suite
+npm run typecheck         # frontend, Vite configuration, and Cloud Functions
+firebase emulators:exec --only firestore --project demo-saveme-audit "npm run test:rules"
 ```
 
 ### Build

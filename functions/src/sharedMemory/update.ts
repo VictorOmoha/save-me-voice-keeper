@@ -4,7 +4,8 @@ export async function updateSharedMemory(
   userId: string,
   id: string,
   patch: Record<string, unknown>,
-  db: admin.firestore.Firestore
+  db: admin.firestore.Firestore,
+  agentAccess = false
 ) {
   const ref = db.collection("shared_memories").doc(id);
   const doc = await ref.get();
@@ -12,6 +13,7 @@ export async function updateSharedMemory(
 
   const data = doc.data();
   if (!data || data.user_id !== userId) return { ok: false, reason: "forbidden" };
+  if (agentAccess && data.visibility !== "shared_with_agents") return { ok: false, reason: "forbidden" };
 
   const allowedPatch: Record<string, unknown> = {};
   const allowedFields = [

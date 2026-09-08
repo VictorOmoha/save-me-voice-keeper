@@ -13,7 +13,6 @@ import { VoiceNavigationListener } from "./components/voice/VoiceNavigationListe
 import { NovaFloat } from "./components/NovaFloat";
 import { useExtensionBridge } from "./hooks/useExtensionBridge";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
-import { useOfflineSync } from "./hooks/useOfflineSync";
 import { KeyboardShortcutsProvider } from "./contexts/KeyboardShortcutsContext";
 
 import { QuickCaptureOverlay } from "./components/QuickCaptureOverlay";
@@ -56,7 +55,6 @@ const PageLoader = () => (
 const GlobalProviders: React.FC = () => {
   useExtensionBridge();
   useGlobalShortcuts();
-  useOfflineSync();
   return null;
 };
 

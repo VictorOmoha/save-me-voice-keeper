@@ -9,7 +9,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p functions/tsconfig.json",
     "test": "vitest run",
+    "test:rules": "node scripts/test-firestore-rules.mjs",
     "test:legacy-voice": "vitest run --config vitest.legacy.config.ts",
     "preview": "vite preview"
   },

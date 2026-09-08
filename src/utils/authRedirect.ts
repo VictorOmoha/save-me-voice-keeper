@@ -4,6 +4,7 @@ const ALLOWED_POST_AUTH_PATHS = [
   "/insights",
   "/settings",
   "/brain-dump",
+  "/voice-capture",
   "/subscription",
   "/user-guide",
   "/share",

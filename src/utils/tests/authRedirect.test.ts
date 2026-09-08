@@ -4,6 +4,7 @@ import { resolvePostAuthDestination } from "@/utils/authRedirect";
 describe("resolvePostAuthDestination", () => {
   it("allows known internal next destinations", () => {
     expect(resolvePostAuthDestination({ next: "/settings" })).toBe("/settings");
+    expect(resolvePostAuthDestination({ next: "/voice-capture" })).toBe("/voice-capture");
     expect(resolvePostAuthDestination({ next: "/subscription?plan=basic" })).toBe("/subscription?plan=basic");
   });
 

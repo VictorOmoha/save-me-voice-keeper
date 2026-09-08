@@ -5,13 +5,13 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
-  subscriptionTier: 'free' | 'basic' | 'premium' | 'enterprise';
+  subscriptionTier: 'free' | 'basic' | 'premium';
   subscriptionActive: boolean;
 }
 
 // Extended Firebase User with subscription info
 export interface ExtendedUser extends FirebaseUser {
-  subscriptionTier?: 'free' | 'basic' | 'premium' | 'enterprise';
+  subscriptionTier?: 'free' | 'basic' | 'premium';
   subscriptionActive?: boolean;
 }
 

@@ -22,6 +22,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { revokeExtensionCredentials } from "@/services/extensionCredentialService";
 import { toast } from "sonner";
 import { useTheme } from "@/components/ThemeProvider";
 import { SmartSearchWithBoundary as SmartSearch } from "@/components/SmartSearch";
@@ -52,6 +53,7 @@ export const DashboardHeader = ({
 
   const handleSignOut = async () => {
     try {
+      await revokeExtensionCredentials();
       await signOut(auth);
       toast.success("Signed out successfully");
       window.location.href = '/login';

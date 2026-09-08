@@ -1,4 +1,6 @@
-export type BillingPlan = "basic" | "premium";
+import {checkoutPrice, loadPriceCatalog, type PaidPlanId} from "./core";
+
+export type BillingPlan = PaidPlanId;
 
 type Env = Record<string, string | undefined>;
 
@@ -40,31 +42,8 @@ export const getCheckoutPlanConfig = (
   requestedPlan: unknown,
   env: Env = process.env
 ): CheckoutPlanConfig | null => {
-  if (requestedPlan !== "basic" && requestedPlan !== "premium") {
-    return null;
-  }
-
-  const priceId = requestedPlan === "basic" ?
-    env.STRIPE_BASIC_PRICE_ID || "price_basic_monthly" :
-    env.STRIPE_PREMIUM_PRICE_ID || "price_premium_monthly";
-
-  return {plan: requestedPlan, priceId};
-};
-
-export const getPlanFromPriceId = (priceId: string, env: Env = process.env): string => {
-  // Use the same configured prices for checkout and webhook entitlements.
-  for (const plan of ["basic", "premium"] as const) {
-    if (getCheckoutPlanConfig(plan, env)?.priceId === priceId) return plan;
-  }
-  const legacyPrices: Record<string, string> = {
-    price_basic_monthly: "basic",
-    price_basic_yearly: "basic",
-    price_premium_monthly: "premium",
-    price_premium_yearly: "premium",
-    price_enterprise_monthly: "enterprise",
-    price_enterprise_yearly: "enterprise",
-  };
-  return legacyPrices[priceId] || "free";
+  if (requestedPlan !== "basic" && requestedPlan !== "premium") return null;
+  return checkoutPrice(requestedPlan, loadPriceCatalog(env));
 };
 
 export const sanitizeReturnUrl = (

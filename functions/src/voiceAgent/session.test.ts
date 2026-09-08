@@ -5,6 +5,11 @@ const mocks = vi.hoisted(() => ({firestore: vi.fn(), verifyAuth: vi.fn()}));
 vi.mock('firebase-functions', () => ({runWith: () => ({https: {onRequest: (handler: unknown) => handler}})}));
 vi.mock('../common/http', () => ({withCors: (handler: unknown) => handler}));
 vi.mock('../common/auth', () => ({verifyAuth: mocks.verifyAuth}));
+vi.mock('../common/abuseControl', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../common/abuseControl')>(),
+  // Rate limits have their own suite; isolate conversation ownership here.
+  enforceAbuseControls: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('firebase-admin', () => ({firestore: mocks.firestore}));
 import {voiceAgent} from './functions';
 

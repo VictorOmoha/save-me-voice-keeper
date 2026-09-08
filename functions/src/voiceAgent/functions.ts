@@ -12,6 +12,15 @@ import {executeVoiceTool, ConversationPart, ConversationTurnRecord, ActionExecut
 import {summarizeToolArgs} from "../voiceToolValidation";
 import {fail} from "../voiceToolResults";
 import {getOwnedConversationSession} from "./session";
+import {
+  assertArrayCap,
+  assertStringCap,
+  assertUtf8Bytes,
+  enforceAbuseControls,
+  sendAbuseError,
+  SERVICE_CAPS,
+  SERVICE_QUOTAS,
+} from "../common/abuseControl";
 
 /**
  * gemini-2.5-flash strictly requires every functionResponse to immediately
@@ -68,6 +77,16 @@ export const voiceAgent = functions.runWith({ timeoutSeconds: 60, memory: "512MB
     }
 
     const {transcript, audioData, audioMimeType: inputAudioMimeType, conversationHistory: clientHistory = [], sessionId: incomingSessionId, debugToolOverride} = req.body;
+    try {
+      assertUtf8Bytes(req.body, SERVICE_CAPS.requestBytes);
+      assertStringCap(transcript, SERVICE_CAPS.textChars, "transcript");
+      assertStringCap(audioData, SERVICE_CAPS.audioBase64Chars, "audioData");
+      assertArrayCap(clientHistory, SERVICE_CAPS.historyTurns, "conversationHistory");
+      await enforceAbuseControls({endpoint: "voiceAgent", user, req, policies: SERVICE_QUOTAS.voiceAgent});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
     if (!transcript?.trim() && !audioData) {
       res.status(400).json({error: "Transcript or audio data is required"});
       return;

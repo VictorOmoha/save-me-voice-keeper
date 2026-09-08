@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-
-type SubscriptionTier = 'free' | 'basic' | 'premium' | 'enterprise';
+import {projectSubscription, type SubscriptionTier} from './subscriptionProjection';
 
 export const useAuthState = () => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -28,14 +27,17 @@ export const useAuthState = () => {
       }
 
       if (firebaseUser) {
-        // Listen to user document for real-time subscription updates
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        // Consume the same server-owned entitlement contract used by Functions.
+        // The client can read its own document but Firestore rules deny all writes.
+        const userDocRef = doc(db, 'billing_entitlements', firebaseUser.uid);
         unsubFirestoreRef.current = onSnapshot(userDocRef, (snap) => {
           if (!mountedRef.current) return;
           if (snap.exists()) {
-            const data = snap.data();
-            setSubscriptionTier(data.subscriptionTier || 'free');
-            setSubscriptionActive(data.subscriptionStatus === 'active');
+            const data = projectSubscription(snap.data());
+            setSubscriptionTier(data.tier);
+            // The billing server owns lifecycle semantics (trial and payment grace
+            // are entitled; terminal states are not). Do not reinterpret status here.
+            setSubscriptionActive(data.active);
           } else {
             setSubscriptionTier('free');
             setSubscriptionActive(false);

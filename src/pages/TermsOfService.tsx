@@ -85,40 +85,44 @@ const TermsOfService = () => {
 
           <h2>5. SUBSCRIPTION & PAYMENT TERMS</h2>
           <h3>5.1 Pricing Plans</h3>
+          <p>Self-serve plans are monthly only. There is no annual SKU, Teams/Enterprise checkout, or paid trial.</p>
 
-          <h4>Free Tier:</h4>
+          <h4>Free — $0:</h4>
           <ul>
-            <li>100 entries maximum</li>
-            <li>50MB storage</li>
-            <li>Basic voice commands</li>
-            <li>3 categories</li>
-            <li>PDF export only</li>
+            <li>50 entries maximum</li>
+            <li>500 MB storage</li>
+            <li>Voice capture and portable export</li>
+            <li>Web access</li>
             <li>No payment required</li>
           </ul>
 
-          <h4>Pro Tier - $12/month or $120/year:</h4>
+          <h4>Basic — $9/month:</h4>
           <ul>
             <li>Unlimited entries</li>
-            <li>5GB storage</li>
-            <li>Advanced voice commands</li>
-            <li>Unlimited categories</li>
-            <li>All export formats</li>
-            <li>Priority support</li>
+            <li>5 GB storage</li>
+            <li>Web + browser extension</li>
+            <li>Advanced search</li>
+          </ul>
+
+          <h4>Premium — $19/month:</h4>
+          <ul>
+            <li>Unlimited entries</li>
+            <li>50 GB storage</li>
+            <li>Everything in Basic</li>
+            <li>Agent API access</li>
           </ul>
 
           <h3>5.2 Billing Terms</h3>
           <ul>
-            <li>Subscriptions are billed in advance on a monthly or annual basis</li>
-            <li>Annual plans are billed once per year and offer a discount</li>
+            <li>Paid subscriptions are billed in advance monthly</li>
             <li>All fees are in U.S. Dollars (USD)</li>
-            <li>Payments are processed through Stripe</li>
+            <li>Payments are processed through Stripe Checkout (cards)</li>
           </ul>
 
           <h3>5.3 Refund Policy</h3>
           <ul>
-            <li><strong>Monthly subscriptions:</strong> No refunds for partial months</li>
-            <li><strong>Annual subscriptions:</strong> Prorated refund if cancelled within 30 days</li>
-            <li>Refunds are issued to the original payment method within 5-10 business days</li>
+            <li><strong>Monthly subscriptions:</strong> No refunds for partial months except where legally required</li>
+            <li>There is no annual plan and no paid trial</li>
           </ul>
 
           <h2>6. ACCEPTABLE USE POLICY</h2>

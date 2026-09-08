@@ -1,169 +1,22 @@
-// SaveMe.Space — Background Service Worker v2
-// Handles hotkeys, context menus, auth token relay, and quick save
-
-const SAVEME_URL = 'https://saveme-f5af0.web.app';
-const QUICK_SAVE_URL = 'https://us-central1-saveme-f5af0.cloudfunctions.net/quickSave';
-const BRAIN_DUMP_URL = `${SAVEME_URL}/#/brain-dump`;
-
-// ── Command listener ──────────────────────────────────────────────────────────
-chrome.commands.onCommand.addListener(async (command) => {
-  if (command === '_execute_action') {
-    // Ctrl+Shift+S → open popup (handled by _execute_action automatically)
-    // Nothing needed here — action popup handles this
-  } else if (command === 'brain-dump') {
-    openBrainDump();
-  }
-});
-
-// ── Context menu setup ────────────────────────────────────────────────────────
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: 'quick-save-selection',
-      title: '💾 Save to SaveMe.Space',
-      contexts: ['selection'],
-    });
-    chrome.contextMenus.create({
-      id: 'quick-save-page',
-      title: '💾 Save this page to SaveMe.Space',
-      contexts: ['page'],
-    });
-    chrome.contextMenus.create({
-      id: 'separator',
-      type: 'separator',
-      contexts: ['selection', 'page'],
-    });
-    chrome.contextMenus.create({
-      id: 'brain-dump',
-      title: '🎤 Nova Brain Dump',
-      contexts: ['selection', 'page'],
-    });
-  });
-});
-
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId === 'quick-save-selection' || info.menuItemId === 'quick-save-page') {
-    const selectedText = info.selectionText || '';
-    const pageTitle = tab?.title || '';
-    const pageUrl = tab?.url || '';
-    await quickSaveFromContext(selectedText, pageTitle, pageUrl, tab?.id);
-  } else if (info.menuItemId === 'brain-dump') {
-    openBrainDump();
-  }
-});
-
-// ── Auth token retrieval ──────────────────────────────────────────────────────
-// Content script on saveme.space relays the Firebase auth token to us
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'relay-auth-token' && request.token) {
-    chrome.storage.local.set({
-      authToken: request.token,
-      authTokenExpiry: Date.now() + (55 * 60 * 1000), // 55 min (Firebase tokens last 1h)
-    });
-    sendResponse({ ok: true });
-  }
-
-  if (request.action === 'get-selection') {
-    chrome.scripting.executeScript(
-      { target: { tabId: sender.tab.id }, func: () => window.getSelection().toString() },
-      (results) => sendResponse({ selection: results?.[0]?.result || '' })
-    );
-    return true;
-  }
-
-  if (request.action === 'quick-save') {
-    const { title, content, url } = request;
-    performQuickSave(title, content, url).then((result) => sendResponse(result));
-    return true;
-  }
-});
-
-// ── Core quick save ───────────────────────────────────────────────────────────
-async function getAuthToken() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['authToken', 'authTokenExpiry'], (result) => {
-      if (result.authToken && result.authTokenExpiry > Date.now()) {
-        resolve(result.authToken);
-      } else {
-        resolve(null);
-      }
-    });
-  });
-}
-
-async function performQuickSave(title, content, url) {
-  const token = await getAuthToken();
-  if (!token) {
-    return { success: false, error: 'not_authenticated' };
-  }
-
-  try {
-    const res = await fetch(QUICK_SAVE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ title, content, url }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      if (res.status === 401) return { success: false, error: 'not_authenticated' };
-      return { success: false, error: err.error || 'save_failed' };
-    }
-
-    return await res.json();
-  } catch (err) {
-    console.error('[SaveMe] Quick save failed:', err);
-    return { success: false, error: 'network_error' };
-  }
-}
-
-async function quickSaveFromContext(selectedText, pageTitle, pageUrl, tabId) {
-  const title = selectedText
-    ? selectedText.slice(0, 80) + (selectedText.length > 80 ? '...' : '')
-    : pageTitle;
-  const content = selectedText || '';
-
-  const result = await performQuickSave(title, content, pageUrl);
-
-  if (result.success) {
-    showNotification(
-      '✅ Saved to vault',
-      `"${title.slice(0, 50)}" → ${result.category}`
-    );
-  } else if (result.error === 'not_authenticated') {
-    showNotification('🔐 Sign in required', 'Open SaveMe.Space to authenticate');
-    chrome.tabs.create({ url: `${SAVEME_URL}/#/login`, active: true });
-  } else {
-    showNotification('⚠️ Save failed', 'Check your connection and try again');
-  }
-}
-
-// ── Brain dump ────────────────────────────────────────────────────────────────
-async function openBrainDump() {
-  try {
-    const tabs = await chrome.tabs.query({ url: '*://saveme-f5af0.web.app/*' });
-    if (tabs.length > 0) {
-      await chrome.tabs.update(tabs[0].id, { active: true });
-      await chrome.windows.update(tabs[0].windowId, { focused: true });
-      chrome.tabs.sendMessage(tabs[0].id, { action: 'start-brain-dump', autoStart: true });
-    } else {
-      await chrome.tabs.create({ url: `${BRAIN_DUMP_URL}?autostart=true`, active: true });
-    }
-  } catch {
-    chrome.tabs.create({ url: `${BRAIN_DUMP_URL}?autostart=true` });
-  }
-}
-
-// ── Notifications ─────────────────────────────────────────────────────────────
-function showNotification(title, message) {
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icons/icon48.png',
-    title,
-    message,
-    priority: 1,
-  });
-}
+// SaveMe.Space MV3 worker: tokens never transit page/DOM or popup.
+'use strict';
+const ORIGIN='https://saveme.space', API=`${ORIGIN}/api/extension`, QUICK_SAVE=`${ORIGIN}/api/quick-save`;
+const KEYS=['credentialId','refreshToken','extensionInstanceId','account','scope'];
+const ACTIONS=new Set(['get-status','pair','sign-out','switch-account','quick-save','predict-category','open-brain-dump','open-connect']);
+let accessToken=null, accessTokenExpiresAt=0, renewalPromise=null;
+const get=(keys)=>chrome.storage.local.get(keys), set=(v)=>chrome.storage.local.set(v);
+async function clearCredential(){accessToken=null;accessTokenExpiresAt=0;renewalPromise=null;await chrome.storage.local.remove(['credentialId','refreshToken','account','scope']);}
+async function status(){const s=await get(KEYS);return {connected:Boolean(s.credentialId&&s.account),account:s.account||null,scope:s.scope||[]};}
+async function post(url,body,bearer){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...(bearer?{Authorization:`Bearer ${bearer}`}:{})},body:JSON.stringify(body)});const d=await r.json().catch(()=>({}));if(!r.ok){const e=new Error(d.error||`http_${r.status}`);e.status=r.status;throw e;}return d;}
+async function pair(code){if(typeof code!=='string'||!/^[0-9A-HJKMNP-TV-Z]{4}-?[0-9A-HJKMNP-TV-Z]{4}$/i.test(code.trim()))throw new Error('malformed_code');let {extensionInstanceId}=await get(['extensionInstanceId']);if(!extensionInstanceId){extensionInstanceId=crypto.randomUUID();await set({extensionInstanceId});}const d=await post(`${API}/pair`,{code:code.trim().toUpperCase(),extensionInstanceId,client:`chrome-mv3/${chrome.runtime.getManifest().version}`});if(!d.credentialId||!d.refreshToken||!d.accessToken||!d.account||!Array.isArray(d.scope))throw new Error('malformed_server_response');await set({credentialId:d.credentialId,refreshToken:d.refreshToken,extensionInstanceId,account:d.account,scope:d.scope});accessToken=d.accessToken;accessTokenExpiresAt=Number(d.accessTokenExpiresAt)*1000;return status();}
+async function refresh(){if(accessToken&&accessTokenExpiresAt>Date.now()+30000)return accessToken;if(renewalPromise)return renewalPromise;renewalPromise=(async()=>{const s=await get(KEYS);if(!s.credentialId||!s.refreshToken||!s.extensionInstanceId)throw new Error('not_authenticated');try{const d=await post(`${API}/refresh`,{credentialId:s.credentialId,refreshToken:s.refreshToken,extensionInstanceId:s.extensionInstanceId});if(!d.accessToken||!d.refreshToken)throw new Error('malformed_server_response');await set({refreshToken:d.refreshToken,scope:d.scope||s.scope});accessToken=d.accessToken;accessTokenExpiresAt=Number(d.accessTokenExpiresAt)*1000;return accessToken;}catch(e){if(e.status===401||e.status===403)await clearCredential();throw e;}finally{renewalPromise=null;}})();return renewalPromise;}
+async function revoke(){const s=await get(KEYS);try{if(s.credentialId&&s.refreshToken)await post(`${API}/revoke`,{credentialId:s.credentialId,refreshToken:s.refreshToken});}finally{await clearCredential();}return {connected:false};}
+function payload(p={}){return {title:String(p.title||'').slice(0,200),content:String(p.content||'').slice(0,5000),url:/^https?:\/\//.test(p.url||'')?String(p.url).slice(0,2048):'',pageTitle:String(p.pageTitle||'').slice(0,200)};}
+async function save(p,dryRun=false){const token=await refresh();try{return await post(QUICK_SAVE,{...payload(p),dryRun},token);}catch(e){if(e.status===401||e.status===403)await clearCredential();throw e;}}
+function trusted(sender){return sender?.id===chrome.runtime.id&&!sender.tab&&sender.url?.startsWith(`chrome-extension://${chrome.runtime.id}/`);}
+chrome.runtime.onMessage.addListener((r,s,respond)=>{if(!trusted(s)||!r||!ACTIONS.has(r.action)){respond({success:false,error:'unauthorized_sender'});return false;}const h={'get-status':()=>status(),'pair':()=>pair(r.code),'sign-out':()=>revoke(),'switch-account':async()=>{await revoke();await chrome.tabs.create({url:`${ORIGIN}/settings#connect-extension`});return {connected:false};},'quick-save':()=>save(r),'predict-category':()=>save(r,true),'open-brain-dump':async()=>{await openNova();return{};},'open-connect':async()=>{await chrome.tabs.create({url:`${ORIGIN}/settings#connect-extension`});return{};}};h[r.action]().then(d=>respond({success:true,...d})).catch(e=>respond({success:false,error:e.message}));return true;});
+chrome.commands.onCommand.addListener(c=>{if(c==='nova')openNova();});
+chrome.runtime.onInstalled.addListener(()=>chrome.contextMenus.removeAll(()=>{chrome.contextMenus.create({id:'quick-save-selection',title:'Save selection to SaveMe.Space',contexts:['selection']});chrome.contextMenus.create({id:'quick-save-page',title:'Save page to SaveMe.Space',contexts:['page']});chrome.contextMenus.create({id:'nova',title:'Open Nova Brain Dump',contexts:['selection','page']});}));
+chrome.contextMenus.onClicked.addListener(async(info,tab)=>{if(info.menuItemId==='nova')return openNova();if(!['quick-save-selection','quick-save-page'].includes(info.menuItemId))return;const title=info.selectionText?info.selectionText.slice(0,80):(tab?.title||'Saved from web');try{const d=await save({title,content:info.selectionText||'',url:tab?.url||'',pageTitle:tab?.title||''});notify('Saved to vault',`${title.slice(0,50)} → ${d.category||'Personal'}`);}catch(e){notify(e.message==='not_authenticated'?'Connect SaveMe.Space':'Save failed',e.message==='not_authenticated'?'Open the extension to connect securely':'Check your connection and try again');}});
+async function openNova(){const url=`${ORIGIN}/brain-dump?autostart=true`,tabs=await chrome.tabs.query({url:`${ORIGIN}/*`});if(tabs[0]?.id){await chrome.tabs.update(tabs[0].id,{url,active:true});if(tabs[0].windowId)await chrome.windows.update(tabs[0].windowId,{focused:true});}else await chrome.tabs.create({url,active:true});}
+function notify(title,message){chrome.notifications.create({type:'basic',iconUrl:'icons/icon48.png',title,message,priority:1});}

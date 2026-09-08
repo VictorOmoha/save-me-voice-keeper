@@ -110,43 +110,36 @@ We reserve the right to remove content that violates these Terms without notice.
 
 ### 6.1 Pricing Plans
 
-**Free Tier:**
-- 100 entries maximum
-- 50MB storage
-- Basic voice commands
-- 3 categories
-- PDF export only
+Self-serve plans are monthly only. There is no annual SKU, Teams plan, Enterprise checkout, or paid trial.
+
+**Free — $0:**
+- 50 entries maximum
+- 500 MB storage
+- Voice capture and portable export
+- Web access
+- Standard support
 - No payment required
 
-**Pro Tier - $12/month or $120/year:**
+**Basic — $9/month:**
 - Unlimited entries
-- 5GB storage
-- Advanced voice commands
-- Unlimited categories
-- All export formats
-- Priority support
+- 5 GB storage
+- Voice capture and portable export
+- Web + browser extension
+- Advanced search
+- Standard support
 
-**Teams Tier - $29/month/user or $290/year/user:**
-- All Pro features
-- Team collaboration
-- Shared categories
-- Admin controls
-- API access
-- Dedicated support
-
-**Enterprise - Custom Pricing:**
-- Contact us for pricing
-- Unlimited everything
-- Custom integrations
-- SLA guarantees
-- On-premise options (future)
+**Premium — $19/month:**
+- Unlimited entries
+- 50 GB storage
+- Everything in Basic
+- Agent API access
+- Standard support
 
 ### 6.2 Billing Terms
-- Subscriptions are billed in advance on a monthly or annual basis
-- Annual plans are billed once per year and offer a discount
+- Paid subscriptions are billed in advance monthly
 - All fees are in U.S. Dollars (USD)
-- Payments are processed through Stripe
-- You authorize us to charge your payment method on file
+- Payments are processed through Stripe Checkout (cards)
+- You authorize Stripe to charge your payment method on file
 
 ### 6.3 Automatic Renewal
 - Subscriptions automatically renew unless cancelled before renewal date
@@ -155,28 +148,23 @@ We reserve the right to remove content that violates these Terms without notice.
 - Cancellation takes effect at the end of the current billing period
 
 ### 6.4 Refund Policy
-- **Monthly subscriptions:** No refunds for partial months
-- **Annual subscriptions:** Prorated refund if cancelled within 30 days
-- **Free trial:** No refund applicable
-- Refunds are issued to the original payment method within 5-10 business days
+- **Monthly subscriptions:** No refunds for partial months except where legally required
+- Refunds, when issued, go to the original payment method
 
 ### 6.5 Cancellation
-- You may cancel at any time through account settings
+- You may cancel at any time through the Stripe billing portal (Settings or Subscription)
 - Upon cancellation, you retain access until the end of the paid period
-- After cancellation, your account reverts to Free tier (data may be deleted if over limits)
-- No refunds for partial periods except as stated above
+- After cancellation, your account reverts to Free. Existing content remains readable and exportable; writes that exceed Free limits are blocked until you upgrade or reduce usage
+- No silent deletion occurs because of downgrade, cancellation, or failed payment
 
 ### 6.6 Free Trial
-- New users may receive a free trial period (if offered)
-- Credit card required for trial activation
-- You will be charged automatically when trial ends unless cancelled
-- Cancel anytime during trial to avoid charges
+- There is no paid-plan trial
+- The Free plan is the no-card evaluation path
 
 ### 6.7 Downgrades
-- You may downgrade to a lower tier at any time
-- Downgrade takes effect at the next billing cycle
-- If your data exceeds the new tier's limits, you must delete data or maintain current tier
-- No refunds for downgrades
+- You may downgrade or cancel through the billing portal
+- Downgrade takes effect at the end of the paid period
+- No refunds for downgrades except where legally required
 
 ---
 

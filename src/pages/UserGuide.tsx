@@ -33,30 +33,30 @@ const UserGuide = () => {
       icon: <Zap className="w-5 h-5" />,
       content: (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Welcome to Voice Keeper!</h3>
+          <h3 className="text-lg font-semibold">Welcome to SaveMe.Space</h3>
           <p className="text-muted-foreground">
-            Voice Keeper is your intelligent data entry and management companion. You can add entries through traditional forms or use our powerful voice interface to capture information naturally.
+            SaveMe is a voice-first external memory. Sign up, talk to Nova, and pay only if you need a paid plan.
           </p>
           
           <div className="space-y-3">
             <h4 className="font-medium">First Steps:</h4>
             <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>Complete your account setup and profile information</li>
-              <li>Visit the Dashboard to see your data overview</li>
-              <li>Try creating your first entry using the "Add Entry" button</li>
-              <li>Test voice commands by clicking the microphone icon</li>
-              <li>Explore categories to organize your data</li>
+              <li>Create an account at <Link to="/signup" className="text-primary underline">/signup</Link> with email or Google</li>
+              <li>Allow microphone access when the browser asks</li>
+              <li>Open <Link to="/voice-capture" className="text-primary underline">Voice Capture</Link> or the floating Nova mic and speak a thought</li>
+              <li>Review the saved entry on your Dashboard</li>
+              <li>If you want Basic ($9/mo) or Premium ($19/mo), open <Link to="/subscription" className="text-primary underline">Subscription</Link> and use Stripe Checkout. There is no paid trial. Manage or cancel in the billing portal.</li>
             </ol>
           </div>
 
           <div className="bg-muted p-4 rounded-lg">
             <h4 className="font-medium mb-2">Quick Navigation:</h4>
             <ul className="text-sm space-y-1">
-              <li><strong>Dashboard:</strong> Overview of your data and recent activity</li>
-              <li><strong>All Entries:</strong> Browse and manage all your data</li>
-              <li><strong>Categories:</strong> Organized views of your information</li>
-              <li><strong>Brain Dump:</strong> Quick voice capture for ideas and notes</li>
-              <li><strong>Settings:</strong> Customize your experience</li>
+              <li><strong>Dashboard:</strong> Overview of your memory and recent activity</li>
+              <li><strong>Voice Capture:</strong> Talk to Nova and file memories</li>
+              <li><strong>Brain Dump:</strong> Longer voice capture for unstructured thoughts</li>
+              <li><strong>Subscription:</strong> Stripe Checkout and billing portal</li>
+              <li><strong>Settings:</strong> Profile, voice, and the same billing actions</li>
             </ul>
           </div>
         </div>
@@ -514,7 +514,7 @@ const UserGuide = () => {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">User Guide</h1>
-                <p className="text-sm text-muted-foreground">Complete guide to using Voice Keeper</p>
+                <p className="text-sm text-muted-foreground">Complete guide to using SaveMe.Space</p>
               </div>
             </div>
           </div>

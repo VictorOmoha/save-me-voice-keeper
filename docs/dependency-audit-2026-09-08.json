@@ -1,9 +1,44 @@
 {
   "date": "2026-09-08",
-  "scope": "Production dependencies (npm audit --omit=dev)",
+  "scope": "Production dependencies (npm audit --omit=dev), after upstream integration",
   "frontend": {
     "auditReportVersion": 2,
     "vulnerabilities": {
+      "@vitest/mocker": {
+        "name": "@vitest/mocker",
+        "severity": "moderate",
+        "isDirect": false,
+        "via": [
+          {
+            "source": 1193684,
+            "name": "@vitest/mocker",
+            "dependency": "@vitest/mocker",
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-22"
+            ],
+            "cvss": {
+              "score": 5.9,
+              "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+            },
+            "range": ">=2.1.0 <4.1.11"
+          }
+        ],
+        "effects": [
+          "vitest"
+        ],
+        "range": "2.1.0 - 4.1.10",
+        "nodes": [
+          "node_modules/@vitest/mocker"
+        ],
+        "fixAvailable": {
+          "name": "vitest",
+          "version": "5.0.0",
+          "isSemVerMajor": true
+        }
+      },
       "react-router": {
         "name": "react-router",
         "severity": "moderate",
@@ -72,28 +107,62 @@
           "version": "7.18.3",
           "isSemVerMajor": true
         }
+      },
+      "vitest": {
+        "name": "vitest",
+        "severity": "moderate",
+        "isDirect": true,
+        "via": [
+          "@vitest/mocker",
+          {
+            "source": 1193683,
+            "name": "vitest",
+            "dependency": "vitest",
+            "title": "Vitest: Path Traversal / Arbitrary File Read via @vitest/mocker Redirect Mock",
+            "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+            "severity": "moderate",
+            "cwe": [
+              "CWE-22"
+            ],
+            "cvss": {
+              "score": 5.9,
+              "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+            },
+            "range": ">=2.1.0 <4.1.11"
+          }
+        ],
+        "effects": [],
+        "range": "2.1.0-beta.1 - 4.1.10",
+        "nodes": [
+          "node_modules/vitest"
+        ],
+        "fixAvailable": {
+          "name": "vitest",
+          "version": "5.0.0",
+          "isSemVerMajor": true
+        }
       }
     },
     "metadata": {
       "vulnerabilities": {
         "info": 0,
         "low": 0,
-        "moderate": 2,
+        "moderate": 4,
         "high": 0,
         "critical": 0,
-        "total": 2
+        "total": 4
       },
       "dependencies": {
-        "prod": 526,
-        "dev": 755,
-        "optional": 159,
+        "prod": 527,
+        "dev": 792,
+        "optional": 169,
         "peer": 11,
         "peerOptional": 0,
-        "total": 1372
+        "total": 1410
       }
     }
   },
-  "functions": {
+  "backend": {
     "auditReportVersion": 2,
     "vulnerabilities": {
       "@google-cloud/firestore": {
@@ -288,11 +357,11 @@
       },
       "dependencies": {
         "prod": 143,
-        "dev": 1,
-        "optional": 101,
+        "dev": 104,
+        "optional": 154,
         "peer": 0,
         "peerOptional": 0,
-        "total": 244
+        "total": 347
       }
     }
   }

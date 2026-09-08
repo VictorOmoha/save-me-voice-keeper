@@ -21,6 +21,15 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Unit tests
+        run: npm test
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Functions tests
+        run: npm --prefix functions test
+
       - name: Build
         run: npm run build
 

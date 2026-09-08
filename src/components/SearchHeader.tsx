@@ -16,6 +16,7 @@ import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
+import { revokeExtensionCredentials } from "@/services/extensionCredentialService";
 import { toast } from "sonner";
 
 interface SearchHeaderProps {
@@ -53,6 +54,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
 
   const handleSignOut = async () => {
     try {
+      await revokeExtensionCredentials();
       await signOut(auth);
       toast.success("Signed out successfully");
       navigate('/login');

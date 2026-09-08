@@ -11,6 +11,7 @@ import { EnhancedDataManagementSettings } from "@/components/settings/EnhancedDa
 import { VoiceSettings } from "@/components/settings/VoiceSettings";
 import { EnhancedHelpSupportSettings } from "@/components/settings/EnhancedHelpSupportSettings";
 import { NovaMemorySettings } from "@/components/settings/NovaMemorySettings";
+import { ExtensionSettings } from "@/components/settings/ExtensionSettings";
 import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -110,6 +111,8 @@ const Settings = () => {
             DASHBOARD
           </Link>
         </div>
+
+        {window.location.hash === '#connect-extension' && <div className="mb-8"><ExtensionSettings /></div>}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="flex gap-8">
           {/* Settings Navigation - Skeletal */}

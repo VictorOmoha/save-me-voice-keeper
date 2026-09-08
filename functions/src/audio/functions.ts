@@ -3,6 +3,14 @@ import {GoogleAuth} from "google-auth-library";
 import {withCors} from "../common/http";
 import {verifyAuth} from "../common/auth";
 import {fetchWithRetry} from "../common/fetchWithRetry";
+import {
+  assertStringCap,
+  assertUtf8Bytes,
+  enforceAbuseControls,
+  sendAbuseError,
+  SERVICE_CAPS,
+  SERVICE_QUOTAS,
+} from "../common/abuseControl";
 
 export const transcribeAudio = functions.https.onRequest(
   withCors(async (req, res) => {
@@ -17,6 +25,14 @@ export const transcribeAudio = functions.https.onRequest(
     }
 
     const {audioData, audioMimeType} = req.body;
+    try {
+      assertUtf8Bytes(req.body, SERVICE_CAPS.requestBytes);
+      assertStringCap(audioData, SERVICE_CAPS.audioBase64Chars, "audioData");
+      await enforceAbuseControls({endpoint: "transcribeAudio", user, req, policies: SERVICE_QUOTAS.transcribeAudio});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
     if (!audioData) {
       res.status(400).json({error: "audioData is required"});
       return;
@@ -74,7 +90,7 @@ Rules:
 
       const data = await transcribeRes.json();
       const transcript = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-      console.log("[transcribeAudio] Result:", JSON.stringify(transcript).substring(0, 200));
+      console.log("[transcribeAudio] Result received", {transcriptChars: transcript.length});
 
       // Detect hallucinations and explicit no-speech signals
       const isNoSpeech = !transcript ||
@@ -131,6 +147,13 @@ export const elevenlabsTts = functions.https.onRequest(
     }
 
     const {text, voiceId, modelId} = req.body;
+    try {
+      assertStringCap(text, SERVICE_CAPS.ttsTextChars, "text");
+      await enforceAbuseControls({endpoint: "elevenlabsTts", user, req, policies: SERVICE_QUOTAS.tts});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
 
     if (!text) {
       res.status(400).json({error: "Text is required"});
@@ -206,6 +229,13 @@ export const googleCloudTts = functions.https.onRequest(
     }
 
     const {text, voiceName, languageCode} = req.body;
+    try {
+      assertStringCap(text, SERVICE_CAPS.ttsTextChars, "text");
+      await enforceAbuseControls({endpoint: "googleCloudTts", user, req, policies: SERVICE_QUOTAS.tts});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
 
     if (!text) {
       res.status(400).json({error: "Text is required"});
@@ -279,6 +309,13 @@ export const minimaxTts = functions.https.onRequest(
     }
 
     const {text, voice_id, speed, vol, pitch} = req.body;
+    try {
+      assertStringCap(text, SERVICE_CAPS.ttsTextChars, "text");
+      await enforceAbuseControls({endpoint: "minimaxTts", user, req, policies: SERVICE_QUOTAS.tts});
+    } catch (error) {
+      if (sendAbuseError(res, error)) return;
+      throw error;
+    }
 
     if (!text) {
       res.status(400).json({error: "Text is required"});

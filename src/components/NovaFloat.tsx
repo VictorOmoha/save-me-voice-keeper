@@ -112,11 +112,10 @@ export const NovaFloat: React.FC = () => {
 
   // Fire greeting the first time the panel opens
   useEffect(() => {
+    if (panelState !== "open") { setShouldGreet(false); return; }
     if (panelState === "open" && !hasGreetedRef.current) {
       hasGreetedRef.current = true;
       setShouldGreet(true);
-      // Reset flag so NovaVoiceAgent can consume it
-      setTimeout(() => setShouldGreet(false), 200);
     }
   }, [panelState]);
 
@@ -292,6 +291,7 @@ export const NovaFloat: React.FC = () => {
       <div
         ref={panelRef}
         data-testid="nova-float-panel"
+        aria-hidden={!isVisible}
         className={cn(
           "fixed z-50 sm:right-6 lg:right-8",
           "bg-background/95 border shadow-2xl backdrop-blur-md",
@@ -355,12 +355,13 @@ export const NovaFloat: React.FC = () => {
 
         {/* Full panel content */}
         <div
+          aria-hidden={!isOpen}
           className={cn(
             "h-[calc(100%-48px)] transition-opacity duration-200",
             isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
         >
-          <NovaVoiceAgent
+          {isVisible && <NovaVoiceAgent
             onNavigate={handleNavigate}
             onOpenEntryForm={handleOpenEntryForm}
             onOpenEntry={handleOpenEntry}
@@ -378,7 +379,7 @@ export const NovaFloat: React.FC = () => {
             autoGreet={shouldGreet}
             autoStartListeningToken={autoStartListeningToken}
             displayName={user?.displayName || user?.email?.split("@")[0] || "there"}
-          />
+          />}
         </div>
 
         {/* Resize handle — drag bottom-right corner */}

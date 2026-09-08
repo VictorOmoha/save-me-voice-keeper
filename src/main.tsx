@@ -53,7 +53,11 @@ if ('serviceWorker' in navigator && import.meta.env.DEV) {
 
         // When the new SW takes control, reload so page uses latest code
         let reloading = false;
+        let hadController = Boolean(navigator.serviceWorker.controller);
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+          // First installation already serves this page's build. Reloading here
+          // can interrupt sign-in or the first microphone permission request.
+          if (!hadController) { hadController = true; return; }
           if (reloading) return;
           reloading = true;
           window.location.reload();

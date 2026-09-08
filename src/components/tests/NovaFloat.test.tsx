@@ -94,6 +94,7 @@ describe('NovaFloat', () => {
 
     render(<NovaFloat />);
 
+    fireEvent.click(screen.getByRole('button', {name: 'Open Anam'}));
     fireEvent.click(screen.getByText('trigger-save-action'));
     fireEvent.click(screen.getByText('complete-live-action'));
 
@@ -101,5 +102,14 @@ describe('NovaFloat', () => {
     expect(navigateMock).toHaveBeenCalledWith('/all-entries/entry-123');
 
     window.removeEventListener('nova:entries-changed', entriesChangedListener);
+  });
+
+  it('unmounts the voice session when the floating panel is closed', () => {
+    render(<NovaFloat />);
+    expect(screen.queryByText('trigger-save-action')).toBeNull();
+    fireEvent.click(screen.getByRole('button', {name: 'Open Anam'}));
+    expect(screen.getByText('trigger-save-action')).toBeTruthy();
+    fireEvent.click(screen.getByTitle('Close Anam'));
+    expect(screen.queryByText('trigger-save-action')).toBeNull();
   });
 });

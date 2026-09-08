@@ -14,7 +14,7 @@ Voice Capture and the global Nova panel use `gpt-realtime-2.1` for direct speech
 
 - `OPENAI_API_KEY` is required only on Cloud Functions. Model selection is fixed in `functions/src/voiceAgent/realtimeConfig.ts`.
 - Continuous mode leaves the mic enabled through replies for barge-in. Manual mode mutes input after one detected turn; changing the preference does not reactivate it.
-- The two voice interfaces coordinate so starting one stops the other.
+- The two voice interfaces coordinate so starting one stops the other. Closing the floating panel unmounts its voice client and releases the microphone. Voice Capture remains the destination after sign-in; first-time service-worker installation does not reload and interrupt that flow.
 - Session creation is limited to 4/minute and 24/hour per authenticated principal. Tool calls use the existing voice quotas and are capped at 100/session. Request bodies are capped at 64 KB.
 - The client ends sessions after ten minutes; server tool access expires at ten minutes. This is not a hard provider-side billing cutoff: a modified client can keep the audio connection alive up to OpenAI's provider limit. Cleanup requests are best effort on abrupt browser/network exit.
 - Tool IDs are atomically claimed before execution in `nova_conversations.processed_calls`. A duplicate returns 409. This prevents repeated writes; it does not guarantee exactly-once completion or replay lost results after a crash.
@@ -26,6 +26,6 @@ Voice Capture and the global Nova panel use `gpt-realtime-2.1` for direct speech
 
 Regression coverage includes authentication, session ownership/expiry, duplicate writes, cancellation during connection, late microphone permissions, continuous/manual behavior, captions, tool success/failure, and blocked playback. A live synthetic OpenAI test verified the model, caption model, voice, session schema, all 30 tool declarations, and generated speech.
 
-A headless Edge browser also verified actual audio input over WebRTC, GPT-Transcribe captions, spoken responses, authenticated `getRecentEntries` execution, and server hangup. This used a disposable Firebase test account and a generated speech fixture; the account and conversation were removed afterward. Frontend tests: 130 passed. Functions tests: 110 passed. Type checks, lint, and the production build are release checks.
+A headless Edge browser also verified actual audio input over WebRTC, GPT-Transcribe captions, spoken responses, authenticated `getRecentEntries` execution, and server hangup. This used a disposable Firebase test account and a generated speech fixture; the account and conversation were removed afterward. Frontend tests: 131 passed. Functions tests: 110 passed. Type checks, lint, and the production build are release checks.
 
 Official references checked on 2026-09-08: [model](https://developers.openai.com/api/docs/models/gpt-realtime-2.1), [WebRTC](https://developers.openai.com/api/docs/guides/realtime-webrtc), [call configuration](https://developers.openai.com/api/reference/resources/realtime/subresources/calls/methods/create), [conversations and tools](https://developers.openai.com/api/docs/guides/realtime-conversations).

@@ -22,7 +22,7 @@ The audit focused on account isolation, server authorization, billing, offline s
 - Legacy category suite: **5 tests passed**. Corrected an assertion that expected a non-null category despite its test name and the implementation explicitly requiring null for tied scores. No legacy runtime behavior changed.
 - TypeScript: frontend, Vite configuration, and Cloud Functions passed. Cloud Functions compiled successfully.
 - ESLint: passed without errors or warnings.
-- Firestore/Storage emulator suites: **171 tests passed**. The separate audit harness covers 14 additional checks for billing edits/deletion, ownership transfer, unauthorized entry deletion, and direct key mutation.
+- Firestore/Storage emulator suites: **171 tests passed**. The separate audit harness passed **14 additional checks** for billing edits/deletion, ownership transfer, unauthorized entry deletion, and direct key mutation.
 - Extension security checks: **4 passed**. Fixed file URL handling in the checks and packaging script for Windows paths containing spaces.
 - Production build: passed with minification and recovered public Firebase configuration. The remaining build warning concerns the document-viewer chunk exceeding 500 kB.
 - `git diff --check`: passed.
@@ -46,6 +46,8 @@ GitHub's missing public Firebase build settings have been restored. Automatic de
 No live Firebase user data, Stripe subscription, or agent memory was changed during verification. Stripe reported no existing subscriptions requiring entitlement migration. Existing integrations using agent keys outside shared-memory endpoints will now need a Firebase user session. Selected-agent visibility grants are not implemented; API keys cannot access those records.
 
 The public npm advisory scan completed after the user approved exporting dependency names and versions. After integrating upstream and applying compatible patches, the final `--omit=dev` scans report **4 moderate frontend findings and 8 moderate backend findings**, with no high/critical findings. Including development dependencies, root has 19 moderate findings and Functions has 10; neither has high/critical findings. The counts include transitive packages affected by the same advisory. Full production registry findings are saved in `docs/dependency-audit-2026-09-08.json`.
+
+GitHub's subsequent registry scan reported an additional high-severity `js-yaml` advisory and moderate Hono advisories. Updated the development-only lock entries to `js-yaml` 4.3.2 and Hono 4.13.7; the release audit again passes its high/critical threshold.
 
 The remaining frontend findings involve React Router and Vitest, which is currently declared as a production dependency. Backend findings trace to older UUID dependencies in Firebase/Google Cloud libraries. npm proposes major upgrades, including Firebase Admin 14, which requires Node 22 and changes the namespace API used throughout this backend, according to the [official release notes](https://firebase.google.com/support/release-notes/admin/node). These migrations remain open; no forced upgrade or major transitive override was applied. This audit does not claim that all dependencies are vulnerability-free. Live authenticated voice, payment, and extension flows were not exercised against production services.
 

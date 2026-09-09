@@ -77,6 +77,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <div className="md:hidden flex items-center p-4 border-b bg-background sticky top-0 z-30">
           <button
             onClick={() => setIsMobileSidebarOpen(true)}
+            aria-label="Open navigation menu"
             className="mr-3 w-10 h-10 rounded-lg border flex items-center justify-center hover:bg-muted transition-colors"
           >
             <Menu className="w-5 h-5 text-foreground" />
@@ -108,7 +109,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         {/* Main Content */}
         <div
           data-testid="dashboard-content-shell"
-          className="flex-1 w-full max-w-[1500px] mx-auto px-3 md:px-6 py-4 md:py-6"
+          className="flex-1 w-full max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6 pb-28"
         >
           <div className="p-4 md:p-6 rounded-2xl border bg-card/50">
             {children}

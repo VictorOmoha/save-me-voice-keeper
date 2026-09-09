@@ -177,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="text-[13px] font-semibold text-foreground truncate">{displayName}</div>
             <div className="mono text-[11px] text-muted-foreground flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" style={{ boxShadow: "0 0 7px #34d399" }} />
-              all data encrypted
+              Your private workspace
             </div>
           </div>
         </div>

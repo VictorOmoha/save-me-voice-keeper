@@ -13,6 +13,7 @@ const { navigateMock, sendTextMock, startListeningMock, stopListeningMock, voice
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => navigateMock,
+  Link: ({children, to}: {children: React.ReactNode; to: string}) => <a href={to}>{children}</a>,
 }));
 
 vi.mock('@/components/dashboard/DashboardLayout', () => ({
@@ -43,14 +44,17 @@ vi.mock('@/hooks/useDashboard', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useVoiceAgent', () => ({
+vi.mock('@/contexts/VoiceSessionContext', () => ({
 
-  useVoiceAgent: () => ({
+  useVoiceSession: () => {
+    const [draft, setDraft] = React.useState('');
+    return ({
     status: 'idle',
     transcript: '',
     responseText: '',
     error: null,
     actions: [],
+    savedMemories: [],
     conversationHistory: [],
     continuous: true,
     setContinuous: vi.fn(),
@@ -60,7 +64,9 @@ vi.mock('@/hooks/useVoiceAgent', () => ({
     resetConversation: vi.fn(),
     inputLevelRef: { current: 0 },
     ...voiceOverrides,
-  }),
+    draft,
+    setDraft,
+  }); },
 }));
 
 const renderPage = () => render(<VoiceCapture />);

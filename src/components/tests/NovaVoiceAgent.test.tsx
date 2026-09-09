@@ -1,17 +1,18 @@
 import React from 'react';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+vi.mock('react-router-dom', () => ({Link: ({children, to}: {children: React.ReactNode; to: string}) => <a href={to}>{children}</a>}));
 
 const voiceAgentMock = vi.hoisted(() => ({
-  useVoiceAgent: vi.fn(),
+  useVoiceSession: vi.fn(),
 }));
 
 vi.mock('sonner', () => ({
   toast: vi.fn(),
 }));
 
-vi.mock('@/hooks/useVoiceAgent', () => ({
-  useVoiceAgent: voiceAgentMock.useVoiceAgent,
+vi.mock('@/contexts/VoiceSessionContext', () => ({
+  useVoiceSession: voiceAgentMock.useVoiceSession,
 }));
 
 import { NovaVoiceAgent } from '@/components/NovaVoiceAgent';
@@ -32,12 +33,14 @@ type MockState = {
 };
 
 const mockState = (overrides: Partial<MockState> = {}) => {
-  voiceAgentMock.useVoiceAgent.mockReturnValue({
+  voiceAgentMock.useVoiceSession.mockReturnValue({
     status: 'idle',
     transcript: '',
     responseText: '',
     error: null,
     actions: [],
+    draft: '',
+    setDraft: vi.fn(),
     conversationHistory: [],
     continuous: false,
     setContinuous: vi.fn(),
@@ -55,27 +58,27 @@ describe('NovaVoiceAgent', () => {
       value: vi.fn(),
       writable: true,
     });
-    voiceAgentMock.useVoiceAgent.mockReset();
+    voiceAgentMock.useVoiceSession.mockReset();
     mockState();
   });
 
   it('renders idle state without triggering hook initialization errors', () => {
-    render(<NovaVoiceAgent continuous={false} />);
+    render(<NovaVoiceAgent />);
 
-    expect(screen.getByText("Hey, I'm Anam")).toBeTruthy();
-    expect(screen.getByText('Tap the mic when you want Anam to hear you, or type below.')).toBeTruthy();
+    expect(screen.getByText("Hey, I'm Nova")).toBeTruthy();
+    expect(screen.getByText('Tap the mic when you want Nova to hear you, or type below.')).toBeTruthy();
     expect(screen.getByText('Tap mic or type below')).toBeTruthy();
   });
 
   it('does not describe continuous mode as live listening when the mic is off', () => {
     mockState({ continuous: true });
 
-    render(<NovaVoiceAgent continuous />);
+    render(<NovaVoiceAgent />);
 
     expect(screen.getByText('Auto-listen on')).toBeTruthy();
     expect(screen.getByText('Auto-listen is on. Tap the mic to start a realtime conversation.')).toBeTruthy();
     expect(screen.queryByText(/\bLive\b/i)).toBeNull();
-    expect(screen.queryByText(/Anam can keep the mic on/i)).toBeNull();
+    expect(screen.queryByText(/Nova can keep the mic on/i)).toBeNull();
   });
 
   it('shows explicit trust-safe voice states for idle, listening, and processing', () => {
@@ -99,7 +102,7 @@ describe('NovaVoiceAgent', () => {
 
     render(<NovaVoiceAgent />);
 
-    expect(screen.getByText("Anam couldn't start voice capture. Check microphone access and try again.")).toBeTruthy();
+    expect(screen.getByText("Nova couldn't start voice capture. Check microphone access and try again.")).toBeTruthy();
     expect(screen.queryByText('Voice agent failed')).toBeNull();
   });
 

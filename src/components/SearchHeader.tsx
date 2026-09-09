@@ -78,6 +78,10 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
       items.push({ label: "Category", to: "/dashboard" });
       if (name) items.push({ label: name });
     }
+    if (path.startsWith("/voice-capture")) items.push({ label: "Voice capture" });
+    if (path.startsWith("/brain-dump")) items.push({ label: "Brain dump" });
+    if (path.startsWith("/insights")) items.push({ label: "Insights" });
+    if (path.startsWith("/briefing")) items.push({ label: "Briefing" });
     if (path.startsWith("/settings")) items.push({ label: "Settings" });
     if (path.startsWith("/subscription")) items.push({ label: "Subscription" });
     return items;
@@ -114,10 +118,6 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
 
         {/* Actions - keep capture CTAs in the dashboard body to avoid duplication */}
         <div className="flex items-center gap-3">
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ background: "rgba(45,212,255,.08)", border: "1px solid rgba(45,212,255,.18)" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 8px #34d399" }} />
-            <span className="mono text-[11px] tracking-[0.08em] text-[#9fdcef]">NOVA ONLINE</span>
-          </div>
           <button
             onClick={onAllEntriesSelect}
             className="btn-galvanized btn-galvanized-secondary"
@@ -168,7 +168,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
       </div>
 
       {/* Breadcrumbs - Skeletal */}
-      <div className="max-w-7xl mx-auto mt-3 pt-3 border-t border-galvanized">
+      <div className="max-w-7xl mx-auto mt-3">
         <div className="flex items-center gap-2 mono text-xs text-muted-foreground">
           {breadcrumbs.map((item, idx) => (
             <span key={`${item.label}-${idx}`} className="flex items-center gap-2">

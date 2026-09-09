@@ -13,7 +13,6 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}) => {
   const client = useRef<RealtimeVoiceClient>();
   const mounted = useRef(false);
   const continuous = useRef(options.continuous || false);
-  const instanceId = useRef(crypto.randomUUID());
   useEffect(() => { callbacks.current = options; });
 
   // Only successful canonical commands returned by the authenticated server reach the UI.
@@ -68,34 +67,26 @@ export const useVoiceAgent = (options: UseVoiceAgentOptions = {}) => {
       client.current = undefined;
       setState(initialVoiceState(continuous.current));
     });
-    const onOtherSession = (event: Event) => {
-      if ((event as CustomEvent).detail !== instanceId.current) client.current?.stop();
-    };
     const onPageHide = () => client.current?.stop();
-    window.addEventListener("nova:realtime-active", onOtherSession);
     window.addEventListener("pagehide", onPageHide);
     return () => {
       mounted.current = false;
       unsubscribe();
-      window.removeEventListener("nova:realtime-active", onOtherSession);
       window.removeEventListener("pagehide", onPageHide);
       client.current?.dispose();
       client.current = undefined;
     };
   }, []);
 
-  const activate = useCallback(() => window.dispatchEvent(new CustomEvent("nova:realtime-active", {detail: instanceId.current})), []);
   const startListening = useCallback(() => {
     if (!mounted.current) return;
-    activate();
     void getClient().startListening();
-  }, [activate, getClient]);
+  }, [getClient]);
   const stopListening = useCallback(() => client.current?.stop(), []);
   const sendText = useCallback(async (text: string) => {
     if (!mounted.current) return;
-    activate();
     await getClient().sendText(text);
-  }, [activate, getClient]);
+  }, [getClient]);
   const resetConversation = useCallback(() => client.current?.reset(), []);
   const setContinuous = useCallback((value: boolean) => {
     continuous.current = value;

@@ -1,115 +1,53 @@
-import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { NovaFloat } from '@/components/NovaFloat';
+import React from "react";
+import {beforeEach, describe, expect, it, vi} from "vitest";
+import {fireEvent, render, screen} from "@testing-library/react";
+import {MemoryRouter} from "react-router-dom";
+import {NovaFloat} from "@/components/NovaFloat";
 
-const {
-  navigateMock,
-  setThemeMock,
-  toastSuccessMock,
-  toastErrorMock,
-  toastInfoMock,
-} = vi.hoisted(() => ({
-  navigateMock: vi.fn(),
-  setThemeMock: vi.fn(),
-  toastSuccessMock: vi.fn(),
-  toastErrorMock: vi.fn(),
-  toastInfoMock: vi.fn(),
-}));
+const mocks = vi.hoisted(() => ({stop: vi.fn(), start: vi.fn(), active: false}));
+vi.mock("@/contexts/AuthContext", () => ({useAuth: () => ({user: {uid: "alice"}})}));
+vi.mock("@/contexts/VoiceSessionContext", () => ({useVoiceSession: () => ({
+  status: mocks.active ? "listening" : "idle", isConnected: mocks.active, microphoneActive: mocks.active,
+  error: null, conversationHistory: [], startListening: mocks.start, stopListening: mocks.stop,
+})}));
+vi.mock("@/components/NovaVoiceAgent", () => ({NovaVoiceAgent: () => <div>Shared transcript</div>}));
+const mount = (path = "/dashboard") => render(<MemoryRouter initialEntries={[path]}><NovaFloat /></MemoryRouter>);
 
-vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({
-    user: {
-      displayName: 'Victor',
-      email: 'victor@example.com',
-    },
-  }),
-}));
-
-vi.mock('@/components/ThemeProvider', () => ({
-  useTheme: () => ({
-    setTheme: setThemeMock,
-  }),
-}));
-
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => navigateMock,
-}));
-
-vi.mock('sonner', () => ({
-  toast: {
-    success: toastSuccessMock,
-    error: toastErrorMock,
-    info: toastInfoMock,
-  },
-}));
-
-vi.mock('@/components/entries/ProfessionalPrintView', () => ({
-  printProfessionally: vi.fn(),
-}));
-
-vi.mock('@/components/NovaVoiceAgent', () => ({
-  NovaVoiceAgent: ({ onNovaAction }: { onNovaAction: (payload: { actionType: string; actionData: Record<string, unknown> }) => void }) => (
-    <button
-      type="button"
-      onClick={() => onNovaAction({ actionType: 'save_entry', actionData: { id: 'entry-123' } })}
-    >
-      trigger-save-action
-    </button>
-  ),
-}));
-
-vi.mock('@/components/NovaLiveAction', () => ({
-  NovaLiveAction: ({ action, onComplete }: { action: { actionType: string; actionData: Record<string, unknown> }; onComplete: (action: { actionType: string; actionData: Record<string, unknown> }) => void }) => (
-    <button type="button" onClick={() => onComplete(action)}>
-      complete-live-action
-    </button>
-  ),
-}));
-
-describe('NovaFloat', () => {
-  beforeEach(() => {
-    navigateMock.mockReset();
-    setThemeMock.mockReset();
-    toastSuccessMock.mockReset();
-    toastErrorMock.mockReset();
-    toastInfoMock.mockReset();
+describe("Nova session controls", () => {
+  beforeEach(() => { vi.clearAllMocks(); mocks.active = false; });
+  it("does not display duplicate controls on Voice Capture", () => {
+    mount("/voice-capture");
+    expect(screen.queryByLabelText("Nova conversation")).toBeNull();
   });
-
-  it('uses a resizable bottom-right panel anchored away from dashboard content', () => {
-    render(<NovaFloat />);
-
-    const panel = screen.getByTestId('nova-float-panel');
-    expect(panel.className).toContain('bottom-0 sm:bottom-24');
-    expect(panel.className).toContain('fixed');
-    const style = panel.getAttribute('style') || '';
-    expect(style).toContain('width: 560px');
-    expect(style).toContain('height: 500px');
-    expect(style).toContain('min-width: 340px');
+  it("opens the conversation without automatically using the microphone or generating a greeting", () => {
+    mount();
+    fireEvent.click(screen.getByLabelText("Open Nova conversation"));
+    expect(screen.getByText("Shared transcript")).toBeTruthy();
+    expect(mocks.start).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Minimize conversation")).toBe(document.activeElement);
   });
-
-  it('dispatches entry refresh event and navigates to saved entry after save action completion', () => {
-    const entriesChangedListener = vi.fn();
-    window.addEventListener('nova:entries-changed', entriesChangedListener);
-
-    render(<NovaFloat />);
-
-    fireEvent.click(screen.getByRole('button', {name: 'Open Anam'}));
-    fireEvent.click(screen.getByText('trigger-save-action'));
-    fireEvent.click(screen.getByText('complete-live-action'));
-
-    expect(entriesChangedListener).toHaveBeenCalledTimes(1);
-    expect(navigateMock).toHaveBeenCalledWith('/all-entries/entry-123');
-
-    window.removeEventListener('nova:entries-changed', entriesChangedListener);
+  it("keeps an explicit microphone indicator and End control when minimized", () => {
+    mocks.active = true; mount();
+    fireEvent.click(screen.getByLabelText("Open Nova conversation"));
+    fireEvent.click(screen.getByLabelText("Minimize conversation"));
+    expect(screen.queryByText("Shared transcript")).toBeNull();
+    expect(screen.getByText("Microphone on · continues across pages")).toBeTruthy();
+    expect(mocks.stop).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByLabelText("End voice session"));
+    expect(mocks.stop).toHaveBeenCalledOnce();
   });
-
-  it('unmounts the voice session when the floating panel is closed', () => {
-    render(<NovaFloat />);
-    expect(screen.queryByText('trigger-save-action')).toBeNull();
-    fireEvent.click(screen.getByRole('button', {name: 'Open Anam'}));
-    expect(screen.getByText('trigger-save-action')).toBeTruthy();
-    fireEvent.click(screen.getByTitle('Close Anam'));
-    expect(screen.queryByText('trigger-save-action')).toBeNull();
+  it("makes closing explicit and stops audio", () => {
+    mocks.active = true; mount();
+    fireEvent.click(screen.getByLabelText("Open Nova conversation"));
+    fireEvent.click(screen.getByLabelText("End session and close"));
+    expect(mocks.stop).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Shared transcript")).toBeNull();
+  });
+  it("supports Escape to minimize without disconnecting", () => {
+    mocks.active = true; mount();
+    fireEvent.click(screen.getByLabelText("Open Nova conversation"));
+    fireEvent.keyDown(screen.getByLabelText("Minimize conversation"), {key: "Escape"});
+    expect(mocks.stop).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Open Nova conversation")).toBe(document.activeElement);
   });
 });

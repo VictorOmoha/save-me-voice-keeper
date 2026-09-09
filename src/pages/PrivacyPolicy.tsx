@@ -71,10 +71,10 @@ const PrivacyPolicy = () => {
           <p><strong>How Voice Processing Works:</strong></p>
           <ol>
             <li>You choose when to enable the microphone. Ending the session stops audio capture.</li>
-            <li>Realtime Voice Capture and Nova stream audio directly to OpenAI for speech-to-speech responses and captions.</li>
+            <li>Voice Capture, Brain Dump, and the Nova panel share a realtime conversation that streams audio directly to OpenAI for speech-to-speech responses and captions.</li>
             <li>Conversation context, relevant memory summaries, and requested tool results are also sent to OpenAI.</li>
             <li>SaveMe authenticates actions on its server and can store conversation captions, session metadata, and memories you request.</li>
-            <li>Separate Brain Dump transcription, category prediction, and memory enrichment use Google Gemini. Optional speech playback can use other configured voice providers, including ElevenLabs.</li>
+            <li>Entry categorization, memory enrichment, and legacy audio transcription use Google Gemini. Optional speech playback can use other configured voice providers, including ElevenLabs.</li>
           </ol>
           <p>SaveMe does not intentionally persist raw realtime audio. Processing and retention by each provider are governed by its applicable service terms; this is not a promise of immediate deletion by those providers.</p>
 
@@ -111,7 +111,7 @@ const PrivacyPolicy = () => {
           <ul>
             <li><strong>Firebase / Google Cloud:</strong> Stores your user data and content, provides authentication, and runs backend processing</li>
             <li><strong>OpenAI:</strong> Processes realtime speech, captions, conversation context, and relevant memory/tool data</li>
-            <li><strong>Google Gemini:</strong> Processes separate audio transcription, entry categorization, and memory enrichment</li>
+            <li><strong>Google Gemini:</strong> Processes legacy audio transcription, entry categorization, and memory enrichment</li>
             <li><strong>ElevenLabs:</strong> Optional speech playback when configured</li>
             <li><strong>Stripe:</strong> Processes subscription payments (we do NOT see your full credit card details)</li>
           </ul>

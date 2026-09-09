@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { useSavedEntries } from "@/hooks/useSavedEntries";
 import { BrainDumpProcessor, ActionItem, actionItemsToStrings } from "@/utils/brainDumpProcessor";
 import { useBrainDumpCapture } from "@/hooks/useBrainDumpCapture";
-import { speak } from "@/utils/textToSpeech";
 import { useNavigate } from "react-router-dom";
 import { auth } from "@/lib/firebase";
 import { ArrowLeft, CheckCircle2, LayoutDashboard, Sparkles, Loader2, Users, Tag, Zap, Keyboard } from "lucide-react";
@@ -42,17 +41,10 @@ const getConfidenceBadgeColor = (confidence: number): 'default' | 'secondary' | 
 
 const BrainDumpPage: React.FC = () => {
   const { saveEntry } = useSavedEntries();
-  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, savedEntry: novaSavedEntry, voiceError, lastStartAttemptAt, lastCapturedAudioUrl, playLastRecording, continuous, setContinuous, start, stop, reset } = useBrainDumpCapture();
+  const { isSupported, isListening, isProcessingVoice, transcript, novaResponseText, savedEntry: novaSavedEntry, voiceError, continuous, setContinuous, start, stop, reset } = useBrainDumpCapture();
   const navigate = useNavigate();
   
-  const safeStop = () => {
-    try { stop(); } catch (error) {
-      console.debug("Safe stop failed:", error);
-    }
-  };
-
   const handleBackClick = () => {
-    safeStop();
     const idx = (window.history?.state && (window.history.state as { idx?: number }).idx) as number | undefined;
     const sameOriginRef = !!document.referrer && document.referrer.startsWith(window.location.origin);
     console.debug('[BrainDump] Back click', {
@@ -75,7 +67,6 @@ const BrainDumpPage: React.FC = () => {
   };
 
   const handleDashboardClick = () => {
-    safeStop();
     trackActivationEvent("brain_dump_dashboard_clicked", { after_save: Boolean(justSaved) });
     navigate(justSaved ? '/dashboard?from=brain_dump_saved' : '/dashboard');
   };
@@ -143,7 +134,6 @@ const BrainDumpPage: React.FC = () => {
   }, [novaSavedEntry, transcript]);
 
   // Dedupe guards
-  const introSpokenRef = useRef(false);
   const captureStartedRef = useRef(false);
 
   useEffect(() => {
@@ -185,10 +175,7 @@ const BrainDumpPage: React.FC = () => {
           start();
           captureStartedRef.current = true;
         }
-        if (payload?.autoSpeak && !introSpokenRef.current) {
-          speak('Start your brain dump now. Say "process" when you are finished.');
-          introSpokenRef.current = true;
-        }
+
       }
     } catch (error) {
       console.debug("Failed to read brain_dump_auto_start payload:", error);
@@ -201,10 +188,7 @@ const BrainDumpPage: React.FC = () => {
         start();
         captureStartedRef.current = true;
       }
-      if (event.detail?.autoSpeak && !introSpokenRef.current) {
-        speak('Start your brain dump now. Say "process" when you are finished.');
-        introSpokenRef.current = true;
-      }
+
     };
 
     window.addEventListener('brain-dump:start-capture', handler as EventListener);
@@ -417,8 +401,7 @@ const BrainDumpPage: React.FC = () => {
     }
   };
 
-  // Voice command helpers
-  const lastHandledRef = useRef<string>("");
+  // Only authenticated realtime tool results may trigger app actions.
   
   const normalizeCategory = (raw: string): string | null => {
     const s = raw.trim().toLowerCase();
@@ -436,108 +419,9 @@ const BrainDumpPage: React.FC = () => {
     return s.charAt(0).toUpperCase() + s.slice(1);
   };
 
-  const isProcessCommand = (text: string) => /\b(process|structure|organis|organiz|analy[sz]e|summari[sz]e|make\s+notes|turn\s+this\s+into\s+notes)\b/.test(text);
-
-  const isTTSEcho = (text: string): boolean => {
-    const ttsPatterns = [
-      /saved?\s+(your\s+)?structured\s+notes?/i,
-      /processed?\s+(your\s+)?brain\s*dump/i,
-      /opening\s+dashboard/i,
-      /start\s+your\s+brain\s*dump/i,
-      /say\s+["']?process["']?\s+when/i,
-    ];
-    return ttsPatterns.some(pattern => pattern.test(text));
-  };
-
-  const parseSaveCommand = (text: string): { save: true; category?: string } | null => {
-    if (isTTSEcho(text)) return null;
-
-    const saveCommandPatterns = [
-      /^save\s+(it|this|that)\b/i,
-      /\b(please|now|go\s+ahead\s+and|can\s+you)\s+save\s+(it|this|that)?\b/i,
-      /\bsave\s+(it|this|that)\s*(now|please)?\s*$/i,
-      /\bsave\s+(to|as|in|under)\s+\w+/i,
-      /\bstore\s+(it|this|that)\b/i,
-    ];
-
-    const isValidSaveCommand = saveCommandPatterns.some(pattern => pattern.test(text));
-    if (!isValidSaveCommand) return null;
-
-    const m = text.match(/save(?:\s+it)?\s+(?:as|to|in|under)\s+([a-zA-Z\s-]+)/);
-    if (m?.[1]) {
-      const cat = normalizeCategory(m[1]);
-      return { save: true, category: cat || undefined };
-    }
-    return { save: true };
-  };
-
-  const isDashboardNavCommand = (text: string) => {
-    return /\b(go to|open|back to|navigate to|show)\s+(the\s+)?dashboard\b/.test(text)
-      || /\b(exit|close|leave)\s+(the\s+)?brain\s*dump\b/.test(text)
-      || /\b(go\s*back|back\s*(?:to\s*)?dashboard)\b/.test(text);
-  };
-
-  const navigateToDashboard = () => {
-    try { stop(); } catch (error) {
-      console.debug("Stop failed before dashboard navigation:", error);
-    }
-    speak('Opening dashboard');
-    // Hand off continuous voice to the global NovaFloat so the conversation
-    // continues after this page unmounts. NovaFloat opens its panel and
-    // auto-starts its mic on the destination page.
-    if (continuous) {
-      window.dispatchEvent(new CustomEvent('nova:voice-handoff'));
-    }
-    navigate('/dashboard');
-  };
-
-  useEffect(() => {
-    const t = (transcript || '').trim();
-    if (!t || t === lastHandledRef.current) return;
-    const lower = t.toLowerCase();
-
-    if (isTTSEcho(lower)) {
-      console.log('🔇 BrainDump: Ignoring TTS echo:', t);
-      lastHandledRef.current = t;
-      return;
-    }
-
-    if (isDashboardNavCommand(lower)) {
-      navigateToDashboard();
-      lastHandledRef.current = t;
-      return;
-    }
-
-    if (isProcessCommand(lower)) {
-      handleProcess();
-      speak('Nova heard your voice dump.');
-      lastHandledRef.current = t;
-      return;
-    }
-
-    const saveInfo = parseSaveCommand(lower);
-    if (saveInfo) {
-      if (saveInfo.category) setCategory(saveInfo.category);
-      const doSave = () => { handleSave(); speak('Saved your structured notes.'); };
-      if (!hasCapturedContent) {
-        toast.info("Speak or paste some text first");
-        lastHandledRef.current = t;
-        return;
-      }
-      if (!hasStructured) {
-        handleProcess();
-        setTimeout(doSave, 150);
-      } else {
-        doSave();
-      }
-      lastHandledRef.current = t;
-    }
-  }, [transcript, hasStructured]);
-
   useEffect(() => {
     const onProcess = () => {
       handleProcess();
-      speak('Nova heard your voice dump.');
     };
     const onSave = (e: Event) => {
       const ce = e as CustomEvent<{ category?: string }>;
@@ -546,7 +430,7 @@ const BrainDumpPage: React.FC = () => {
         const norm = normalizeCategory(desired);
         if (norm) setCategory(norm);
       }
-      const doSave = () => { handleSave(); speak('Saved your structured notes.'); };
+      const doSave = () => { void handleSave(); };
       if (!hasCapturedContent) {
         toast.info("Speak or paste some text first");
         return;
@@ -581,12 +465,12 @@ const BrainDumpPage: React.FC = () => {
         </nav>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 pt-8 pb-28">
         <article className="space-y-6">
           <header className="space-y-4">
             <div>
               <h1 className="text-3xl font-bold">Start with one messy thought</h1>
-              <p className="text-muted-foreground mt-1">Tap Start speaking, say what is in your head, then save the organized version to your external memory.</p>
+              <p className="text-muted-foreground mt-1">Keep talking to Nova as you move around SaveMe, or type a draft to organize and save.</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -665,7 +549,7 @@ const BrainDumpPage: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle id="capture">Capture</CardTitle>
-                <p className="text-sm text-muted-foreground">Record for 10 to 30 seconds, or type if the mic is blocked. Then organize and save.</p>
+                <p className="text-sm text-muted-foreground">This is the same Nova conversation. Your transcript stays with you as you change pages.</p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-3">
@@ -753,10 +637,7 @@ const BrainDumpPage: React.FC = () => {
                       </>
                     )}
                   </Button>
-                  <Button variant="outline" onClick={() => { trackActivationEvent("brain_dump_reset_clicked"); reset(); }} aria-label="Reset transcript">Reset</Button>
-                  {lastCapturedAudioUrl && (
-                    <Button variant="outline" onClick={playLastRecording} aria-label="Play last recording">Play last recording</Button>
-                  )}
+                  <Button variant="outline" onClick={() => { trackActivationEvent("brain_dump_reset_clicked"); reset(); }} aria-label="Reset conversation">New conversation</Button>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <p>

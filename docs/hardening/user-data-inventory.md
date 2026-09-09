@@ -1,5 +1,7 @@
 # SAVE-001 — User-Data Inventory and Deletion/Export Contract
 
+**2026-09-09 unified-session update:** Brain Dump now consumes the same OpenAI realtime session as Voice Capture and the Nova panel. Internal route changes and minimizing the panel preserve microphone capture; End, reset, account change, or page exit ends it. The shared transcript, draft, and save receipts are held in app memory. Category prediction and entry enrichment still use Gemini. This introduces no new persistent data class. See [the UI/UX change record](../unified-voice-ux-2026-09-09.md).
+
 **2026-09-08 realtime update:** Voice Capture and Nova now use OpenAI GPT-Realtime-2.1 over WebRTC, with GPT-Transcribe captions. Authenticated server endpoints create sessions, execute owned tools, and end calls. Session metadata, call IDs, processed action IDs, and optional text turns remain in `nova_conversations` (no new collection or subcollection). The historical baseline below is unchanged; see [the current realtime integration](../realtime-voice.md) for its data flow and limits.
 
 

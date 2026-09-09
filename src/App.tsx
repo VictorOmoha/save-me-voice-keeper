@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { VoiceFormProvider } from "./contexts/VoiceFormContext";
+import { VoiceSessionProvider } from "./contexts/VoiceSessionContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { ThemeBootstrapper } from "./components/ThemeBootstrapper";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -87,6 +88,7 @@ const App = () => (
               <VoiceFormProvider>
                 <KeyboardShortcutsProvider>
                   <BrowserRouter>
+                    <VoiceSessionProvider>
                     <LegacyHashRedirect />
                     <GlobalProviders />
                     <VoiceNavigationListener />
@@ -120,6 +122,7 @@ const App = () => (
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
+                    </VoiceSessionProvider>
                   </BrowserRouter>
                 </KeyboardShortcutsProvider>
               </VoiceFormProvider>

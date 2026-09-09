@@ -60,9 +60,10 @@ const CategoriesGrid = React.memo(({
       <h2 className="text-lg font-semibold text-foreground mb-5">Browse by category</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {categories.map((category, index) => (
-          <div
+          <button
+            type="button"
             key={category.name}
-            className="skeleton-cell cursor-pointer group reveal hover:border-primary/40"
+            className="skeleton-cell text-left cursor-pointer group reveal hover:border-primary/40"
             onClick={() => onCategorySelect(category.name)}
             style={{ animationDelay: `${index * 50}ms` }}
           >
@@ -74,7 +75,7 @@ const CategoriesGrid = React.memo(({
             <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground">
               {categoryCounts[category.name] || 0} {(categoryCounts[category.name] || 0) === 1 ? 'item' : 'items'}
             </span>
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -104,7 +105,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
 
   const startVoiceDump = () => {
     trackActivationEvent("brain_dump_start_clicked", { source: "dashboard_first_memory_path" });
-    navigate("/brain-dump");
+    navigate("/voice-capture");
   };
 
   return (
@@ -114,7 +115,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">
           Welcome back{userName ? `, ${userName.split(' ')[0]}` : ''}
         </h1>
-        <p className="text-sm text-muted-foreground">Your secure knowledge vault — all data encrypted</p>
+        <p className="text-sm text-muted-foreground">Your memories, ready when you need them.</p>
         {userTier && (
           <span className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
             {userTier} Plan
@@ -127,10 +128,10 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
           <div className="flex-1 min-w-0">
             <div className="mono text-[11px] tracking-[0.14em] text-primary mb-2.5 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> FIRST MEMORY PATH
+              <Sparkles className="w-3.5 h-3.5" /> {savedEntries.length ? "YOUR MEMORY SPACE" : "START YOUR FIRST MEMORY"}
             </div>
-            <h2 className="text-xl md:text-2xl font-bold text-foreground">Say one thing you don't want to forget.</h2>
-            <p className="text-sm md:text-[15px] text-muted-foreground mt-2">Speak. Nova will turn it into structured memory you own.</p>
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">{savedEntries.length ? "What would you like to remember?" : "Say one thing you don’t want to forget."}</h2>
+            <p className="text-sm md:text-[15px] text-muted-foreground mt-2">Save a thought, find an answer, or ask Nova to take you anywhere in SaveMe.</p>
           </div>
           <button
             onClick={startVoiceDump}
@@ -138,20 +139,20 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
             style={{ boxShadow: "0 0 28px hsla(190,100%,59%,0.4)" }}
           >
             <Mic className="w-4 h-4" />
-            Start voice dump
+            Talk to Nova
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+        {savedEntries.length === 0 && <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
           {STEPS.map((s) => (
             <div key={s} className="px-4 py-3 rounded-xl bg-card/60 border text-[13px] font-medium text-foreground/90">{s}</div>
           ))}
-        </div>
+        </div>}
       </div>
 
       {/* Quick actions */}
       <div>
         <h2 className="text-lg font-semibold text-foreground">Quick actions</h2>
-        <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Capture by voice first. Use manual save only when you already know the details.</p>
+        <p className="text-[13px] text-muted-foreground mt-0.5 mb-4">Choose the way that works for you.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={onAddEntry} className="inline-flex items-center gap-2.5 px-4 py-3 rounded-xl bg-card border text-sm font-semibold text-foreground hover:border-primary/40 transition-colors">
             <Plus className="w-4 h-4 text-primary" /> Save a memory manually
@@ -159,11 +160,12 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
           <button onClick={onCreateDocument} className="inline-flex items-center gap-2.5 px-4 py-3 rounded-xl bg-card border text-sm font-semibold text-foreground hover:border-primary/40 transition-colors">
             <Upload className="w-4 h-4 text-primary" /> Upload document
           </button>
-          <div className="flex-1 min-w-[240px] flex items-center gap-2.5 h-12 px-4 rounded-xl bg-card border">
+          <div className="md:hidden basis-full min-w-0 flex items-center gap-2.5 h-12 px-4 rounded-xl bg-card border">
             <Search className="w-4 h-4 text-muted-foreground shrink-0" />
             <input
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
+              aria-label="Search entries"
               placeholder="Search entries…"
               className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
             />
@@ -172,8 +174,25 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         </div>
       </div>
 
+      {/* Recent entries (real data) */}
+      <EnhancedRecentEntries
+        entries={savedEntries}
+        maxEntries={6}
+        onEdit={onEditEntry}
+        onFill={onFillEntry}
+        onUseAsTemplate={onUseAsTemplate}
+        onDelete={onDeleteEntry}
+        onView={onViewDocument}
+        onViewAll={onViewAllEntries}
+        title="Recent entries"
+        showViewToggle={true}
+      />
+
       {/* Task alarm (real reminder creator) */}
-      <TaskReminderCard />
+      <details className="rounded-xl border bg-card/40 p-4">
+        <summary className="cursor-pointer text-sm font-semibold">Create a reminder</summary>
+        <div className="mt-4"><TaskReminderCard /></div>
+      </details>
 
       {/* Stat cards (real data) */}
       <StatsCards totalEntries={savedEntries.length} entries={savedEntries} userTier={userTier} />
@@ -221,19 +240,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       {/* Categories */}
       <CategoriesGrid categories={categories} savedEntries={savedEntries} onCategorySelect={onCategorySelect} />
 
-      {/* Recent entries (real data) */}
-      <EnhancedRecentEntries
-        entries={savedEntries}
-        maxEntries={6}
-        onEdit={onEditEntry}
-        onFill={onFillEntry}
-        onUseAsTemplate={onUseAsTemplate}
-        onDelete={onDeleteEntry}
-        onView={onViewDocument}
-        onViewAll={onViewAllEntries}
-        title="Recent entries"
-        showViewToggle={true}
-      />
+
     </div>
   );
 };

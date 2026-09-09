@@ -31,7 +31,7 @@ export function VoiceStep() {
         <div className="rounded-2xl border border-primary/30 bg-primary/5 p-5 text-left" role="note" aria-label="Voice processing notice">
           <p className="text-sm font-semibold text-foreground mb-2">Before you use the microphone</p>
           <p className="text-sm text-muted-foreground">
-            Realtime conversations send your audio and relevant memory context to OpenAI. Separate Brain Dump transcription and memory enrichment use Google Gemini. SaveMe can store transcripts, conversation captions, and saved memories; it does not intentionally store the raw realtime audio.
+            Voice Capture, Brain Dump, and the Nova panel share one realtime conversation. Your audio and relevant memory context go to OpenAI; entry categorization and memory enrichment use Google Gemini. SaveMe can store transcripts, conversation captions, and saved memories; it does not intentionally store the raw realtime audio.
           </p>
         </div>
 

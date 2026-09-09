@@ -4,27 +4,29 @@
  * Terminal-style UI matching VoiceDemoAnimation.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Mic, Square, RotateCcw, Send, Sparkles, CheckCircle2, XCircle, Loader2, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useVoiceAgent, UseVoiceAgentOptions, AgentStatus } from "@/hooks/useVoiceAgent";
+import type { AgentStatus } from "@/hooks/voiceAgentTypes";
+import { useVoiceSession } from "@/contexts/VoiceSessionContext";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const STATUS_TEXT: Record<AgentStatus, string> = {
   connecting: "CONNECTING",
   idle: "",
-  listening: "",
+  listening: "LISTENING",
   thinking: "PROCESSING",
-  acting: "SAVING",
+  acting: "WORKING",
   speaking: "SPEAKING",
 };
 
 const formatNovaError = (message: string) => {
   const lower = message.toLowerCase();
   if (lower.includes("voice agent failed"))
-    return "Anam couldn't start voice capture. Check microphone access and try again.";
+    return "Nova couldn't start voice capture. Check microphone access and try again.";
   if (lower.includes("not authenticated"))
-    return "Sign in again so Anam can save this memory securely.";
+    return "Sign in again so Nova can save this memory securely.";
   if (lower.includes("provider") || lower.includes("temporarily unavailable") || lower.includes("timed out") || lower.includes("timeout"))
     return "Realtime voice is unavailable. Please try again; check any pending action first.";
   if (lower.includes("mic error") || lower.includes("microphone") || lower.includes("permission") || lower.includes("denied"))
@@ -55,57 +57,27 @@ const ACTION_ICON: Record<string, string> = {
   scrollPage: "📜",
 };
 
-type NovaVoiceAgentProps = UseVoiceAgentOptions & {
-  autoGreet?: boolean;
-  autoStartListeningToken?: number;
-  displayName?: string;
-};
-
-export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
-  autoGreet,
-  autoStartListeningToken,
-  displayName,
-  ...props
-}) => {
+export const NovaVoiceAgent: React.FC = () => {
   const {
-    status, isConnected, microphoneActive, transcript, responseText, error,
+    status, isConnected, connectedAt, microphoneActive, transcript, responseText, error,
     actions, conversationHistory, continuous, setContinuous,
     startListening, stopListening, sendText, resetConversation,
-  } = useVoiceAgent(props);
+    draft: textInput, setDraft: setTextInput,
+  } = useVoiceSession();
 
-  const [textInput, setTextInput] = useState("");
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const hasGreetedRef = useRef(false);
-  const lastAutoStartTokenRef = useRef<number | undefined>(undefined);
-
-  // ── Auto-greet on first open ──
-  useEffect(() => {
-    if (autoGreet && !hasGreetedRef.current && conversationHistory.length === 0 && status === "idle") {
-      hasGreetedRef.current = true;
-      let fired = false;
-      const timer = setTimeout(() => { fired = true; sendText(`__nova_greet__:${displayName || "there"}`); }, 400);
-      return () => { clearTimeout(timer); if (!fired) hasGreetedRef.current = false; };
-    }
-  }, [autoGreet, conversationHistory.length, status, sendText, displayName]);
-
-  // ── Auto-listen ──
-  useEffect(() => {
-    if (autoStartListeningToken && autoStartListeningToken !== lastAutoStartTokenRef.current && status === "idle") {
-      lastAutoStartTokenRef.current = autoStartListeningToken;
-      startListening();
-    }
-  }, [autoStartListeningToken, status, startListening]);
-
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [conversationHistory, actions, status]);
 
   useEffect(() => {
-    if (status !== "listening") { setRecordingSeconds(0); return; }
-    const timer = window.setInterval(() => { setRecordingSeconds(s => s + 1); }, 1000);
+    if (!connectedAt) { setRecordingSeconds(0); return; }
+    const update = () => setRecordingSeconds(Math.floor((Date.now() - connectedAt) / 1000));
+    update();
+    const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
-  }, [status]);
+  }, [connectedAt]);
 
   const recordingTime = `${Math.floor(recordingSeconds / 60)}:${String(recordingSeconds % 60).padStart(2, "0")}`;
 
@@ -125,17 +97,17 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
   const displayTurns = conversationHistory.filter(t => t.parts?.some(p => p.text));
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
 
       <div className="px-4 py-2 border-b bg-muted/30 text-[11px] text-muted-foreground leading-relaxed" role="note">
-        Realtime voice sends audio, conversation, and relevant memory context to OpenAI. SaveMe can store conversation captions and requested memories. <a className="underline underline-offset-2" href="/privacy">Privacy details</a>
+        Realtime voice sends audio, conversation, and relevant memory context to OpenAI. SaveMe can store conversation captions and requested memories. <Link className="underline underline-offset-2" to="/privacy">Privacy details</Link>
       </div>
 
       {/* ── Controls bar ── */}
       <div className="flex items-center justify-between gap-2 px-4 py-2 border-b shrink-0">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="font-semibold text-sm">Anam</span>
+          <span className="font-semibold text-sm">Nova</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -144,6 +116,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               "flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium transition-colors",
               continuous ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"
             )}
+            aria-pressed={continuous}
             title={continuous ? "Continuous mode ON" : "Continuous mode OFF"}
           >
             <Radio className={cn("h-2.5 w-2.5", continuous && "animate-pulse")} />
@@ -162,7 +135,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
       </div>
 
       {/* ── Conversation area ── */}
-      <div ref={scrollRef} className={cn("flex-1 overflow-y-auto px-4 py-3 space-y-3", status === "listening" && "hidden")}>
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
 
         {/* Empty state */}
         {displayTurns.length === 0 && actions.length === 0 && status === "idle" && (
@@ -171,11 +144,11 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-sm">Hey, I'm Anam</p>
+              <p className="font-medium text-sm">Hey, I'm Nova</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-[220px] leading-relaxed">
                 {continuous
                   ? "Auto-listen is on. Tap the mic to start a realtime conversation."
-                  : "Tap the mic when you want Anam to hear you, or type below."}
+                  : "Tap the mic when you want Nova to hear you, or type below."}
               </p>
             </div>
           </div>
@@ -246,7 +219,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
       </div>
 
       {/* ── Live transcript + waveform (expanded) ── */}
-      {status === "listening" && (
+      {status === "listening" && displayTurns.length === 0 && (
         <div className="mx-3 mb-2 rounded-xl bg-primary/5 border-2 border-primary/20 px-5 py-5 shrink-0 flex-1 flex flex-col justify-center min-h-[0]">
           {/* Mic icon + pulse + timer row */}
           <div className="flex items-center gap-4 mb-4">
@@ -310,7 +283,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
         <div className="mx-4 mb-2 shrink-0">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="uppercase tracking-wider">Anam is speaking</span>
+            <span className="uppercase tracking-wider">Nova is speaking</span>
           </div>
         </div>
       )}
@@ -322,7 +295,6 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={handleMicClick}
-            disabled={isDisabled}
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 shadow-md",
               status === "listening"
@@ -332,7 +304,7 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
                   : "bg-primary text-white hover:bg-primary/90",
               status === "connecting" && "animate-pulse"
             )}
-            aria-label={status === "speaking" ? "Interrupt Nova and speak" : status !== "idle" ? "End voice session" : "Start Anam recording"}
+            aria-label={status === "speaking" ? "Interrupt Nova and speak" : status !== "idle" ? "End voice session" : "Start Nova recording"}
           >
             {status === "listening"
               ? <Square className="h-4 w-4 fill-white" />
@@ -363,14 +335,15 @@ export const NovaVoiceAgent: React.FC<NovaVoiceAgentProps> = ({
             onChange={e => setTextInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSend()}
             placeholder="Or type here..."
+            aria-label="Type a message to Nova"
             disabled={isDisabled}
             className={cn(
-              "flex-1 h-9 rounded-lg border bg-background px-3 text-sm outline-none",
+              "min-w-0 flex-1 h-11 rounded-lg border bg-background px-3 text-sm outline-none",
               "placeholder:text-muted-foreground focus:ring-1 focus:ring-primary",
               "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
           />
-          <Button size="sm" onClick={handleSend} disabled={isDisabled || !textInput.trim()} className="h-9 px-3">
+          <Button aria-label="Send message" size="sm" onClick={handleSend} disabled={isDisabled || !textInput.trim()} className="h-9 px-3">
             <Send className="h-4 w-4" />
           </Button>
         </div>

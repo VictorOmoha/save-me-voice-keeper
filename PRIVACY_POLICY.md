@@ -64,10 +64,10 @@ When you use SaveMe's voice features:
 
 **How Voice Processing Works:**
 1. You choose when to enable the microphone. Ending the session stops audio capture.
-2. Realtime Voice Capture and Nova stream audio directly to OpenAI for speech-to-speech responses and captions.
+2. Voice Capture, Brain Dump, and the Nova panel share a realtime conversation that streams audio directly to OpenAI for speech-to-speech responses and captions.
 3. Conversation context, relevant memory summaries, and requested tool results are also sent to OpenAI.
 4. SaveMe authenticates actions on its server and can store conversation captions, session metadata, and requested memories.
-5. Separate Brain Dump transcription, category prediction, and memory enrichment use Google Gemini. Optional speech playback can use other configured providers, including ElevenLabs.
+5. Entry categorization, memory enrichment, and legacy audio transcription use Google Gemini. Optional speech playback can use other configured providers, including ElevenLabs.
 
 SaveMe does not intentionally persist raw realtime audio. Provider processing and retention are governed by applicable provider terms; this is not a promise of immediate deletion by those providers.
 
@@ -184,7 +184,7 @@ We do NOT sell your personal data. We may share data in these limited circumstan
 - Processes realtime speech, captions, conversation context, and relevant memory/tool data.
 
 **Google Gemini:**
-- Processes separate audio transcription, entry categorization, and memory enrichment.
+- Processes legacy audio transcription, entry categorization, and memory enrichment.
 
 **ElevenLabs:**
 - Optional speech playback when configured.
@@ -461,7 +461,7 @@ If you are in the EEA or UK and believe we have violated GDPR, you may lodge a c
 **Voice Data:**
 - Raw realtime audio is not intentionally persisted by SaveMe
 - Only text transcriptions stored permanently
-- Realtime voice processed by OpenAI; separate transcription and enrichment use Google Gemini
+- Realtime voice processed by OpenAI; legacy audio transcription, categorization, and enrichment use Google Gemini
 
 **How We Use It:**
 - Provide the Service, improve features, customer support, security

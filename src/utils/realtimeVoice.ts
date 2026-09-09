@@ -10,10 +10,11 @@ export interface VoiceState {
   continuous: boolean;
   isConnected: boolean;
   microphoneActive: boolean;
+  connectedAt: number | null;
 }
 export const initialVoiceState = (continuous = false): VoiceState => ({
   status: "idle", transcript: "", responseText: "", error: null, actions: [], conversationHistory: [],
-  continuous, isConnected: false, microphoneActive: false,
+  continuous, isConnected: false, microphoneActive: false, connectedAt: null,
 });
 type Api = (name: string, body: Record<string, unknown>, signal?: AbortSignal) => Promise<Record<string, unknown>>;
 type RealtimeEvent = {
@@ -133,7 +134,7 @@ export class RealtimeVoiceClient {
         this.send({type: "conversation.item.create", item: {type: "message", role: turn.role === "model" ? "assistant" : "user",
           content: [{type: turn.role === "model" ? "output_text" : "input_text", text: turn.parts.map((part) => part.text || "").join("\n")} ]}});
       }
-      this.patch({isConnected: true, status: this.idleStatus()});
+      this.patch({isConnected: true, connectedAt: Date.now(), status: this.idleStatus()});
     })();
     return this.connection;
   }
@@ -341,7 +342,7 @@ export class RealtimeVoiceClient {
     this.handledResponses.clear();
     this.handledCalls.clear();
     this.onLevel(0);
-    this.patch({status: "idle", isConnected: false, microphoneActive: false});
+    this.patch({status: "idle", isConnected: false, microphoneActive: false, connectedAt: null});
     if (sessionId) {
       // Do not reuse the aborted session signal. Ending never requests a microphone.
       const turns = this.state.conversationHistory.slice(-20).map((turn) => ({...turn, parts: [{text: turn.parts.map((part) => part.text || "").join("\n").slice(0, 1000)}]}));

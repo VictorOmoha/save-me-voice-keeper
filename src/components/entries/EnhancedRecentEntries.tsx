@@ -28,6 +28,8 @@ interface EnhancedRecentEntriesProps {
   maxEntries?: number;
   title?: string;
   showViewToggle?: boolean;
+  searchQuery?: string;
+  onClearSearch?: () => void;
 }
 
 type ViewMode = "list" | "grid" | "compact";
@@ -47,6 +49,8 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
   maxEntries = 5,
   title = "Recent Entries",
   showViewToggle = true,
+  searchQuery = "",
+  onClearSearch,
 }) => {
   const [viewingEntry, setViewingEntry] = useState<SavedEntry | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -121,19 +125,16 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
 
   return (
     <>
-      <Card className="overflow-hidden border-2">
-        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <Card className="overflow-hidden border-border/70 shadow-none rounded-2xl">
+        <CardHeader className="p-5 md:p-6 border-b border-border/60">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
               <div>
-                <CardTitle className="text-xl">{title}</CardTitle>
+                <CardTitle className="text-lg">{title}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {entries.length === 0
+                  {searchQuery.trim() ? `${entries.length} matching memor${entries.length === 1 ? "y" : "ies"}` : entries.length === 0
                     ? "No entries yet"
-                    : `${entries.length} total • Showing ${recentEntries.length}`}
+                    : "Pick up where you left off"}
                 </p>
               </div>
             </div>
@@ -145,7 +146,9 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
                   <Button
                     variant={viewMode === "list" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 px-2"
+                    className="h-9 px-2"
+                    aria-label="List view"
+                    aria-pressed={viewMode === "list"}
                     onClick={() => setViewMode("list")}
                   >
                     <List className="w-4 h-4" />
@@ -153,7 +156,9 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
                   <Button
                     variant={viewMode === "grid" ? "secondary" : "ghost"}
                     size="sm"
-                    className="h-7 px-2"
+                    className="h-9 px-2"
+                    aria-label="Grid view"
+                    aria-pressed={viewMode === "grid"}
                     onClick={() => setViewMode("grid")}
                   >
                     <Grid3X3 className="w-4 h-4" />
@@ -166,6 +171,7 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
                 <Button
                   variant="outline"
                   size="sm"
+                  aria-label="Print recent entries"
                   onClick={handlePrintAll}
                   className="gap-1"
                 >
@@ -175,13 +181,14 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
               )}
 
               {/* View All Button */}
-              {onViewAll && entries.length > maxEntries && (
+              {onViewAll && entries.length > 0 && (
                 <Button
                   onClick={onViewAll}
                   size="sm"
-                  className="gap-1"
+                  variant="ghost"
+                  className="gap-1 text-primary"
                 >
-                  View All
+                  View all
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               )}
@@ -190,7 +197,13 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
         </CardHeader>
 
         <CardContent className="p-4">
-          {recentEntries.length === 0 ? (
+          {recentEntries.length === 0 && searchQuery.trim() ? (
+            <div className="py-12 text-center">
+              <h3 className="text-base font-semibold">No memories match “{searchQuery}”</h3>
+              <p className="mt-2 text-sm text-muted-foreground">Try a different word, name, or detail.</p>
+              {onClearSearch && <Button variant="outline" className="mt-5" onClick={onClearSearch}>Clear search</Button>}
+            </div>
+          ) : recentEntries.length === 0 ? (
             <div className="py-12">
               <div className="text-center">
               <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
@@ -198,11 +211,12 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
               </div>
               <h3 className="font-semibold text-lg mb-2">No entries yet</h3>
               <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                Start with one voice dump. Nova turns it into structured memory you can search and open later.
+                Save your first thought with Nova. Your memories will appear here, ready to find again.
               </p>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3" aria-label="Demo-ready example entries">
+              <p className="mt-6 text-center text-xs font-medium text-muted-foreground">A few things you could save</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3" aria-label="Example memories">
                 {demoEntries.map((entry) => (
                   <div key={entry.id} className="rounded-xl border bg-background/90 p-3 text-left">
                     <p className="text-sm font-semibold text-foreground">{entry.title}</p>
@@ -216,8 +230,8 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
             <div
               className={cn(
                 viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 gap-4"
-                  : "space-y-3"
+                  ? "memory-grid grid grid-cols-1 md:grid-cols-2 gap-4"
+                  : "memory-list space-y-2"
               )}
             >
               {recentEntries.map((entry) => (

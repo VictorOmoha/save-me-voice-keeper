@@ -135,20 +135,20 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
     return (
       <div
         className={cn(
-          "flex items-start gap-4 p-4 rounded-xl border transition-all duration-200",
+          "flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border transition-all duration-200",
           "hover:shadow-lg hover:border-primary/30",
           config.borderColor,
           className
         )}
       >
-        <div className={cn("p-3 rounded-xl shrink-0", config.bgColor)}>
-          <CategoryIcon className={cn("w-6 h-6", config.color)} />
+        <div className={cn("p-2 sm:p-3 rounded-xl shrink-0", config.bgColor)}>
+          <CategoryIcon className={cn("w-5 h-5 sm:w-6 sm:h-6", config.color)} />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-lg">{entry.title}</h3>
+              <h3 className="font-semibold text-lg"><button type="button" onClick={() => onView?.(entry)} className="text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm">{entry.title}</button></h3>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Badge variant="secondary" className={cn("text-xs", config.color, config.bgColor)}>
                   {category}
@@ -182,7 +182,7 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-9 w-9" aria-label={`Actions for ${entry.title}`}>
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -230,17 +230,17 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
             </DropdownMenu>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
             {previewFields.map(([key, value]) => {
               const FieldIcon = config.fieldIcons[key] || Tag;
               const formattedValue = formatFieldValue(key, value);
               if (!formattedValue) return null;
 
               return (
-                <div key={key} className="flex items-center gap-2 text-sm">
+                <div key={key} className={cn("flex items-start gap-2 text-sm min-w-0", (previewFields.length === 1 || ["content", "notes", "description"].includes(key)) && "sm:col-span-2")}>
                   <FieldIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">{formatFieldName(key)}:</span>
-                  <span className="font-medium truncate">{formattedValue}</span>
+                  {!["content", "notes", "description"].includes(key) && <span className="text-muted-foreground">{formatFieldName(key)}:</span>}
+                  <span className="text-foreground/85 line-clamp-2 break-words">{formattedValue}</span>
                 </div>
               );
             })}
@@ -329,7 +329,8 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-9 w-9 shrink-0"
+                aria-label={`Actions for ${entry.title}`}
               >
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
@@ -444,7 +445,7 @@ const EnhancedEntryCardComponent: React.FC<EnhancedEntryCardProps> = ({
         </div>
 
         {/* Quick Actions on Hover */}
-        <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-2 mt-3">
           {onView && (
             <Button
               variant="outline"

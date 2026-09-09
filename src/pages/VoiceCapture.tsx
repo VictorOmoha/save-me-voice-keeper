@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { JSX, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FileText, Heart, Users, DollarSign, User, Briefcase, Lightbulb, Plane, ShoppingCart, GraduationCap, Sparkles, Radio, X } from "lucide-react";
+import { FileText, Heart, Users, DollarSign, User, Briefcase, Lightbulb, Plane, ShoppingCart, GraduationCap, Sparkles, Radio, X, Mic, Square, Plus, ArrowUpRight, ArrowUp, Loader2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useDashboard } from "@/hooks/useDashboard";
 import type { AgentStatus } from "@/hooks/voiceAgentTypes";
@@ -69,6 +69,7 @@ const Waveform = ({ status, compact, levelRef }: { status: AgentStatus; compact:
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const accent = "#2dd4ff";
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
     let raf = 0;
     const draw = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -83,7 +84,7 @@ const Waveform = ({ status, compact, levelRef }: { status: AgentStatus; compact:
         ctx.clearRect(0, 0, w, h);
         const mid = h / 2;
         const cx = w / 2;
-        const t = performance.now() / 1000;
+        const t = motionPreference.matches ? 0 : performance.now() / 1000;
         const s = statusRef.current;
         let energy: number;
         const liveLevel = levelRef?.current ?? 0;
@@ -126,10 +127,17 @@ const Waveform = ({ status, compact, levelRef }: { status: AgentStatus; compact:
         drawWave(0.083, 1.4, 0.6, 1.4, accent, 8);
         ctx.globalAlpha = 1;
       }
-      raf = requestAnimationFrame(draw);
+      if (!motionPreference.matches) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
+    const redraw = () => { cancelAnimationFrame(raf); draw(); };
+    motionPreference.addEventListener("change", redraw);
+    window.addEventListener("resize", redraw);
+    return () => {
+      cancelAnimationFrame(raf);
+      motionPreference.removeEventListener("change", redraw);
+      window.removeEventListener("resize", redraw);
+    };
   }, [levelRef]);
 
   return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: compact ? 0.7 : 1 }} aria-hidden="true" />;
@@ -149,6 +157,7 @@ const VoiceCapture = () => {
   const { status, isConnected, connectedAt, microphoneActive, transcript, error, conversationHistory, continuous, setContinuous, startListening, stopListening, sendText, resetConversation, inputLevelRef, savedMemories: items, draft: textInput, setDraft: setTextInput } = useVoiceSession();
   const [seconds, setSeconds] = useState(0);
   const threadRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLInputElement>(null);
 
   // Conversation thread: full history plus the in-flight user turn (text sends
   // show up before the backend echoes them back in conversationHistory).
@@ -199,7 +208,6 @@ const VoiceCapture = () => {
   const clearSession = resetConversation;
 
   const micDisabled = !isSupported;
-  const showRings = status === "listening" || status === "speaking";
   const userName = user?.displayName || user?.email || "User";
 
   return (
@@ -216,140 +224,43 @@ const VoiceCapture = () => {
       onSaveEntry={saveEntry}
       onCancelEdit={handleCancelEdit}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_330px] gap-px min-h-[580px] -m-4 md:-m-6 rounded-2xl overflow-hidden">
-        {/* Capture */}
-        <div className={`flex flex-col items-center justify-start text-center p-6 md:p-10 bg-card/40`}>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5" style={{ background: "rgba(45,212,255,.07)", border: "1px solid rgba(45,212,255,.16)" }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#2dd4ff", boxShadow: "0 0 10px #2dd4ff" }} />
-            <span style={{ font: `600 11px ${MONO}`, color: "#7fd9f0", letterSpacing: "0.16em" }}>{KICKER[status]}</span>
+      <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
+        <div><p className="workspace-eyebrow mb-2">Your conversation with Nova</p><h1 className="text-2xl md:text-[30px] font-semibold tracking-tight">Voice capture</h1><p className="mt-2 text-sm text-muted-foreground">Think out loud. Pick up anywhere.</p></div>
+        {(items.length > 0 || thread.length > 0) && status === "idle" && <button onClick={clearSession} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border/70 px-4 text-sm font-medium hover:bg-muted"><Plus className="h-4 w-4" />New conversation</button>}
+      </header>
+      <div className="grid grid-cols-1 min-[1180px]:grid-cols-[minmax(0,1fr)_280px] 2xl:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
+        <section aria-label="Conversation with Nova" className="workspace-panel flex md:min-h-[620px] min-w-0 flex-col overflow-hidden">
+          <div className="order-first flex items-center justify-between gap-3 border-b border-border/60 px-5 py-4">
+            <div className="flex items-center gap-2.5 text-sm font-medium">
+              <span className={`h-2 w-2 rounded-full ${microphoneActive ? "bg-emerald-400" : "bg-muted-foreground/60"}`} />
+              <span role="status">{KICKER[status].replace("NOVA · ", "").toLowerCase().replace(/^./, (c) => c.toUpperCase())}</span>
+              {isConnected && <span className="text-xs tabular-nums text-muted-foreground">{fmt(seconds)}</span>}
+            </div>
+            <button onClick={() => setContinuous(!continuous)} aria-pressed={continuous} title={continuous ? "Nova keeps listening after each reply" : "Tap the mic for each turn"} className="inline-flex min-h-9 items-center gap-2 rounded-lg px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted">
+              <Radio className={`h-3.5 w-3.5 ${continuous ? "text-primary" : ""}`} />{continuous ? "Auto-listen on" : "Manual mode"}
+            </button>
           </div>
-          {!formActive && <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Voice capture</h1>}
-          <p className="text-sm md:text-base text-muted-foreground mt-3 max-w-md min-h-[1.5rem]" aria-live="polite">
-            {isSupported ? SUB_TEXT[status] : "Voice capture needs a modern browser with microphone access. Try Chrome, Edge, or Safari."}
-          </p>
-
-          <p className="mt-2 text-xs text-muted-foreground max-w-md text-center">
-            Realtime voice sends audio and relevant memory context to OpenAI. <Link to="/privacy" className="underline">Privacy details</Link>
-          </p>
-
-          <p className="mt-3 text-sm text-foreground/80">One conversation across SaveMe. You can change pages and keep talking.</p>
-
-          <div className={`relative w-full max-w-[680px] mt-2 flex items-center justify-center transition-all ${formActive ? "h-[130px]" : "h-[160px]"}`}>
-            <Waveform status={status} compact={formActive} levelRef={inputLevelRef} />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              {showRings && [0, 1, 2].map((i) => (
-                <div key={i} className="absolute left-1/2 top-1/2 w-[120px] h-[120px] rounded-full" style={{ border: `1px solid rgba(45,212,255,${0.34 - i * 0.06})`, animation: "ap-micpulse 3s ease-out infinite", animationDelay: `${i}s` }} />
-              ))}
-              <button
-                onClick={micClick}
-                disabled={micDisabled}
-                aria-label={status === "speaking" ? "Interrupt Nova and speak" : status !== "idle" ? "End voice session" : "Start voice capture"}
-                className={`relative flex items-center justify-center rounded-full border-none cursor-pointer disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2dd4ff] focus-visible:ring-offset-2 focus-visible:ring-offset-background ${formActive ? "w-[84px] h-[84px]" : "w-[108px] h-[108px]"}`}
-                style={{ background: "radial-gradient(circle at 50% 36%,#8eecff,#1cb8e8 58%,#0b8fc4)", animation: showRings ? "ap-softglow 2.8s ease-in-out infinite" : undefined, boxShadow: "0 0 0 1px rgba(45,212,255,.4), 0 0 38px rgba(45,212,255,.4)", opacity: micDisabled && !showRings ? 0.7 : 1 }}
-              >
-                {status === "thinking" || status === "acting" ? (
-                  <span className="w-7 h-7 rounded-full border-[3px] border-[#06283a]/30 border-t-[#06283a]" style={{ animation: "ap-spin .8s linear infinite" }} />
-                ) : (
-                  <svg width={formActive ? 26 : 34} height={formActive ? 26 : 34} viewBox="0 0 24 24" fill="none" stroke="#06283a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="2.5" width="6" height="11.5" rx="3" fill="#06283a" stroke="none" />
-                    <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
-                    <path d="M12 17.5V21" />
-                    <path d="M8.5 21h7" />
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setContinuous(!continuous)}
-            className="mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-            style={continuous ? { background: "rgba(52,211,153,.12)", color: "#34d399", border: "1px solid rgba(52,211,153,.3)" } : { background: "rgba(255,255,255,.04)", color: "#8ea0b3", border: "1px solid rgba(125,165,205,.14)" }}
-            aria-pressed={continuous}
-            title={continuous ? "Nova keeps listening after each reply" : "Tap the mic for each turn"}
-          >
-            <Radio className={`w-3 h-3 ${continuous ? "animate-pulse" : ""}`} />
-            {continuous ? "Auto-listen on" : "Manual mode"}
-          </button>
-
-          {(isConnected || status === "connecting") && (
-            <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
-              <span>{microphoneActive ? "Microphone on · Realtime voice" : "Microphone off"}</span>
-              <button type="button" onClick={stopListening} className="underline">End session</button>
-            </div>
-          )}
-          {status === "listening" && (
-            <div className="mt-1 flex items-center gap-3" style={{ font: `600 12px ${MONO}` }}>
-              <span className="flex items-center gap-2 text-[#7fd9f0]">
-                <span className="w-2 h-2 rounded-full bg-red-500" style={{ boxShadow: "0 0 10px #ff5d6c" }} />
-                LIVE {fmt(seconds)}
-              </span>
-              <span className="text-muted-foreground">· pause for a reply, tap stop to end</span>
-            </div>
-          )}
-
-          {/* Conversation thread — the full back-and-forth with Nova this session */}
-          {(thread.length > 0 || pendingUserTurn || status === "thinking" || status === "acting") && (
-            <div ref={threadRef} aria-live="polite" className={`mt-4 w-full max-w-xl flex flex-col gap-2.5 overflow-y-auto text-left ${formActive ? "max-h-[160px]" : "max-h-[300px]"}`}>
-              {thread.map((turn, i) =>
-                turn.role === "user" ? (
-                  <div key={i} className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-card border">
-                    <span className="text-sm md:text-[15px] leading-relaxed text-foreground/90">{turn.text}</span>
-                  </div>
-                ) : (
-                  <div key={i} className="self-start max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md" style={{ background: "rgba(45,212,255,.06)", border: "1px solid rgba(45,212,255,.16)" }}>
-                    <span style={{ font: `600 10.5px ${MONO}`, color: "#5fd6f0", letterSpacing: "0.12em" }}>NOVA</span>
-                    <p className="text-sm leading-relaxed text-foreground/90 mt-0.5">{turn.text}</p>
-                  </div>
-                )
-              )}
-              {pendingUserTurn && (
-                <div className="self-end max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-md bg-card border">
-                  <span className="text-sm md:text-[15px] leading-relaxed text-foreground/90">{transcript}</span>
+          <div className="flex md:min-h-[300px] flex-1 flex-col px-5 py-5 md:py-6 md:px-8">
+            {thread.length === 0 && !pendingUserTurn && !formActive && status !== "thinking" && status !== "acting" && (
+              <div className="m-auto w-full max-w-md py-2 md:py-6 text-center">
+                <span className="mx-auto mb-5 hidden md:grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary"><Sparkles className="h-6 w-6" /></span>
+                <h2 className="text-2xl font-semibold tracking-tight">What’s on your mind?</h2>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{isSupported ? SUB_TEXT[status] : "Type below to talk with Nova. Voice capture needs a browser with microphone access."}</p>
+                <div className="mt-6 grid gap-2 text-left">
+                  {["Remember an idea…", "Find a memory…", "Take me to my dashboard"].map((prompt) => <button key={prompt} type="button" onClick={() => {setTextInput(prompt.endsWith("…") ? prompt.slice(0, -1) + " " : prompt); composerRef.current?.focus();}} className="flex min-h-11 items-center justify-between rounded-xl border border-border/70 px-4 text-sm text-muted-foreground hover:border-primary/30 hover:text-foreground">{prompt}<ArrowUpRight className="h-3.5 w-3.5" /></button>)}
                 </div>
-              )}
-              {(status === "thinking" || status === "acting") && (
-                <div className="self-start px-4 py-2.5 rounded-2xl rounded-bl-md" style={{ background: "rgba(45,212,255,.06)", border: "1px solid rgba(45,212,255,.16)" }}>
-                  <span className="inline-flex gap-1 items-center" aria-label="Nova is thinking">
-                    {[0, 1, 2].map((i) => (
-                      <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#5fd6f0] animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                    ))}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-4 flex items-center gap-3">
-              <p className="text-sm text-red-400">{error}</p>
-              <button onClick={startListening} className="text-sm font-semibold text-foreground underline underline-offset-2 hover:text-primary transition-colors">
-                Try again
-              </button>
-            </div>
-          )}
-
-          {/* Text fallback — for quiet places, or when the mic isn't an option */}
-          {!formActive && (
-            <form onSubmit={submitText} className="mt-4 w-full max-w-xl flex gap-2">
-              <input
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                placeholder="Or type to Nova instead…"
-                aria-label="Type a message to Nova"
-                disabled={status === "connecting" || status === "acting"}
-                className="min-w-0 flex-1 h-11 px-3.5 rounded-xl bg-card border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={status === "connecting" || status === "acting" || !textInput.trim()}
-                className="h-10 px-4 rounded-xl border text-sm font-semibold text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Send
-              </button>
-            </form>
-          )}
-
+              </div>
+            )}
+            {(thread.length > 0 || pendingUserTurn || status === "thinking" || status === "acting") && (
+              <div ref={threadRef} role="log" aria-label="Conversation history" aria-live="polite" className="flex max-h-[440px] flex-col gap-5 overflow-y-auto pr-1 text-left">
+                {thread.map((turn, i) => <div key={i} className={`max-w-[90%] ${turn.role === "user" ? "self-end rounded-2xl rounded-br-md bg-muted/50 px-4 py-3" : "self-start"}`}>
+                  <span className={`mb-1.5 block text-xs font-semibold ${turn.role === "user" ? "text-muted-foreground" : "text-primary"}`}>{turn.role === "user" ? "You" : "Nova"}</span>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{turn.text}</p>
+                </div>)}
+                {pendingUserTurn && <div className="max-w-[90%] self-end rounded-2xl bg-muted/50 px-4 py-3 text-sm leading-relaxed">{transcript}</div>}
+                {(status === "thinking" || status === "acting") && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin text-primary" />{status === "acting" ? "Working on your request…" : "Nova is thinking…"}</div>}
+              </div>
+            )}
           {/* Inline action surface — the form Nova (or you) opens, right here below the mic */}
           {formActive && (
             <div className="mt-6 w-full max-w-2xl text-left rounded-2xl border bg-card overflow-hidden">
@@ -378,21 +289,37 @@ const VoiceCapture = () => {
             </div>
           )}
 
-          {status === "idle" && !formActive && (items.length > 0 || thread.length > 0) && (
-            <button onClick={clearSession} className="mt-5 text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors">Start a new session</button>
-          )}
-        </div>
 
+          </div>
+          <div className="order-[-1] md:order-none border-b md:border-b-0 md:border-t border-border/60 bg-muted/10 px-5 pt-3 pb-5 md:px-8">
+            <div className="relative mx-auto flex h-[96px] max-w-lg items-center justify-center">
+              <Waveform status={status} compact levelRef={inputLevelRef} />
+              <button onClick={micClick} disabled={micDisabled} aria-label={status === "speaking" ? "Interrupt Nova and speak" : status !== "idle" ? "End voice session" : "Start voice capture"} className="relative z-10 grid h-16 w-16 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/10 transition-transform hover:scale-105 disabled:opacity-50">
+                {status === "connecting" || status === "thinking" || status === "acting" ? <Loader2 className="h-6 w-6 animate-spin" /> : microphoneActive && status !== "speaking" ? <Square className="h-5 w-5 fill-current" /> : <Mic className="h-6 w-6" />}
+              </button>
+            </div>
+            <div className="mb-4 flex min-h-5 flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+              <span>{microphoneActive ? `LIVE ${fmt(seconds)} · Microphone on` : isConnected ? "Microphone off · Conversation connected" : "Tap the microphone to start"}</span>
+              {(isConnected || status === "connecting") && <button type="button" onClick={stopListening} className="min-h-9 font-medium text-foreground underline underline-offset-4">End session</button>}
+            </div>
+            {error && <div role="alert" className="mb-4 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm"><p>{error}</p><button onClick={startListening} className="mt-2 font-semibold underline">Try again</button></div>}
+            {!formActive && <form onSubmit={submitText} className="flex gap-2">
+              <input ref={composerRef} value={textInput} onChange={(e) => setTextInput(e.target.value)} placeholder="Or type a message to Nova…" aria-label="Type a message to Nova" disabled={status === "connecting" || status === "acting"} className="min-w-0 flex-1 h-12 px-4 rounded-xl bg-card border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50" />
+              <button type="submit" aria-label="Send message" disabled={status === "connecting" || status === "acting" || !textInput.trim()} className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"><ArrowUp className="h-5 w-5" /></button>
+            </form>}
+            <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">Audio and relevant memory context are sent to OpenAI. <Link to="/privacy" className="underline underline-offset-2">Privacy details</Link></p>
+          </div>
+        </section>
         {/* Memory panel */}
-        <aside className="bg-card/20 border-t lg:border-t-0 lg:border-l border-border p-6 md:p-7 flex flex-col">
-          <div className="text-xl font-bold text-foreground">Saved this conversation</div>
+        <aside className="workspace-panel p-5 flex flex-col">
+          <div className="text-base font-semibold text-foreground">Saved this conversation</div>
           <div className="text-[13px] text-muted-foreground mt-1">{items.length} confirmed {items.length === 1 ? "save" : "saves"}</div>
-          <div className="flex flex-col gap-3 mt-5 flex-1" aria-live="polite">
+          <div className="flex flex-col gap-3 mt-4 flex-1" aria-live="polite">
             {items.length === 0 ? (
-              <div className="rounded-xl border border-dashed p-5 text-left">
+              <div className="py-6 text-left">
                 <Sparkles className="h-5 w-5 text-primary mb-3" />
-                <p className="text-sm font-medium">Nothing saved yet</p>
-                <p className="text-sm text-muted-foreground mt-2">Try “Remember my meeting is Friday at 10.” A confirmed save will appear here, and stay here as you browse.</p>
+                <p className="text-sm font-medium">Your next memory starts here</p>
+                <p className="text-sm text-muted-foreground mt-2">Ask Nova to remember something. Confirmed saves appear here and stay with you as you browse.</p>
               </div>
             ) : (
               items.map((item) => (
@@ -401,7 +328,7 @@ const VoiceCapture = () => {
                   type="button"
                   onClick={() => openMemoryItem(item)}
                   aria-label={`Open saved entry ${item.title}`}
-                  className="relative w-full text-left cursor-pointer rounded-2xl border bg-card px-4 py-3.5 overflow-hidden transition-colors hover:border-[#2dd4ff]/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#2dd4ff]/60"
+                  className="relative w-full text-left cursor-pointer rounded-xl border border-border/70 bg-muted/20 px-4 py-3.5 overflow-hidden transition-colors hover:border-primary/40"
                   style={{ animation: "ap-itemin .5s cubic-bezier(.2,.8,.2,1) both" }}
                 >
                   <div className="absolute left-0 top-3.5 bottom-3.5 w-[3px] rounded-full" style={{ background: "#2dd4ff", boxShadow: "0 0 9px rgba(45,212,255,.7)" }} />

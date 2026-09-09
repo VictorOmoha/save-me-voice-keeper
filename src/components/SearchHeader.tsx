@@ -87,32 +87,26 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
     return items;
   })();
   return (
-    <div className="bg-background border-b border-galvanized px-6 py-4">
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        {/* Logo/Title - Skeletal */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="SAVEME" className="w-6 h-6 object-contain" />
-            <span className="mono text-foreground font-bold text-sm tracking-wider">
-              SAVEME
-            </span>
-          </div>
-          {userName && (
-            <span className="mono text-xs text-muted-foreground tracking-wide">
-              :: {userName.split(' ')[0].toUpperCase()}
-            </span>
-          )}
-        </div>
+    <div className="border-b border-border/60 bg-background/95 px-8 lg:px-10 py-4">
+      <div className="flex min-h-11 items-center justify-between gap-5 max-w-[1420px] mx-auto">
+        <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+          {breadcrumbs.map((item, idx) => <React.Fragment key={item.label}>
+            {idx > 0 && <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-60" />}
+            {item.to && idx !== breadcrumbs.length - 1
+              ? <Link to={item.to} className="hover:text-foreground">{item.label}</Link>
+              : <span className="truncate font-medium text-foreground" aria-current="page">{item.label}</span>}
+          </React.Fragment>)}
+        </nav>
 
         {/* Smart Search Bar - Skeletal */}
-        <div className="flex-1 max-w-md mx-6">
+        <div className="flex-1 max-w-md ml-auto">
           <SmartSearch
             entries={savedEntries}
             searchQuery={searchQuery}
             onSearchChange={onSearchChange}
             onEntrySelect={handleEntrySelect}
-            placeholder="Search saved information..."
-            className="w-full input-skeletal"
+            placeholder="Search your memories…"
+            className="w-full workspace-search"
           />
         </div>
 
@@ -120,7 +114,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={onAllEntriesSelect}
-            className="btn-galvanized btn-galvanized-secondary"
+            className="h-11 rounded-xl px-3 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             All entries
           </button>
@@ -138,52 +132,32 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
             <DropdownMenuContent className="w-56 bg-card border border-galvanized" align="end" forceMount>
               <DropdownMenuLabel className="font-normal border-b border-galvanized pb-2">
                 <div className="flex flex-col gap-1">
-                  <p className="mono text-sm font-bold text-foreground">{userName || 'User'}</p>
-                  <p className="mono text-xs text-muted-foreground">
+                  <p className="text-sm font-semibold text-foreground">{userName || 'User'}</p>
+                  <p className="text-xs text-muted-foreground">
                     Account management
                   </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-galvanized" />
-              <DropdownMenuItem onClick={() => navigate('/settings')} className="mono text-xs cursor-pointer hover:bg-primary/10">
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="text-sm cursor-pointer hover:bg-primary/10">
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/subscription')} className="mono text-xs cursor-pointer hover:bg-primary/10">
+              <DropdownMenuItem onClick={() => navigate('/subscription')} className="text-sm cursor-pointer hover:bg-primary/10">
                 <CreditCard className="mr-2 h-4 w-4" />
                 <span>Subscription</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/user-guide')} className="mono text-xs cursor-pointer hover:bg-primary/10">
+              <DropdownMenuItem onClick={() => navigate('/user-guide')} className="text-sm cursor-pointer hover:bg-primary/10">
                 <HelpCircle className="mr-2 h-4 w-4" />
                 <span>Help guide</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-galvanized" />
-              <DropdownMenuItem onClick={handleSignOut} className="mono text-xs cursor-pointer text-red-500 hover:text-red-400 hover:bg-red-500/10">
+              <DropdownMenuItem onClick={handleSignOut} className="text-sm cursor-pointer text-red-500 hover:text-red-400 hover:bg-red-500/10">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sign out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Breadcrumbs - Skeletal */}
-      <div className="max-w-7xl mx-auto mt-3">
-        <div className="flex items-center gap-2 mono text-xs text-muted-foreground">
-          {breadcrumbs.map((item, idx) => (
-            <span key={`${item.label}-${idx}`} className="flex items-center gap-2">
-              {item.to && idx !== breadcrumbs.length - 1 ? (
-                <Link to={item.to} className="hover:text-primary transition-colors">
-                  {item.label}
-                </Link>
-              ) : (
-                <span className="text-foreground">{item.label}</span>
-              )}
-              {idx < breadcrumbs.length - 1 && (
-                <ChevronRight className="w-3 h-3" />
-              )}
-            </span>
-          ))}
         </div>
       </div>
 

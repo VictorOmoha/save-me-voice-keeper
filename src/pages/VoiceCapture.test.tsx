@@ -79,6 +79,10 @@ describe('VoiceCapture page', () => {
     startListeningMock.mockReset();
     stopListeningMock.mockReset();
     for (const key of Object.keys(voiceOverrides)) delete voiceOverrides[key];
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn(() => ({matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn()})),
+    });
     // jsdom has neither RTCPeerConnection nor mediaDevices — stub so isSupported is true
     (window as unknown as Record<string, unknown>).RTCPeerConnection = function PeerStub() {};
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -96,6 +100,16 @@ describe('VoiceCapture page', () => {
 
     expect(sendTextMock).toHaveBeenCalledWith('Save my passport renewal date');
     expect((input as HTMLInputElement).value).toBe('');
+  });
+
+  it('lets a starting prompt fill the shared composer without sending or opening the microphone', () => {
+    renderPage();
+    fireEvent.click(screen.getByText('Take me to my dashboard'));
+    const input = screen.getByLabelText('Type a message to Nova');
+    expect(input).toHaveProperty('value', 'Take me to my dashboard');
+    expect(document.activeElement).toBe(input);
+    expect(sendTextMock).not.toHaveBeenCalled();
+    expect(startListeningMock).not.toHaveBeenCalled();
   });
 
   it('lets the user barge in while Nova is speaking', () => {
@@ -124,6 +138,7 @@ describe('VoiceCapture page', () => {
 
   it('shows live voice and an end-session control while listening', () => {
     voiceOverrides.status = 'listening';
+    voiceOverrides.microphoneActive = true;
     renderPage();
 
     const rec = screen.getByText(/LIVE/);

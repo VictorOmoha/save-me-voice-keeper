@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export const useDashboard = () => {
   const {
     savedEntries,
+    allSavedEntries,
     isLoading,
     isSaving,
     saveEntry: baseSaveEntry,
@@ -94,6 +95,7 @@ export const useDashboard = () => {
 
   return {
     savedEntries,
+    allSavedEntries,
     isLoading,
     isSaving,
     searchQuery,

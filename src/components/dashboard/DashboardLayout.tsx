@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { SavedEntry } from "@/types/dashboard";
 import { SearchHeader } from "../SearchHeader";
 import { Sidebar, MobileSidebar } from "../Sidebar";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
+import "@/styles/workspace.css";
 
 interface DashboardLayoutProps {
   searchQuery: string;
@@ -43,9 +44,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Grid Blueprint Background */}
-      <div className="grid-blueprint" />
+    <div className="workspace-shell min-h-screen flex">
 
       {/* Desktop Sidebar - hidden on mobile */}
       <div className="hidden md:block">
@@ -74,8 +73,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center p-4 border-b bg-background sticky top-0 z-30">
+        <div className="md:hidden flex flex-wrap items-center gap-y-3 p-4 border-b bg-background sticky top-0 z-30">
           <button
+            id="workspace-menu-toggle"
             onClick={() => setIsMobileSidebarOpen(true)}
             aria-label="Open navigation menu"
             className="mr-3 w-10 h-10 rounded-lg border flex items-center justify-center hover:bg-muted transition-colors"
@@ -88,6 +88,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               SaveMe
             </span>
           </div>
+          <label className="relative basis-full">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <input type="search" aria-label="Search memories" placeholder="Search your memories…" value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} className="h-10 w-full rounded-xl border border-border/70 bg-muted/20 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+          </label>
         </div>
 
         {/* Desktop Header */}
@@ -109,11 +113,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         {/* Main Content */}
         <div
           data-testid="dashboard-content-shell"
-          className="flex-1 w-full max-w-[1500px] mx-auto px-3 md:px-6 pt-4 md:pt-6 pb-28"
+          className="flex-1 w-full max-w-[1500px] mx-auto px-4 md:px-8 lg:px-10 pt-6 md:pt-9 pb-28"
         >
-          <div className="p-4 md:p-6 rounded-2xl border bg-card/50">
-            {children}
-          </div>
+          {children}
         </div>
       </div>
     </div>

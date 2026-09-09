@@ -10,10 +10,11 @@ import { taskReminderService } from "@/services/taskReminderService";
 const getDefaultReminderTime = () => {
   const date = new Date();
   date.setHours(date.getHours() + 1, 0, 0, 0);
-  return date.toISOString().slice(0, 16);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-export const TaskReminderCard = () => {
+export const TaskReminderCard = ({compact = false}: {compact?: boolean}) => {
   const [taskText, setTaskText] = useState("");
   const [scheduledAtInput, setScheduledAtInput] = useState(getDefaultReminderTime);
   const [saving, setSaving] = useState(false);
@@ -30,6 +31,7 @@ export const TaskReminderCard = () => {
       }
 
       toast.success("Task reminder set. SaveMe will notify you when it is time.");
+      window.dispatchEvent(new CustomEvent("saveme:reminders-changed"));
       setTaskText("");
       setScheduledAtInput(getDefaultReminderTime());
 
@@ -45,8 +47,8 @@ export const TaskReminderCard = () => {
   };
 
   return (
-    <section className="rounded-xl border bg-card p-4 md:p-5">
-      <div className="flex items-start gap-3 mb-4">
+    <section className={compact ? "px-2 pb-2" : "rounded-xl border bg-card p-4 md:p-5"}>
+      <div className={compact ? "hidden" : "flex items-start gap-3 mb-4"}>
         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
           <AlarmClock className="w-5 h-5 text-primary" />
         </div>
@@ -62,7 +64,7 @@ export const TaskReminderCard = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)_auto] lg:items-end">
+      <form onSubmit={handleSubmit} className={compact ? "grid gap-4" : "grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)_auto] lg:items-end"}>
         <div className="space-y-2">
           <Label htmlFor="task-reminder-text">Task</Label>
           <Textarea

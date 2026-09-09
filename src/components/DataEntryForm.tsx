@@ -180,14 +180,14 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
       
       <form onSubmit={handleSubmit} className="space-y-4 p-4 md:p-5">
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 md:p-4">
-          <p className="text-sm font-semibold text-foreground">Capture one memory. Anam will keep it structured.</p>
+          <p className="text-sm font-semibold text-foreground">Capture one memory. Nova will keep it structured.</p>
           <p className="mt-1 text-xs text-muted-foreground">Write the thing you do not want to lose. Add only the details you know.</p>
         </div>
 
         <div className={`space-y-2 transition-all duration-300 ${
           highlightedField === 'title' ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-2' : ''
         }`}>
-          <Label htmlFor="title" className="text-foreground">What should Anam remember?</Label>
+          <Label htmlFor="title" className="text-foreground">What should Nova remember?</Label>
           <Input
             id="title"
             placeholder="e.g., Insurance renewal, Mom’s medication, Client follow-up"

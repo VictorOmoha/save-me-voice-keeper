@@ -188,6 +188,7 @@ export const useSavedEntries = () => {
 
   return {
     savedEntries: filteredEntries,
+    allSavedEntries: savedEntries,
     isLoading,
     isSaving,
     searchQuery,

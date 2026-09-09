@@ -1,20 +1,7 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  LayoutDashboard,
-  FileText,
-  Heart,
-  Users,
-  DollarSign,
-  User,
-  Plus,
-  Settings,
-  Brain,
-  Mic,
-  X
-} from "lucide-react";
+import { LayoutDashboard, FileText, Heart, Users, DollarSign, User, Plus, Settings, Brain, Mic, ArrowUpRight } from "lucide-react";
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { SavedEntry } from "@/types/dashboard";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,187 +17,72 @@ interface SidebarProps {
   activeSection?: "dashboard" | "add-entry" | "all-entries" | "brain-dump" | "settings";
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  savedEntriesCount,
-  onAddEntry,
-  onCategorySelect,
-  onAllEntriesSelect,
-  entries,
-  isMobileOpen,
-  onMobileClose,
-  activeSection
-}) => {
-  const location = useLocation();
-  const { filterEntriesByCategory } = useCategoryFilter();
-  const { user } = useAuth();
+const categories = [
+  { name: "Documents", icon: FileText }, { name: "Health", icon: Heart },
+  { name: "Contacts", icon: Users }, { name: "Finance", icon: DollarSign }, { name: "Personal", icon: User },
+];
+const pages = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "dashboard" },
+  { to: "/voice-capture", label: "Voice capture", icon: Mic, section: "voice-capture" },
+  { to: "/all-entries", label: "All entries", icon: FileText, section: "all-entries" },
+  { to: "/brain-dump", label: "Brain dump", icon: Brain, section: "brain-dump" },
+];
+
+export const Sidebar: React.FC<SidebarProps> = ({savedEntriesCount, onAddEntry, entries, onMobileClose, isMobileOpen, activeSection}) => {
+  const {pathname} = useLocation();
+  const {filterEntriesByCategory} = useCategoryFilter();
+  const {user} = useAuth();
   const displayName = user?.displayName || user?.email?.split("@")[0] || "You";
-  const initial = displayName.charAt(0).toUpperCase();
 
-  const categories = [
-    { name: "Documents", icon: FileText },
-    { name: "Health", icon: Heart },
-    { name: "Contacts", icon: Users },
-    { name: "Finance", icon: DollarSign },
-    { name: "Personal", icon: User },
-  ];
-
-  const handleNavClick = () => {
-    onMobileClose?.();
-  };
-
-  const isAddEntryActive = activeSection === "add-entry";
-  const navItemClass = (isActive: boolean) =>
-    `nav-item-skeletal w-full flex items-center gap-3 ${isActive ? 'active' : ''}`;
-
-  const sidebarContent = (
-    <>
-      {/* Logo - Skeletal */}
-      <div className="p-6 border-b border-galvanized flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="SAVEME" className="w-6 h-6 object-contain" />
-          <span className="mono text-foreground font-bold text-sm tracking-wider">
-            SAVEME
-          </span>
-        </div>
-        {isMobileOpen && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={onMobileClose}
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div className="flex-1 py-6 overflow-y-auto">
-        <nav className="space-y-1">
-          <Link to="/dashboard" onClick={handleNavClick}>
-            <div className={navItemClass(activeSection ? activeSection === "dashboard" : location.pathname === "/dashboard")}>
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Dashboard</span>
-            </div>
-          </Link>
-
-          <Link to="/voice-capture" onClick={handleNavClick}>
-            <div className={navItemClass(location.pathname === "/voice-capture")}>
-              <Mic className="w-4 h-4" />
-              <span>Voice capture</span>
-            </div>
-          </Link>
-
-          <Link to="/all-entries" onClick={handleNavClick}>
-            <div className={navItemClass(activeSection ? activeSection === "all-entries" : location.pathname === "/all-entries")}>
-              <FileText className="w-4 h-4" />
-              <span>All entries</span>
-              <span className="badge-skeletal ml-auto">
-                {savedEntriesCount}
-              </span>
-            </div>
-          </Link>
-
-          <Link to="/brain-dump" onClick={handleNavClick}>
-            <div className={navItemClass(activeSection ? activeSection === "brain-dump" : location.pathname === "/brain-dump")}>
-              <Brain className="w-4 h-4" />
-              <span>Brain dump</span>
-            </div>
-          </Link>
-
-          <button
-            onClick={() => {
-              onAddEntry();
-              handleNavClick();
-            }}
-            className={navItemClass(isAddEntryActive)}
-          >
-            <Plus className="w-4 h-4" />
-            <span>Save Manually</span>
-          </button>
-
-          <Link to="/settings" onClick={handleNavClick}>
-            <div className={navItemClass(activeSection ? activeSection === "settings" : location.pathname === "/settings")}>
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
-            </div>
-          </Link>
+  return (
+    <aside className={`flex w-full md:w-[232px] flex-col border-r border-border/60 bg-card/40 ${isMobileOpen ? "h-full" : "sticky top-0 h-dvh"}`} aria-label="Workspace sidebar">
+      <Link to="/dashboard" onClick={onMobileClose} className="flex h-[76px] shrink-0 items-center gap-3 px-6" aria-label="SaveMe dashboard">
+        <img src="/logo.png" alt="" className="h-8 w-8 object-contain" />
+        <span className="text-lg font-bold tracking-tight">SaveMe<span className="text-primary">.</span></span>
+      </Link>
+      <div className="flex-1 overflow-y-auto px-3 pb-5">
+        <p className="workspace-eyebrow px-3 pb-3 pt-5">Workspace</p>
+        <nav aria-label="Main navigation" className="space-y-1">
+          {pages.map(({to, label, icon: Icon, section}) => {
+            const active = activeSection ? activeSection === section : pathname === to || (to === "/all-entries" && pathname.startsWith(to + "/"));
+            return <Link key={to} to={to} onClick={onMobileClose} className="workspace-nav-link" aria-current={active ? "page" : undefined}>
+              <Icon className="h-[18px] w-[18px] shrink-0" /><span>{label}</span>
+              {to === "/all-entries" && <span className="ml-auto text-xs tabular-nums text-muted-foreground">{savedEntriesCount}</span>}
+            </Link>;
+          })}
         </nav>
-
-        {/* Categories */}
-        <div className="mt-8 pt-6 border-t border-galvanized">
-          <h3 className="mono text-xs text-muted-foreground tracking-wider mb-4 px-4">
-            Categories
-          </h3>
-          <div className="space-y-1">
-            {categories.map((category) => {
-              const Icon = category.icon;
-              const categoryEntries = filterEntriesByCategory(entries, category.name);
-              const count = categoryEntries.length;
-
-              return (
-                <Link key={category.name} to={`/category/${category.name}`} onClick={handleNavClick}>
-                  <div className={navItemClass(location.pathname === `/category/${category.name}`)}>
-                    <Icon className="w-4 h-4" />
-                    <span>{category.name}</span>
-                    <span className="badge-skeletal ml-auto">
-                      {count}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+        <button type="button" onClick={() => {onAddEntry(); onMobileClose?.();}} className="workspace-nav-link mt-3 w-full border border-border/70 text-foreground" aria-current={activeSection === "add-entry" ? "page" : undefined}>
+          <Plus className="h-[18px] w-[18px]" />New memory
+        </button>
+        <p className="workspace-eyebrow px-3 pb-3 pt-9">Collections</p>
+        <nav aria-label="Collections" className="space-y-1">
+          {categories.map(({name, icon: Icon}) => {
+            const count = filterEntriesByCategory(entries, name).length;
+            return <Link key={name} to={`/category/${name}`} onClick={onMobileClose} className="workspace-nav-link" aria-current={pathname === `/category/${name}` ? "page" : undefined}>
+              <Icon className="h-[17px] w-[17px] shrink-0" /><span>{name}</span>
+              {count > 0 && <span className="ml-auto text-xs tabular-nums">{count}</span>}
+            </Link>;
+          })}
+        </nav>
+      </div>
+      <div className="shrink-0 px-3 pb-3">
+        <Link to="/settings" onClick={onMobileClose} className="workspace-nav-link" aria-current={pathname === "/settings" ? "page" : undefined}><Settings className="h-[18px] w-[18px]" />Settings</Link>
+        <div className="mt-3 flex items-center gap-3 border-t border-border/60 px-3 pt-5 pb-2">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">{displayName.charAt(0).toUpperCase()}</span>
+          <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{displayName}</p><p className="mt-0.5 text-xs text-muted-foreground">Personal workspace</p></div>
+          <Link to="/settings" onClick={onMobileClose} aria-label="Open workspace settings" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted"><ArrowUpRight className="h-4 w-4" /></Link>
         </div>
       </div>
-
-      {/* User card */}
-      <div className="p-3 border-t border-galvanized">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.025] border border-border">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0"
-            style={{ background: "linear-gradient(135deg,#2dd4ff,#0b8fc4)", color: "#04222e" }}
-          >
-            {initial}
-          </div>
-          <div className="min-w-0 leading-tight">
-            <div className="text-[13px] font-semibold text-foreground truncate">{displayName}</div>
-            <div className="mono text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" style={{ boxShadow: "0 0 7px #34d399" }} />
-              Your private workspace
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  return (
-    <div className="w-64 bg-sidebar-background border-r border-galvanized h-full flex flex-col sidebar-skeletal">
-      {sidebarContent}
-    </div>
+    </aside>
   );
 };
 
-// Mobile Sidebar wrapper component
-export const MobileSidebar: React.FC<SidebarProps & { isOpen: boolean; onClose: () => void }> = ({
-  isOpen,
-  onClose,
-  ...props
-}) => {
-  if (!isOpen) return null;
-
-  return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
-        onClick={onClose}
-      />
-      {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 md:hidden">
-        <Sidebar {...props} isMobileOpen={true} onMobileClose={onClose} />
-      </div>
-    </>
-  );
-};
+export const MobileSidebar: React.FC<SidebarProps & {isOpen: boolean; onClose: () => void}> = ({isOpen, onClose, ...props}) => (
+  <Sheet open={isOpen} onOpenChange={(open) => {if (!open) onClose();}}>
+    <SheetContent side="left" className="workspace-shell w-[280px] max-w-[85vw] p-0" onCloseAutoFocus={(event) => {event.preventDefault(); document.getElementById("workspace-menu-toggle")?.focus();}}>
+      <SheetTitle className="sr-only">Workspace navigation</SheetTitle>
+      <SheetDescription className="sr-only">Navigate your memories and workspace.</SheetDescription>
+      <Sidebar {...props} isMobileOpen onMobileClose={onClose} />
+    </SheetContent>
+  </Sheet>
+);

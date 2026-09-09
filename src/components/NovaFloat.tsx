@@ -38,7 +38,7 @@ export const NovaFloat = () => {
     : voice.status === "thinking" ? "Nova is thinking" : voice.microphoneActive ? "Listening" : active ? "Connected" : "Talk to Nova";
 
   return (
-    <section aria-label="Nova conversation" className="fixed bottom-4 right-3 left-3 sm:left-auto sm:right-6 z-50" onKeyDown={(event) => {
+    <section aria-label="Nova conversation" className="nova-conversation fixed bottom-4 right-3 left-3 sm:left-auto sm:right-6 z-50" onKeyDown={(event) => {
       if (event.key === "Escape" && expanded) { event.stopPropagation(); minimize(); }
     }}>
       {expanded && (
@@ -55,11 +55,11 @@ export const NovaFloat = () => {
         </div>
       )}
       <div className="flex justify-end">
-        <div data-testid="nova-voice-dock" className="max-w-full flex items-center gap-1 rounded-2xl border border-primary/25 bg-background px-2 py-1.5 shadow-xl">
+        <div data-testid="nova-voice-dock" className="max-w-full flex items-center gap-1 rounded-2xl border border-primary/20 bg-card px-2 py-1.5 shadow-xl shadow-black/20">
           <button ref={trigger} onClick={() => setExpanded((value) => !value)} aria-label={expanded ? "Minimize Nova conversation" : "Open Nova conversation"} aria-expanded={expanded}
             className="flex min-w-0 items-center gap-3 text-left px-2 py-1 rounded-xl hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary">
             <span className={`h-9 w-9 rounded-full grid place-items-center ${voice.microphoneActive ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}><Mic className="h-4 w-4" /></span>
-            <span className="min-w-0">
+            <span className={`min-w-0 ${!active && !expanded ? "hidden sm:block" : ""}`}>
               <span className="block text-sm font-semibold" role="status">{stateLabel}</span>
               <span className="block text-xs text-muted-foreground">{voice.microphoneActive ? "Microphone on · continues across pages" : active ? "Microphone off" : voice.conversationHistory.length ? "Conversation kept · microphone off" : "Voice and text, anywhere"}</span>
             </span>

@@ -44,6 +44,7 @@ type ActionableItem = {
 
 interface DashboardIntelligencePanelProps {
   entries: SavedEntry[];
+  compact?: boolean;
 }
 
 const asOptionalString = (value: unknown): string | undefined =>
@@ -89,13 +90,20 @@ const parseActionItemText = (value: unknown): string[] => {
   return [];
 };
 
-export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProps> = ({ entries }) => {
+export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProps> = ({ entries, compact = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
   const [linkedCount, setLinkedCount] = useState(0);
   const [memoryCount, setMemoryCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [reminderError, setReminderError] = useState(false);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  useEffect(() => {
+    const refresh = () => setRefreshVersion((version) => version + 1);
+    window.addEventListener("saveme:reminders-changed", refresh);
+    return () => window.removeEventListener("saveme:reminders-changed", refresh);
+  }, []);
 
   const actionItems: ActionableItem[] = useMemo(() => {
     return entries
@@ -159,6 +167,7 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
 
       try {
         setIsLoading(true);
+        setReminderError(false);
 
         const [remindersSnap, linksSnap, memoriesSnap] = await Promise.all([
           getDocs(
@@ -166,10 +175,10 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
               collection(db, "reminders"),
               where("user_id", "==", user.uid),
               where("status", "in", ["pending", "scheduled"]),
-              orderBy("remind_at", "asc"),
+              orderBy("trigger_at", "asc"),
               limit(5)
             )
-          ).catch(() => ({ docs: [] } as Awaited<ReturnType<typeof getDocs>>)),
+          ).catch(() => {setReminderError(true); return { docs: [] } as Awaited<ReturnType<typeof getDocs>>;}),
           getDocs(
             query(
               collection(db, "entry_links"),
@@ -192,7 +201,7 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
           return {
             id: docSnap.id,
             text: String(data.text || data.title || "Reminder"),
-            remind_at: toReminderDate(data.remind_at),
+            remind_at: toReminderDate(data.trigger_at || data.remind_at),
             status: asOptionalString(data.status),
             entry_id: asOptionalString(data.entry_id) || asOptionalString(data.entryId) || null,
           };
@@ -225,7 +234,27 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
     };
 
     loadIntelligence();
-  }, [user, entries.length]);
+  }, [user, entries.length, refreshVersion]);
+
+  if (compact) return (
+    <section className="workspace-panel overflow-hidden" aria-labelledby="your-day-heading">
+      <div className="flex items-center justify-between border-b border-border/60 p-5">
+        <h2 id="your-day-heading" className="text-base font-semibold">Your day, at a glance</h2><Sparkles className="h-4 w-4 text-primary" />
+      </div>
+      <div className="space-y-6 p-5">
+        <div>
+          <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><BellRing className="h-3.5 w-3.5" />UPCOMING</h3>
+          {isLoading ? <p className="text-sm text-muted-foreground">Loading your day…</p> : reminderError ? <div className="text-sm text-muted-foreground"><p>Couldn’t load reminders.</p><button type="button" onClick={() => setRefreshVersion((version) => version + 1)} className="mt-2 min-h-9 font-medium text-primary">Try again</button></div> : reminders.length ? <div className="space-y-3">{reminders.slice(0, 3).map((reminder) => <div key={reminder.id}>
+            {reminder.entry_id ? <button type="button" className="text-left text-sm font-medium hover:text-primary" onClick={() => openEntry(reminder.entry_id)}>{reminder.text}</button> : <p className="text-sm font-medium">{reminder.text}</p>}
+            <p className="mt-1 text-xs text-muted-foreground">{reminder.remind_at?.toLocaleString(undefined, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}) || "Scheduled"}</p>
+          </div>)}</div> : <p className="text-sm leading-relaxed text-muted-foreground">Nothing scheduled. A little room to breathe.</p>}
+        </div>
+        {actionItems.length > 0 && <div><h3 className="mb-3 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><CheckSquare className="h-3.5 w-3.5" />TO FOLLOW UP</h3><div className="space-y-3">{actionItems.slice(0, 3).map((item, index) => <button type="button" key={`${item.entryId}-${index}`} onClick={() => openEntry(item.entryId)} className="block w-full text-left text-sm leading-relaxed hover:text-primary">{item.text}<span className="mt-1 block truncate text-xs text-muted-foreground">{item.entryTitle}</span></button>)}</div></div>}
+        <button type="button" onClick={() => navigate("/briefing")} className="flex min-h-10 w-full items-center justify-between rounded-lg text-sm font-medium text-primary">Open my briefing<ArrowRight className="h-4 w-4" /></button>
+      </div>
+      <div className="flex items-center justify-between border-t border-border/60 px-5 py-4 text-xs text-muted-foreground"><span>{memoryCount} Nova memories · {linkedCount} connections</span><button type="button" onClick={() => navigate("/insights")} className="min-h-9 pl-2 text-foreground hover:text-primary">Insights</button></div>
+    </section>
+  );
 
   return (
     <div className="space-y-6">
@@ -278,6 +307,8 @@ export const DashboardIntelligencePanel: React.FC<DashboardIntelligencePanelProp
           <CardContent className="space-y-3">
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Loading reminders…</p>
+            ) : reminderError ? (
+              <p className="text-sm text-muted-foreground">Couldn’t load reminders. Please try again later.</p>
             ) : reminders.length === 0 ? (
               <p className="text-sm text-muted-foreground">No active reminders yet.</p>
             ) : (

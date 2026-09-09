@@ -1,0 +1,22 @@
+/* Shared workspace surfaces. Keep the public site and document editors unchanged. */
+body:has(.workspace-shell)::before { display: none; }
+.workspace-shell { background: hsl(var(--background)); }
+.workspace-panel { border: 1px solid hsl(var(--border) / .7); border-radius: 1rem; background: hsl(var(--card)); }
+.workspace-nav-link { display: flex; align-items: center; gap: .75rem; min-height: 44px; padding: .65rem .85rem; border-radius: .65rem; color: hsl(var(--muted-foreground)); font-size: .875rem; transition: background-color .15s, color .15s; }
+.workspace-nav-link:hover { background: hsl(var(--muted) / .55); color: hsl(var(--foreground)); }
+.workspace-nav-link[aria-current="page"] { background: hsl(var(--primary) / .1); color: hsl(var(--primary)); font-weight: 600; }
+.workspace-nav-link:focus-visible, .workspace-shell button:focus-visible, .workspace-shell summary:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.workspace-eyebrow { font-size: .6875rem; line-height: 1.5; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.workspace-search input { height: 44px; border-radius: .75rem; background: hsl(var(--muted) / .25); box-shadow: none; transform: none; }
+.workspace-search input:focus { border-color: hsl(var(--primary) / .5); box-shadow: 0 0 0 3px hsl(var(--primary) / .08); transform: none; }
+.workspace-shell .reveal { opacity: 1; transform: none; animation: none; }
+.workspace-shell .memory-list > div { border-color: hsl(var(--border) / .65); box-shadow: none; background: transparent; }
+.workspace-shell .memory-list > div:hover { background: hsl(var(--muted) / .2); }
+.workspace-shell .memory-list h3 { font-size: .9375rem; line-height: 1.5; }
+.workspace-shell .memory-grid > div { border: 1px solid hsl(var(--border) / .7); box-shadow: none; }
+.workspace-shell .memory-grid > div > div:first-child { background: hsl(var(--muted) / .15); border-color: hsl(var(--border) / .6); }
+.workspace-shell .memory-grid .ring-2 { box-shadow: none; }
+.workspace-shell[role="dialog"] > button { min-width: 44px; min-height: 44px; top: .5rem; right: .5rem; display: grid; place-items: center; }
+@media (prefers-reduced-motion: reduce) {
+  .workspace-shell *, .nova-conversation * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { SearchHeader } from '@/components/SearchHeader';
@@ -51,6 +51,17 @@ const layoutProps = {
 };
 
 describe('dashboard polish', () => {
+  it('opens mobile navigation as a dialog and restores focus after Escape', async () => {
+    render(<MemoryRouter initialEntries={['/voice-capture']}><DashboardLayout {...layoutProps}><div>Capture body</div></DashboardLayout></MemoryRouter>);
+    const trigger = screen.getByLabelText('Open navigation menu');
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole('dialog', {name: 'Workspace navigation'});
+    expect(within(dialog).getByRole('link', {name: 'Voice capture'}).getAttribute('aria-current')).toBe('page');
+    fireEvent.keyDown(dialog, {key: 'Escape', code: 'Escape'});
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
   it('keeps the desktop header focused on search, archive, and account instead of duplicating capture CTAs', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>

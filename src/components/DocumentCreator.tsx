@@ -14,11 +14,12 @@ import { generateDocument } from "@/utils/documentGenerator";
 import { uploadDocumentToStorage } from "@/utils/documentStorage";
 
 interface DocumentCreatorProps {
+  initialMode?: 'upload' | 'create' | 'info';
   onSave: (entry: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
 }
 
-export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCancel }) => {
+export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCancel, initialMode = 'create' }) => {
   const [documentName, setDocumentName] = useState("");
   const [documentType, setDocumentType] = useState("");
   const [description, setDescription] = useState("");
@@ -28,7 +29,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   const [notes, setNotes] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [documentContent, setDocumentContent] = useState("<p>Start writing your document here...</p>");
-  const [createMode, setCreateMode] = useState<'upload' | 'create' | 'info'>('create');
+  const [createMode, setCreateMode] = useState<'upload' | 'create' | 'info'>(initialMode);
   const [selectedFormat, setSelectedFormat] = useState<DocumentFormat | ''>('docx');
   const [isGenerating, setIsGenerating] = useState(false);
 

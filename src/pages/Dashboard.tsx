@@ -62,6 +62,7 @@ export default function Dashboard() {
 
   const {
     savedEntries,
+    allSavedEntries,
     isLoading: entriesLoading,
     isSaving,
     searchQuery,
@@ -262,7 +263,7 @@ export default function Dashboard() {
 
   const isEntryFormActive = showAddEntry || !!editingEntry || !!fillingEntry || !!templateEntry;
   const formHeading = showDocumentCreator
-    ? 'Create Document'
+    ? 'Add a document'
     : editingEntry
       ? 'Edit Entry'
       : fillingEntry
@@ -272,7 +273,7 @@ export default function Dashboard() {
           : 'Save a Memory';
   const formSubheading = showDocumentCreator
     ? 'Build a structured document for your archive.'
-    : 'Write the thing you do not want to lose. Anam keeps it structured, searchable, and yours.';
+    : 'Write the thing you do not want to lose. Nova keeps it structured, searchable, and yours.';
 
   const userName = user?.displayName || user?.email || 'User';
 
@@ -286,7 +287,7 @@ export default function Dashboard() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         userName={userName}
-        savedEntries={savedEntries}
+        savedEntries={allSavedEntries}
         onAddEntry={handleAddEntry}
         onCategorySelect={handleCategorySelect}
         onAllEntriesSelect={handleAllEntriesSelect}
@@ -308,6 +309,7 @@ export default function Dashboard() {
               <div className="p-6">
                 <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading document tools…</div>}>
                   <DocumentCreator
+                    initialMode="upload"
                     onSave={handleDocumentSave}
                     onCancel={handleDocumentCancel}
                   />
@@ -352,6 +354,7 @@ export default function Dashboard() {
             <DashboardMainContent
               userName={userName}
               savedEntries={savedEntries}
+              allEntries={allSavedEntries}
               searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onCategorySelect={handleCategorySelect}

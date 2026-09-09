@@ -140,13 +140,14 @@ export const SmartSearch: React.FC<SmartSearchProps> = ({
         <Input
           ref={inputRef}
           type="text"
+          aria-label="Search memories"
           placeholder={placeholder}
           value={searchQuery}
           onChange={handleInputChange}
           onKeyDown={onKeyDown}
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 150)}
-          className="pl-10 pr-12 py-2 w-full transition-all duration-300 ease-in-out focus:scale-[1.02] hover:shadow-md"
+          className="pl-10 pr-12 py-2 w-full transition-all duration-300 ease-in-out focus:ring-2 focus:ring-primary/20"
           autoComplete="off"
         />
         {searchPreferences.enableSemanticSearch && (

@@ -30,7 +30,7 @@ export function PatternInsightsPanel({
   analysis,
   onInsightClick
 }: PatternInsightsPanelProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('week');
+
 
   const getInsightIcon = (type: PatternInsight['type']) => {
     switch (type) {
@@ -52,13 +52,13 @@ export function PatternInsightsPanel({
   const getSentimentColor = (sentiment?: string) => {
     switch (sentiment) {
       case 'positive':
-        return 'bg-green-50 border-green-200';
+        return 'bg-emerald-500/5 border-emerald-500/20';
       case 'negative':
-        return 'bg-red-50 border-red-200';
+        return 'bg-rose-500/5 border-rose-500/20';
       case 'mixed':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-amber-500/5 border-amber-500/20';
       default:
-        return 'bg-slate-50 border-slate-200';
+        return 'bg-muted/20 border-border/70';
     }
   };
 
@@ -75,10 +75,10 @@ export function PatternInsightsPanel({
 
   const emotionalToneColor =
     analysis.emotionalTone.primary === 'positive'
-      ? 'bg-green-100 text-green-900'
+      ? 'bg-emerald-500/5 text-foreground'
       : analysis.emotionalTone.primary === 'negative'
-        ? 'bg-red-100 text-red-900'
-        : 'bg-slate-100 text-slate-900';
+        ? 'bg-rose-500/5 text-foreground'
+        : 'bg-card text-foreground';
 
   const emotionalToneIntensity =
     analysis.emotionalTone.intensity === 'high'
@@ -89,69 +89,36 @@ export function PatternInsightsPanel({
 
   return (
     <div className="space-y-4">
-      {/* Period selector */}
-      <div className="flex gap-2">
-        <Button
-          variant={selectedPeriod === 'today' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedPeriod('today')}
-        >
-          Today
-        </Button>
-        <Button
-          variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedPeriod('week')}
-        >
-          This Week
-        </Button>
-        <Button
-          variant={selectedPeriod === 'month' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedPeriod('month')}
-        >
-          This Month
-        </Button>
-      </div>
-
       {/* Emotional tone summary */}
       <Card className={emotionalToneColor}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Your Vibe</CardTitle>
+            <CardTitle className="text-lg">Word patterns</CardTitle>
             <Heart className="h-5 w-5" />
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Primary Emotion:</span>
+              <span className="text-sm font-medium">Most matched tone:</span>
               <Badge variant="secondary">{analysis.emotionalTone.primary}</Badge>
             </div>
             {analysis.emotionalTone.secondary && (
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Also feeling:</span>
+                <span className="text-sm font-medium">Also mentioned:</span>
                 <Badge variant="outline">{analysis.emotionalTone.secondary}</Badge>
               </div>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Intensity:</span>
+              <span className="text-sm font-medium">Match frequency:</span>
               <span className="text-sm font-semibold">{emotionalToneIntensity}</span>
             </div>
           </div>
+          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">Word matches can miss context. They describe language in your notes, rather than how you feel.</p>
         </CardContent>
       </Card>
 
       {/* Summary */}
-      {analysis.summary && (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              💡 {analysis.summary}
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Key insights */}
       {analysis.insights.length > 0 ? (
@@ -159,10 +126,10 @@ export function PatternInsightsPanel({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5" />
-              Key Patterns
+              Recurring themes
             </CardTitle>
             <CardDescription>
-              What I've noticed in your entries
+              Based on words in your memories. Open a theme to review the context.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -171,7 +138,7 @@ export function PatternInsightsPanel({
                 <button
                   key={idx}
                   onClick={() => onInsightClick?.(insight)}
-                  className={`w-full text-left p-3 rounded-lg border-2 transition-colors hover:shadow-md ${getSentimentColor(
+                  className={`w-full text-left p-3 rounded-lg border transition-colors hover:bg-muted/50 ${getSentimentColor(
                     insight.sentiment
                   )}`}
                 >
@@ -186,18 +153,10 @@ export function PatternInsightsPanel({
                           <Badge variant="secondary" className="text-xs">
                             {insight.occurrences}x
                           </Badge>
-                          {insight.trendDirection && (
-                            <div className="flex items-center gap-1">
-                              {getTrendIcon(insight.trendDirection)}
-                              <span className="text-xs text-muted-foreground capitalize">
-                                {insight.trendDirection}
-                              </span>
-                            </div>
-                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {insight.type === 'emotion' &&
-                            `You've mentioned this ${insight.occurrences} times in your entries`}
+                            `Related words matched ${insight.occurrences} times`}
                           {insight.type === 'topic' &&
                             `This topic appears in ${insight.occurrences} of your entries`}
                           {insight.type === 'person' &&
@@ -215,7 +174,7 @@ export function PatternInsightsPanel({
                     </div>
                     <div className="flex-shrink-0">
                       <div
-                        className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-sm font-bold"
+                        className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-semibold"
                         title={`${Math.round(insight.confidence * 100)}% confidence`}
                       >
                         {Math.round(insight.confidence * 100)}%

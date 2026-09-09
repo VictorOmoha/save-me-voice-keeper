@@ -1,10 +1,12 @@
+import {WorkspacePage, WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import PatternInsightsPanel from '@/components/insights/PatternInsightsPanel';
-import { getInsightsForPeriod, PatternAnalysis } from '@/utils/patternRecognition';
+import { getInsightsForPeriod, PatternAnalysis, PatternInsight } from '@/utils/patternRecognition';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useToast } from '@/hooks/use-toast';
 import { fieldValueToText } from '@/utils/fieldValueGuards';
@@ -15,6 +17,7 @@ const InsightsPage: React.FC = () => {
   const { toast } = useToast();
   
   const [analysis, setAnalysis] = useState<PatternAnalysis | null>(null);
+  const [selectedInsight, setSelectedInsight] = useState<PatternInsight | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'quarter' | 'year'>('week');
 
@@ -65,35 +68,15 @@ const InsightsPage: React.FC = () => {
     navigate('/dashboard');
   };
 
-  const handleInsightClick = (insight: { pattern: string }) => {
-    // Could navigate to filtered view of entries matching this insight
-    const query = `insight=${insight.pattern}`;
-    navigate(`/dashboard?${query}`);
-  };
+  const handleInsightClick = (insight: PatternInsight) => setSelectedInsight(insight);
 
   return (
-    <>
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <nav className="container mx-auto px-4 py-2 flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={handleBackClick}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          <h1 className="text-xl font-bold">Insights</h1>
-          <div className="w-24"></div>
-        </nav>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        <article className="space-y-6 max-w-4xl mx-auto">
-          {/* Page header */}
-          <header className="space-y-2">
-            <h2 className="text-3xl font-bold">It Read Your Mind</h2>
-            <p className="text-muted-foreground">
-              Patterns and insights from your brain dumps. What's been on your mind?
-            </p>
-          </header>
-
+    <WorkspacePage>
+      <WorkspacePageHeader title="Insights" description="Explore recurring themes and patterns in your saved memories." actions={
+        <select aria-label="Insight period" className="workspace-select" value={period} onChange={event => setPeriod(event.target.value as typeof period)}>
+          <option value="today">Today</option><option value="week">This week</option><option value="month">This month</option><option value="quarter">This quarter</option><option value="year">This year</option>
+        </select>} />
+      <article className="space-y-6">
           {/* Loading state */}
           {isDashboardLoading || isAnalyzing ? (
             <Card>
@@ -132,26 +115,25 @@ const InsightsPage: React.FC = () => {
               />
 
               {/* Recommendations */}
-              {analysis.insights.length > 0 && (
-                <Card className="border-purple-200 bg-purple-50">
+              {(analysis.emotionalTone.intensity === 'high' || analysis.insights.some(i => i.type === 'emotion' && (i.pattern === 'anxiety' || i.trendDirection === 'increasing')) || analysis.insights.filter(i => i.type === 'topic').length > 3) && (
+                <Card className="border-primary/20 bg-primary/5">
                   <CardHeader>
                     <CardTitle className="text-lg">💡 Recommendation</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {analysis.emotionalTone.intensity === 'high' && (
                       <p className="text-sm">
-                        You've been feeling pretty {analysis.emotionalTone.primary.toLowerCase()} lately. 
-                        Maybe it's time for a break or a check-in with someone you trust?
+                        Several words matched the {analysis.emotionalTone.primary.toLowerCase()} theme. Open the source memories to see whether that matches what you meant.
                       </p>
                     )}
                     {analysis.insights.some(i => i.type === 'emotion' && i.pattern === 'anxiety') && (
                       <p className="text-sm">
-                        You've mentioned anxiety several times. Consider: What's one small thing you can control today?
+                        If the anxiety theme feels relevant, you could use a new note to reflect on what is on your mind.
                       </p>
                     )}
                     {analysis.insights.some(i => i.trendDirection === 'increasing' && i.type === 'emotion') && (
                       <p className="text-sm">
-                        Your emotional intensity is increasing. Journaling more might help you work through it.
+                        These matches are based on words, so their meaning depends on the context of each memory.
                       </p>
                     )}
                     {analysis.insights.filter(i => i.type === 'topic').length > 3 && (
@@ -163,33 +145,24 @@ const InsightsPage: React.FC = () => {
                 </Card>
               )}
 
-              {/* Debug info (remove in production) */}
-              {process.env.NODE_ENV === 'development' && (
-                <Card className="opacity-50 text-xs">
-                  <CardHeader>
-                    <CardTitle className="text-sm">Debug Info</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="bg-slate-900 text-slate-100 p-3 rounded overflow-auto max-h-40">
-                      {JSON.stringify({
-                        entriesAnalyzed: entries?.length,
-                        insightsFound: analysis.insights.length,
-                        emotionalTone: analysis.emotionalTone,
-                        timeRange: {
-                          start: analysis.timeRange.start.toISOString(),
-                          end: analysis.timeRange.end.toISOString(),
-                          days: analysis.timeRange.daysAnalyzed
-                        }
-                      }, null, 2)}
-                    </pre>
-                  </CardContent>
-                </Card>
-              )}
             </>
           ) : null}
         </article>
-      </main>
-    </>
+      <Dialog open={!!selectedInsight} onOpenChange={open => {if (!open) setSelectedInsight(null);}}>
+        <DialogContent className="workspace-shell max-h-[85dvh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-2xl">
+          <DialogHeader className="pr-8">
+            <DialogTitle>{selectedInsight?.label}: source memories</DialogTitle>
+            <DialogDescription>These memories contributed to this theme. Open one to review its context.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">{entries.filter(entry => selectedInsight?.entries.includes(entry.id)).map(entry =>
+            <button key={entry.id} className="w-full rounded-xl border border-border/70 p-4 text-left text-sm hover:bg-muted" onClick={() => navigate(`/all-entries/${encodeURIComponent(entry.id)}`)}>
+              <span className="block font-medium">{entry.title}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">{fieldValueToText(entry.fields.category) || 'Personal'}</span>
+            </button>)}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </WorkspacePage>
   );
 };
 

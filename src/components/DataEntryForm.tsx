@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SavedEntry } from "@/types/dashboard";
 import { CustomField } from "./forms/types";
@@ -55,7 +56,6 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     moveField,
     prepareSubmissionData,
     categories,
-    isDirty
   } = useFormLogic({ editEntry, templateEntry, mode, preselectedCategory });
 
   const { registerFormSetters, unregisterFormSetters } = useVoiceFormContext();
@@ -131,6 +131,7 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!hasRequiredBasics) {
       toast.error('Add a title and category before saving.');
       return;
@@ -138,17 +139,15 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
     onSave(prepareSubmissionData());
   };
 
-  const isEditMode = mode === 'edit' || mode === 'fill' || mode === 'create';
+  const isEditMode = true;
   const isFillMode = mode === 'fill';
   const isTemplateMode = mode === 'template';
   const isCategoryReadonly = !!preselectedCategory || (templateEntry && mode === 'template');
+  const notesField = fields.find(field => /^(notes|content)$/i.test(field.name) && (field.type === 'text' || field.type === 'textarea'));
+  const additionalFields = fields.filter(field => field !== notesField);
 
   return (
-    <div className={`bg-background text-foreground transition-all duration-500 animate-fade-in ${
-      isDirty ? 'ring-2 ring-primary/50 shadow-lg shadow-primary/20 bg-primary/5' : ''
-    } ${mode === 'create' || mode === 'edit' || mode === 'fill' ? 'mb-20' : ''} ${
-      isVoiceActive ? 'ring-2 ring-blue-500/30 shadow-lg shadow-blue-500/10' : ''
-    }`}>
+    <div className="workspace-form mx-auto w-full max-w-3xl rounded-2xl border border-border/70 bg-card text-foreground">
       {isVoiceActive && (
         <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 p-3 border-b border-border animate-fade-in">
           <div className="flex items-center justify-between">
@@ -178,19 +177,19 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-4 p-4 md:p-5">
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 md:p-4">
-          <p className="text-sm font-semibold text-foreground">Capture one memory. Nova will keep it structured.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Write the thing you do not want to lose. Add only the details you know.</p>
+      <form onSubmit={handleSubmit} className="space-y-6 p-5 md:p-7">
+        <div>
+          <h2 className="text-lg font-semibold">{isFillMode ? 'Fill in memory details' : editEntry ? 'Edit memory' : isTemplateMode ? 'New from template' : 'Save a memory'}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{isFillMode ? 'Complete the fields below and update your saved memory.' : 'Give it a title, add what matters, and choose where it belongs.'}</p>
         </div>
 
         <div className={`space-y-2 transition-all duration-300 ${
           highlightedField === 'title' ? 'animate-pulse ring-2 ring-blue-500/50 rounded-lg p-2' : ''
         }`}>
-          <Label htmlFor="title" className="text-foreground">What should Nova remember?</Label>
+          <Label htmlFor="title" className="text-foreground">Title</Label>
           <Input
             id="title"
-            placeholder="e.g., Insurance renewal, Mom’s medication, Client follow-up"
+            placeholder="Give this memory a name"
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
@@ -225,12 +224,14 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
           />
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-xl border border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Say it naturally: “My policy is with State Farm, policy number is 1234, renewal is July 15.” Empty fields stay hidden in the saved view.
-          </div>
+        {notesField && <div className="space-y-2">
+          <Label htmlFor="memory-notes">Notes</Label>
+          <Textarea id="memory-notes" placeholder="Write the details you want to remember…" className="min-h-40 text-base"
+            value={String(notesField.value ?? '')} onChange={event => updateField(notesField.id, 'value', event.target.value)} />
+        </div>}
+        <div className="space-y-4 border-t border-border/60 pt-5">
           <FormFieldManager
-            fields={fields}
+            fields={additionalFields}
             onAddField={addField}
             onUpdateField={updateField}
             onRemoveField={removeField}
@@ -240,19 +241,13 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
             isVoiceActive={isVoiceActive}
           />
 
-          {fields.map((field, index) => (
+          {additionalFields.map((field) => (
             <div 
               key={field.id}
-              className={`animate-fade-in ${
-                index === fields.length - 1 && highlightedField === 'field_name' 
-                  ? 'animate-scale-in animate-bounce' 
-                  : ''
-              }`}
-              style={{ animationDelay: `${index * 100}ms` }}
             >
               <CustomFieldItem
                 field={field}
-                index={index}
+                index={fields.indexOf(field)}
                 fieldsLength={fields.length}
                 isEditMode={isEditMode}
                 isFillMode={isFillMode}
@@ -260,17 +255,17 @@ export const DataEntryForm: React.FC<DataEntryFormProps> = ({
                 onRemoveField={removeField}
                 onMoveField={moveField}
                 highlightedField={highlightedField}
-                isVoiceCreated={index === fields.length - 1 && highlightedField === 'field_name'}
+                isVoiceCreated={field === fields[fields.length - 1] && highlightedField === 'field_name'}
               />
             </div>
           ))}
         </div>
 
-        <div className="sticky bottom-0 -mx-4 md:-mx-5 mt-2 flex flex-col-reverse sm:flex-row justify-end gap-2 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-border/60 pt-5">
           <Button type="button" onClick={onCancel} variant="outline" className="text-foreground border-border w-full sm:w-auto" disabled={isSaving}>
             Cancel
           </Button>
-          <Button type="submit" variant="gradient" className="w-full sm:w-auto" disabled={isSaving || !hasRequiredBasics}>
+          <Button type="submit" className="w-full sm:w-auto min-h-11" disabled={isSaving || !hasRequiredBasics}>
             {isSaving ? 'Saving...' : editEntry ? 'Update Entry' : isTemplateMode ? 'Save Entry' : isFillMode ? 'Save Data' : 'Save Entry'}
           </Button>
         </div>

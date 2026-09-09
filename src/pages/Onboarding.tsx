@@ -78,9 +78,9 @@ export default function Onboarding() {
   const isFirstStep = currentStep === 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="workspace-shell min-h-screen flex flex-col bg-background pb-24 sm:pb-6">
       {/* Skip button */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="flex justify-end px-4 pt-4">
         <Button
           variant="ghost"
           size="sm"
@@ -104,21 +104,22 @@ export default function Onboarding() {
       <div className="p-6 border-t">
         <div className="max-w-2xl mx-auto">
           {/* Progress dots */}
-          <div className="flex justify-center gap-2 mb-6">
+          <div className="flex justify-center mb-4">
             {steps.map((step, index) => (
               <button
                 key={step.id}
                 onClick={() => setCurrentStep(index)}
-                className={cn(
-                  "w-2.5 h-2.5 rounded-full transition-colors",
+                className="flex h-11 w-11 items-center justify-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-current={index === currentStep ? 'step' : undefined}
+                aria-label={`Go to step ${index + 1}`}
+              ><span className={cn(
+                  "h-2.5 w-2.5 rounded-full transition-colors",
                   index === currentStep
                     ? "bg-primary"
                     : index < currentStep
                     ? "bg-primary/50"
                     : "bg-muted-foreground/30"
-                )}
-                aria-label={`Go to step ${index + 1}`}
-              />
+                )} /></button>
             ))}
           </div>
 

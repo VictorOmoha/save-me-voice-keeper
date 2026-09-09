@@ -38,15 +38,15 @@ interface SavedWebhookConfig {
 
 export const WebhookTesting = () => {
   const { user } = useAuth();
-  const [webhookUrl, setWebhookUrl] = useState("https://hooks.zapier.com/hooks/catch/23790183/u2t2vvq/");
+  const [webhookUrl, setWebhookUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [latestEntry, setLatestEntry] = useState<SavedEntry | null>(null);
-  const [userEmail, setUserEmail] = useState("omohavictor@gmail.com");
+  const [userEmail, setUserEmail] = useState('');
   const [currentConfigName, setCurrentConfigName] = useState("Default Configuration");
   const [testFields, setTestFields] = useState<TestField[]>([
     { key: 'entryTitle', type: 'text', value: 'Sample Car Warranty', label: 'Entry Title' },
     { key: 'expirationDate', type: 'date', value: '2026-08-01', label: 'Expiration Date' },
-    { key: 'userEmail', type: 'email', value: 'omohavictor@gmail.com', label: 'User Email' }
+    { key: 'userEmail', type: 'email', value: '', label: 'User Email' }
   ]);
 
 
@@ -178,12 +178,11 @@ export const WebhookTesting = () => {
     }
 
     setIsLoading(true);
-    console.log("Sending test payload to Zapier webhook:", webhookUrl);
 
     try {
       const payload = buildTestPayload();
       
-      const response = await fetch(webhookUrl, {
+      await fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -192,8 +191,7 @@ export const WebhookTesting = () => {
         body: JSON.stringify(payload),
       });
 
-      toast.success("Test payload sent to Zapier! Check your Zap's history to confirm it was received.");
-      console.log("Test payload sent successfully", payload);
+      toast.success("Test request sent. Check your workflow history to confirm delivery.");
     } catch (error) {
       console.error("Error sending test payload:", error);
       toast.error("Failed to send test payload. Please check the URL and try again.");
@@ -214,7 +212,6 @@ export const WebhookTesting = () => {
     }
 
     setIsLoading(true);
-    console.log("Sending actual entry data to Zapier webhook:", webhookUrl);
 
     try {
       const expirationDate = latestEntry.fields?.expirationDate || 
@@ -242,8 +239,7 @@ export const WebhookTesting = () => {
         body: JSON.stringify(payload),
       });
 
-      toast.success("Actual entry data sent to Zapier! Check your Zap's history to confirm it was received.");
-      console.log("Actual entry data sent successfully");
+      toast.success("Entry request sent. Check your workflow history to confirm delivery.");
     } catch (error) {
       console.error("Error sending actual entry data:", error);
       toast.error("Failed to send actual entry data. Please check the URL and try again.");
@@ -334,6 +330,7 @@ export const WebhookTesting = () => {
                   <div className="space-y-1">
                     <Label className="text-xs">Field Key</Label>
                     <Input
+                      aria-label={`Field ${index + 1} key`}
                       value={field.key}
                       onChange={(e) => handleUpdateField(index, { key: e.target.value })}
                       placeholder="fieldName"
@@ -344,6 +341,7 @@ export const WebhookTesting = () => {
                   <div className="space-y-1">
                     <Label className="text-xs">Label</Label>
                     <Input
+                      aria-label={`Field ${index + 1} label`}
                       value={field.label}
                       onChange={(e) => handleUpdateField(index, { label: e.target.value })}
                       placeholder="Field Label"
@@ -359,7 +357,7 @@ export const WebhookTesting = () => {
                         handleUpdateField(index, { type: value })
                       }
                     >
-                      <SelectTrigger className="text-sm">
+                      <SelectTrigger aria-label={`Field ${index + 1} type`} className="text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -374,6 +372,7 @@ export const WebhookTesting = () => {
                   <div className="space-y-1">
                     <Label className="text-xs">Value</Label>
                     <Input
+                      aria-label={`${field.label} value`}
                       type={field.type === 'date' ? 'date' : field.type === 'number' ? 'number' : field.type}
                       value={field.value}
                       onChange={(e) => handleUpdateField(index, { value: e.target.value })}
@@ -384,6 +383,7 @@ export const WebhookTesting = () => {
                   
                   <div className="flex items-end">
                     <Button
+                      aria-label={`Remove ${field.label}`}
                       onClick={() => handleRemoveField(index)}
                       variant="outline"
                       size="sm"
@@ -402,6 +402,7 @@ export const WebhookTesting = () => {
           <div className="space-y-2">
             <Label>Payload Preview</Label>
             <Textarea
+              aria-label="Payload preview"
               readOnly
               value={JSON.stringify(buildTestPayload(), null, 2)}
               rows={8}
@@ -435,7 +436,7 @@ export const WebhookTesting = () => {
             <p>• Configure custom fields above to match your webhook requirements</p>
             <p>• Test payload sends the configured sample data above</p>
             <p>• Latest Entry Data sends your most recent saved entry</p>
-            <p>• Webhooks are automatically triggered when you create or update entries</p>
+            <p>• Sending a test does not enable automatic delivery</p>
             <p>• Check your webhook destination to see received data</p>
             <p>• Save different configurations for various webhook testing scenarios</p>
           </div>

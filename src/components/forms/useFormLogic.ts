@@ -64,8 +64,8 @@ export const useFormLogic = ({
 
   useEffect(() => {
     let newTitle = "";
-    let newCategory = preselectedCategory || "";
-    let newFields: CustomField[] = [];
+    let newCategory = preselectedCategory || "Personal";
+    let newFields: CustomField[] = [{id: 'notes', name: 'Notes', type: 'textarea', value: ''}];
 
     if (editEntry) {
       newTitle = editEntry.title;
@@ -78,7 +78,7 @@ export const useFormLogic = ({
           .map(fieldDef => ({
             ...fieldDef,
             name: normalizeFieldName(fieldDef.name), // Normalize display name
-            value: editEntry.fields[fieldDef.name] || ''
+            value: editEntry.fields[fieldDef.name] ?? ''
           }));
         newFields = editFields.length > 0 ? editFields : [];
       } else {
@@ -104,7 +104,7 @@ export const useFormLogic = ({
           .map(fieldDef => ({
             ...fieldDef,
             name: normalizeFieldName(fieldDef.name),
-            value: templateEntry.fields[fieldDef.name] || ''
+            value: templateEntry.fields[fieldDef.name] ?? ''
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
       } else {
@@ -115,7 +115,7 @@ export const useFormLogic = ({
             id: (index + 1).toString(),
             name: normalizeFieldName(name),
             type: detectFieldType(value),
-            value: value || ''
+            value: value ?? ''
           }));
         newFields = templateFields.length > 0 ? templateFields : [];
       }
@@ -162,7 +162,7 @@ export const useFormLogic = ({
       }
     }
     
-    setFields(fields.map(field => 
+    setFields(current => current.map(field =>
       field.id === id ? { ...field, [key]: value } : field
     ));
   };

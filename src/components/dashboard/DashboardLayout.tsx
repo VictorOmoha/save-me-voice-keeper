@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import {useLocation, useNavigate} from 'react-router-dom';
 import { SavedEntry } from "@/types/dashboard";
 import { SearchHeader } from "../SearchHeader";
 import { Sidebar, MobileSidebar } from "../Sidebar";
 import { Menu, Search } from "lucide-react";
-import "@/styles/workspace.css";
 
 interface DashboardLayoutProps {
   searchQuery: string;
@@ -42,6 +42,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const {pathname} = useLocation();
+  useEffect(() => {
+    const names: Record<string, string> = {'/dashboard': 'Dashboard', '/all-entries': 'All entries', '/brain-dump': 'Brain dump', '/voice-capture': 'Voice capture', '/briefing': 'Daily briefing', '/insights': 'Insights', '/settings': 'Settings', '/subscription': 'Plan & billing', '/user-guide': 'Help & guide'};
+    const title = names[pathname] || (pathname.startsWith('/category/') ? decodeURIComponent(pathname.split('/').pop() || '') : 'Your memories');
+    document.title = `${title} | SaveMe`;
+  }, [pathname]);
 
   return (
     <div className="workspace-shell min-h-screen flex">
@@ -88,10 +95,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               SaveMe
             </span>
           </div>
-          <label className="relative basis-full">
+          <form role="search" className="relative basis-full" onSubmit={event => { event.preventDefault(); navigate(`/all-entries?q=${encodeURIComponent(searchQuery)}`); }}>
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <input type="search" aria-label="Search memories" placeholder="Search your memories…" value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} className="h-10 w-full rounded-xl border border-border/70 bg-muted/20 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </label>
+          </form>
         </div>
 
         {/* Desktop Header */}

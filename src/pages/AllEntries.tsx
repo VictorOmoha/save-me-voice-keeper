@@ -1,5 +1,7 @@
+import {WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
+import {Button} from '@/components/ui/button';
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Plus, Database } from "lucide-react";
 import { EntriesTable } from "@/components/EntriesTable";
 import { DataEntryForm } from "@/components/DataEntryForm";
@@ -12,7 +14,8 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { EntryViewDialog } from "@/components/recentEntries/EntryViewDialog";
 export default function AllEntries() {
   const { 
-    savedEntries: entries, 
+    savedEntries: entries,
+    allSavedEntries,
     isLoading, 
     isSaving,
     searchQuery, 
@@ -22,6 +25,8 @@ export default function AllEntries() {
     refreshEntries,
   } = useSavedEntries();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  useEffect(() => { setSearchQuery(searchParams.get('q') || searchParams.get('search') || ''); }, [searchParams, setSearchQuery]);
   const { entryId } = useParams();
   
   const [showAddEntry, setShowAddEntry] = useState(false);
@@ -133,13 +138,13 @@ export default function AllEntries() {
 
   // Handle URL parameter for showing specific entry
   useEffect(() => {
-    if (entryId && entries.length > 0 && !isLoading) {
-      const entry = entries.find(e => e.id === entryId);
+    if (entryId && allSavedEntries.length > 0 && !isLoading) {
+      const entry = allSavedEntries.find(e => e.id === entryId);
       if (entry) {
         setSelectedEntryDialog({ isOpen: true, entry });
       }
     }
-  }, [entryId, entries, isLoading]);
+  }, [entryId, allSavedEntries, isLoading]);
 
   // Listen for Nova close command
   useEffect(() => {
@@ -179,7 +184,7 @@ export default function AllEntries() {
       <DashboardLayout
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        savedEntries={entries}
+        savedEntries={allSavedEntries}
         onAddEntry={() => setShowAddEntry(true)}
         onCategorySelect={handleCategorySelectNav}
         onAllEntriesSelect={handleAllEntriesSelectNav}
@@ -195,7 +200,7 @@ export default function AllEntries() {
             <div className="w-12 h-12 border border-galvanized flex items-center justify-center mx-auto mb-4 animate-pulse">
               <Database className="w-6 h-6 text-primary" />
             </div>
-            <p className="mono text-xs text-muted-foreground">LOADING_ENTRIES...</p>
+            <p className="mono text-xs text-muted-foreground">Loading your memories…</p>
           </div>
         </div>
       </DashboardLayout>
@@ -208,7 +213,7 @@ export default function AllEntries() {
     <DashboardLayout
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
-      savedEntries={entries}
+      savedEntries={allSavedEntries}
       onAddEntry={() => setShowAddEntry(true)}
       onCategorySelect={(name) => navigate(`/category/${encodeURIComponent(name)}`)}
       onAllEntriesSelect={() => navigate(`/all-entries`)}
@@ -219,31 +224,11 @@ export default function AllEntries() {
       onFillEntry={handleFillEntry}
       onUseAsTemplate={handleUseAsTemplate}
     >
-      {/* Page Header - Skeletal */}
-      <div className="mb-6">
-        <div className="protocol-tag mb-3">Saved information</div>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="archive-title text-2xl mb-1">All entries</h1>
-            <p className="mono text-xs text-muted-foreground">
-              {filteredEntries.length} {filteredEntries.length === 1 ? 'saved item' : 'saved items'}
-            </p>
-          </div>
-          <button
-            onClick={() => setShowAddEntry(true)}
-            className="btn-galvanized btn-galvanized-primary"
-          >
-            <Plus className="w-4 h-4" />
-            Add entry
-          </button>
-        </div>
-      </div>
-
+      <WorkspacePageHeader title={showAddEntry ? (editingEntry ? 'Edit memory' : templateEntry ? 'New from template' : 'New memory') : 'All entries'}
+        description={showAddEntry ? 'Keep the details you want to come back to.' : 'Everything you have saved, ready to find and revisit.'}
+        actions={!showAddEntry && <Button className="min-h-11" onClick={() => { handleCancelEdit(); setShowAddEntry(true); }}><Plus className="mr-2 h-4 w-4" />Add memory</Button>} />
       {showAddEntry && (
-        <div className="galvanized-card p-6 mb-6">
-          <h3 className="mono text-sm font-bold text-foreground mb-4 pb-3 border-b border-galvanized">
-            {isFillMode ? 'Fill form' : editingEntry ? 'Edit entry' : templateEntry ? 'New from template' : 'Create new entry'}
-          </h3>
+        <div>
           <DataEntryForm
             onSave={handleSaveEntry}
             onCancel={handleCancelEdit}
@@ -255,7 +240,9 @@ export default function AllEntries() {
         </div>
       )}
 
-      <EntriesTable
+      {!showAddEntry && <EntriesTable
+        searchQuery={searchQuery}
+        onClearSearch={() => setSearchQuery('')}
         entries={filteredEntries}
         onDelete={handleDeleteEntry}
         onEdit={handleEditEntry}
@@ -263,14 +250,14 @@ export default function AllEntries() {
         onUseAsTemplate={handleUseAsTemplate}
         onBulkDelete={handleBulkDelete}
         onViewDocument={handleViewDocument}
-      />
+      />}
 
       <EnhancedDocumentViewer
         isOpen={documentViewerState.isOpen}
         onClose={handleCloseDocumentViewer}
         entry={documentViewerState.entry}
         onEdit={handleEditFromViewer}
-        allEntries={entries}
+        allEntries={allSavedEntries}
         onOpenRelatedEntry={handleOpenRelatedEntry}
       />
 
@@ -305,7 +292,7 @@ export default function AllEntries() {
           navigate('/all-entries');
         }}
         onViewDocument={handleViewDocument}
-        allEntries={entries}
+        allEntries={allSavedEntries}
         onOpenRelatedEntry={handleOpenRelatedEntry}
       />
     </DashboardLayout>

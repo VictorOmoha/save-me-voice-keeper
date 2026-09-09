@@ -1,3 +1,4 @@
+import {WorkspacePage, WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
 
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useSearchParams } from "react-router-dom";
@@ -21,14 +22,25 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
+const settingsSections = [
+  {value: 'profile', label: 'Profile', icon: User},
+  {value: 'security', label: 'Security', icon: Shield},
+  {value: 'notifications', label: 'Notifications', icon: Bell},
+  {value: 'appearance', label: 'Appearance', icon: Palette},
+  {value: 'voice', label: 'Voice', icon: Mic},
+  {value: 'nova-memory', label: 'Nova memory', icon: Brain},
+  {value: 'automation', label: 'Automation & API', icon: Zap},
+  {value: 'subscription', label: 'Plan & billing', icon: CreditCard},
+  {value: 'data-management', label: 'Your data', icon: Database},
+  {value: 'help', label: 'Help & support', icon: HelpCircle},
+  {value: 'admin-videos', label: 'Demo videos', icon: Video},
+];
+
 const Settings = () => {
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("profile");
   const [isAdmin, setIsAdmin] = useState(false);
-
-  // Load saved entries for data management
-  const [savedEntries, setSavedEntries] = useState<unknown[]>([]);
 
   // Check if user has admin role
   useEffect(() => {
@@ -48,15 +60,8 @@ const Settings = () => {
   }, [user]);
 
   useEffect(() => {
-    const entries = localStorage.getItem('savedEntries');
-    if (entries) {
-      setSavedEntries(JSON.parse(entries));
-    }
-  }, []);
-
-  useEffect(() => {
     const requestedTab = searchParams.get('tab');
-    if (requestedTab) {
+    if (requestedTab && settingsSections.some(section => section.value === requestedTab)) {
       setActiveTab(requestedTab);
     }
   }, [searchParams]);
@@ -79,7 +84,7 @@ const Settings = () => {
 
     const handleOpenSettingsTab = (e: Event) => {
       const event = e as CustomEvent<{ tab?: string }>;
-      if (event.detail?.tab) setActiveTab(event.detail.tab);
+      if (event.detail?.tab && settingsSections.some(section => section.value === event.detail.tab)) setActiveTab(event.detail.tab);
     };
 
     window.addEventListener('nova:settings-updated', handleSettingsUpdated as EventListener);
@@ -93,81 +98,26 @@ const Settings = () => {
     };
   }, []);
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Grid Blueprint Background */}
-      <div className="grid-blueprint" />
-
-      <div className="container mx-auto px-4 py-8 max-w-4xl relative">
-        {/* Header - Skeletal */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="protocol-tag mb-3">PROTOCOL: CONFIGURATION</div>
-            <h1 className="archive-title text-2xl mb-1">SETTINGS</h1>
-            <p className="mono text-xs text-muted-foreground">MANAGE YOUR ACCOUNT AND PREFERENCES</p>
-          </div>
-          <Link to="/dashboard" className="btn-galvanized btn-galvanized-secondary">
-            <ArrowLeft className="w-4 h-4" />
-            DASHBOARD
-          </Link>
-        </div>
-
-        {window.location.hash === '#connect-extension' && <div className="mb-8"><ExtensionSettings /></div>}
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="flex gap-8">
-          {/* Settings Navigation - Skeletal */}
-          <div className="galvanized-card p-4 h-fit w-64">
-            <TabsList className="flex flex-col h-fit w-full bg-transparent p-0 gap-1">
-              <TabsTrigger value="profile" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <User className="w-4 h-4" />
-                PROFILE
-              </TabsTrigger>
-              <TabsTrigger value="security" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <Shield className="w-4 h-4" />
-                SECURITY
-              </TabsTrigger>
-              <TabsTrigger value="notifications" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <Bell className="w-4 h-4" />
-                NOTIFICATIONS
-              </TabsTrigger>
-              <TabsTrigger value="appearance" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <Palette className="w-4 h-4" />
-                APPEARANCE
-              </TabsTrigger>
-              <TabsTrigger value="voice" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <Mic className="w-4 h-4" />
-                VOICE_SETTINGS
-              </TabsTrigger>
-              <TabsTrigger value="nova-memory" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <Brain className="w-4 h-4" />
-                NOVA_MEMORY
-              </TabsTrigger>
-              <TabsTrigger value="automation" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <Zap className="w-4 h-4" />
-                AUTOMATION_API
-              </TabsTrigger>
-              <TabsTrigger value="subscription" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <CreditCard className="w-4 h-4" />
-                SUBSCRIPTION
-              </TabsTrigger>
-              <TabsTrigger value="data-management" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <Database className="w-4 h-4" />
-                DATA_MANAGEMENT
-              </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="admin-videos" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                  <Video className="w-4 h-4" />
-                  DEMO_VIDEOS
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="help" className="nav-item-skeletal w-full justify-start data-[state=active]:active">
-                <HelpCircle className="w-4 h-4" />
-                HELP_SUPPORT
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="flex-1">
+  const availableSections = settingsSections.filter(section => section.value !== 'admin-videos' || isAdmin);
+  const visibleTab = availableSections.some(section => section.value === activeTab) ? activeTab : 'profile';
+  const changeSection = (value: string) => { setActiveTab(value); setSearchParams({tab: value}, {replace: true}); };
+  return <WorkspacePage>
+    <WorkspacePageHeader title="Settings" description="Make SaveMe work for you. Manage your profile, voice, privacy, and preferences." />
+    {window.location.hash === '#connect-extension' && <div className="mb-6"><ExtensionSettings /></div>}
+    <Tabs value={visibleTab} onValueChange={changeSection} orientation="vertical" className="flex flex-col gap-6 xl:flex-row">
+      <div className="xl:hidden space-y-2">
+        <label htmlFor="settings-section" className="text-sm font-medium">Settings section</label>
+        <select id="settings-section" value={visibleTab} onChange={event => changeSection(event.target.value)} className="workspace-select w-full">
+          {availableSections.map(section => <option key={section.value} value={section.value}>{section.label}</option>)}
+        </select>
+      </div>
+      <TabsList aria-label="Settings sections" className="hidden xl:flex h-fit w-52 shrink-0 flex-col items-stretch gap-1 rounded-xl border border-border/60 bg-card p-2">
+        {availableSections.map(({value, label, icon: Icon}) => <TabsTrigger key={value} value={value}
+          className="min-h-11 justify-start gap-3 px-3 text-sm text-muted-foreground data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none">
+          <Icon className="h-4 w-4" />{label}
+        </TabsTrigger>)}
+      </TabsList>
+          <div className="min-w-0 flex-1 settings-content">
             <TabsContent value="profile">
               <ProfileSettings user={user} />
             </TabsContent>
@@ -204,12 +154,7 @@ const Settings = () => {
               <EnhancedHelpSupportSettings />
             </TabsContent>
           </div>
-        </Tabs>
-
-        
-      </div>
-    </div>
-  );
+    </Tabs>
+  </WorkspacePage>;
 };
-
 export default Settings;

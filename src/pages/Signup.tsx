@@ -58,9 +58,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Grid Blueprint Background */}
-      <div className="grid-blueprint" />
+    <div className="workspace-shell min-h-screen bg-background flex">
 
       {/* Left Panel - Branding */}
       <div className="hidden lg:flex lg:w-1/2 border-r border-galvanized flex-col justify-between p-12">
@@ -74,11 +72,9 @@ const Signup = () => {
         </div>
 
         <div className="reveal">
-          <div className="protocol-tag mb-6">PROTOCOL: REGISTRATION</div>
-          <h1 className="archive-title text-4xl mb-6">
-            CREATE<br />
-            YOUR<br />
-            ARCHIVE
+          <p className="workspace-eyebrow mb-6">Your memory, in one place</p>
+          <h1 className="text-4xl font-semibold tracking-tight mb-6">
+            Make room<br />for what matters.
           </h1>
           <p className="text-muted-foreground max-w-md">
             Your voice-powered external memory, ready in seconds.
@@ -93,7 +89,7 @@ const Signup = () => {
       </div>
 
       {/* Right Panel - Signup Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
@@ -103,7 +99,7 @@ const Signup = () => {
             </span>
           </div>
 
-          <div className="galvanized-card p-8">
+          <div className="rounded-2xl border border-border/70 bg-card p-6 sm:p-8">
             <div className="text-center mb-8">
               <h2 className="text-xl font-bold text-foreground mb-2">Create account</h2>
               <p className="text-sm text-muted-foreground">Start your external memory</p>
@@ -182,13 +178,14 @@ const Signup = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full btn-galvanized btn-galvanized-primary justify-center"
+                className="min-h-12 w-full rounded-xl bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
                 {isLoading ? "Creating account..." : "Create account"}
               </button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-galvanized text-center">
+            <p className="mt-5 text-center text-xs leading-relaxed text-muted-foreground">Read our <Link to="/terms" className="text-primary underline underline-offset-2">Terms</Link> and <Link to="/privacy" className="text-primary underline underline-offset-2">Privacy Policy</Link>.</p>
+            <div className="mt-6 pt-5 border-t border-border/60 text-center">
               <span className="text-sm text-muted-foreground">Already have an account? </span>
               <Link to={nextDestination ? `/login?next=${encodeURIComponent(nextDestination)}` : requestedPlan ? `/login?plan=${requestedPlan}` : "/login"} className="mono text-sm text-primary hover:underline">
                 Sign in

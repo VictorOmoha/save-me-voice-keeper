@@ -1,3 +1,4 @@
+import {useNavigate} from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { useState } from "react";
 
 export const EnhancedHelpSupportSettings = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [supportForm, setSupportForm] = useState({
     subject: '',
@@ -23,6 +25,7 @@ export const EnhancedHelpSupportSettings = () => {
 
   const handleSupportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     if (!user) {
       toast({
         title: "Login required",
@@ -74,30 +77,8 @@ export const EnhancedHelpSupportSettings = () => {
   };
 
   const helpResources = [
-    {
-      title: "User Guide",
-      description: "Complete guide to using all features",
-      icon: <HelpCircle className="w-5 h-5" />,
-      action: () => window.open("/user-guide", "_blank")
-    },
-    {
-      title: "Video Tutorials",
-      description: "Step-by-step video instructions",
-      icon: <ExternalLink className="w-5 h-5" />,
-      action: () => window.open("https://www.youtube.com/watch?v=9KHLTZaJcR8&list=PLbVHz4urQBZkJiAWdG8HWoJTdgEysigIO", "_blank")
-    },
-    {
-      title: "Community",
-      description: "Join our Discord community",
-      icon: <MessageSquare className="w-5 h-5" />,
-      action: () => window.open("https://discord.com/channels/1119885301872070706/1280461670979993613", "_blank")
-    },
-    {
-      title: "Contact Support",
-      description: "Get direct help from our team",
-      icon: <Mail className="w-5 h-5" />,
-      action: () => window.open("mailto:support@lovable.dev", "_blank")
-    }
+    {title: 'User guide', description: 'Learn how to save, find, and organize memories.', icon: <HelpCircle className="h-5 w-5" />, action: () => navigate('/user-guide')},
+    {title: 'Contact SaveMe', description: 'Get help from the SaveMe team.', icon: <Mail className="h-5 w-5" />, action: () => { window.location.href = 'mailto:info@saveme.space'; }},
   ];
 
   return (
@@ -116,9 +97,9 @@ export const EnhancedHelpSupportSettings = () => {
             <h3 className="text-lg font-medium">Quick Help</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {helpResources.map((resource, index) => (
-                <div
+                <button type="button"
                   key={index}
-                  className="flex items-center gap-3 p-4 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="flex items-center gap-3 p-4 border rounded-xl text-left hover:bg-muted/50 transition-colors"
                   onClick={resource.action}
                 >
                   <div className="text-primary">{resource.icon}</div>
@@ -127,7 +108,7 @@ export const EnhancedHelpSupportSettings = () => {
                     <p className="text-sm text-muted-foreground">{resource.description}</p>
                   </div>
                   <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -142,7 +123,7 @@ export const EnhancedHelpSupportSettings = () => {
                   value={supportForm.category}
                   onValueChange={(value) => setSupportForm(prev => ({ ...prev, category: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

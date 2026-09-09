@@ -235,7 +235,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
+            <DialogTitle className="flex flex-wrap items-center gap-2">
               <FileText className="w-5 h-5" />
               <span>Cannot Edit Document</span>
             </DialogTitle>
@@ -260,20 +260,20 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="workspace-shell w-[calc(100%-2rem)] max-w-5xl max-h-[90dvh] overflow-y-auto flex flex-col rounded-2xl">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+          <DialogTitle className="flex flex-wrap items-center justify-between gap-3 pr-7">
+            <div className="flex flex-wrap items-center gap-2">
               <Edit3 className="w-5 h-5" />
               <span>Editing: {entry?.title || 'Document'}</span>
               {hasChanges && <span className="text-sm text-orange-500">(unsaved changes)</span>}
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 onClick={handlePrint}
                 variant="outline"
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex flex-wrap items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
                 <span>Print</span>
@@ -282,7 +282,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                 onClick={handleSave}
                 disabled={!hasChanges || isSaving}
                 size="sm"
-                className="flex items-center space-x-2"
+                className="flex flex-wrap items-center gap-2"
               >
                 <Save className="w-4 h-4" />
                 <span>{isSaving ? 'Saving...' : 'Save'}</span>
@@ -295,7 +295,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         <div className="flex-1 overflow-hidden flex flex-col space-y-4">
           {/* File Information */}
           <div className="flex-shrink-0 bg-muted/50 p-3 rounded-lg">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm break-all">
               <span><strong>File:</strong> {fileName}</span>
               <span><strong>Type:</strong> {fileType || 'text/plain'}</span>
               <span><strong>Last modified:</strong> {entry?.updatedAt ? entry.updatedAt.toLocaleDateString() : ''}</span>
@@ -327,7 +327,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
                     onChange={(e) => setDocumentContent(e.target.value)}
                     placeholder="Start editing your document..."
                     className="flex-1 resize-none border-0 rounded-none focus:ring-0 font-mono text-sm"
-                    style={{ minHeight: '400px' }}
+                    aria-label="Document content" style={{ minHeight: '240px' }}
                   />
                 )}
               </div>

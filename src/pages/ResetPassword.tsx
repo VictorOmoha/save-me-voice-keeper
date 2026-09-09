@@ -29,20 +29,20 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-card border-border">
+    <div className="workspace-shell min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md rounded-2xl bg-card border-border/70 p-2 md:p-4">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center space-x-1 mb-4">
             <img 
               src="/lovable-uploads/a639f87a-4cb3-486d-8907-1bf0d03cc4e4.png" 
-              alt="Save Me Logo" 
-              className="w-16 h-16 object-contain"
+              alt="SaveMe"
+              className="w-10 h-10 object-contain"
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-              Save Me
+            <span className="text-lg font-semibold text-foreground">
+              SaveMe
             </span>
           </div>
-          <CardTitle className="text-2xl text-card-foreground">Reset Password</CardTitle>
+          <h1 className="text-2xl font-semibold text-card-foreground">Reset password</h1>
           <CardDescription className="text-muted-foreground">Enter your email to receive a password reset link</CardDescription>
         </CardHeader>
         <CardContent>
@@ -52,18 +52,18 @@ const ResetPassword = () => {
               <Input
                 id="email"
                 type="email"
+                autoComplete="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
-                className="bg-background border-border text-foreground"
+                className="min-h-11 bg-background border-border text-foreground"
               />
             </div>
             <Button 
               type="submit" 
-              variant="gradient"
-              className="w-full"
+              className="w-full min-h-11"
               disabled={isLoading}
             >
               {isLoading ? "Sending..." : "Send Reset Link"}

@@ -1,3 +1,4 @@
+import {useDownload} from '@/components/categoryView/useDownload';
 import React, { Suspense, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,47 +68,7 @@ export const EnhancedRecentEntries: React.FC<EnhancedRecentEntriesProps> = React
     setViewingEntry(null);
   };
 
-  const handleDownload = async (entry: SavedEntry) => {
-    if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
-      toast.error("No file available for download");
-      return;
-    }
-
-    try {
-      const allKeys = Object.keys(localStorage);
-      const documentKeys = allKeys.filter(key => key.startsWith("document_"));
-
-      let fileData = null;
-      for (const key of documentKeys) {
-        try {
-          const storedData = JSON.parse(localStorage.getItem(key) || "");
-          if (storedData.name === entry.fields.fileName) {
-            fileData = storedData;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-
-      if (!fileData) {
-        toast.error("File data not found");
-        return;
-      }
-
-      const link = document.createElement("a");
-      link.href = fileData.data;
-      link.download = fileData.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success(`Downloaded ${fileData.name}`);
-    } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Failed to download file");
-    }
-  };
+  const {handleDownload} = useDownload();
 
   const handlePrintAll = async () => {
     if (recentEntries.length === 0) {

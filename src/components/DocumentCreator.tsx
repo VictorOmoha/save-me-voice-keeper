@@ -28,7 +28,8 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   const [dateCreated, setDateCreated] = useState("");
   const [notes, setNotes] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [documentContent, setDocumentContent] = useState("<p>Start writing your document here...</p>");
+  const [documentContent, setDocumentContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [createMode, setCreateMode] = useState<'upload' | 'create' | 'info'>(initialMode);
   const [selectedFormat, setSelectedFormat] = useState<DocumentFormat | ''>('docx');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -72,7 +73,8 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       return;
     }
 
-    if (!documentContent.trim() || documentContent === "<p>Start writing your document here...</p>") {
+    const contentText = new DOMParser().parseFromString(documentContent, 'text/html').body.textContent;
+    if (!contentText?.trim()) {
       toast.error("Please add some content to create the document");
       return;
     }
@@ -123,6 +125,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     // Validation - require at least a document name
     if (!documentName.trim()) {
@@ -164,73 +167,112 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       ]
     };
 
-    // Upload file to Firebase Storage and save entry
-    if (uploadedFile) {
-      // Use a timestamp-based ID for the upload
-      const entryId = `temp-${Date.now()}`;
-
-      // Upload to Firebase Storage
-      const uploadPath = await uploadDocumentToStorage(uploadedFile, entryId);
-      if (uploadPath) {
+    if (createMode === 'upload' && !uploadedFile) {
+      toast.error('Choose a file to upload.');
+      return;
+    }
+    if (createMode === 'create' && !uploadedFile) {
+      toast.error('Create your document file before saving.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      if (uploadedFile) {
+        const uploadPath = await uploadDocumentToStorage(uploadedFile, `temp-${Date.now()}`);
+        if (!uploadPath) return;
         documentEntry.fields.storagePath = uploadPath;
       }
-
-      // Save the entry with storage path
-      onSave(documentEntry);
-    } else {
-      onSave(documentEntry);
+      await onSave(documentEntry);
+    } catch {
+      toast.error('Could not save your document. Your draft is still here.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 bg-background text-foreground">
+    <div className="workspace-form mx-auto max-w-4xl space-y-6 rounded-2xl border border-border/70 bg-card p-5 md:p-7 text-foreground">
       <div className="flex items-center space-x-3">
         <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
           <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Create Document</h2>
-          <p className="text-muted-foreground">Save, create, or upload document information</p>
+          <h2 className="text-xl font-semibold text-foreground">Add a document</h2>
+          <p className="text-muted-foreground">Upload a file, write a document, or keep a note about one.</p>
         </div>
       </div>
 
       {/* Mode Selection */}
-      <div className="flex space-x-2 mb-6">
+      <div className="flex flex-wrap gap-2" aria-label="Document mode">
         <Button
           type="button"
+          aria-pressed={createMode === 'info'}
           variant={createMode === 'info' ? 'default' : 'outline'}
           onClick={() => setCreateMode('info')}
           className="flex items-center space-x-2"
         >
           <FileText className="w-4 h-4" />
-          <span>Document Info</span>
+          <span>Details only</span>
         </Button>
         <Button
           type="button"
+          aria-pressed={createMode === 'upload'}
           variant={createMode === 'upload' ? 'default' : 'outline'}
           onClick={() => setCreateMode('upload')}
           className="flex items-center space-x-2"
         >
           <Upload className="w-4 h-4" />
-          <span>Upload File</span>
+          <span>Upload file</span>
         </Button>
         <Button
           type="button"
+          aria-pressed={createMode === 'create'}
           variant={createMode === 'create' ? 'default' : 'outline'}
           onClick={() => setCreateMode('create')}
           className="flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Document</span>
+          <span>Write a document</span>
         </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Document Information Form */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="documentName" className="text-foreground">Document Name *</Label>
+            <Input
+              id="documentName"
+              placeholder="e.g., Driver's License, Insurance Policy"
+              value={documentName}
+              onChange={(e) => setDocumentName(e.target.value)}
+              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="documentType" className="text-foreground">Document Type</Label>
+            <Select value={documentType} onValueChange={setDocumentType}>
+              <SelectTrigger id="documentType" className="bg-background border-border text-foreground">
+                <SelectValue placeholder="Select document type" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border-border">
+                {documentTypes.map((type) => (
+                  <SelectItem key={type} value={type} className="text-foreground hover:bg-accent">
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         {/* File Upload Section */}
         {createMode === 'upload' && (
           <div className="space-y-4 p-4 border border-border rounded-lg bg-card">
             <Label htmlFor="fileUpload" className="text-foreground">Upload Document</Label>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-wrap items-center gap-4">
               <Input
                 id="fileUpload"
                 type="file"
@@ -247,7 +289,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={downloadDocument}
+                    aria-label="Download document" onClick={downloadDocument}
                   >
                     <Download className="w-4 h-4" />
                   </Button>
@@ -263,19 +305,19 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
             <div className="space-y-4">
               <DocumentFormatSelector
                 selectedFormat={selectedFormat}
-                onFormatChange={setSelectedFormat}
+                onFormatChange={format => { setSelectedFormat(format); setUploadedFile(null); }}
               />
               
               <div className="space-y-2">
                 <Label className="text-foreground">Document Content</Label>
                 <RichTextEditor
                   content={documentContent}
-                  onContentChange={setDocumentContent}
+                  onContentChange={value => { setDocumentContent(value); setUploadedFile(null); }}
                   placeholder="Start writing your document here..."
                 />
               </div>
               
-              <div className="flex justify-between items-center">
+              <div className="flex flex-wrap justify-between items-center gap-3">
                 <div className="text-sm text-muted-foreground">
                   After creating the document, fill in the details below and click "Save Document".
                 </div>
@@ -308,7 +350,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={downloadDocument}
+                      aria-label="Download document" onClick={downloadDocument}
                       className="ml-auto"
                     >
                       <Download className="w-4 h-4" />
@@ -323,37 +365,6 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
           </div>
         )}
 
-        {/* Document Information Form */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="documentName" className="text-foreground">Document Name *</Label>
-            <Input
-              id="documentName"
-              placeholder="e.g., Driver's License, Insurance Policy"
-              value={documentName}
-              onChange={(e) => setDocumentName(e.target.value)}
-              className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="documentType" className="text-foreground">Document Type</Label>
-            <Select value={documentType} onValueChange={setDocumentType}>
-              <SelectTrigger className="bg-background border-border text-foreground">
-                <SelectValue placeholder="Select document type" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border-border">
-                {documentTypes.map((type) => (
-                  <SelectItem key={type} value={type} className="text-foreground hover:bg-accent">
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="description" className="text-foreground">Description</Label>
           <Textarea
@@ -365,6 +376,9 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
           />
         </div>
 
+        <details className="rounded-xl border border-border/60 p-4">
+          <summary className="cursor-pointer text-sm font-medium">More details <span className="text-muted-foreground font-normal">(optional)</span></summary>
+          <div className="mt-4 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="tags" className="text-foreground">Tags</Label>
@@ -411,14 +425,16 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
           />
         </div>
 
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" onClick={onCancel} variant="outline">
+          </div>
+        </details>
+        <div className="flex flex-wrap justify-end gap-3 border-t border-border/60 pt-5">
+          <Button type="button" disabled={isSubmitting} onClick={onCancel} variant="outline">
             <X className="w-4 h-4 mr-2" />
             Cancel
           </Button>
-          <Button type="submit" className="bg-gradient-primary hover:opacity-90 text-primary-foreground">
+          <Button type="submit" disabled={isSubmitting || !documentName.trim()} className="min-h-11">
             <FileText className="w-4 h-4 mr-2" />
-            Save Document
+            {isSubmitting ? 'Saving…' : 'Save document'}
           </Button>
         </div>
       </form>

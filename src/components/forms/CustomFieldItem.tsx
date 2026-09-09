@@ -56,11 +56,9 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
   const normalizedFieldType = validTypes.includes(field.type) ? field.type : 'text';
   
-  // If field type was normalized, update it automatically
-  if (normalizedFieldType !== field.type) {
-    console.warn(`Invalid field type "${field.type}" detected for field "${field.name}". Converting to "text".`);
-    onUpdateField(field.id, 'type', normalizedFieldType);
-  }
+  useEffect(() => {
+    if (normalizedFieldType !== field.type) onUpdateField(field.id, 'type', normalizedFieldType);
+  }, [normalizedFieldType, field.type, field.id, onUpdateField]);
 
   // State to track whether we're editing data or structure for table fields
   const [isEditingStructure, setIsEditingStructure] = useState(false);
@@ -94,40 +92,19 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
   // Auto-convert field type if it has table data but wrong type
   useEffect(() => {
     if (needsTableConversion && field.type !== 'table') {
-      console.log('Auto-converting field to table type:', field.name);
       onUpdateField(field.id, 'type', 'table');
     }
   }, [needsTableConversion, field.type, field.id, field.name, onUpdateField]);
-  
-  console.log('CustomFieldItem debug:', {
-    fieldName: field.name,
-    fieldType: field.type,
-    isEditMode,
-    hasTableData,
-    needsTableConversion,
-    shouldShowToggle,
-    fieldValue: field.value
-  });
 
-  console.log('CustomFieldItem render:', {
-    fieldName: field.name,
-    fieldValue: field.value,
-    fieldType: field.type,
-    isEditMode,
-    isFillMode
-  });
+  const renderFieldInput = (dataOnly = false): React.ReactNode => {
 
-  const renderFieldInput = () => {
-    console.log('renderFieldInput called for field:', field.name, 'type:', field.type, 'value:', field.value);
+    const inputValue = typeof field.value === 'string' || typeof field.value === 'number' ? field.value : '';
 
-    const inputValue = ((typeof field.value === 'string' || typeof field.value === 'number') && field.value) || '';
-
-    if (shouldShowDataInput) {
+    if (shouldShowDataInput || dataOnly) {
       // Show data input for filling or editing existing data
       switch (normalizedFieldType) {
         case 'table': {
           // Initialize table data if not present or convert from simple value
-          console.log('Processing table field, value:', field.value);
           let tableData: TableData;
           
           if (needsTableConversion) {
@@ -144,9 +121,6 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           } else {
             tableData = isTableDataValue(field.value) ? field.value : { columns: [], rows: [] };
           }
-          
-          console.log('Table data after initialization:', tableData);
-          console.log('Columns:', tableData.columns, 'Type:', typeof tableData.columns);
           
           return (
             <div className="space-y-4">
@@ -199,7 +173,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           );
         case 'textarea':
           return (
-            <Textarea
+            <Textarea id={`field-value-${field.id}`} aria-label={`${field.name || 'Field'} value`}
               placeholder="Enter your text..."
               value={inputValue}
               onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
@@ -208,7 +182,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           );
         case 'date':
           return (
-            <Input
+            <Input id={`field-value-${field.id}`} aria-label={`${field.name || 'Field'} value`}
               type="date"
               value={inputValue}
               onChange={(e) => onUpdateField(field.id, 'value', e.target.value)}
@@ -217,7 +191,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           );
         case 'number':
           return (
-            <Input
+            <Input id={`field-value-${field.id}`} aria-label={`${field.name || 'Field'} value`}
               type="number"
               placeholder="Enter a number..."
               value={inputValue}
@@ -227,7 +201,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
           );
         default:
           return (
-            <Input
+            <Input id={`field-value-${field.id}`} aria-label={`${field.name || 'Field'} value`}
               type="text"
               placeholder="Enter your text..."
               value={inputValue}
@@ -241,8 +215,8 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
       return (
         <div className="space-y-3">
           <div className="space-y-1">
-            <Label className="text-foreground">Field Name</Label>
-            <Input
+            <Label htmlFor={`field-name-${field.id}`} className="text-foreground">Field name</Label>
+            <Input id={`field-name-${field.id}`}
               placeholder="Enter field name..."
               value={field.name}
               onChange={(e) => onUpdateField(field.id, 'name', e.target.value)}
@@ -253,10 +227,10 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             {!fieldNameValidation.isValid && (
               <div className="flex items-start space-x-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                 <AlertCircle className="h-4 w-4 text-red-500 mt-0.5" />
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <p className="text-sm text-red-700 dark:text-red-300">{fieldNameValidation.error}</p>
                   {fieldNameValidation.suggestion && (
-                    <button
+                    <button type="button"
                       onClick={() => onUpdateField(field.id, 'name', fieldNameValidation.suggestion)}
                       className="text-xs text-red-600 dark:text-red-400 underline mt-1 hover:no-underline"
                     >
@@ -272,7 +246,6 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
             <Select 
               value={normalizedFieldType} 
               onValueChange={(value: CustomField['type']) => {
-                console.log('Field type changed to:', value);
                 // Validate that the value is a valid field type
                 const validTypes: CustomField['type'][] = ['text', 'number', 'date', 'textarea', 'image', 'gallery', 'table'];
                 if (!validTypes.includes(value)) {
@@ -299,7 +272,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
                 onUpdateField(field.id, 'value', newValue);
               }}
             >
-              <SelectTrigger className="bg-background border-border text-foreground">
+              <SelectTrigger aria-label={`${field.name || 'Field'} type`} className="bg-background border-border text-foreground">
                 <SelectValue placeholder="Select field type" />
               </SelectTrigger>
               <SelectContent className="bg-background border-border z-50">
@@ -313,21 +286,10 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               </SelectContent>
             </Select>
           </div>
-          {/* Show current value in edit mode for reference */}
-          {field.value && (
-            <div>
-              <Label className="text-foreground text-sm text-muted-foreground">Current Value</Label>
-              <div className="p-2 bg-muted rounded text-sm">
-                {normalizedFieldType === 'table' ? (
-                  isTableDataValue(field.value)
-                    ? `Table with ${field.value.rows.length} rows`
-                    : 'Empty table'
-                ) : (
-                  Array.isArray(field.value) ? field.value.join(', ') : String(field.value)
-                )}
-              </div>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor={`field-value-${field.id}`}>Value</Label>
+            {renderFieldInput(true)}
+          </div>
         </div>
       );
     }
@@ -338,7 +300,7 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
       isVoiceCreated ? 'ring-2 ring-green-500/50 border-green-500/30 bg-green-500/5' : ''
     } ${highlightedField === 'field_type' && field.name ? 'ring-2 ring-blue-500/50 animate-pulse' : ''}`}>
       <div className="flex items-start justify-between">
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           {!isFillMode && (
             <div className="flex items-center justify-between mb-2">
               <Label className="text-foreground font-medium">
@@ -385,9 +347,9 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onMoveField?.(field.id, 'up')}
+              aria-label={`Move ${field.name || 'field'} up`} onClick={() => onMoveField?.(field.id, 'up')}
               disabled={!canMoveUp}
-              className="p-1"
+              className="h-11 w-11 p-2"
             >
               <ChevronUp className="h-4 w-4" />
             </Button>
@@ -395,9 +357,9 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onMoveField?.(field.id, 'down')}
+              aria-label={`Move ${field.name || 'field'} down`} onClick={() => onMoveField?.(field.id, 'down')}
               disabled={!canMoveDown}
-              className="p-1"
+              className="h-11 w-11 p-2"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
@@ -405,8 +367,8 @@ export const CustomFieldItem: React.FC<CustomFieldItemProps> = ({
               type="button"
               variant="destructive"
               size="sm"
-              onClick={() => onRemoveField(field.id)}
-              className="p-1"
+              aria-label={`Remove ${field.name || 'field'}`} onClick={() => onRemoveField(field.id)}
+              className="h-11 w-11 p-2"
             >
               <Trash2 className="h-4 w-4" />
             </Button>

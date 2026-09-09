@@ -32,10 +32,10 @@ export const FormFieldManager: React.FC<FormFieldManagerProps> = ({
     <div className={`space-y-3 transition-all duration-300 ${
       highlightedField === 'more_fields' ? 'animate-pulse' : ''
     }`}>
-      <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <label className="text-lg font-semibold text-foreground">
-          {isFillMode ? 'Fill in the Data' : 'Custom Fields'}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="text-sm font-semibold text-foreground">
+          Additional details
           {isVoiceActive && (
             <span className="ml-2 text-xs text-blue-500 animate-pulse">🎤</span>
           )}
@@ -48,7 +48,7 @@ export const FormFieldManager: React.FC<FormFieldManagerProps> = ({
               className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
             >
               <Table className="h-3 w-3 mr-1" />
-              Enhanced Fill Mode
+              Table fields
             </Badge>
             <span className="text-xs text-muted-foreground">
               {tableFields.length} table{tableFields.length !== 1 ? 's' : ''} ready
@@ -61,7 +61,7 @@ export const FormFieldManager: React.FC<FormFieldManagerProps> = ({
         <button 
           type="button" 
           onClick={onAddField} 
-          className={`px-3 py-1 text-sm border border-border rounded hover:bg-accent transition-all duration-300 flex items-center gap-1 ${
+          className={`min-h-11 px-3 py-2 text-sm border border-border rounded hover:bg-accent transition-all duration-300 flex items-center gap-1 ${
             highlightedField === 'field_name' ? 'bg-blue-500/10 border-blue-500 animate-bounce' : ''
           }`}
         >
@@ -72,8 +72,8 @@ export const FormFieldManager: React.FC<FormFieldManagerProps> = ({
       </div>
 
       {fields.length === 0 && (
-        <div className="rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          No custom fields yet. Add fields for policy numbers, phone numbers, dates, links, or any detail you want searchable later.
+        <div className="text-sm text-muted-foreground">
+          Optional: add a date, phone number, image, or another detail.
         </div>
       )}
     </div>

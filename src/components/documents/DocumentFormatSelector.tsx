@@ -48,10 +48,10 @@ export const DocumentFormatSelector: React.FC<DocumentFormatSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      <Label className="text-foreground">Document Format</Label>
+      <Label htmlFor="document-format" className="text-foreground">Document Format</Label>
       <Select value={selectedFormat} onValueChange={onFormatChange}>
-        <SelectTrigger className="bg-background border-border text-foreground">
-          <SelectValue placeholder="Choose document format" />
+        <SelectTrigger id="document-format" className="min-h-11 bg-background border-border text-foreground">
+          <SelectValue placeholder="Choose document format">{formats.find(format => format.value === selectedFormat)?.label}</SelectValue>
         </SelectTrigger>
         <SelectContent className="bg-background border-border">
           {formats.map((format) => {

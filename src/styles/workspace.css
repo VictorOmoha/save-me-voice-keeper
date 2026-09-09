@@ -1,6 +1,26 @@
 /* Shared workspace surfaces. Keep the public site and document editors unchanged. */
 body:has(.workspace-shell)::before { display: none; }
+.workspace-select { min-height: 44px; border: 1px solid hsl(var(--border)); border-radius: .65rem; background: hsl(var(--card)); color: hsl(var(--foreground)); padding: .55rem 2rem .55rem .75rem; font-size: .875rem; max-width: 100%; }
+.workspace-select:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.workspace-shell .animate-fade-in { animation: none; }
+.workspace-shell .memory-list-row { border: 0; box-shadow: none; background: transparent; padding: 0; }
+.workspace-shell .memory-list-row:hover { box-shadow: none; }
+.workspace-shell .settings-content > [role="tabpanel"] { margin-top: 0; }
+.workspace-shell .settings-content h3 { font-size: 1.125rem; letter-spacing: -.02em; }
+.workspace-shell .settings-content [role="switch"] { flex-shrink: 0; }
+.workspace-shell input:not([type="checkbox"]):not([type="radio"]), .workspace-shell textarea { font-size: max(16px, 1rem); }
 .workspace-shell { background: hsl(var(--background)); }
+.legal-document { color: hsl(var(--muted-foreground)); font-size: .9375rem; line-height: 1.8; overflow-wrap: anywhere; }
+.legal-document h1, .legal-document h2, .legal-document h3, .legal-document strong { color: hsl(var(--foreground)); }
+.legal-document h1 { font-size: 2rem; font-weight: 600; line-height: 1.25; letter-spacing: -.025em; margin-bottom: 1.5rem; }
+.legal-document h2 { font-size: 1.2rem; font-weight: 600; line-height: 1.5; margin: 2.5rem 0 1rem; }
+.legal-document h3 { font-size: 1rem; font-weight: 600; margin: 1.5rem 0 .75rem; }
+.legal-document p, .legal-document ul, .legal-document ol { margin-bottom: 1rem; }
+.legal-document ul, .legal-document ol { padding-left: 1.5rem; }
+.legal-document ul { list-style: disc; }
+.legal-document ol { list-style: decimal; }
+.legal-document li { margin: .4rem 0; }
+.legal-document a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 3px; }
 .workspace-panel { border: 1px solid hsl(var(--border) / .7); border-radius: 1rem; background: hsl(var(--card)); }
 .workspace-nav-link { display: flex; align-items: center; gap: .75rem; min-height: 44px; padding: .65rem .85rem; border-radius: .65rem; color: hsl(var(--muted-foreground)); font-size: .875rem; transition: background-color .15s, color .15s; }
 .workspace-nav-link:hover { background: hsl(var(--muted) / .55); color: hsl(var(--foreground)); }

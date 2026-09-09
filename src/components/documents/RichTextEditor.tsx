@@ -40,7 +40,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[300px] p-4',
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[240px] p-4',
+        role: 'textbox', 'aria-label': 'Document content', 'aria-multiline': 'true', 'data-placeholder': placeholder,
       },
     },
   });
@@ -59,12 +60,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div className="border border-border rounded-lg bg-background">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/50">
+      <div aria-label="Document formatting" className="flex flex-wrap items-center gap-1 p-2 border-b border-border bg-muted/50">
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleBold().run()}
+          size="icon"
+          aria-label="Bold" title="Bold" onClick={() => editor.chain().focus().toggleBold().run()}
           className={editor.isActive('bold') ? 'bg-accent' : ''}
         >
           <Bold className="w-4 h-4" />
@@ -73,8 +74,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
+          size="icon"
+          aria-label="Italic" title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()}
           className={editor.isActive('italic') ? 'bg-accent' : ''}
         >
           <Italic className="w-4 h-4" />
@@ -83,8 +84,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          size="icon"
+          aria-label="Underline" title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={editor.isActive('underline') ? 'bg-accent' : ''}
         >
           <Underline className="w-4 h-4" />
@@ -95,8 +96,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          size="icon"
+          aria-label="Align left" title="Align left" onClick={() => editor.chain().focus().setTextAlign('left').run()}
           className={editor.isActive({ textAlign: 'left' }) ? 'bg-accent' : ''}
         >
           <AlignLeft className="w-4 h-4" />
@@ -105,8 +106,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          size="icon"
+          aria-label="Align center" title="Align center" onClick={() => editor.chain().focus().setTextAlign('center').run()}
           className={editor.isActive({ textAlign: 'center' }) ? 'bg-accent' : ''}
         >
           <AlignCenter className="w-4 h-4" />
@@ -115,8 +116,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          size="icon"
+          aria-label="Align right" title="Align right" onClick={() => editor.chain().focus().setTextAlign('right').run()}
           className={editor.isActive({ textAlign: 'right' }) ? 'bg-accent' : ''}
         >
           <AlignRight className="w-4 h-4" />
@@ -127,8 +128,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          size="icon"
+          aria-label="Bullet list" title="Bullet list" onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={editor.isActive('bulletList') ? 'bg-accent' : ''}
         >
           <List className="w-4 h-4" />
@@ -137,8 +138,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          size="icon"
+          aria-label="Numbered list" title="Numbered list" onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={editor.isActive('orderedList') ? 'bg-accent' : ''}
         >
           <ListOrdered className="w-4 h-4" />
@@ -150,8 +151,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().undo().run()}
+          size="icon"
+          aria-label="Undo" title="Undo" onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().undo()}
         >
           <Undo className="w-4 h-4" />
@@ -160,8 +161,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          onClick={() => editor.chain().focus().redo().run()}
+          size="icon"
+          aria-label="Redo" title="Redo" onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().redo()}
         >
           <Redo className="w-4 h-4" />

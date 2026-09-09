@@ -154,7 +154,7 @@ export const VoiceSettingsForm: React.FC<VoiceSettingsFormProps> = ({ showTitle 
             )}
 
             <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
                     <TabsTrigger value="general">General</TabsTrigger>
                     <TabsTrigger value="voices">Voices</TabsTrigger>
                     <TabsTrigger value="apikey">API Key</TabsTrigger>

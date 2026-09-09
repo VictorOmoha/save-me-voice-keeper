@@ -1,3 +1,4 @@
+import {useDownload} from '@/components/categoryView/useDownload';
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -158,7 +159,8 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
   allEntries = [],
   onOpenRelatedEntry,
 }) => {
-  const [isDownloading, setIsDownloading] = useState(false);
+  const {downloadingFiles, handleDownload: downloadEntry} = useDownload();
+  const isDownloading = !!entry && downloadingFiles.includes(entry.id);
 
   // Listen for canonical Nova close event
   useEffect(() => {
@@ -205,51 +207,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
     });
   const hasMeaningfulDetails = displayFields.length > 0 || entryImages.length > 0 || Boolean(hasFile);
 
-  const handleDownload = async () => {
-    if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
-      toast.error("No file available for download");
-      return;
-    }
-
-    setIsDownloading(true);
-
-    try {
-      const allKeys = Object.keys(localStorage);
-      const documentKeys = allKeys.filter(key => key.startsWith("document_"));
-
-      let fileData = null;
-      for (const key of documentKeys) {
-        try {
-          const storedData = JSON.parse(localStorage.getItem(key) || "");
-          if (storedData.name === entry.fields.fileName) {
-            fileData = storedData;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-
-      if (!fileData) {
-        toast.error("File data not found in storage");
-        return;
-      }
-
-      const link = document.createElement("a");
-      link.href = fileData.data;
-      link.download = fileData.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      toast.success(`Downloaded ${fileData.name}`);
-    } catch (error) {
-      logError("Download error", error);
-      toast.error("Failed to download file");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  const handleDownload = () => downloadEntry(entry);
 
   const handlePrint = () => {
     if (!hasMeaningfulDetails) {
@@ -280,37 +238,22 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden p-0">
-        {/* Header with gradient */}
-        <div className={cn(
-          "relative px-6 pt-6 pb-8 bg-gradient-to-br",
-          config.gradientFrom,
-          config.gradientTo
-        )}>
-          {/* Close button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-white/20"
-            onClick={onClose}
-          >
-            <X className="w-5 h-5" />
-          </Button>
-
-          <div className="flex items-start gap-4">
-            <div className="p-4 rounded-2xl bg-white/20 backdrop-blur-sm">
-              <CategoryIcon className="w-8 h-8 text-white" />
+      <DialogContent className="workspace-shell flex w-[calc(100%-2rem)] max-w-3xl max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-2xl p-0">
+        <div className="shrink-0 border-b border-border/60 p-5 pr-12 md:p-6 md:pr-12">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-muted p-3">
+              <CategoryIcon className={cn('h-5 w-5', config.color)} />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-2xl font-bold text-white mb-2">
+              <DialogTitle className="mb-2 break-words text-xl font-semibold text-foreground">
                 {entry.title}
               </DialogTitle>
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">
+                <Badge variant="secondary">
                   {category}
                 </Badge>
                 {hasFile && (
-                  <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm gap-1">
+                  <Badge variant="outline" className="gap-1 break-all">
                     <FileText className="w-3 h-3" />
                     {fieldValueToText(entry.fields.fileName)}
                   </Badge>
@@ -320,7 +263,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
           </div>
 
           {/* Timestamps */}
-          <div className="mt-4 flex flex-wrap gap-4 text-white/80 text-sm">
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4" />
               <span>Created {createdDate}</span>
@@ -333,7 +276,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6 overflow-y-auto max-h-[calc(90vh-280px)]">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
           {/* Images Gallery */}
           {entryImages.length > 0 && (
             <div className="mb-6">
@@ -344,19 +287,12 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
             </div>
           )}
 
-          <div className="mb-6">
+          <div className="mb-6 empty:hidden">
             <EntryIntelligencePanel
               entry={entry}
               allEntries={allEntries}
               onOpenEntry={onOpenRelatedEntry}
             />
-          </div>
-
-          <div className="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Memory saved</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              This is stored under {category}. Add more details anytime to make it easier for Nova to retrieve later.
-            </p>
           </div>
 
           {/* Entry Fields */}
@@ -413,7 +349,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                 return (
                   <div
                     key={key}
-                    className="group p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors"
+                    className="group rounded-xl border border-border/60 bg-card p-4 [overflow-wrap:anywhere]"
                   >
                     <div className="flex items-start gap-3">
                       <div className={cn(
@@ -482,7 +418,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
         </div>
 
         {/* Actions Footer */}
-        <div className="px-6 py-4 border-t bg-muted/30 flex flex-wrap gap-2 justify-end">
+        <div className="shrink-0 border-t bg-card p-4 flex flex-wrap gap-2 justify-end [&_button]:min-h-11">
           {isDocumentWithFile && onViewDocument && (
             <Button
               onClick={() => {
@@ -501,7 +437,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
               onClick={handleDownload}
               variant="outline"
               disabled={isDownloading}
-              className="gap-2 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300 hover:bg-green-50"
+              className="gap-2"
             >
               <Download className="h-4 w-4" />
               {isDownloading ? "Downloading..." : "Download"}
@@ -526,7 +462,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
               variant="outline"
               disabled={!hasMeaningfulDetails}
               title={!hasMeaningfulDetails ? "Add details before filling this form" : "Fill form"}
-              className="gap-2 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+              className="gap-2"
             >
               <FileText className="h-4 w-4" />
               Fill Form
@@ -541,7 +477,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
               variant="outline"
               disabled={!hasMeaningfulDetails}
               title={!hasMeaningfulDetails ? "Add details before using this as a template" : "Use as template"}
-              className="gap-2 text-purple-600 hover:text-purple-700 border-purple-200 hover:border-purple-300"
+              className="gap-2"
             >
               <Copy className="h-4 w-4" />
               Use as Template
@@ -553,7 +489,7 @@ export const EnhancedEntryViewDialog: React.FC<EnhancedEntryViewDialogProps> = (
                 onEdit(entry);
                 onClose();
               }}
-              className={cn("gap-2 bg-gradient-to-r", config.gradientFrom, config.gradientTo, "text-white hover:opacity-90")}
+              className="gap-2"
             >
               <Edit className="h-4 w-4" />
               Edit Entry

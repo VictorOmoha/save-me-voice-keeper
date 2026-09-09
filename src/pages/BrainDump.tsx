@@ -1,3 +1,4 @@
+import {WorkspacePage, WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,9 @@ const starterPrompts = [
 
 // Helper to determine confidence color
 const getConfidenceColor = (confidence: number): string => {
-  if (confidence >= 0.75) return 'bg-green-50 border-green-200';
-  if (confidence >= 0.5) return 'bg-yellow-50 border-yellow-200';
-  return 'bg-red-50 border-red-200';
+  if (confidence >= 0.75) return 'bg-emerald-500/10 border-emerald-500/25';
+  if (confidence >= 0.5) return 'bg-amber-500/10 border-yellow-200';
+  return 'bg-destructive/10 border-red-200';
 };
 
 const getConfidenceBadgeColor = (confidence: number): 'default' | 'secondary' | 'outline' => {
@@ -451,55 +452,17 @@ const BrainDumpPage: React.FC = () => {
   }, [hasStructured]);
 
   return (
-    <>
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <nav className="container mx-auto px-4 py-2 flex items-center justify-between" aria-label="Brain Dump navigation">
-          <Button variant="ghost" size="sm" onClick={handleBackClick} aria-label="Go back">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleDashboardClick} aria-label="Go to dashboard">
-            <LayoutDashboard className="h-4 w-4 mr-2" />
-            Dashboard
-          </Button>
-        </nav>
-      </header>
-
-      <main className="container mx-auto px-4 pt-8 pb-28">
-        <article className="space-y-6">
-          <header className="space-y-4">
-            <div>
-              <h1 className="text-3xl font-bold">Start with one messy thought</h1>
-              <p className="text-muted-foreground mt-1">Keep talking to Nova as you move around SaveMe, or type a draft to organize and save.</p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-xl border bg-card p-4">
-                <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 1</p>
-                <p className="text-sm font-semibold mt-1">Start speaking</p>
-                <p className="text-xs text-muted-foreground mt-1">Say tasks, ideas, reminders, or half-finished thoughts. Messy is the point.</p>
-              </div>
-              <div className="rounded-xl border bg-card p-4">
-                <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 2</p>
-                <p className="text-sm font-semibold mt-1">Nova structures it</p>
-                <p className="text-xs text-muted-foreground mt-1">Your dump becomes a title, category, notes, tags, and action items.</p>
-              </div>
-              <div className="rounded-xl border bg-card p-4">
-                <p className="text-xs font-medium text-primary uppercase tracking-wide">Step 3</p>
-                <p className="text-sm font-semibold mt-1">Review and save</p>
-                <p className="text-xs text-muted-foreground mt-1">Save it so your memory and trusted agents can use it later.</p>
-              </div>
-            </div>
-          </header>
-
+    <WorkspacePage>
+      <WorkspacePageHeader title="Brain dump" description="Get your thoughts out. Nova helps turn them into notes and next steps you can review and save." />
+      <article className="space-y-6">
           {justSaved && (
-            <section className="rounded-2xl border border-green-200 bg-green-50 p-4 md:p-5">
+            <section className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 md:p-5">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-green-900">Saved. Come back tomorrow and add the next update.</p>
-                    <p className="text-sm text-green-800 mt-1">
+                    <p className="text-sm font-semibold text-foreground">Saved. Come back tomorrow and add the next update.</p>
+                    <p className="text-sm text-muted-foreground mt-1">
                       <span className="font-medium">{justSaved.title}</span> was filed under <span className="font-medium">{justSaved.category}</span>. Your next prompt: “What changed since this?”
                     </p>
                   </div>
@@ -516,66 +479,19 @@ const BrainDumpPage: React.FC = () => {
             </section>
           )}
 
-          <section className="grid gap-4 md:grid-cols-3">
-            <Card className="md:col-span-2 border-primary/20 bg-primary/5">
-              <CardContent className="p-4 md:p-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">How this works</p>
-                    <p className="text-sm text-muted-foreground mt-1">The first win is simple: capture one real thing you do not want to forget.</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                    <span className="rounded-full border bg-background px-3 py-1">Best for tasks</span>
-                    <span className="rounded-full border bg-background px-3 py-1">Ideas</span>
-                    <span className="rounded-full border bg-background px-3 py-1">Life admin</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4 md:p-5 space-y-2">
-                <p className="text-sm font-semibold text-foreground">Good prompts</p>
-                <ul className="space-y-2 text-xs text-muted-foreground">
-                  <li>• Here’s everything I need to do this week</li>
-                  <li>• These are the ideas I don’t want to lose</li>
-                  <li>• Let me dump all my errands and reminders</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </section>
-
-          <section aria-labelledby="capture" className="grid gap-6 md:grid-cols-2">
+          <section aria-labelledby="capture" className="grid items-start gap-6 xl:grid-cols-2">
             {/* CAPTURE CARD */}
             <Card>
               <CardHeader>
-                <CardTitle id="capture">Capture</CardTitle>
+                <CardTitle id="capture">Your draft</CardTitle>
                 <p className="text-sm text-muted-foreground">This is the same Nova conversation. Your transcript stays with you as you change pages.</p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground space-y-3">
-                  <div>
-                    Try this: <span className="font-medium text-foreground">"I need to follow up with Daniel, redesign the homepage CTA, and remember to test onboarding tonight."</span>
-                  </div>
-                  <div>
-                    <p className="mb-2 font-medium text-foreground">Or start from a prompt:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {starterPrompts.map((prompt) => (
-                        <button
-                          key={prompt}
-                          type="button"
-                          onClick={() => {
-                            trackActivationEvent("brain_dump_prompt_selected", { prompt: prompt.slice(0, 40) });
-                            setRawText(prompt);
-                          }}
-                          className="rounded-full border bg-background px-3 py-1 text-left text-xs text-muted-foreground hover:bg-muted transition-colors"
-                        >
-                          {prompt}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
+                <details className="rounded-xl border border-border/60 p-3 text-sm">
+                  <summary className="cursor-pointer text-muted-foreground">Need a starting point?</summary>
+                  <div className="mt-3 flex flex-wrap gap-2">{starterPrompts.map(prompt => <button key={prompt} type="button"
+                    onClick={() => setRawText(prompt)} className="rounded-lg border px-3 py-2 text-left text-sm hover:bg-muted">{prompt}</button>)}</div>
+                </details>
                 {novaResponseText && (
                   <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
                     <p className="text-xs font-medium text-primary mb-1">Nova</p>
@@ -604,7 +520,8 @@ const BrainDumpPage: React.FC = () => {
                   </div>
                 )}
 
-                <Textarea
+                <label htmlFor="brain-dump-draft" className="sr-only">Your thoughts</label>
+                <Textarea id="brain-dump-draft"
                   value={rawText !== "" ? rawText : transcript}
                   onChange={(e) => setRawText(e.target.value)}
                   placeholder="What's on your mind right now? Dump tasks, ideas, reminders, meeting notes, or half-formed thoughts here..."
@@ -622,7 +539,7 @@ const BrainDumpPage: React.FC = () => {
                     variant="default"
                     onClick={handleEnhanceWithAI}
                     disabled={isEnhancing || !hasCapturedContent}
-                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+                    className="border border-border bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     aria-label="Enhance with AI"
                   >
                     {isEnhancing ? (
@@ -637,7 +554,7 @@ const BrainDumpPage: React.FC = () => {
                       </>
                     )}
                   </Button>
-                  <Button variant="outline" onClick={() => { trackActivationEvent("brain_dump_reset_clicked"); reset(); }} aria-label="Reset conversation">New conversation</Button>
+                  <Button variant="outline" onClick={() => { trackActivationEvent("brain_dump_reset_clicked"); reset(); setRawText(''); setTitle(''); setSummary(''); setNotes([]); setActionItems([]); setKeyPoints([]); setStructuredFields({}); setConfidence(null); setTags([]); setPeople([]); setJustSaved(null); }} aria-label="Reset conversation">New conversation</Button>
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <p>
@@ -671,7 +588,7 @@ const BrainDumpPage: React.FC = () => {
                         Nova preview
                       </>
                     ) : (
-                      'Nova capture'
+                      'Review & save'
                     )}
                   </CardTitle>
                   {livePreview && (
@@ -694,10 +611,7 @@ const BrainDumpPage: React.FC = () => {
                           <p className="font-medium text-foreground mb-1">Your organized capture will appear here.</p>
                           <p>Record or type one thought, then tap Organize typed dump. Nova will turn it into a title, category, notes, tags, and action items before you save.</p>
                         </div>
-                        <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
-                          <p className="font-medium text-foreground mb-1">Save stays locked until Nova has something real.</p>
-                          <p>This prevents empty memories or placeholder titles from being saved to your vault.</p>
-                        </div>
+
                       </div>
                     );
                   }
@@ -706,7 +620,7 @@ const BrainDumpPage: React.FC = () => {
                     <>
                       {/* TITLE with tap-to-fix */}
                       <div className={`space-y-2 p-2 border rounded transition-colors ${
-                        editingField === 'title' ? 'bg-blue-50 border-blue-300' : ''
+                        editingField === 'title' ? 'bg-primary/10 border-primary/30' : ''
                       }`}>
                         <label className="text-sm font-medium flex items-center justify-between">
                           Title
@@ -736,7 +650,7 @@ const BrainDumpPage: React.FC = () => {
 
                       {/* CATEGORY with tap-to-fix */}
                       <div className={`space-y-2 p-2 border rounded transition-colors ${
-                        editingField === 'category' ? 'bg-blue-50 border-blue-300' : ''
+                        editingField === 'category' ? 'bg-primary/10 border-primary/30' : ''
                       }`}>
                         <label className="text-sm font-medium">Category</label>
                         <Input 
@@ -757,7 +671,7 @@ const BrainDumpPage: React.FC = () => {
                       {/* TAGS with tap-to-fix */}
                       {data.tags.length > 0 && (
                         <div className={`space-y-2 p-2 border rounded transition-colors ${
-                          editingField === 'tags' ? 'bg-blue-50 border-blue-300' : ''
+                          editingField === 'tags' ? 'bg-primary/10 border-primary/30' : ''
                         }`}>
                           <div className="flex items-center gap-2">
                             <Tag className="h-4 w-4" />
@@ -784,7 +698,7 @@ const BrainDumpPage: React.FC = () => {
                       {/* PEOPLE with tap-to-fix */}
                       {data.people.length > 0 && (
                         <div className={`space-y-2 p-2 border rounded transition-colors ${
-                          editingField === 'people' ? 'bg-blue-50 border-blue-300' : ''
+                          editingField === 'people' ? 'bg-primary/10 border-primary/30' : ''
                         }`}>
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
@@ -811,7 +725,7 @@ const BrainDumpPage: React.FC = () => {
                       {/* ACTION ITEMS with tap-to-fix */}
                       {data.actionItems.length > 0 && (
                         <div className={`space-y-2 p-2 border rounded transition-colors ${
-                          editingField === 'actionItems' ? 'bg-blue-50 border-blue-300' : ''
+                          editingField === 'actionItems' ? 'bg-primary/10 border-primary/30' : ''
                         }`}>
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold">Action Items</h3>
@@ -822,7 +736,7 @@ const BrainDumpPage: React.FC = () => {
                               <div 
                                 key={i} 
                                 className={`flex items-start gap-2 text-sm p-2 rounded border cursor-pointer transition-colors ${
-                                  editingField === `actionItem-${i}` ? 'bg-blue-50 border-blue-300' : 'bg-muted/50'
+                                  editingField === `actionItem-${i}` ? 'bg-primary/10 border-primary/30' : 'bg-muted/50'
                                 }`}
                                 onClick={() => setEditingField(`actionItem-${i}`)}
                               >
@@ -851,7 +765,7 @@ const BrainDumpPage: React.FC = () => {
                       {/* KEY POINTS with tap-to-fix */}
                       {data.keyPoints.length > 0 && (
                         <div className={`space-y-2 p-2 border rounded transition-colors ${
-                          editingField === 'keyPoints' ? 'bg-blue-50 border-blue-300' : ''
+                          editingField === 'keyPoints' ? 'bg-primary/10 border-primary/30' : ''
                         }`}>
                           <h3 className="font-semibold">Key Points</h3>
                           <Textarea 
@@ -873,7 +787,7 @@ const BrainDumpPage: React.FC = () => {
                       {/* NOTES with tap-to-fix */}
                       {data.notes.length > 0 && (
                         <div className={`space-y-2 p-2 border rounded transition-colors ${
-                          editingField === 'notes' ? 'bg-blue-50 border-blue-300' : ''
+                          editingField === 'notes' ? 'bg-primary/10 border-primary/30' : ''
                         }`}>
                           <h3 className="font-semibold">Notes</h3>
                           <Textarea 
@@ -894,16 +808,16 @@ const BrainDumpPage: React.FC = () => {
 
                       {/* CONFIDENCE INDICATOR */}
                       {data.confidence > 0 && (
-                        <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-muted-foreground">
+                        <div className="p-2 bg-primary/10 border border-blue-200 rounded text-xs text-muted-foreground">
                           <div className="flex items-center justify-between">
                             <span>Overall Confidence</span>
                             <div className="flex items-center gap-2">
                               <div className="w-24 h-2 bg-blue-200 rounded-full overflow-hidden">
                                 <div 
                                   className={`h-full ${
-                                    data.confidence >= 0.75 ? 'bg-green-500' :
-                                    data.confidence >= 0.5 ? 'bg-yellow-500' :
-                                    'bg-red-500'
+                                    data.confidence >= 0.75 ? 'bg-emerald-500/100' :
+                                    data.confidence >= 0.5 ? 'bg-amber-500/100' :
+                                    'bg-destructive/100'
                                   }`}
                                   style={{ width: `${data.confidence * 100}%` }}
                                 />
@@ -937,9 +851,8 @@ const BrainDumpPage: React.FC = () => {
               </CardContent>
             </Card>
           </section>
-        </article>
-      </main>
-    </>
+      </article>
+    </WorkspacePage>
   );
 };
 

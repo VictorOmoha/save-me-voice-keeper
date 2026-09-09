@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, FileText, Heart, Users, DollarSign, User, Plus, Settings, Brain, Mic, ArrowUpRight } from "lucide-react";
+import { LayoutDashboard, FileText, Heart, Users, DollarSign, User, Plus, Settings, Brain, Mic, ArrowUpRight, Sunrise, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { SavedEntry } from "@/types/dashboard";
 import { useCategoryFilter } from "./categoryView/useCategoryFilter";
@@ -26,6 +26,8 @@ const pages = [
   { to: "/voice-capture", label: "Voice capture", icon: Mic, section: "voice-capture" },
   { to: "/all-entries", label: "All entries", icon: FileText, section: "all-entries" },
   { to: "/brain-dump", label: "Brain dump", icon: Brain, section: "brain-dump" },
+  { to: "/briefing", label: "Daily briefing", icon: Sunrise, section: "briefing" },
+  { to: "/insights", label: "Insights", icon: Sparkles, section: "insights" },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({savedEntriesCount, onAddEntry, entries, onMobileClose, isMobileOpen, activeSection}) => {

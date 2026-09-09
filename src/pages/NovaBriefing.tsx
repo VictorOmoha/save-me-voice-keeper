@@ -1,3 +1,4 @@
+import {WorkspacePage, WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -222,7 +223,7 @@ const NovaBriefing: React.FC = () => {
       lines.push(`${enrichedEntries.length} enriched entries are active in your knowledge graph.`);
     }
     if (lines.length === 0) {
-      lines.push("Nova needs more structured context before a meaningful briefing can be assembled.");
+      lines.push("Save a few more memories with tasks or reminders to build your briefing.");
     }
     return lines;
   }, [topActionEntries, linkedEntries, deadlineEntries, enrichedEntries, scope, backendActivitySummary, backendDeadlines]);
@@ -230,61 +231,35 @@ const NovaBriefing: React.FC = () => {
   const quickIntents = [
     { label: "Action Focus", description: "Show me what needs to move next.", onClick: () => setFocus("action") },
     { label: "Relationship Focus", description: "Show the most connected entries.", onClick: () => setFocus("connections") },
-    { label: "Deadline Focus", description: "Surface reminder and due pressure.", onClick: () => setFocus("deadlines") },
-    { label: "Open Insights", description: "Switch to deeper analytics.", onClick: () => navigate("/insights") },
+    { label: "Deadline Focus", description: "See upcoming reminders and due dates.", onClick: () => setFocus("deadlines") },
+    { label: "Open Insights", description: "Explore patterns in your memories.", onClick: () => navigate("/insights") },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur border-b">
-        <nav className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Dashboard
-          </Button>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-primary/30 text-primary">Nova Briefing</Badge>
-            <Select value={scope} onValueChange={(value) => setScope(value as BriefingScope)}>
-              <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Scope" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </nav>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Radar className="h-8 w-8 text-primary" />
-            {user?.displayName ? `${user.displayName.split(' ')[0]}'s` : 'Your'} Nova Briefing
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            A synthesized view of pressure, action, memory, and connection across your vault.
-          </p>
-        </div>
-
+    <WorkspacePage>
+      <WorkspacePageHeader title="Daily briefing" description="Your next steps, upcoming reminders, and useful connections in one place." actions={
+        <Select value={scope} onValueChange={value => setScope(value as BriefingScope)}>
+          <SelectTrigger aria-label="Briefing period" className="w-36 min-h-11"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="today">Today</SelectItem><SelectItem value="week">This week</SelectItem><SelectItem value="month">This month</SelectItem><SelectItem value="all">All time</SelectItem></SelectContent>
+        </Select>} />
+      <div className="space-y-6">
         <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-background to-background">
-          <CardHeader><CardTitle>Today’s Synthesis</CardTitle></CardHeader>
+          <CardHeader><CardTitle>At a glance</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {isBackendLoading && <p className="text-sm text-muted-foreground">Loading backend briefing intelligence…</p>}
-            {backendMode === "ready" && <p className="text-xs text-emerald-600">Backend briefing online.</p>}
-            {backendMode === "partial" && <p className="text-xs text-amber-600">Backend briefing partially available.</p>}
-            {backendMode === "fallback" && <p className="text-xs text-amber-600">Backend briefing unavailable — using local fallback signals.</p>}
+            {isBackendLoading && <p className="text-sm text-muted-foreground">Preparing your briefing…</p>}
+            {backendMode === "ready" && <p className="text-xs text-emerald-600">Briefing up to date.</p>}
+            {backendMode === "partial" && <p className="text-xs text-amber-600">Some updates are still unavailable.</p>}
+            {backendMode === "fallback" && <p className="text-xs text-amber-600">Live briefing is unavailable. Here is what your saved memories show.</p>}
             {backendBriefing && <p className="text-sm text-foreground leading-relaxed">{backendBriefing}</p>}
             {briefingSummary.map((line, index) => (
               <p key={index} className="text-sm text-foreground">{line}</p>
             ))}
-            {backendError && <p className="text-xs text-amber-600">{backendError}</p>}
+
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="h-5 w-5 text-primary" />Recommended Next Moves</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="h-5 w-5 text-primary" />Suggested next steps</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {recommendedMoves.map((move) => (
               <div key={move.title} className="rounded-xl border p-4">
@@ -297,7 +272,7 @@ const NovaBriefing: React.FC = () => {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-lg">Briefing Actions</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Quick actions</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button variant="outline" className="justify-start h-auto py-4" onClick={() => navigate('/dashboard?action=create')}><PlusCircle className="w-4 h-4 mr-2" />Create follow-up entry</Button>
             <Button variant="outline" className="justify-start h-auto py-4" onClick={() => navigate('/settings?tab=data-management')}><BellRing className="w-4 h-4 mr-2" />Review reminders & exports</Button>
@@ -305,20 +280,8 @@ const NovaBriefing: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader><CardTitle className="text-lg">Quick Brief Intents</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickIntents.map((intent) => (
-              <button key={intent.label} type="button" className="rounded-xl border p-4 text-left hover:bg-muted/50 transition-colors" onClick={intent.onClick}>
-                <p className="text-sm font-medium text-foreground">{intent.label}</p>
-                <p className="text-xs text-muted-foreground mt-2">{intent.description}</p>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-
         <Tabs value={focus} onValueChange={(value) => setFocus(value as BriefingFocus)}>
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsList className="grid h-auto grid-cols-2 sm:grid-cols-4 w-full max-w-2xl">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="action">Action</TabsTrigger>
             <TabsTrigger value="connections">Connections</TabsTrigger>
@@ -327,14 +290,14 @@ const NovaBriefing: React.FC = () => {
 
           <TabsContent value="overview" className="space-y-6">
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Brain className="h-5 w-5 text-primary" />Backend Related Context</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Brain className="h-5 w-5 text-primary" />Related memories</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {backendRelatedEntries.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No backend-related context available yet.</p>
+                  <p className="text-sm text-muted-foreground">No related memories in this period yet.</p>
                 ) : backendRelatedEntries.map((entry) => (
                   <button key={entry.id} type="button" className="w-full rounded-lg border p-4 text-left hover:bg-muted/50 transition-colors" onClick={() => navigate(`/all-entries/${entry.id}`)}>
                     <p className="text-sm font-medium text-foreground">{entry.title}</p>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-2">{entry.summary || 'Related context surfaced from backend intelligence.'}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-2">{entry.summary || 'Open this memory to see its details.'}</p>
                   </button>
                 ))}
               </CardContent>
@@ -343,9 +306,9 @@ const NovaBriefing: React.FC = () => {
 
           <TabsContent value="action" className="space-y-6">
             <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><CheckSquare className="h-5 w-5 text-green-500" />Action Pressure</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><CheckSquare className="h-5 w-5 text-green-500" />Next actions</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {topActionEntries.length === 0 ? <p className="text-sm text-muted-foreground">No action-heavy entries yet.</p> : topActionEntries.map(({ entry, intelligence }) => (
+                {topActionEntries.length === 0 ? <p className="text-sm text-muted-foreground">No action items in this period yet.</p> : topActionEntries.map(({ entry, intelligence }) => (
                   <button key={entry.id} type="button" className="w-full rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors" onClick={() => navigate(`/all-entries/${entry.id}`)}>
                     <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-foreground">{entry.title}</p><ArrowRight className="h-4 w-4 text-muted-foreground" /></div>
                     <p className="text-xs text-muted-foreground mt-1">{intelligence.actionItemCount} action item{intelligence.actionItemCount > 1 ? 's' : ''}</p>
@@ -388,8 +351,8 @@ const NovaBriefing: React.FC = () => {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+      </div>
+    </WorkspacePage>
   );
 };
 

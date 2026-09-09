@@ -1,53 +1,17 @@
-
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus } from "lucide-react";
-
-interface CategoryHeaderProps {
-  categoryName: string;
-  entriesCount: number;
-  onBack?: () => void;
-  onCreateEntry: () => void;
-}
-
-export const CategoryHeader: React.FC<CategoryHeaderProps> = ({
-  categoryName,
-  entriesCount,
-  onBack,
-  onCreateEntry
-}) => {
-  return (
-    <div className="flex items-center justify-between mb-6 animate-fade-in">
-      <div className="flex items-center space-x-4">
-        {onBack && (
-          <Button 
-            onClick={onBack} 
-            variant="ghost" 
-            size="sm"
-            className="transition-all duration-200 ease-in-out hover:scale-110 hover:-translate-x-1"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 transition-transform duration-200 ease-in-out hover:-translate-x-1" />
-            Back
-          </Button>
-        )}
-        <h1 className="text-2xl font-bold transition-all duration-200 ease-in-out hover:text-primary hover:scale-105">
-          {categoryName}
-        </h1>
-        <Badge 
-          variant="secondary" 
-          className="transition-all duration-200 ease-in-out hover:scale-110 hover:bg-primary hover:text-primary-foreground"
-        >
-          {entriesCount} entries
-        </Badge>
-      </div>
-      
-      <Button 
-        onClick={onCreateEntry}
-        className="bg-gradient-primary hover:opacity-90 text-primary-foreground transition-all duration-300 ease-in-out hover:scale-110 hover:-translate-y-1 hover:shadow-lg"
-      >
-        <Plus className="w-4 h-4 mr-2 transition-transform duration-200 ease-in-out hover:rotate-90" />
-        Create {categoryName.slice(0, -1)}
-      </Button>
-    </div>
-  );
+import {ReactNode} from 'react';
+import {Button} from '@/components/ui/button';
+import {Plus} from 'lucide-react';
+import {WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
+const descriptions: Record<string, string> = {
+  Documents: 'Your files, reference material, and important paperwork, together.',
+  Health: 'Keep appointments, care notes, and health information easy to find.',
+  Contacts: 'Remember the people you meet and the details that matter.',
+  Finance: 'A place for budgets, renewals, and financial notes.',
+  Personal: 'Ideas, everyday notes, and the things you want to keep.',
 };
+export function CategoryHeader({categoryName, entriesCount, onCreateEntry, actions, isEditing = false}: {
+  categoryName: string; entriesCount: number; onBack?: () => void; onCreateEntry: () => void; actions?: ReactNode; isEditing?: boolean;
+}) {
+  return <WorkspacePageHeader title={categoryName} eyebrow={`Collection · ${entriesCount} ${entriesCount === 1 ? 'memory' : 'memories'}`}
+    description={descriptions[categoryName]} actions={!isEditing && <>{actions}<Button onClick={onCreateEntry} className="min-h-11"><Plus className="mr-2 h-4 w-4" />Add memory</Button></>} />;
+}

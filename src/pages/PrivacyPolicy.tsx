@@ -9,22 +9,20 @@ const PrivacyPolicy = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="workspace-shell min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4">
-          <Link to="/">
-            <Button variant="ghost" className="gap-2">
+            <Button asChild variant="ghost" className="gap-2"><Link to="/">
               <ArrowLeft className="w-4 h-4" />
               Back to Home
-            </Button>
-          </Link>
+            </Link></Button>
         </div>
       </header>
 
       {/* Content */}
       <div className="container mx-auto px-4 py-12 max-w-4xl">
-        <div className="prose prose-slate dark:prose-invert max-w-none">
+        <div className="legal-document max-w-none">
           <h1>Privacy Policy</h1>
           <p className="text-muted-foreground">
             <strong>Effective Date:</strong> January 15, 2026<br />

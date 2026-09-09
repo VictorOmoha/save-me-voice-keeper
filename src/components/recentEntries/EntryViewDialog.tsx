@@ -1,3 +1,5 @@
+import {useDownload} from '@/components/categoryView/useDownload';
+import {metadataFields} from '@/utils/fieldFormatters';
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -51,7 +53,8 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   allEntries = [],
   onOpenRelatedEntry,
 }) => {
-  const [isDownloading, setIsDownloading] = useState(false);
+  const {downloadingFiles, handleDownload: downloadEntry} = useDownload();
+  const isDownloading = !!entry && downloadingFiles.includes(entry.id);
 
   // Listen for canonical Nova close event
   useEffect(() => {
@@ -79,7 +82,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   // Extract images from the entry
   const entryImages = extractImagesFromEntry(entry);
   const displayFields = Object.entries(entry.fields).filter(([key, value]) => {
-    if (key === 'category') return false;
+    if (metadataFields.includes(key)) return false;
     if (['category', 'hasUploadedFile', 'fileName', 'fileSize', 'fileType'].includes(key)) return false;
     if (entryImages.includes(String(value)) || (Array.isArray(value) && value.some(v => entryImages.includes(String(v))))) return false;
     if (value === null || value === undefined || value === '') return false;
@@ -93,53 +96,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
   // Check if this is a document entry with an uploaded file
   const isDocumentWithFile = entry.fields.category === 'Documents' && entry.fields.hasUploadedFile;
 
-  const handleDownload = async () => {
-    if (!entry.fields.hasUploadedFile || !entry.fields.fileName) {
-      toast.error("No file available for download");
-      return;
-    }
-
-    setIsDownloading(true);
-    
-    try {
-      // Search for the file data in localStorage
-      const allKeys = Object.keys(localStorage);
-      const documentKeys = allKeys.filter(key => key.startsWith('document_'));
-      
-      let fileData = null;
-      for (const key of documentKeys) {
-        try {
-          const storedData = JSON.parse(localStorage.getItem(key) || '');
-          if (storedData.name === entry.fields.fileName) {
-            fileData = storedData;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-
-      if (!fileData) {
-        toast.error("File data not found in storage");
-        return;
-      }
-
-      // Create download link
-      const link = document.createElement('a');
-      link.href = fileData.data;
-      link.download = fileData.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success(`Downloaded ${fileData.name}`);
-    } catch (error) {
-      logError('Download error', error);
-      toast.error("Failed to download file");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  const handleDownload = () => downloadEntry(entry);
 
   const handlePrint = () => {
     if (!hasMeaningfulDetails) {
@@ -152,13 +109,13 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="workspace-shell w-[calc(100%-2rem)] max-w-2xl max-h-[90dvh] overflow-y-auto rounded-2xl p-5 sm:p-7">
+        <DialogHeader className="pr-8 text-left">
           <div className="flex items-center space-x-3">
             <div className={`w-10 h-10 rounded-lg ${categoryColor} flex items-center justify-center flex-shrink-0`}>
               <Icon className="w-5 h-5" />
             </div>
-            <div className="flex-1">
+            <div className="min-w-0 flex-1">
               <DialogTitle className="text-xl font-semibold">
                 {entry.title}
               </DialogTitle>
@@ -166,9 +123,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                 <Badge variant="secondary" className="text-xs">
                   {categoryName}
                 </Badge>
-                <Badge variant="outline" className="text-xs">
-                  {entryType}
-                </Badge>
+
               </div>
             </div>
           </div>
@@ -176,7 +131,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
         
         <div className="space-y-6">
           {/* Entry Metadata */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground border-b pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground border-b pb-4">
             <div>
               <p>Created: {new Date(entry.createdAt).toLocaleDateString()}</p>
               <p>Last Modified: {new Date(entry.updatedAt).toLocaleDateString()}</p>
@@ -206,16 +161,9 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
             onOpenEntry={onOpenRelatedEntry}
           />
 
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
-            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">Memory saved</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              This entry is in your archive under {categoryName}. You can edit it anytime to add policy numbers, contacts, dates, files, or retrieval notes.
-            </p>
-          </div>
-
           {/* Entry Fields */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-foreground">Entry Details</h3>
+            <h3 className="text-lg font-medium text-foreground">Details</h3>
             <div className="grid gap-4">
               {!hasMeaningfulDetails && (
                 <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
@@ -264,7 +212,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                         {key.replace(/([A-Z])/g, ' $1').trim()}
                       </label>
                       <div className="p-3 bg-accent/50 rounded-md border">
-                        <p className="text-foreground whitespace-pre-wrap">
+                        <p className="text-foreground whitespace-pre-wrap break-words">
                           {String(value)}
                         </p>
                       </div>
@@ -275,7 +223,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-2 pt-4 border-t">
+          <div className="flex flex-wrap justify-end gap-2 pt-4 border-t">
             {isDocumentWithFile && onViewDocument && (
               <Button
                 onClick={() => {
@@ -294,7 +242,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                 onClick={handleDownload}
                 variant="outline"
                 disabled={isDownloading}
-                className="text-green-600 hover:text-green-700"
+                className="text-foreground"
               >
                 <Download className="h-4 w-4 mr-2" />
                 {isDownloading ? 'Downloading...' : 'Download File'}
@@ -305,7 +253,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
               variant="outline"
               disabled={!hasMeaningfulDetails}
               title={!hasMeaningfulDetails ? "Add details before printing" : "Print entry"}
-              className="text-purple-600 hover:text-purple-700"
+              className="text-foreground"
             >
               <Printer className="h-4 w-4 mr-2" />
               Print Entry
@@ -319,7 +267,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                 variant="outline"
                 disabled={!hasMeaningfulDetails}
                 title={!hasMeaningfulDetails ? "Add details before filling this form" : "Fill form"}
-                className="text-green-600 hover:text-green-700"
+                className="text-foreground"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Fill Form
@@ -334,7 +282,7 @@ export const EntryViewDialog: React.FC<EntryViewDialogProps> = ({
                 variant="outline"
                 disabled={!hasMeaningfulDetails}
                 title={!hasMeaningfulDetails ? "Add details before using this as a template" : "Use as template"}
-                className="text-purple-600 hover:text-purple-700"
+                className="text-foreground"
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Use as Template

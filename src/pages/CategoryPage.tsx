@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { CategoryView } from "@/components/CategoryView";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SavedEntry } from "@/types/dashboard";
@@ -34,9 +32,20 @@ export default function CategoryPage() {
   const [editingEntry, setEditingEntry] = useState<SavedEntry | null>(null);
   const [fillingEntry, setFillingEntry] = useState<SavedEntry | null>(null);
   const [templateEntry, setTemplateEntry] = useState<SavedEntry | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [isFillMode, setIsFillMode] = useState(false);
 
   const isValidCategory = !!categoryName && VALID_CATEGORIES.includes(categoryName);
+
+  useEffect(() => {
+    setSearchQuery('');
+    setShowAddEntry(false);
+    setShowDocumentCreator(false);
+    setEditingEntry(null);
+    setFillingEntry(null);
+    setTemplateEntry(null);
+    setIsFillMode(false);
+  }, [categoryName]);
 
   const loadEntries = useCallback(async () => {
     if (authLoading) return;
@@ -94,11 +103,13 @@ export default function CategoryPage() {
   }, [loadEntries]);
 
   const handleSaveEntry = async (entryData: Omit<SavedEntry, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (isSaving) return;
     if (!user) {
       toast.error("You must be logged in to save entries");
       return;
     }
 
+    setIsSaving(true);
     try {
       if (editingEntry) {
         // Update existing entry
@@ -119,7 +130,7 @@ export default function CategoryPage() {
           title: entryData.title,
           fields: {
             ...entryData.fields,
-            category: categoryName,
+            category: entryData.fields.category || categoryName,
           },
           field_definitions: entryData.fieldDefinitions || null,
           user_id: user.uid,
@@ -138,6 +149,8 @@ export default function CategoryPage() {
     } catch (error) {
       console.error('Error saving entry:', error);
       toast.error("Failed to save entry");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -251,18 +264,11 @@ export default function CategoryPage() {
       onFillEntry={handleFillEntry}
       onUseAsTemplate={handleUseAsTemplate}
     >
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">{categoryName}</h1>
-          <p className="text-muted-foreground">Manage your {categoryName.toLowerCase()} entries</p>
-        </div>
-        <Button onClick={() => handleCreateEntry(categoryName)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add {categoryName} Entry
-        </Button>
-      </div>
-
       <CategoryView
+        onAddDocument={() => { handleCancelEdit(); setShowDocumentCreator(true); }}
+        isSaving={isSaving}
+        searchQuery={searchQuery}
+        onClearSearch={() => setSearchQuery('')}
         categoryName={categoryName}
         entries={filteredEntries}
         onEdit={handleEditEntry}

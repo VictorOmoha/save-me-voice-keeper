@@ -9,6 +9,10 @@ const { navigateMock, saveEntryMock, toastInfoMock, toastSuccessMock } = vi.hois
   toastInfoMock: vi.fn(),
   toastSuccessMock: vi.fn(),
 }));
+vi.mock('@/components/workspace/WorkspacePage', () => ({
+  WorkspacePage: ({children}: {children: React.ReactNode}) => <>{children}</>,
+  WorkspacePageHeader: ({title}: {title: string}) => <h1>{title}</h1>,
+}));
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => navigateMock,

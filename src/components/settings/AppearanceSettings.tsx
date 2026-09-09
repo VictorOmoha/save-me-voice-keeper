@@ -68,7 +68,7 @@ export const AppearanceSettings = () => {
             <Button
               variant={theme === "light" ? "default" : "outline"}
               size="sm"
-              onClick={() => handleThemeChange("light")}
+              aria-label="Light theme" aria-pressed={theme === "light"} onClick={() => handleThemeChange("light")}
               disabled={isLoading}
             >
               <Sun className="w-4 h-4" />
@@ -76,7 +76,7 @@ export const AppearanceSettings = () => {
             <Button
               variant={theme === "dark" ? "default" : "outline"} 
               size="sm"
-              onClick={() => handleThemeChange("dark")}
+              aria-label="Dark theme" aria-pressed={theme === "dark"} onClick={() => handleThemeChange("dark")}
               disabled={isLoading}
             >
               <Moon className="w-4 h-4" />
@@ -84,7 +84,7 @@ export const AppearanceSettings = () => {
             <Button
               variant={theme === "system" ? "default" : "outline"} 
               size="sm"
-              onClick={() => handleThemeChange("system")}
+              aria-label="System theme" aria-pressed={theme === "system"} onClick={() => handleThemeChange("system")}
               disabled={isLoading}
             >
               <Monitor className="w-4 h-4" />

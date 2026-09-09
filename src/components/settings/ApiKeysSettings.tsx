@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Key, Plus, Copy, Trash2, Eye, EyeOff, Bot, ShieldCheck, PlugZap, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCloudFunctionUrl, getCloudFunctionsBaseUrl, getFirebaseIdToken } from "@/utils/cloudFunctions";
 import {
@@ -42,6 +42,8 @@ const permissionLabel = (permissions: AgentPermission[]) => {
 
 export const ApiKeysSettings = () => {
   const { user } = useAuth();
+  const [loadError, setLoadError] = useState(false);
+  const [loadingKeys, setLoadingKeys] = useState(true);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,12 +63,13 @@ export const ApiKeysSettings = () => {
   const fetchApiKeys = useCallback(async () => {
     if (!user) return;
 
+    setLoadingKeys(true);
+    setLoadError(false);
     try {
       const apiKeysRef = collection(db, "api_keys");
       const q = query(
         apiKeysRef,
-        where("user_id", "==", user.uid),
-        orderBy("created_at", "desc")
+        where("user_id", "==", user.uid)
       );
 
       const querySnapshot = await getDocs(q);
@@ -89,10 +92,12 @@ export const ApiKeysSettings = () => {
         });
       });
 
-      setApiKeys(keys);
+      setApiKeys(keys.sort((a, b) => b.created_at.localeCompare(a.created_at)));
     } catch (error) {
       console.error("Error fetching API keys:", error);
-      toast.error("Failed to load API keys");
+      setLoadError(true);
+    } finally {
+      setLoadingKeys(false);
     }
   }, [user]);
 
@@ -372,7 +377,12 @@ export const ApiKeysSettings = () => {
             </div>
           ))}
 
-          {apiKeys.length === 0 && (
+          {loadingKeys && <p role="status" className="py-8 text-center text-sm text-muted-foreground">Loading agent keys…</p>}
+          {loadError && <div role="alert" className="rounded-xl border border-destructive/30 p-5 text-sm">
+            <p>We could not load your agent keys. Check your connection and try again.</p>
+            <Button variant="outline" className="mt-3" onClick={() => void fetchApiKeys()}>Try again</Button>
+          </div>}
+          {!loadingKeys && !loadError && apiKeys.length === 0 && (
             <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
               <Key className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No agent keys created yet</p>
@@ -381,7 +391,10 @@ export const ApiKeysSettings = () => {
           )}
         </div>
 
-        <ConnectAgentGuide generatedKey={generatedKey} preset={activePreset} />
+        <details className="rounded-xl border border-border/70" key={generatedKey || 'setup'} open={generatedKey ? true : undefined}>
+          <summary className="cursor-pointer p-4 text-sm font-semibold">Integration instructions & code examples</summary>
+          <ConnectAgentGuide generatedKey={generatedKey} preset={activePreset} />
+        </details>
       </CardContent>
     </Card>
   );
@@ -499,7 +512,7 @@ const Snippet = ({ title, text, onCopy }: { title: string; text: string; onCopy:
   <div>
     <div className="flex items-center justify-between mb-1">
       <Label className="text-xs">{title}</Label>
-      <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => void onCopy(text)}>
+      <Button aria-label={`Copy ${title}`} variant="ghost" size="sm" className="h-11 px-3" onClick={() => void onCopy(text)}>
         <Copy className="w-3 h-3" />
       </Button>
     </div>

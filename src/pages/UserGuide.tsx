@@ -1,603 +1,139 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Search, ChevronRight, Mic, FileText, Settings, Zap, Download, Brain, MessageSquare, Upload, Filter, Calendar, Tag, Bell, Shield, CreditCard } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {useState, type ReactNode} from 'react';
+import {Link} from 'react-router-dom';
+import {Brain, ChevronRight, FileText, FolderOpen, Mic, Search, Settings, Wallet} from 'lucide-react';
+import {WorkspacePage, WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
+import {useAuth} from '@/contexts/AuthContext';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Collapsible, CollapsibleContent, CollapsibleTrigger} from '@/components/ui/collapsible';
 
-interface GuideSection {
-  id: string;
-  title: string;
-  icon: React.ReactNode;
-  content: React.ReactNode;
-}
+const topics = [
+  {
+    id: 'getting-started', title: 'Getting started', icon: FolderOpen,
+    paragraphs: [
+      'SaveMe keeps your notes, documents, and useful details together. Start with a thought you want to remember.',
+      'Open Voice capture to talk to Nova, or choose New memory to type a title and notes. Your saved items appear in All entries and in their collection.',
+    ],
+    links: [{label: 'Open dashboard', to: '/dashboard'}, {label: 'Take the guided tour', to: '/onboarding'}],
+  },
+  {
+    id: 'voice', title: 'Talking to Nova', icon: Mic,
+    paragraphs: [
+      'Tap the microphone in Voice capture or the floating Nova control, then allow microphone access. Nova uses realtime voice to listen and respond.',
+      'Try “Remember that my appointment is on Friday” or “Go to the dashboard.” The same conversation stays available as you move between pages inside the app.',
+      'Use End session when you are finished speaking. In Settings → Voice, choose whether Nova keeps listening after a response. Refreshing or closing the browser ends the live connection.',
+    ],
+    links: [{label: 'Open Voice capture', to: '/voice-capture'}, {label: 'Voice settings', to: '/settings?tab=voice'}],
+  },
+  {
+    id: 'brain-dump', title: 'Organizing a brain dump', icon: Brain,
+    paragraphs: [
+      'Use Brain dump when you have several thoughts to sort through. Start a voice conversation or type into Your draft.',
+      'Choose Organize to turn your draft into structured details. Check the result in Review & save, make any changes, and save when it is ready.',
+      'New conversation clears the current draft and conversation so you can start again.',
+    ],
+    links: [{label: 'Open Brain dump', to: '/brain-dump'}],
+  },
+  {
+    id: 'memories', title: 'Adding and editing memories', icon: FileText,
+    paragraphs: [
+      'Choose Add memory in a collection, or New memory from the dashboard. Give the memory a title and add notes. Starting inside a collection selects that collection for you.',
+      'Use Additional details for information such as a phone number, date, or amount. Each custom field has a name, a type, and a value.',
+      'Open an entry’s actions menu to edit it, fill in its fields, or use it as a template for another entry. Editing updates the existing entry; a template creates a new one.',
+    ],
+    links: [{label: 'Add a memory', to: '/dashboard?action=create'}],
+  },
+  {
+    id: 'collections', title: 'Collections and search', icon: FolderOpen,
+    paragraphs: [
+      'Each entry belongs to one collection: Documents, Health, Contacts, Finance, or Personal. You can change its collection when editing.',
+      'All entries brings your memories together. Search by title or content and change the sort order to find what you need. Clear the search to see the full list again.',
+      'Select entries to export or delete them together. Deletion asks for confirmation. Check the selected entries before confirming.',
+    ],
+    links: [{label: 'Browse all entries', to: '/all-entries'}],
+  },
+  {
+    id: 'documents', title: 'Uploading and writing documents', icon: FileText,
+    paragraphs: [
+      'In Documents, choose Add document. Use Upload file for an existing file, Write a document to create one, or Details only to keep information about a document.',
+      'For a new document, choose a format, write your content, and create the file. Then choose Save document to store it. If you change the content or format, create the file again before saving.',
+      'You can add a description, tags, a date, or a storage location. If an upload fails, your form stays open so you can try again.',
+    ],
+    links: [{label: 'Open Documents', to: '/category/Documents'}],
+  },
+  {
+    id: 'settings', title: 'Settings and your data', icon: Settings,
+    paragraphs: [
+      'Settings contains your profile, security, notifications, appearance, voice preferences, Nova memory, agent connections, billing, data controls, and support.',
+      'On a phone, use the Settings section selector to move between these areas. Appearance lets you choose light, dark, or your system theme.',
+      'Your data contains export and account controls. Help & support lets you contact the SaveMe team if something is not working.',
+    ],
+    links: [{label: 'Open Settings', to: '/settings'}],
+  },
+  {
+    id: 'billing', title: 'Plans and billing', icon: Wallet,
+    paragraphs: [
+      'Plan & billing shows your current plan and the available options. Paid plans use Stripe Checkout.',
+      'Use the billing portal to manage or cancel an existing paid subscription and view invoices. Review the price and billing terms before completing checkout.',
+    ],
+    links: [{label: 'Subscription', to: '/subscription'}],
+  },
+  {
+    id: 'troubleshooting', title: 'When something is not working', icon: Settings,
+    paragraphs: [
+      'If Nova cannot hear you, check the site’s microphone permission and your selected input device. Confirm that your internet connection is available, then retry the session.',
+      'If a save fails, keep the form open and retry after checking your connection. Look for the saved entry before submitting it again.',
+      'If you need more help, open Help & support in Settings and describe the page, the action you took, and the message you saw.',
+    ],
+    links: [{label: 'Get help', to: '/settings?tab=help'}],
+  },
+];
 
-const UserGuide = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [openSections, setOpenSections] = useState<string[]>(["getting-started"]);
+const PublicGuidePage = ({children}: {children: ReactNode}) => <div className="workspace-shell mx-auto min-h-screen max-w-6xl px-4 py-8">{children}</div>;
 
-  const toggleSection = (sectionId: string) => {
-    setOpenSections(prev => 
-      prev.includes(sectionId) 
-        ? prev.filter(id => id !== sectionId)
-        : [...prev, sectionId]
-    );
-  };
+export default function UserGuide() {
+  const {user} = useAuth();
+  const GuideLayout = user ? WorkspacePage : PublicGuidePage;
+  const [search, setSearch] = useState('');
+  const [openSections, setOpenSections] = useState(['getting-started']);
+  const query = search.trim().toLowerCase();
+  const filtered = topics.filter(topic => [topic.title, ...topic.paragraphs].join(' ').toLowerCase().includes(query));
+  const toggle = (id: string) => setOpenSections(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
 
-  const sections: GuideSection[] = [
-    {
-      id: "getting-started",
-      title: "Getting Started",
-      icon: <Zap className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Welcome to SaveMe.Space</h3>
-          <p className="text-muted-foreground">
-            SaveMe is a voice-first external memory. Sign up, talk to Nova, and pay only if you need a paid plan.
-          </p>
-          
-          <div className="space-y-3">
-            <h4 className="font-medium">First Steps:</h4>
-            <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>Create an account at <Link to="/signup" className="text-primary underline">/signup</Link> with email or Google</li>
-              <li>Allow microphone access when the browser asks</li>
-              <li>Open <Link to="/voice-capture" className="text-primary underline">Voice Capture</Link> or the floating Nova mic and speak a thought</li>
-              <li>Review the saved entry on your Dashboard</li>
-              <li>If you want Basic ($9/mo) or Premium ($19/mo), open <Link to="/subscription" className="text-primary underline">Subscription</Link> and use Stripe Checkout. There is no paid trial. Manage or cancel in the billing portal.</li>
-            </ol>
-          </div>
-
-          <div className="bg-muted p-4 rounded-lg">
-            <h4 className="font-medium mb-2">Quick Navigation:</h4>
-            <ul className="text-sm space-y-1">
-              <li><strong>Dashboard:</strong> Overview of your memory and recent activity</li>
-              <li><strong>Voice Capture:</strong> Talk to Nova and file memories</li>
-              <li><strong>Brain Dump:</strong> Longer voice capture for unstructured thoughts</li>
-              <li><strong>Subscription:</strong> Stripe Checkout and billing portal</li>
-              <li><strong>Settings:</strong> Profile, voice, and the same billing actions</li>
-            </ul>
-          </div>
+  return <GuideLayout>
+    <WorkspacePageHeader title="Help & guide" description="Find your way around SaveMe, from your first memory to your daily routine."
+      actions={!user && <Button asChild variant="outline"><Link to="/">Back to SaveMe</Link></Button>} />
+    <div className="grid items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <aside className="rounded-2xl border border-border/70 bg-card p-4 lg:sticky lg:top-24">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+          <Input aria-label="Search guide" placeholder="Search guide…" value={search} onChange={event => setSearch(event.target.value)} className="min-h-11 pl-9" />
         </div>
-      )
-    },
-    {
-      id: "adding-entries",
-      title: "Adding Entries",
-      icon: <FileText className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Creating Data Entries</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Method 1: Manual Form Entry</h4>
-              <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>Click "Add Entry" from the dashboard or navigation</li>
-                <li>Fill in the required fields (title, content, etc.)</li>
-                <li>Select a category to organize your entry</li>
-                <li>Add custom fields if needed</li>
-                <li>Upload images or files if relevant</li>
-                <li>Click "Save" to store your entry</li>
-              </ol>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Method 2: Voice Entry</h4>
-              <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>Click the microphone icon anywhere in the app</li>
-                <li>Say "Create a new entry" or similar command</li>
-                <li>Speak naturally about what you want to record</li>
-                <li>The AI will structure your speech into proper fields</li>
-                <li>Review and confirm the generated entry</li>
-              </ol>
-            </div>
-
-            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Voice Entry Tips:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Speak clearly and at a normal pace</li>
-                <li>• Include context: "This is a meeting note about..."</li>
-                <li>• Mention categories: "Add this to my work projects"</li>
-                <li>• Use natural language - the AI understands context</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "voice-commands",
-      title: "Voice Commands",
-      icon: <Mic className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Voice Interface Guide</h3>
-          <p className="text-muted-foreground">
-            Our advanced voice interface understands natural language and can perform various actions through speech.
-          </p>
-
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Basic Commands:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <Badge variant="outline">"Create a new entry"</Badge>
-                <Badge variant="outline">"Show my documents"</Badge>
-                <Badge variant="outline">"Search for meetings"</Badge>
-                <Badge variant="outline">"Delete old entries"</Badge>
-                <Badge variant="outline">"Export my data"</Badge>
-                <Badge variant="outline">"Go to settings"</Badge>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Advanced Usage:</h4>
-              <ul className="text-sm space-y-2">
-                <li><strong>Conversational:</strong> "I need to record information about my client meeting today"</li>
-                <li><strong>Specific:</strong> "Create a shopping list with milk, bread, and eggs"</li>
-                <li><strong>Context-aware:</strong> "Add this receipt to my business expenses category"</li>
-                <li><strong>Multi-step:</strong> "Create a project entry and set a reminder for next week"</li>
-              </ul>
-            </div>
-
-            <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Voice Best Practices:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Ensure your microphone has permissions</li>
-                <li>• Speak in a quiet environment for better accuracy</li>
-                <li>• Wait for the system to process before speaking again</li>
-                <li>• Use the visual feedback to confirm commands</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "brain-dump",
-      title: "Brain Dump Feature",
-      icon: <Brain className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Brain Dump: Capture Ideas Instantly</h3>
-          <p className="text-muted-foreground">
-            The Brain Dump feature is perfect for quickly capturing thoughts, ideas, or information without worrying about structure.
-          </p>
-
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">How to Use Brain Dump:</h4>
-              <ol className="list-decimal list-inside space-y-1 text-sm">
-                <li>Navigate to the Brain Dump page or use voice command "Start brain dump"</li>
-                <li>Click "Start Recording" or use the voice activation</li>
-                <li>Speak freely about your thoughts, ideas, or information</li>
-                <li>The system will automatically segment and organize your content</li>
-                <li>Review the captured segments and save what you need</li>
-              </ol>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Perfect for:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Brainstorming sessions</li>
-                <li>• Meeting notes on-the-go</li>
-                <li>• Quick idea capture</li>
-                <li>• Stream-of-consciousness recording</li>
-                <li>• Voice journaling</li>
-              </ul>
-            </div>
-
-            <div className="bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg">
-              <p className="text-sm">
-                <strong>Pro Tip:</strong> Brain Dump automatically identifies different topics and can suggest categories for your content, making it easy to organize later.
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "organization",
-      title: "Organization & Categories",
-      icon: <Tag className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Organizing Your Data</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Categories:</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                Categories help organize your entries into logical groups for easy retrieval.
-              </p>
-              <ul className="text-sm space-y-1">
-                <li>• Categories are automatically suggested based on content</li>
-                <li>• You can create custom categories for your specific needs</li>
-                <li>• Entries can belong to multiple categories</li>
-                <li>• Use the category view to see all entries in a specific group</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Search and Filtering:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Use the search bar to find entries by keywords</li>
-                <li>• Filter by date, category, or entry type</li>
-                <li>• Smart search understands context and related terms</li>
-                <li>• Recent searches are saved for quick access</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Custom Fields:</h4>
-              <p className="text-sm text-muted-foreground">
-                Add custom fields to entries for structured data capture like contact information, project details, or any specific data points you need to track.
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "documents",
-      title: "Document Management",
-      icon: <Upload className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Working with Documents</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Document Creation:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Create rich text documents with formatting</li>
-                <li>• Generate documents from your data entries</li>
-                <li>• Use templates for consistent formatting</li>
-                <li>• Collaborate on documents with built-in editing tools</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">File Uploads:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Upload images, PDFs, and other documents</li>
-                <li>• Attach files to entries for reference</li>
-                <li>• Automatic text extraction from uploaded documents</li>
-                <li>• Image recognition for better organization</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Export Options:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Export individual entries or entire datasets</li>
-                <li>• Multiple format support: PDF, Word, CSV, JSON</li>
-                <li>• Batch export for multiple entries</li>
-                <li>• Scheduled exports for regular backups</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "search-filter",
-      title: "Search & Filtering",
-      icon: <Filter className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Finding Your Data</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Smart Search:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Search by keywords, phrases, or content</li>
-                <li>• Natural language queries: "meetings from last week"</li>
-                <li>• Search within specific categories or date ranges</li>
-                <li>• Auto-complete suggestions based on your data</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Advanced Filtering:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Filter by creation date, modification date</li>
-                <li>• Category-based filtering</li>
-                <li>• Content type filters (text, images, documents)</li>
-                <li>• Custom field value filtering</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Saved Searches:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Save frequently used search queries</li>
-                <li>• Quick access to important data sets</li>
-                <li>• Share saved searches with team members</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "settings",
-      title: "Settings & Customization",
-      icon: <Settings className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Personalizing Your Experience</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">Profile Settings:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Update your personal information and preferences</li>
-                <li>• Set your default categories and custom fields</li>
-                <li>• Configure display name and avatar</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Voice Settings:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Adjust microphone sensitivity</li>
-                <li>• Set preferred language and accent</li>
-                <li>• Configure voice command triggers</li>
-                <li>• Enable/disable text-to-speech feedback</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Appearance:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Choose between light and dark themes</li>
-                <li>• Adjust font size and display preferences</li>
-                <li>• Customize dashboard layout</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Data Management:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Export all your data for backup</li>
-                <li>• Import data from other applications</li>
-                <li>• Configure automatic backups</li>
-                <li>• Data retention policies</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "troubleshooting",
-      title: "Troubleshooting",
-      icon: <MessageSquare className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Common Issues & Solutions</h3>
-          
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Voice Commands Not Working</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Check microphone permissions in your browser</li>
-                  <li>• Ensure you're using a supported browser (Chrome, Edge, Safari)</li>
-                  <li>• Try refreshing the page</li>
-                  <li>• Check if other applications are using your microphone</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Data Not Syncing</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Check your internet connection</li>
-                  <li>• Ensure you're logged in to your account</li>
-                  <li>• Try logging out and back in</li>
-                  <li>• Clear browser cache if issues persist</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Export Not Working</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Check if you have entries to export</li>
-                  <li>• Try a different export format</li>
-                  <li>• Ensure pop-ups are allowed for downloads</li>
-                  <li>• Check available storage space</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Performance Issues</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Close unnecessary browser tabs</li>
-                  <li>• Clear browser cache and cookies</li>
-                  <li>• Update your browser to the latest version</li>
-                  <li>• Check if extensions are causing conflicts</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 dark:bg-yellow-950/20 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Still Need Help?</h4>
-              <p className="text-sm text-muted-foreground">
-                If you're still experiencing issues, please contact our support team through the Settings → Help & Support section with detailed information about the problem.
-              </p>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: "tips",
-      title: "Tips & Best Practices",
-      icon: <Zap className="w-5 h-5" />,
-      content: (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Pro Tips for Power Users</h3>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <h4 className="font-medium mb-2">Voice Efficiency</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Use voice shortcuts for repetitive tasks</li>
-                  <li>• Create voice templates for common entries</li>
-                  <li>• Learn the conversational commands</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-medium mb-2">Organization</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Use consistent naming for categories</li>
-                  <li>• Tag entries with multiple categories</li>
-                  <li>• Regular cleanup of old entries</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                <h4 className="font-medium mb-2">Data Entry</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Include relevant keywords for better search</li>
-                  <li>• Use custom fields for structured data</li>
-                  <li>• Add images and files for context</li>
-                </ul>
-              </div>
-
-              <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-                <h4 className="font-medium mb-2">Workflow</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Set up regular export schedules</li>
-                  <li>• Use Brain Dump for quick capture</li>
-                  <li>• Leverage search analytics for insights</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-6 rounded-lg">
-              <h4 className="font-medium mb-2">Advanced Workflow</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                Combine voice commands, categories, and smart search to create an efficient data management workflow that adapts to your specific needs.
-              </p>
-              <Badge variant="secondary">Pro Tip: Use voice commands to navigate between features while keeping your hands free for other tasks</Badge>
-            </div>
-          </div>
-        </div>
-      )
-    }
-  ];
-
-  const filteredSections = sections.filter(section =>
-    searchTerm === "" || 
-    section.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    section.content.toString().toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/dashboard">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Dashboard
-                </Link>
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold">User Guide</h1>
-                <p className="text-sm text-muted-foreground">Complete guide to using SaveMe.Space</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar Navigation */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-6">
-              <CardHeader className="pb-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search guide..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <nav className="space-y-2">
-                  {filteredSections.map((section) => (
-                    <button
-                      key={section.id}
-                      onClick={() => toggleSection(section.id)}
-                      className={`w-full flex items-center gap-2 p-2 text-left rounded-lg hover:bg-muted transition-colors ${
-                        openSections.includes(section.id) ? 'bg-muted' : ''
-                      }`}
-                    >
-                      {section.icon}
-                      <span className="text-sm font-medium">{section.title}</span>
-                      <ChevronRight 
-                        className={`w-4 h-4 ml-auto transition-transform ${
-                          openSections.includes(section.id) ? 'rotate-90' : ''
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </nav>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <div className="space-y-6">
-              {filteredSections.map((section) => (
-                <Collapsible
-                  key={section.id}
-                  open={openSections.includes(section.id)}
-                  onOpenChange={() => toggleSection(section.id)}
-                >
-                  <Card>
-                    <CollapsibleTrigger asChild>
-                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                        <CardTitle className="flex items-center gap-3">
-                          {section.icon}
-                          {section.title}
-                          <ChevronRight 
-                            className={`w-5 h-5 ml-auto transition-transform ${
-                              openSections.includes(section.id) ? 'rotate-90' : ''
-                            }`}
-                          />
-                        </CardTitle>
-                      </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <CardContent>
-                        {section.content}
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              ))}
-            </div>
-          </div>
-        </div>
+        <nav aria-label="Guide topics" className="mt-4 hidden space-y-1 lg:block">
+          {filtered.map(topic => <a key={topic.id} href={`#guide-${topic.id}`} onClick={() => setOpenSections(current => current.includes(topic.id) ? current : [...current, topic.id])}
+            className="flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">
+            <topic.icon className="h-4 w-4 shrink-0" />{topic.title}
+          </a>)}
+        </nav>
+      </aside>
+      <div className="min-w-0 space-y-3">
+        {filtered.length === 0 && <div className="rounded-2xl border p-6 text-sm text-muted-foreground">
+          <p>No guide topics match “{search}”. Try another word.</p>
+          <Button variant="outline" className="mt-4" onClick={() => setSearch('')}>Clear search</Button>
+        </div>}
+        {filtered.map(topic => <Collapsible key={topic.id} id={`guide-${topic.id}`} open={Boolean(query) || openSections.includes(topic.id)} onOpenChange={() => toggle(topic.id)}
+          className="scroll-mt-24 overflow-hidden rounded-2xl border border-border/70 bg-card">
+          <CollapsibleTrigger className="flex min-h-16 w-full items-center gap-3 p-5 text-left hover:bg-muted/50">
+            <topic.icon className="h-5 w-5 shrink-0 text-primary" />
+            <span className="flex-1 font-semibold">{topic.title}</span>
+            <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground ${query || openSections.includes(topic.id) ? 'rotate-90' : ''}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 px-5 pb-5 pt-3 text-sm leading-relaxed text-muted-foreground">
+            {topic.paragraphs.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+            <div className="flex flex-wrap gap-x-5 gap-y-3 pt-2">{topic.links.map(link => <Link key={link.to} to={link.to} className="font-medium text-primary underline-offset-4 hover:underline">{link.label}</Link>)}</div>
+          </CollapsibleContent>
+        </Collapsible>)}
       </div>
     </div>
-  );
-};
-
-export default UserGuide;
+  </GuideLayout>;
+}

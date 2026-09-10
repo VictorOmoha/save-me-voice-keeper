@@ -40,6 +40,7 @@ export const createCheckout = functions.https.onRequest(withCors(async (req, res
     const requestOrigin = getSafeOrigin(req.headers.origin);
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
+      payment_method_types: ['card'],
       line_items: [{price: checkoutPlan.priceId, quantity: 1}],
       mode: "subscription",
       success_url: `${requestOrigin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,

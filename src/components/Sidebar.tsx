@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({savedEntriesCount, onAddEntry, 
       <div className="flex-1 overflow-y-auto px-3 pb-5">
         <p className="workspace-eyebrow px-3 pb-3 pt-5">Workspace</p>
         <nav aria-label="Main navigation" className="space-y-1">
-          {pages.map(({to, label, icon: Icon, section}) => {
+          {pages.slice(0, 3).map(({to, label, icon: Icon, section}) => {
             const active = activeSection ? activeSection === section : pathname === to || (to === "/all-entries" && pathname.startsWith(to + "/"));
             return <Link key={to} to={to} onClick={onMobileClose} className="workspace-nav-link" aria-current={active ? "page" : undefined}>
               <Icon className="h-[18px] w-[18px] shrink-0" /><span>{label}</span>
@@ -53,6 +53,14 @@ export const Sidebar: React.FC<SidebarProps> = ({savedEntriesCount, onAddEntry, 
             </Link>;
           })}
         </nav>
+        <details className="mt-3" key={pathname} open={pages.slice(3).some(page => page.to === pathname)}>
+          <summary className="cursor-pointer px-3 py-3 text-sm text-muted-foreground">More tools</summary>
+          <nav aria-label="More tools" className="space-y-1">{pages.slice(3).map(({to, label, icon: Icon}) =>
+            <Link key={to} to={to} onClick={onMobileClose} className="workspace-nav-link" aria-current={pathname === to ? 'page' : undefined}>
+              <Icon className="h-[18px] w-[18px] shrink-0" /><span>{label}</span>
+            </Link>
+          )}</nav>
+        </details>
         <button type="button" onClick={() => {onAddEntry(); onMobileClose?.();}} className="workspace-nav-link mt-3 w-full border border-border/70 text-foreground" aria-current={activeSection === "add-entry" ? "page" : undefined}>
           <Plus className="h-[18px] w-[18px]" />New memory
         </button>

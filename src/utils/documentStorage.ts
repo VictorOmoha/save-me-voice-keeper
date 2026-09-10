@@ -35,11 +35,19 @@ export const uploadDocumentToStorage = async (
   }
 };
 
+export const downloadDocumentBlob = async (filePath: string): Promise<Blob> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      getBlob(ref(storage, filePath)),
+      new Promise<never>((_, reject) => {timer = setTimeout(() => reject(new Error('The download timed out. Check your connection and try again.')), 30_000);}),
+    ]);
+  } finally {clearTimeout(timer);}
+};
+
 export const getDocumentFromStorage = async (filePath: string): Promise<Blob | null> => {
   try {
-    const storageRef = ref(storage, filePath);
-    const blob = await getBlob(storageRef);
-    return blob;
+    return await downloadDocumentBlob(filePath);
   } catch (error) {
     console.error('Error downloading document:', error);
     return null;

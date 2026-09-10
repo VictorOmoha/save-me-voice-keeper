@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +33,9 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
   const [createMode, setCreateMode] = useState<'upload' | 'create' | 'info'>(initialMode);
   const [selectedFormat, setSelectedFormat] = useState<DocumentFormat | ''>('docx');
   const [isGenerating, setIsGenerating] = useState(false);
+  const saving = useRef(false);
+  const upload = useRef<{file: File; path: string} | null>(null);
+  const uploadId = useRef(crypto.randomUUID());
 
   const documentTypes = [
     "ID Document",
@@ -125,6 +128,7 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving.current) return;
     if (isSubmitting) return;
 
     // Validation - require at least a document name
@@ -176,16 +180,19 @@ export const DocumentCreator: React.FC<DocumentCreatorProps> = ({ onSave, onCanc
       return;
     }
     setIsSubmitting(true);
+    saving.current = true;
     try {
       if (uploadedFile) {
-        const uploadPath = await uploadDocumentToStorage(uploadedFile, `temp-${Date.now()}`);
+        const uploadPath = upload.current?.file === uploadedFile ? upload.current.path : await uploadDocumentToStorage(uploadedFile, uploadId.current);
         if (!uploadPath) return;
+        upload.current = {file: uploadedFile, path: uploadPath};
         documentEntry.fields.storagePath = uploadPath;
       }
       await onSave(documentEntry);
     } catch {
       toast.error('Could not save your document. Your draft is still here.');
     } finally {
+      saving.current = false;
       setIsSubmitting(false);
     }
   };

@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, Eye, X, Edit3, ZoomIn, ZoomOut, RotateCw, Maximize2, Save, Printer } from 'lucide-react';
 import { SavedEntry } from '@/types/dashboard';
-import { storage, db } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { ref, getBlob } from 'firebase/storage';
+import {downloadDocumentBlob} from '@/utils/documentStorage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 import { Document, Page, pdfjs } from 'react-pdf';
@@ -50,6 +50,8 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
   // Removed early return to maintain consistent hooks usage
 
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadVersion = useRef(0);
   const [documentState, setDocumentState] = useState<DocumentState>({
     content: null,
     blob: null,
@@ -96,51 +98,44 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
 
   const loadDocument = useCallback(async () => {
     if (!entry) return;
-
+    const version = ++loadVersion.current;
+    setIsLoading(true); setLoadError(null);
+    setDocumentState(prev => ({...prev, blob:null, content:null, currentPage:1, numPages:null}));
     try {
-      setIsLoading(true);
-
-      // First try to get from Firebase Storage (prefer explicit storagePath)
-      const storagePath = (entry.fields as Record<string, unknown>)?.storagePath as string | undefined;
-      const filePath = storagePath || (user ? `documents/${user.uid}/${entry.id}/${fileName}` : `documents/${entry.id}/${fileName}`);
-
-      try {
-        const storageRef = ref(storage, filePath);
-        const data = await getBlob(storageRef);
-
-        if (data) {
-          setDocumentState(prev => ({ ...prev, blob: data }));
-
-          if (isWordDoc) {
-            await loadWordDocument(data);
-          } else if (isTextBased) {
-            const text = await data.text();
-            setDocumentState(prev => ({ ...prev, content: text }));
-          }
-          // PDF will be handled by react-pdf using the blob
-          return;
-        }
-      } catch (storageError) {
-        console.warn('Firebase storage download failed, trying fallbacks:', storageError);
+      const explicitPath = entry.fields.storagePath as string | undefined;
+      const path = explicitPath || (user ? `documents/${user.uid}/${entry.id}/${fileName}` : '');
+      let blob: Blob | null = null;
+      let content: string | null = null;
+      let downloadError: unknown;
+      if (path) {
+        try {blob = await downloadDocumentBlob(path);} catch (error) {downloadError = error;}
       }
-
-      // Fallback to localStorage for legacy documents
-      await loadFromLocalStorage();
+      // Legacy cached documents are optional; a malformed cache must not break the viewer.
+      if (!blob) {
+        for (const key of Object.keys(localStorage).filter(key => key.startsWith('document_'))) {
+          try {
+            const cached = JSON.parse(localStorage.getItem(key) || '{}');
+            if (cached.name !== fileName) continue;
+            const bytes = Uint8Array.from(atob(cached.data.split(',')[1]), char => char.charCodeAt(0));
+            blob = new Blob([bytes], {type:cached.type}); break;
+          } catch { /* Ignore malformed legacy cache entries. */ }
+        }
+      }
+      if (blob && isWordDoc) content = (await mammoth.convertToHtml({arrayBuffer:await blob.arrayBuffer()})).value;
+      else if (blob && isTextBased) content = await blob.text();
+      else if (!blob && storedContent && isTextBased) content = storedContent;
+      if (!blob && content === null) throw downloadError || new Error('The file could not be found. Please try again.');
+      if (loadVersion.current === version) setDocumentState(prev => ({...prev,blob,content}));
     } catch (error) {
-      console.error('Error loading document:', error);
-      toast.error('Failed to load document');
-    } finally {
-      setIsLoading(false);
-    }
-  // loadFromLocalStorage is defined later in module scope and stable for this render cycle
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry, fileName, isTextBased, isWordDoc, storedContent, user]);
+      if (loadVersion.current === version) setLoadError(error instanceof Error ? error.message : 'The document could not load. Please try again.');
+    } finally {if (loadVersion.current === version) setIsLoading(false);}
+  }, [entry,fileName,isTextBased,isWordDoc,storedContent,user]);
 
+  const invalidateLoad = useCallback(() => {loadVersion.current++;}, []);
   useEffect(() => {
-    if (isOpen && entry && isDocumentEntry) {
-      loadDocument();
-    }
-  }, [isOpen, entry, isDocumentEntry, loadDocument]);
+    if (isOpen && entry && isDocumentEntry) void loadDocument();
+    return invalidateLoad;
+  }, [isOpen,entry,isDocumentEntry,loadDocument,invalidateLoad]);
 
   useEffect(() => {
     const handleNovaClose = () => {
@@ -150,50 +145,6 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
     window.addEventListener('nova:close', handleNovaClose);
     return () => window.removeEventListener('nova:close', handleNovaClose);
   }, [isOpen, onClose]);
-
-  const loadWordDocument = async (blob: Blob) => {
-    try {
-      const arrayBuffer = await blob.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer });
-      setDocumentState(prev => ({ ...prev, content: result.value }));
-      
-      if (result.messages.length > 0) {
-        console.warn('Word document conversion warnings:', result.messages);
-      }
-    } catch (error) {
-      console.error('Error converting Word document:', error);
-      toast.error('Failed to convert Word document for viewing');
-    }
-  };
-
-  const loadFromLocalStorage = useCallback(async () => {
-    const localKey = Object.keys(localStorage).find(key => 
-      key.startsWith('document_') && 
-      JSON.parse(localStorage.getItem(key) || '{}').name === fileName
-    );
-
-    if (localKey) {
-      const fileData = JSON.parse(localStorage.getItem(localKey) || '{}');
-      const byteCharacters = atob(fileData.data.split(',')[1]);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: fileData.type });
-      
-      setDocumentState(prev => ({ ...prev, blob }));
-      
-      if (isWordDoc) {
-        await loadWordDocument(blob);
-      } else if (isTextBased) {
-        const text = await blob.text();
-        setDocumentState(prev => ({ ...prev, content: text }));
-      }
-    } else if (storedContent && isTextBased) {
-      setDocumentState(prev => ({ ...prev, content: storedContent }));
-    }
-  }, [fileName, isTextBased, isWordDoc, storedContent]);
 
   const handleDownload = async () => {
     if (!isDocumentEntry || !documentState.blob) return;
@@ -452,6 +403,8 @@ export const EnhancedDocumentViewer: React.FC<EnhancedDocumentViewerProps> = ({
               </div>
             </div>
           )}
+
+          {loadError && <div role="alert" className="rounded-xl border border-destructive/30 p-4 text-sm"><p>{loadError}</p><Button variant="outline" className="mt-3" onClick={() => void loadDocument()}>Try download again</Button></div>}
 
           {/* Document Actions */}
           {isDocumentEntry && !documentState.isFullscreen && (

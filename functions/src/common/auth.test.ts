@@ -1,10 +1,10 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import type * as functions from "firebase-functions";
 
-const mocks = vi.hoisted(() => ({firestore: vi.fn(), verifyIdToken: vi.fn()}));
+const mocks = vi.hoisted(() => ({firestore: vi.fn(), verifyIdToken: vi.fn(),getUser:vi.fn()}));
 vi.mock("firebase-admin", () => ({
   firestore: Object.assign(mocks.firestore, {FieldValue: {serverTimestamp: () => "now"}}),
-  auth: () => ({verifyIdToken: mocks.verifyIdToken}),
+  auth: () => ({verifyIdToken: mocks.verifyIdToken,getUser:mocks.getUser}),
 }));
 
 import {hasPermission, verifyAuth} from "./auth";
@@ -16,6 +16,7 @@ describe("authentication scope", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    mocks.getUser.mockResolvedValue({disabled:false});
   });
 
   it("rejects agent credentials on account endpoints before querying Firestore", async () => {
@@ -35,6 +36,7 @@ describe("authentication scope", () => {
     mocks.verifyIdToken.mockResolvedValue({uid: "alice"});
     const user = await verifyAuth(request("firebase-token"));
     expect(user?.uid).toBe("alice");
+    expect(mocks.verifyIdToken).toHaveBeenCalledWith('firebase-token',true);
     expect(hasPermission(user!, "write")).toBe(true);
   });
 

@@ -4,6 +4,27 @@ const DB_VERSION = 1;
 const ENTRIES_STORE = 'cached_entries';
 const QUEUE_STORE = 'offline_queue';
 
+// Remove this account's cached records and queued writes after confirmed deletion.
+export async function clearAccountOfflineData(uid: string): Promise<void> {
+  const db = await openDB();
+  try {
+    const tx = db.transaction([ENTRIES_STORE, QUEUE_STORE], 'readwrite');
+    for (const name of [ENTRIES_STORE, QUEUE_STORE]) {
+      const request = tx.objectStore(name).openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+        if (cursor.value.user_id === uid || cursor.value.userId === uid) cursor.delete();
+        cursor.continue();
+      };
+    }
+    await new Promise<void>((resolve,reject) => {tx.oncomplete=() => resolve();tx.onerror=() => reject(tx.error);tx.onabort=() => reject(tx.error);});
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('saveme_') || key.startsWith('saveme:') || key.startsWith('document_') || key === 'savedWebhookConfigs') localStorage.removeItem(key);
+    }
+  } finally {db.close();}
+}
+
 interface OfflineQueueItem {
   id: string;
   action: 'create' | 'update' | 'delete';

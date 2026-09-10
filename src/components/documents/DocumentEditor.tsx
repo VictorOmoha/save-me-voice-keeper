@@ -6,7 +6,8 @@ import { Save, X, FileText, Edit3, Printer } from 'lucide-react';
 import { SavedEntry, FieldRecord } from '@/types/dashboard';
 import { storage, db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
-import { ref, uploadBytes, getBlob } from 'firebase/storage';
+import { ref, uploadBytes } from 'firebase/storage';
+import {downloadDocumentBlob} from '@/utils/documentStorage';
 import { doc, updateDoc } from 'firebase/firestore';
 import { toast } from 'sonner';
 const RichTextEditor = lazy(() =>
@@ -58,8 +59,7 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
 
       if (filePath) {
         try {
-          const storageRef = ref(storage, filePath);
-          const blob = await getBlob(storageRef);
+          const blob = await downloadDocumentBlob(filePath);
           const text = await blob.text();
           setDocumentContent(text);
           setOriginalContent(text);

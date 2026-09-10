@@ -132,7 +132,9 @@ const PrivacyPolicy = () => {
           <h2>6. DATA RETENTION</h2>
           <ul>
             <li><strong>Active accounts:</strong> Data retained as long as account is active</li>
-            <li><strong>Cancelled accounts:</strong> 30 days to export data, then permanently deleted</li>
+            <li><strong>Subscription cancellation:</strong> Cancels paid access without deleting your account or memories.</li>
+            <li><strong>Account deletion:</strong> Request permanent deletion in Settings → Data Management after confirming your identity. Access stops when the request is recorded. Server cleanup usually completes within 15 minutes and retries if interrupted. A minimal deletion receipt is retained for 30 days; billing and security records retained by providers remain subject to their legal obligations and retention policies.</li>
+            <li><strong>Export archives:</strong> Download links expire after 15 minutes. Server copies are removed within 24 hours plus the next scheduled cleanup run.</li>
             <li><strong>Voice data:</strong>
               <ul>
                 <li>Raw realtime audio: not intentionally persisted by SaveMe; provider processing is subject to provider terms</li>
@@ -149,7 +151,7 @@ const PrivacyPolicy = () => {
             <li><strong>Access:</strong> View and download your personal data</li>
             <li><strong>Correction:</strong> Update inaccurate information</li>
             <li><strong>Deletion:</strong> Request deletion of your account and data</li>
-            <li><strong>Export:</strong> Download your data in portable formats (JSON, CSV, PDF, DOCX)</li>
+            <li><strong>Export:</strong> Settings → Data Management prepares a compressed JSON account archive including stored memories, conversations, reminders, preferences, derived account data, connected-agent metadata, and original uploaded files encoded as base64. Credentials, provider logs, legally retained billing records, and unsynced data on other devices are excluded. Individual document downloads retain their original format.</li>
             <li><strong>Opt-Out:</strong> Unsubscribe from marketing emails</li>
           </ul>
 

@@ -10,6 +10,17 @@ vi.mock('@/components/documents/DocumentFormatSelector', () => ({DocumentFormatS
 afterEach(cleanup);
 beforeEach(() => {upload.mockReset(); error.mockReset(); generate.mockReset();});
 describe('Document save recovery', () => {
+  it('reuses the same uploaded file when the entry write fails and is retried', async () => {
+    upload.mockResolvedValue('documents/owner/upload/sample.txt');
+    const save=vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined);
+    render(<DocumentCreator initialMode="upload" onSave={save} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Upload Document'),{target:{files:[new File(['sample'],'sample.txt',{type:'text/plain'})]}});
+    fireEvent.click(screen.getByRole('button',{name:'Save document'}));
+    await waitFor(()=>expect(error).toHaveBeenCalledWith('Could not save your document. Your draft is still here.'));
+    fireEvent.click(screen.getByRole('button',{name:'Save document'}));
+    await waitFor(()=>expect(save).toHaveBeenCalledTimes(2));
+    expect(upload).toHaveBeenCalledOnce();
+  });
   it('does not generate a document from empty editor markup', () => {
     render(<DocumentCreator onSave={vi.fn()} onCancel={vi.fn()} />);
     fireEvent.change(screen.getByLabelText('Document content'), {target:{value:'<p><br></p>'}});

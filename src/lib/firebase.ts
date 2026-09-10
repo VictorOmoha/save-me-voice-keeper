@@ -50,6 +50,7 @@ const app = initializeApp(effectiveConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+storage.maxOperationRetryTime = 20_000;
 
 let analyticsInstance: Analytics | null = null;
 if (isFirebaseConfigured) {

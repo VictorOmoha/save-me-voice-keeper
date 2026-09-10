@@ -145,7 +145,7 @@ const Index = () => {
     return isAuthenticated ? `/subscription?plan=${planId}` : `/signup?plan=${planId}`;
   };
 
-  const brainDumpHref = isAuthenticated ? "/brain-dump" : "/signup?next=%2Fbrain-dump";
+  const brainDumpHref = isAuthenticated ? "/voice-capture" : "/signup?next=%2Fdashboard";
   const trackBrainDump = (source: string) =>
     trackActivationEvent(isAuthenticated ? "brain_dump_start_clicked" : "signup_started", { source });
 

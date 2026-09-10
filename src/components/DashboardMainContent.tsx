@@ -11,6 +11,7 @@ import {useCategoryFilter} from "@/components/categoryView/useCategoryFilter";
 import {trackActivationEvent} from "@/lib/analytics";
 
 interface DashboardMainContentProps {
+  isLoading?: boolean;
   userName?: string;
   userTier?: string;
   savedEntries: SavedEntry[];
@@ -30,12 +31,13 @@ interface DashboardMainContentProps {
 
 
 export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
-  userName, userTier, savedEntries, allEntries = savedEntries, searchQuery, onSearchChange, onCategorySelect, onAddEntry, onCreateDocument,
+  isLoading = false, userName, userTier, savedEntries, allEntries = savedEntries, searchQuery, onSearchChange, onCategorySelect, onAddEntry, onCreateDocument,
   onEditEntry, onFillEntry, onUseAsTemplate, onDeleteEntry, onViewAllEntries, onViewDocument,
 }) => {
   const navigate = useNavigate();
   const [showWorkspaceDetails, setShowWorkspaceDetails] = useState(false);
   const {filterEntriesByCategory} = useCategoryFilter();
+  const isFirstMemory = !isLoading && allEntries.length === 0;
   const openVoice = () => {
     trackActivationEvent("brain_dump_start_clicked", {source: "dashboard_first_memory_path"});
     navigate("/voice-capture");
@@ -45,7 +47,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="workspace-eyebrow mb-2">Your space to remember</p>
-          <h1 className="text-2xl md:text-[30px] font-semibold tracking-tight leading-tight">Welcome back{userName ? `, ${userName.split(" ")[0]}` : ""}.</h1>
+          <h1 className="text-2xl md:text-[30px] font-semibold tracking-tight leading-tight">{isFirstMemory ? "Welcome" : "Welcome back"}{userName ? `, ${userName.split(" ")[0]}` : ""}.</h1>
           <p className="mt-2 text-sm text-muted-foreground">A little less to hold in your head.</p>
         </div>
         {userTier && <span className="rounded-full border border-border/70 px-3 py-1.5 text-xs text-muted-foreground">{userTier} plan</span>}
@@ -54,8 +56,8 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
       <section aria-labelledby="capture-heading" className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/[0.09] to-card p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div className="max-w-lg">
-            <h2 id="capture-heading" className="text-xl md:text-2xl font-semibold tracking-tight leading-snug">Make room for your next thought.</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Save a thought or find a memory. Nova stays with you as you browse.</p>
+            <h2 id="capture-heading" className="text-xl md:text-2xl font-semibold tracking-tight leading-snug">{isFirstMemory ? "Save one thing you want to remember." : "Make room for your next thought."}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{isFirstMemory ? "A useful detail, a small idea, or something for later. Tell Nova, or write it down below." : "Save a thought or find a memory. Nova stays with you as you browse."}</p>
           </div>
           <button type="button" onClick={openVoice} className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2.5 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
             <Mic className="h-[18px] w-[18px]" />Talk to Nova<ArrowRight className="ml-3 h-4 w-4" />
@@ -64,11 +66,17 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-primary/10 pt-4">
           <span className="text-xs text-muted-foreground">Prefer to write?</span>
           <button type="button" onClick={onAddEntry} className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-foreground hover:text-primary"><Plus className="h-4 w-4" />New memory</button>
-          <button type="button" onClick={onCreateDocument} className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-foreground hover:text-primary"><Upload className="h-4 w-4" />Upload document</button>
+          {!isFirstMemory && <button type="button" onClick={onCreateDocument} className="inline-flex min-h-9 items-center gap-2 text-sm font-medium text-foreground hover:text-primary"><Upload className="h-4 w-4" />Upload document</button>}
         </div>
       </section>
 
-      <div className="grid items-start gap-6 min-[1180px]:grid-cols-[minmax(0,1fr)_280px] 2xl:grid-cols-[minmax(0,1fr)_320px]">
+      {isLoading ? <p role="status" className="text-sm text-muted-foreground">Loading your memories…</p> : isFirstMemory ? (
+        <section className="max-w-xl space-y-3 text-sm leading-relaxed text-muted-foreground" aria-label="Your first memory">
+          <p className="font-medium text-foreground">Try something small</p>
+          <p>“The spare keys are in the blue drawer by the door.”</p>
+          <p>Once saved, your memory appears here and in All entries. Search for a word you remember to find it again.</p>
+        </section>
+      ) : <><div className="grid items-start gap-6 min-[1180px]:grid-cols-[minmax(0,1fr)_280px] 2xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-6">
           <EnhancedRecentEntries entries={savedEntries} maxEntries={searchQuery ? 20 : 5} onEdit={onEditEntry} onFill={onFillEntry} onUseAsTemplate={onUseAsTemplate} onDelete={onDeleteEntry} onView={onViewDocument} onViewAll={onViewAllEntries} title={searchQuery ? "Search results" : "Recent memories"} showViewToggle searchQuery={searchQuery} onClearSearch={() => onSearchChange("")} />
           <section aria-labelledby="collections-heading">
@@ -97,6 +105,7 @@ export const DashboardMainContent: React.FC<DashboardMainContentProps> = ({
         <summary className="cursor-pointer text-sm font-medium text-muted-foreground marker:text-muted-foreground">Workspace details & connected memory</summary>
         {showWorkspaceDetails && <div className="mt-5 space-y-6"><StatsCards totalEntries={allEntries.length} entries={allEntries} userTier={userTier} /><SharedMemoryPanel /></div>}
       </details>
+      </>}
     </div>
   );
 };

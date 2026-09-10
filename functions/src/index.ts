@@ -54,6 +54,7 @@ export {
   voiceAgent,
 } from "./voiceAgent/functions";
 export {voiceRealtimeSession, voiceRealtimeTool, voiceRealtimeEnd} from "./voiceAgent/realtime";
+export {accountExport, accountDelete, accountDeletionWorker, accountPrivacyMaintenance} from './privacy/accountFunctions';
 
 // Initialize Firebase Admin
 admin.initializeApp();

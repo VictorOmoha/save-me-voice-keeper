@@ -133,5 +133,8 @@ export async function verifyExtensionAccess(req: functions.https.Request, requir
   if (!access || access.expiresAt <= Date.now() || !access.scope?.includes(requiredScope)) return null;
   const credential = (await db.collection("extensionCredentials").doc(access.credentialId).get()).data();
   if (!credential || credential.revokedAt || credential.expiresAt <= Date.now() || credential.extensionInstanceId !== access.extensionInstanceId || !credential.scope?.includes(requiredScope)) return null;
+  if (credential.userId !== access.userId) return null;
+  try {if ((await admin.auth().getUser(credential.userId)).disabled) return null;}
+  catch {return null;}
   return {uid: credential.userId, credentialId: access.credentialId};
 }

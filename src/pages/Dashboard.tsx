@@ -1,7 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { DashboardMainContent } from '@/components/DashboardMainContent';
 import { DeleteConfirmDialog } from '@/components/DeleteConfirmDialog';
@@ -86,25 +84,6 @@ export default function Dashboard() {
     handleAddEntry,
     refreshEntries,
   } = useDashboard();
-
-  useEffect(() => {
-    if (authLoading || !user) return;
-
-    const checkOnboarding = async () => {
-      try {
-        const prefsRef = doc(db, 'user_preferences', user.uid);
-        const prefsSnap = await getDoc(prefsRef);
-
-        if (!prefsSnap.exists()) {
-          navigate('/onboarding');
-        }
-      } catch (error) {
-        console.log('Could not fetch preferences:', error);
-      }
-    };
-
-    checkOnboarding();
-  }, [authLoading, user, navigate]);
 
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
@@ -352,6 +331,7 @@ export default function Dashboard() {
               </section>
             )}
             <DashboardMainContent
+              isLoading={entriesLoading}
               userName={userName}
               savedEntries={savedEntries}
               allEntries={allSavedEntries}

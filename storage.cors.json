@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://saveme.space", "https://www.saveme.space", "https://saveme-f5af0.web.app", "https://saveme-f5af0.firebaseapp.com", "http://127.0.0.1:4173", "http://localhost:5173", "http://localhost:8080"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "Content-Disposition", "ETag"],
+    "maxAgeSeconds": 3600
+  }
+]

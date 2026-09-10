@@ -4,7 +4,8 @@ service cloud.firestore {
 
     // --- Helpers ---
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && !exists(/databases/$(database)/documents/account_deletions/$(request.auth.uid));
     }
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;

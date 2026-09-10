@@ -18,6 +18,8 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   resolve: {
+    // Function adapters and test fixtures must use the same Admin app registry.
+    dedupe: ['firebase-admin'],
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },

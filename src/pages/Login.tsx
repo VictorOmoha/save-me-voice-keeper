@@ -118,6 +118,7 @@ const Login = () => {
 
           <div style={{ borderRadius: 20, padding: "32px 28px", background: "rgba(255,255,255,.022)", border: "1px solid rgba(125,165,205,.10)", boxShadow: "0 30px 80px -40px rgba(0,0,0,.8)" }}>
             <div style={{ marginBottom: 26 }}>
+              {searchParams.get('deletion') === 'requested' && <div role="status" className="mb-6 rounded-xl border border-cyan-400/30 bg-cyan-400/5 p-4 text-sm text-slate-200"><p className="font-semibold">Account deletion requested</p><p className="mt-2">Access has been stopped. Cleanup usually completes within 15 minutes and retries automatically if interrupted.</p>{/^[0-9a-f-]{36}$/i.test(searchParams.get('receipt') || '') && <p className="mt-2 break-all text-xs">Receipt: {searchParams.get('receipt')}</p>}</div>}
               <h2 style={{ font: "700 24px Sora", letterSpacing: "-.01em", color: "#f1f7fc", margin: 0 }}>Sign in</h2>
               <p style={{ font: "500 13.5px Manrope", color: "#8ea0b3", margin: "7px 0 0" }}>Access your secure knowledge vault.</p>
             </div>

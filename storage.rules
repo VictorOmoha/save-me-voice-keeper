@@ -3,7 +3,8 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId
+        && !firestore.exists(/databases/(default)/documents/account_deletions/$(userId));
     }
 
     // Exact match shapes below enforce one non-empty path segment and reject

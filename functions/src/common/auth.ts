@@ -87,6 +87,7 @@ export const verifyAuth = async (
       const data = doc.data();
       const userId = data.user_id as string | undefined;
       if (!userId) return null;
+      if ((await admin.auth().getUser(userId)).disabled) return null;
       const permissions = normalizeAgentPermissions(data.permissions);
       // Fire-and-forget last-used update; don't block the request on it.
       doc.ref.update({last_used_at: admin.firestore.FieldValue.serverTimestamp()})
@@ -111,6 +112,10 @@ export const verifyAuth = async (
   if (agentApiKey && token === agentApiKey) {
     if (!allowAgentKeys) return null;
     const configuredOwner = process.env.AGENT_USER_ID?.trim();
+    if (configuredOwner) {
+      try {if ((await admin.auth().getUser(configuredOwner)).disabled) return null;}
+      catch {return null;}
+    }
     const agentUserId = configuredOwner || "nia-openclaw-agent";
     return buildAgentDecodedToken(agentUserId, "agent-key", {
       name: "Legacy OpenClaw agent key",
@@ -121,7 +126,7 @@ export const verifyAuth = async (
   }
 
   try {
-    return await admin.auth().verifyIdToken(token) as AuthenticatedUser;
+    return await admin.auth().verifyIdToken(token, true) as AuthenticatedUser;
   } catch (error) {
     console.error("Auth verification failed:", error);
     return null;

@@ -34,6 +34,7 @@ export class RealtimeVoiceClient {
   private context?: AudioContext;
   private frame?: number;
   private timer?: ReturnType<typeof setTimeout>;
+  private disconnectTimer?: ReturnType<typeof setTimeout>;
   private controller?: AbortController;
   private connection?: Promise<void>;
   private rejectReady?: (error: Error) => void;
@@ -97,7 +98,14 @@ export class RealtimeVoiceClient {
         void audio.play().catch(() => this.fail(new Error("Audio playback was blocked. Tap the microphone to try again."), epoch));
       };
       pc.onconnectionstatechange = () => {
-        if (this.live(epoch) && ["failed", "disconnected", "closed"].includes(pc.connectionState)) {
+        if (!this.live(epoch)) return;
+        if (pc.connectionState === 'disconnected') {
+          // Phones briefly disconnect during Wi-Fi/cellular handoffs. Let ICE recover.
+          if (!this.disconnectTimer) this.disconnectTimer = setTimeout(() => this.fail(new Error('Voice connection lost. Tap the microphone to reconnect; your conversation is still here.'), epoch), 8_000);
+        } else {
+          clearTimeout(this.disconnectTimer); this.disconnectTimer = undefined;
+        }
+        if (["failed", "closed"].includes(pc.connectionState)) {
           this.fail(new Error("Voice connection lost. Tap the microphone to reconnect."), epoch);
         }
       };
@@ -325,6 +333,7 @@ export class RealtimeVoiceClient {
     this.connection = undefined;
     this.starting = false;
     clearTimeout(this.timer);
+    clearTimeout(this.disconnectTimer); this.disconnectTimer = undefined;
     if (this.frame !== undefined) cancelAnimationFrame(this.frame);
     this.stream?.getTracks().forEach((track) => { track.onended = null; track.stop(); });
     this.stream = undefined;

@@ -7,6 +7,11 @@ import {assertStringCap, assertUtf8Bytes, enforceAbuseControls, sendAbuseError, 
 
 const GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
+async function accountCanProcess(uid: string): Promise<boolean> {
+  try {return !(await admin.auth().getUser(uid)).disabled;}
+  catch (error) {if ((error as {code?: string}).code === 'auth/user-not-found') return false; throw error;}
+}
+
 interface ExtractedEntityRecord {
   name?: string;
   type?: string;
@@ -149,6 +154,7 @@ export const processEntryDeep = functions.firestore
     const db = admin.firestore();
     const userId = entry.user_id;
     if (!userId) return;
+    if (!await accountCanProcess(userId)) return;
 
     try {
       // Build content string from entry
@@ -190,6 +196,7 @@ export const processEntryDeep = functions.firestore
       }
 
       const geminiData = await geminiRes.json();
+      if (!await accountCanProcess(userId) || !(await db.collection('entries').doc(entryId).get()).exists) return;
       const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
       let extracted: Record<string, unknown>;
@@ -505,6 +512,7 @@ export const analyzePatterns = functions.pubsub
       }
 
       for (const [userId, entries] of Object.entries(userEntries)) {
+        if (!await accountCanProcess(userId)) continue;
         if (entries.length < 5) continue; // Need minimum data
 
         const analysisPrompt = `Analyze these ${entries.length} entries from the last 30 days and detect behavioral patterns.
@@ -534,6 +542,7 @@ Only include patterns with confidence >= 0.6. Return empty array if no clear pat
 
         if (!res.ok) continue;
         const resData = await res.json();
+        if (!await accountCanProcess(userId)) continue;
         const rawText = resData.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
 
         let patterns: UserPatternRecord[];
@@ -601,6 +610,7 @@ async function generateUserInsights(
   db: admin.firestore.Firestore,
   geminiKey: string
 ): Promise<void> {
+  if (!await accountCanProcess(userId)) return;
   // Idempotent: skip if insights already generated for this user today
   const today = new Date().toISOString().split("T")[0];
   const existingToday = await db.collection("pending_notifications")
@@ -722,6 +732,7 @@ Return JSON only:
   if (!Array.isArray(insights) || insights.length === 0) return;
 
   // Write insights to pending_notifications (max 3)
+  if (!await accountCanProcess(userId)) return;
   const batch = db.batch();
   let written = 0;
   for (const insight of insights.slice(0, 3)) {

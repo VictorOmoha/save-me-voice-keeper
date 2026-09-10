@@ -43,6 +43,28 @@ const done = (output: object[] = [], id = "response_1", status = "completed") =>
 const tool = {type: "function_call", name: "saveEntry", call_id: "call_1", arguments: '{"title":"Insurance"}'};
 
 describe("Realtime voice lifecycle", () => {
+  it('retains the session through a brief network handoff', async () => {
+    vi.useFakeTimers();
+    try {
+      const client=create(); await client.startListening();
+      const peer=Peer.latest;
+      peer.connectionState='disconnected'; peer.onconnectionstatechange?.();
+      await vi.advanceTimersByTimeAsync(4_000);
+      peer.connectionState='connected'; peer.onconnectionstatechange?.();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(client.state.isConnected).toBe(true); expect(peer.close).not.toHaveBeenCalled();
+    } finally {vi.useRealTimers();}
+  });
+  it('releases the microphone on sustained disconnection and preserves conversation text', async () => {
+    vi.useFakeTimers();
+    try {
+      const client=create(); await client.sendText('Remember the blue drawer'); await client.startListening();
+      Peer.latest.connectionState='disconnected'; Peer.latest.onconnectionstatechange?.();
+      await vi.advanceTimersByTimeAsync(8_001);
+      expect(client.state.isConnected).toBe(false); expect(track.stop).toHaveBeenCalled();
+      expect(client.state.conversationHistory[0].parts[0].text).toBe('Remember the blue drawer');
+    } finally {vi.useRealTimers();}
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     track.enabled = true;

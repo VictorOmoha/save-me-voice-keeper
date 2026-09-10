@@ -175,7 +175,8 @@ export async function purgeAccount(uid: string): Promise<void> {
   }
 }
 
-export const accountDeletionWorker = functions.runWith({timeoutSeconds:540,memory:'512MB',failurePolicy:true}).firestore.document('account_deletions/{uid}').onCreate(async (_snapshot, context) => purgeAccount(context.params.uid));
+// The scheduled queue retries with a bounded delay, including crashed/expired leases.
+export const accountDeletionWorker = functions.runWith({timeoutSeconds:540,memory:'512MB'}).firestore.document('account_deletions/{uid}').onCreate(async (_snapshot, context) => purgeAccount(context.params.uid));
 
 export const accountPrivacyMaintenance = functions.runWith({timeoutSeconds:540,memory:'512MB'}).pubsub.schedule('every 5 minutes').onRun(async () => {
   const db=admin.firestore();

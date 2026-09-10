@@ -35,16 +35,22 @@ The browser exercised the real application with a disposable synthetic account, 
 | Unified Nova | A typed request through the live realtime connection navigated from Voice capture to Dashboard; connection and transcript survived, and were retained when returning to Voice capture; session explicitly ended |
 | Mobile layout | Reviewed first-use, navigation, insights, and privacy controls at a 390-pixel viewport |
 | Checkout | Verified active live prices and owner/amount on an unpaid checkout; expired the session; no charge created |
+| Restored file access | Applied the approved read-only Firebase service-agent permission; authenticated download returned 200; a second upload through the real app saved successfully |
+| Account export | Production archive downloaded and decompressed; six owned resources and the original file were verified byte-for-byte; the browser export subsequently reached the archive-ready state |
+| Account deletion | The real app recorded the request, signed out, and displayed a receipt. A previously issued token immediately received 403 for both Firestore and Storage. The initial sweep removed all owned records/files and the unpaid Stripe customer. The scheduled final sweep completed at 13:36:11 UTC; the login no longer existed and owned record/file counts were both zero. |
+| Production release | Hosting deployment completed; live HTML and all 76 JavaScript/CSS assets matched the tested build |
 
 ## Release status and required Firebase configuration
 
-Code is pushed through `271d38f`. Functions, Firestore rules, and Storage rules have deployed; the frontend production build is prepared, with hosting publication pending the configuration below.
+Application code is pushed through `271d38f`; documentation through `f983019` was present at deployment. Functions, Firestore rules, Storage rules, and the frontend are deployed. The live HTML and 76 JavaScript/CSS assets were hash-checked against the prepared build.
 
-**Production Storage access is currently blocked by a missing cross-service permission.** The deletion check uses `firestore.exists()` inside Storage rules. The Firebase CLI skips its IAM prerequisite check in noninteractive mode, so a successful rules deployment did not establish runtime access. Live authenticated document and archive downloads returned 403; the local emulator does not reproduce missing production IAM.
+**The production Storage permission gap is resolved.** The deletion check uses `firestore.exists()` inside Storage rules. The Firebase CLI skips its IAM prerequisite check in noninteractive mode, so a successful rules deployment did not establish runtime access. Live checks caught the missing permission; the local emulator does not reproduce missing production IAM.
 
-The required binding is `roles/firebaserules.firestoreServiceAgent` on project `saveme-f5af0`, for its Firebase Storage service agent (`service-PROJECT_NUMBER@gcp-sa-firebasestorage.iam.gserviceaccount.com`). The role contains only `datastore.entities.get`. Preserve all existing policy bindings and the policy etag. Approval was requested; no IAM change has been applied. Automatic approval review rejected both an earlier signing-role proposal and a temporary removal of the deletion check. The signing-role proposal was abandoned in favor of authenticated Storage downloads.
+With the user's explicit approval, `roles/firebaserules.firestoreServiceAgent` was granted on project `saveme-f5af0` to its Firebase Storage service agent (`service-PROJECT_NUMBER@gcp-sa-firebasestorage.iam.gserviceaccount.com`). The role contains only `datastore.entities.get`. Existing policy bindings and the policy etag were preserved. Authenticated file access passed after propagation. No signing role was added, and the deletion-access guard remains enabled.
 
-After the cross-service permission is approved and applied: verify an authenticated document download succeeds, download and inspect the complete account archive, test real account deletion with the disposable account, confirm the scheduled final sweep and Stripe customer deletion, then publish and hash-check the prepared frontend build. Do not call the production export/deletion journey complete before these checks pass.
+For future deployments, verify this service-agent prerequisite before publishing cross-service Storage rules, then check an authenticated upload/download against production. A successful CLI deploy and emulator pass alone do not establish production IAM access.
+
+Production verification finished at 13:36 UTC (09:36 Eastern). The synthetic deletion completed in approximately 13 minutes, using the normal scheduler without changing the cleanup deadline. The minimal deletion receipt remains under the documented 30-day retention policy. Disposable browser sign-in tokens were removed from local test artifacts, and the local development server was stopped.
 
 ## Checks still requiring external test conditions
 
@@ -52,6 +58,29 @@ After the cross-service permission is approved and applied: verify an authentica
 - **Paid lifecycle:** a Stripe sandbox is needed to verify completed payment, webhook-driven entitlement changes, renewals, failed payment, cancellation, and portal behavior end to end without charging a real card. Unit coverage and an unpaid live checkout do not establish payment completion.
 - **Save to device:** the in-app browser did not expose a completion event for the document Blob download. Server bytes and document preview were verified; an actual file appearing in a phone or desktop download folder remains a separate check.
 - **Scale:** the archive uses streaming server construction, but a maximum-size account export and memory-constrained phone download have not been load-tested.
+
+### Completing the device and payment checks
+
+These are acceptance steps to run, not claims of completed testing. Record the device/browser version, result, and any failed step.
+
+| Device journey | Expected result |
+| --- | --- |
+| On iPhone Safari and Android Chrome, allow the microphone and ask Nova to remember a synthetic note | Audible reply, correct transcript, one confirmed saved memory |
+| Ask Nova to open Dashboard, then return to Voice capture | One ongoing connection and the same conversation history; no duplicate capture session |
+| Deny microphone permission, then enable it and retry | A useful error and successful recovery without a page reset |
+| Switch Wi-Fi/cellular, background/resume the app, and interrupt it with a phone call | Clear connection state; brief disruption can recover, sustained disruption releases the microphone and preserves text |
+| Use End session with speaker and Bluetooth/headphones | Audio stops and the browser/OS microphone indicator clears |
+| Download a document and account archive | Files appear in the device's download location and open correctly |
+
+Run completed-payment checks on a separate preview backend with Stripe sandbox keys, sandbox price IDs, and the matching webhook secret. Keep the production billing environment unchanged. Stripe's [testing guide](https://docs.stripe.com/testing) provides successful, declined, and authentication-required payment scenarios; its [webhook guide](https://docs.stripe.com/webhooks) describes local event delivery and verification.
+
+| Sandbox journey | Expected result |
+| --- | --- |
+| Complete Basic and Premium checkout | Correct owner and amount; entitlements update from a verified webhook |
+| Decline or cancel checkout | No paid entitlement is granted; retry is understandable |
+| Complete an authentication-required payment | The return flow and entitlements agree with Stripe's final result |
+| Open the portal, change/cancel a plan, and simulate renewal/failure | UI and server access follow the resulting subscription state |
+| Redeliver an already processed event | No duplicate entitlement or billing side effect |
 
 ## Configuration references
 

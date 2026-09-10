@@ -134,7 +134,7 @@ const PrivacyPolicy = () => {
             <li><strong>Active accounts:</strong> Data retained as long as account is active</li>
             <li><strong>Subscription cancellation:</strong> Cancels paid access without deleting your account or memories.</li>
             <li><strong>Account deletion:</strong> Request permanent deletion in Settings → Data Management after confirming your identity. Access stops when the request is recorded. Server cleanup usually completes within 15 minutes and retries if interrupted. A minimal deletion receipt is retained for 30 days; billing and security records retained by providers remain subject to their legal obligations and retention policies.</li>
-            <li><strong>Export archives:</strong> Download links expire after 15 minutes. Server copies are removed within 24 hours plus the next scheduled cleanup run.</li>
+            <li><strong>Export archives:</strong> Server copies are readable only by the signed-in account owner for 15 minutes, and removed within 24 hours plus the next scheduled cleanup run. Save the downloaded browser copy before leaving the export page.</li>
             <li><strong>Voice data:</strong>
               <ul>
                 <li>Raw realtime audio: not intentionally persisted by SaveMe; provider processing is subject to provider terms</li>

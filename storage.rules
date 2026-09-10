@@ -70,6 +70,13 @@ service firebase.storage {
         && (request.resource == null || legacyWriteIsValid());
     }
 
+    // Archives are created only by the server and fetched with the owner's ID token.
+    match /account-exports/{userId}/{fileName} {
+      allow get: if isOwner(userId) && isSafeSegment(fileName)
+        && request.time < resource.timeCreated + duration.value(15, 'm');
+      allow list, write: if false;
+    }
+
     // Public demo assets are provisioned only by trusted Admin SDK code.
     match /demo-videos/{fileName} {
       allow read: if isSafeSegment(fileName);

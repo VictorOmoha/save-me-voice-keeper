@@ -1,4 +1,5 @@
-import {auth} from '@/lib/firebase';
+import {auth, storage} from '@/lib/firebase';
+import {getBlob, ref} from 'firebase/storage';
 import {getCloudFunctionUrl} from '@/utils/cloudFunctions';
 
 async function post(path: string, body = {}): Promise<Record<string, unknown>> {
@@ -10,9 +11,22 @@ async function post(path: string, body = {}): Promise<Record<string, unknown>> {
   return result;
 }
 export async function exportAccount(): Promise<string> {
+  const uid = auth.currentUser?.uid;
   const result = await post('accountExport');
-  if (typeof result.url !== 'string' || new URL(result.url).protocol !== 'https:') throw new Error('The export download link is invalid.');
-  return result.url;
+  if (!uid || auth.currentUser?.uid !== uid || typeof result.storagePath !== 'string'
+    || !result.storagePath.startsWith(`account-exports/${uid}/`)
+    || !/^[\w-]+\.json\.gz$/.test(result.storagePath.slice(`account-exports/${uid}/`.length))) {
+    throw new Error('The export download path is invalid.');
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const blob = await Promise.race([
+      getBlob(ref(storage, result.storagePath)),
+      new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(new Error('The archive download timed out. Please try again.')),550_000);}),
+    ]);
+    if (auth.currentUser?.uid !== uid) throw new Error('Sign in again to download your archive.');
+    return URL.createObjectURL(blob);
+  } finally {clearTimeout(timer);}
 }
 export async function requestAccountDeletion(): Promise<string> {
   const result = await post('accountDelete', {confirmation:'DELETE'});

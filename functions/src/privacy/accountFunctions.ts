@@ -99,9 +99,9 @@ export const accountExport = functions.runWith({timeoutSeconds: 540, memory: '51
       await accountBucket().file(path).delete({ignoreNotFound:true});
       return void res.status(409).json({error: 'Export canceled because account deletion was requested.'});
     }
-    const expiresAt = Date.now() + 15 * 60_000;
-    const [url] = await accountBucket().file(path).getSignedUrl({action:'read', expires:expiresAt});
-    res.json({url, expiresAt, format:'json.gz'});
+    // Storage rules require the same signed-in owner and expire reads after 15 minutes.
+    // No public capability URL or service-account signing permission is needed.
+    res.json({storagePath:path, format:'json.gz'});
   } catch (error) {
     if (sendAbuseError(res,error)) return;
     console.error('Account export failed', {uid:user.uid, error: error instanceof Error ? error.name : 'unknown'});

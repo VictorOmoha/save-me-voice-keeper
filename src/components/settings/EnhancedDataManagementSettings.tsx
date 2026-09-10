@@ -18,6 +18,7 @@ export function EnhancedDataManagementSettings() {
   const [password,setPassword] = useState(''), [confirmation,setConfirmation] = useState('');
   const [busy,setBusy] = useState(false), [error,setError] = useState<string | null>(null), [download,setDownload] = useState<string | null>(null);
   const running = useRef(false);
+  useEffect(() => () => {if (download) URL.revokeObjectURL(download);}, [download]);
   const passwordAccount = auth.currentUser?.providerData.some(p => p.providerId === 'password');
   const googleAccount = auth.currentUser?.providerData.some(p => p.providerId === 'google.com');
   useEffect(() => {
@@ -49,9 +50,9 @@ export function EnhancedDataManagementSettings() {
     <section className="workspace-panel p-5 sm:p-6 space-y-4">
       <h2 className="text-lg font-semibold">Download your account data</h2>
       <p className="text-sm leading-relaxed text-muted-foreground">Download saved memories, conversations, reminders, preferences, connected-agent metadata, and original uploaded files in one compressed JSON archive. Credentials are excluded.</p>
-      <p className="text-xs leading-relaxed text-muted-foreground">Large accounts can take several minutes. Keep this page open and avoid editing until the archive is ready. The download link lasts 15 minutes; the archive is removed from our server within 24 hours plus the next cleanup run.</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">Large accounts can take several minutes. Keep this page open and avoid editing until the archive is ready. It downloads privately into this browser; save it before leaving the page. The server copy is removed within 24 hours plus the next cleanup run.</p>
       <Button onClick={() => {setError(null);setAction('export');}}><Download className="mr-2 h-4 w-4" />Prepare account export</Button>
-      {download && <div role="status" className="rounded-xl border border-primary/30 bg-primary/5 p-4"><p className="mb-3 text-sm">Your archive is ready. Decompress the .gz file to read the JSON; original files are included as base64 content.</p><a href={download} download className="text-sm font-medium text-primary underline">Download account archive</a></div>}
+      {download && <div role="status" className="rounded-xl border border-primary/30 bg-primary/5 p-4"><p className="mb-3 text-sm">Your archive is ready. Decompress the .gz file to read the JSON; original files are included as base64 content.</p><a href={download} download="saveme-account-export.json.gz" className="text-sm font-medium text-primary underline">Download account archive</a></div>}
       <p className="text-xs text-muted-foreground">Provider security logs, legally retained billing records, and unsynced data on other devices are outside this export.</p>
     </section>
     <section className="workspace-panel p-5 sm:p-6 space-y-4">

@@ -1,8 +1,9 @@
 import * as admin from 'firebase-admin';
+import {Timestamp} from 'firebase-admin/firestore';
 import {randomUUID} from 'crypto';
 import {AgentRun, isActive} from './policy';
 
-export const stamp = (now = Date.now()) => admin.firestore.Timestamp.fromMillis(now);
+export const stamp = (now = Date.now()) => Timestamp.fromMillis(now);
 export const dataOf = (snap: admin.firestore.DocumentSnapshot) => snap.data() as AgentRun | undefined;
 
 export async function claimRun(ref: admin.firestore.DocumentReference): Promise<{run: AgentRun; lease: string} | null> {

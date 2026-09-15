@@ -42,10 +42,15 @@ export const novaAgent = functions.runWith({timeoutSeconds: 60, memory: '256MB'}
 }));
 
 export const novaAgentCreated = functions.runWith({timeoutSeconds: 540, memory: '512MB'})
-  .firestore.document('nova_agent_runs/{runId}').onCreate(async snap => {await runAgent(snap.ref);});
+  .firestore.document('nova_agent_runs/{runId}').onCreate(async snap => {
+    // Unconfigured environments must not race synthetic worker tests or enqueue model retries.
+    if (!process.env.OPENAI_API_KEY) return;
+    await runAgent(snap.ref);
+  });
 
 export const novaAgentScheduler = functions.runWith({timeoutSeconds: 540, memory: '512MB'})
   .pubsub.schedule('every 1 minutes').onRun(async () => {
+    if (!process.env.OPENAI_API_KEY) return;
     const db = admin.firestore();
     const jobs = await db.collection('nova_agent_runs').where('status', 'in', ['queued', 'running'])
       .where('next_run_at', '<=', stamp()).orderBy('next_run_at').limit(4).get();

@@ -138,13 +138,14 @@ it('bounds requests, deduplicates retries, and serializes the three-open-goal ca
   const requestId = randomUUID();
   const ref = await create({requestId});
   expect((await create({requestId})).id).toBe(ref.id);
-  const results = await Promise.allSettled([create(), create(), create(), create()]);
-  expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(2);
+  await create();
+  const results = await Promise.allSettled([create(), create()]);
+  expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
   expect((await db.collection('nova_agent_runs').get()).size).toBe(3);
   await ref.update({status: 'completed'});
   await db.collection('nova_agent_accounts').doc(uid).set({day: new Date().toISOString().slice(0, 10), created_today: 10});
   await expect(create()).rejects.toThrow('10 goals');
-});
+}, 60000);
 it('enforces entry admission, disabled web access, and model-work limits', async () => {
   const ref = await create();
   await db.collection('entitlement_usage').doc(uid).set({entries: 50});

@@ -102,6 +102,26 @@ service cloud.firestore {
       allow create, delete: if false; // server-only creates/deletes
     }
 
+    match /push_devices/{deviceId} {
+      allow read, delete: if isSignedIn() && resource.data.user_id == request.auth.uid;
+      allow create: if isSignedIn() && validPushDevice();
+      allow update: if isSignedIn() && resource.data.user_id == request.auth.uid
+        && validPushDevice();
+      function validPushDevice() {
+        return request.resource.data.keys().hasOnly(['user_id', 'token', 'updated_at'])
+          && request.resource.data.user_id == request.auth.uid
+          && request.resource.data.token is string
+          && request.resource.data.token.size() > 20
+          && request.resource.data.token.size() < 4096
+          && request.resource.data.updated_at == request.time;
+      }
+    }
+
+    match /reminder_deliveries/{deliveryId} {
+      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
+      allow write: if false;
+    }
+
     // --- User profile / settings (doc ID = user UID) ---
     // Billing identifiers on this document are a compatibility projection.
     // Clients may own profile fields; they cannot write Stripe/plan fields.

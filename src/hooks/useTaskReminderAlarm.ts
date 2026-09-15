@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useAuth } from '@/contexts/AuthContext';
+import { refreshPushDevice } from '@/services/pushNotificationService';
 
 const playReminderChime = () => {
   const AudioContextCtor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -27,13 +30,22 @@ const playReminderChime = () => {
 
 export const useTaskReminderAlarm = () => {
   const { systemNotifs } = useNotifications();
+  const {user} = useAuth();
+  const {preferences, isLoading} = useUserPreferences();
   const notifiedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    notifiedIdsRef.current.clear();
+    if (user?.uid) void refreshPushDevice().catch(() => { /* Settings offers reconnection. */ });
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (isLoading || !user || !preferences.reminder_notifications || document.visibilityState !== 'visible') return;
     for (const notification of systemNotifs) {
       if (notification.status !== "pending") continue;
       if (notification.type !== "reminder" && notification.type !== "action_due") continue;
       if (notifiedIdsRef.current.has(notification.id)) continue;
+      if (Date.now() - notification.createdAt.getTime() > 2 * 60_000) continue;
 
       notifiedIdsRef.current.add(notification.id);
       toast(notification.text, {
@@ -47,13 +59,6 @@ export const useTaskReminderAlarm = () => {
         console.debug("Reminder chime unavailable:", error);
       }
 
-      if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("SaveMe reminder", {
-          body: notification.text,
-          tag: notification.id,
-          requireInteraction: true,
-        });
-      }
     }
-  }, [systemNotifs]);
+  }, [systemNotifs, preferences.reminder_notifications, isLoading, user]);
 };

@@ -426,59 +426,6 @@ function parseFuzzyDate(dateStr: string): Date | null {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Check Reminders — Scheduled Function
- * Runs every 15 minutes. Finds due reminders and writes notifications.
- */
-export const checkReminders = functions.pubsub
-  .schedule("every 15 minutes")
-  .onRun(async () => {
-    const db = admin.firestore();
-    const now = admin.firestore.Timestamp.now();
-
-    try {
-      const dueReminders = await db.collection("reminders")
-        .where("status", "==", "pending")
-        .where("trigger_at", "<=", now)
-        .limit(50)
-        .get();
-
-      if (dueReminders.empty) return;
-
-      const batch = db.batch();
-      for (const doc of dueReminders.docs) {
-        const reminder = doc.data();
-
-        // Create notification for the user
-        const notifRef = db.collection("pending_notifications").doc();
-        batch.set(notifRef, {
-          user_id: reminder.user_id,
-          type: "reminder",
-          text: reminder.notification_text || `Reminder: ${reminder.text}`,
-          task_text: reminder.task_text || reminder.text,
-          entry_id: reminder.entry_id || null,
-          reminder_id: doc.id,
-          status: "pending",
-          created_at: admin.firestore.FieldValue.serverTimestamp(),
-        });
-
-        // Mark reminder as sent
-        batch.update(doc.ref, {
-          status: "sent",
-          sent_at: admin.firestore.FieldValue.serverTimestamp(),
-          updated_at: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      }
-
-      await batch.commit();
-      console.log(`[checkReminders] Processed ${dueReminders.size} due reminders`);
-    } catch (error) {
-      console.error("[checkReminders] Error:", error);
-    }
-  });
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
  * Analyze Patterns — Scheduled Function
  * Runs daily. Detects behavioral patterns from recent entries.
  */

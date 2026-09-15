@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { taskReminderService } from "@/services/taskReminderService";
+import { Link } from 'react-router-dom';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
 
 const getDefaultReminderTime = () => {
   const date = new Date();
@@ -18,6 +20,7 @@ export const TaskReminderCard = ({compact = false}: {compact?: boolean}) => {
   const [taskText, setTaskText] = useState("");
   const [scheduledAtInput, setScheduledAtInput] = useState(getDefaultReminderTime);
   const [saving, setSaving] = useState(false);
+  const {preferences} = useUserPreferences();
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,14 +33,11 @@ export const TaskReminderCard = ({compact = false}: {compact?: boolean}) => {
         return;
       }
 
-      toast.success("Task reminder set. SaveMe will notify you when it is time.");
+      toast.success("Reminder saved. Delivery follows your notification settings.");
       window.dispatchEvent(new CustomEvent("saveme:reminders-changed"));
       setTaskText("");
       setScheduledAtInput(getDefaultReminderTime());
 
-      if ("Notification" in window && Notification.permission === "default") {
-        void Notification.requestPermission();
-      }
     } catch (error) {
       console.error("Failed to create task reminder:", error);
       toast.error("Failed to set task reminder");
@@ -92,6 +92,10 @@ export const TaskReminderCard = ({compact = false}: {compact?: boolean}) => {
           {saving ? "Setting..." : "Set reminder"}
         </Button>
       </form>
+      <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+        <p>Always saved to your notification inbox.{!preferences.reminder_notifications ? ' Email and phone alerts are paused.' : ' Enable email and phone alerts to receive reminders away from SaveMe.'}</p>
+        <Link to="/settings?tab=notifications" className="inline-flex min-h-9 items-center font-medium text-primary underline underline-offset-4">Set up phone & email delivery</Link>
+      </div>
     </section>
   );
 };

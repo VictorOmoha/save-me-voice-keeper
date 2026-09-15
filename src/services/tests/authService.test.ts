@@ -22,6 +22,8 @@ vi.mock("@/services/extensionCredentialService", () => ({revokeExtensionCredenti
 vi.mock("@/utils/logger", () => ({logAuth: vi.fn()}));
 
 import {authService} from "@/services/authService";
+const pushDisconnectMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+vi.mock('@/services/pushNotificationService', () => ({disablePushDevice: pushDisconnectMock}));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -53,5 +55,7 @@ describe("authService.logout", () => {
 
     await expect(authService.logout()).resolves.toBeUndefined();
     expect(signOutMock).toHaveBeenCalledOnce();
+    expect(pushDisconnectMock).toHaveBeenCalledOnce();
+    expect(pushDisconnectMock.mock.invocationCallOrder[0]).toBeLessThan(signOutMock.mock.invocationCallOrder[0]);
   });
 });

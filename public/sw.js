@@ -1,6 +1,7 @@
 // Bump this on every deploy to force cache invalidation
-const CACHE_VERSION = 'saveme-v6-navigate-network-first';
+const CACHE_VERSION = 'saveme-v7-reminder-push';
 const CACHE_NAME = CACHE_VERSION;
+const PUSH_STATE_CACHE = 'saveme-push-state-v1';
 
 // Only cache the shell — everything else goes to network-first
 const STATIC_ASSETS = [
@@ -24,7 +25,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME && key !== PUSH_STATE_CACHE).map((key) => caches.delete(key))
       );
     }).then(() => self.clients.claim())
   );
@@ -122,4 +123,45 @@ self.addEventListener('fetch', (event) => {
 // Listen for skipWaiting message from page
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') self.skipWaiting();
+});
+
+// FCM data messages are standard Web Push payloads. Keeping one native handler
+// in our existing worker avoids a second worker taking over the PWA's scope.
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    let payload;
+    try { payload = event.data?.json(); } catch { return; }
+    const data = payload?.data;
+    if (!data?.notification_id || !data.user_id) return;
+    const cache = await caches.open(PUSH_STATE_CACHE);
+    const owner = await cache.match('/__push-owner');
+    if (!owner || await owner.text() !== data.user_id) return;
+    const seenKey = `/__push-seen/${encodeURIComponent(data.notification_id)}`;
+    if (await cache.match(seenKey)) return;
+    await self.registration.showNotification(data.title || 'SaveMe reminder', {
+      body: data.body || 'Your reminder is due.',
+      icon: '/icon-192.png', badge: '/icon-192.png',
+      tag: data.notification_id,
+      data: {url: '/dashboard?reminders=open'},
+    });
+    await cache.put(seenKey, new Response(String(Date.now())));
+    // Keep deduplication entries longer than the server retry window.
+    for (const key of await cache.keys()) {
+      if (!new URL(key.url).pathname.startsWith('/__push-seen/')) continue;
+      const entry = await cache.match(key);
+      if (entry && Date.now() - Number(await entry.text()) > 24 * 60 * 60 * 1000) await cache.delete(key);
+    }
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    // Always use our own destination; never navigate to an arbitrary push URL.
+    const url = new URL('/dashboard?reminders=open', self.location.origin).href;
+    const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+    const existing = windows.find(client => new URL(client.url).origin === self.location.origin);
+    if (existing) {await existing.navigate(url); await existing.focus();}
+    else await self.clients.openWindow(url);
+  })());
 });

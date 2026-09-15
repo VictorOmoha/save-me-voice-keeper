@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, onSnapshot, type DocumentSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { clearElevenLabsApiKey, setElevenLabsApiKey } from '@/utils/userSecrets';
 
@@ -33,8 +33,8 @@ export interface UserPreferences {
 const defaultPreferences: UserPreferences = {
   theme: 'system',
   language: 'en',
-  email_notifications: true,
-  push_notifications: true,
+  email_notifications: false,
+  push_notifications: false,
   reminder_notifications: true,
   automation_notifications: true,
   voice_language: 'en-US',
@@ -55,27 +55,31 @@ export const useUserPreferences = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setPreferences(defaultPreferences);
     if (user) {
-      loadPreferences();
+      setIsLoading(true);
+      return onSnapshot(doc(db, 'user_preferences', user.uid), snapshot => {
+        void loadPreferences(snapshot);
+      }, () => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.uid]);
 
-  const loadPreferences = async () => {
+  const loadPreferences = async (snapshot?: DocumentSnapshot) => {
     if (!user) return;
 
     try {
       const prefsRef = doc(db, 'user_preferences', user.uid);
-      const prefsSnap = await getDoc(prefsRef);
+      const prefsSnap = snapshot ?? await getDoc(prefsRef);
 
       if (prefsSnap.exists()) {
         const data = prefsSnap.data();
         const loadedPrefs: UserPreferences = {
           theme: (data.theme as 'light' | 'dark' | 'system') || 'system',
           language: data.language || 'en',
-          email_notifications: data.email_notifications ?? true,
-          push_notifications: data.push_notifications ?? true,
+          email_notifications: data.email_notifications ?? false,
+          push_notifications: data.push_notifications ?? false,
           reminder_notifications: data.reminder_notifications ?? true,
           automation_notifications: data.automation_notifications ?? true,
           voice_language: data.voice_language || 'en-US',
@@ -94,6 +98,8 @@ export const useUserPreferences = () => {
         };
         setPreferences(loadedPrefs);
         setElevenLabsApiKey(loadedPrefs.elevenlabs_api_key);
+      } else {
+        setPreferences(defaultPreferences);
       }
     } catch (error) {
       console.error('Error loading preferences:', error);

@@ -45,10 +45,10 @@ export {
 export {
   enhanceBrainDump,
   processEntryDeep,
-  checkReminders,
   analyzePatterns,
   novaInsights,
 } from "./entryIntelligence/functions";
+export {checkReminders, reminderDeliveryStatus} from './reminders/functions';
 
 export {
   voiceAgent,

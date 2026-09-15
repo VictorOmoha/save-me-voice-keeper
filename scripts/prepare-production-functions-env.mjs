@@ -24,6 +24,10 @@ if (env.STRIPE_MODE !== 'live' || !env.STRIPE_SECRET_KEY.startsWith('sk_live_'))
 if (env.STRIPE_LIVE_BASIC_MONTHLY_PRICE_ID === env.STRIPE_LIVE_PREMIUM_MONTHLY_PRICE_ID) {
   throw new Error('Basic and Premium prices must differ');
 }
+// Optional reminder settings can be introduced without disturbing existing runtime config.
+for (const name of ['RESEND_API_KEY', 'REMINDER_EMAIL_FROM', 'REMINDER_APP_ORIGIN']) {
+  if (process.env[name]?.trim()) env[name] = process.env[name].trim();
+}
 const lines = Object.entries(env).map(([name, value]) => {
   if (!/^[A-Z][A-Z0-9_]*$/.test(name) || typeof value !== 'string' || /[\r\n"\\]/.test(value)) {
     throw new Error(`Unsupported dotenv setting: ${name}`);

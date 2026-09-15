@@ -2,7 +2,8 @@ import { useNotifications, getInsightIcon } from "@/hooks/useNotifications";
 import type { InsightType } from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
 import { Bell, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 
 const INSIGHT_COLOR: Record<InsightType, string> = {
@@ -16,6 +17,8 @@ export const NotificationsPanel = () => {
   const { notifications, insights, systemNotifs, unreadCount, dismiss, dismissAll } =
     useNotifications();
   const [open, setOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  useEffect(() => {if (searchParams.get('reminders') === 'open') setOpen(true);}, [searchParams]);
 
   return (
     <div className="relative">

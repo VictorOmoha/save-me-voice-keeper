@@ -1,5 +1,7 @@
 /** Server-owned inventory. Every query is scoped to the authenticated account. */
 export const ACCOUNT_COLLECTIONS = [
+  {name: 'push_devices', owner: 'user_id'},
+  {name: 'reminder_deliveries', owner: 'user_id'},
   ...['entries','action_items','nova_memories','nova_conversations','entry_links','entry_entities','entity_graph','user_patterns','user_category_patterns','reminders','pending_notifications','api_keys','shared_memories','search_analytics','webhook_events','support_tickets'].map(name => ({name, owner: 'user_id'})),
   ...['users','profiles','user_preferences','search_preferences','nova_user_profile','user_roles','billing_entitlements','entitlement_usage','storage_usage'].map(name => ({name, owner: 'documentId'})),
   ...['extensionCredentials','extensionAccessTokens','extensionPairingCodes'].map(name => ({name, owner: 'userId'})),

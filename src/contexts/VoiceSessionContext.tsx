@@ -92,14 +92,21 @@ const VoiceSessionOwner = ({children}: {children: React.ReactNode}) => {
       exportTimer.current = setTimeout(() => window.dispatchEvent(new CustomEvent("nova:export-data", {detail: {format}})), 500);
     },
     onPrintEntry: async (entries) => {
-      const printable = entries.filter((entry) => typeof entry.id === "string").map((entry) => ({
-        id: entry.id as string, title: typeof entry.title === "string" ? entry.title : "Untitled",
-        fields: entry.fields && typeof entry.fields === "object" ? entry.fields as SavedEntry["fields"] : {},
-        createdAt: new Date(), updatedAt: new Date(),
-      }));
-      if (!printable.length) { toast.error("No printable entries found"); return; }
-      const {printProfessionally} = await import("@/components/entries/ProfessionalPrintView");
-      printProfessionally(printable, {title: printable.length === 1 ? printable[0].title : `${printable.length} Entries`, includeMetadata: true});
+      try {
+        const printable = entries.filter((entry) => typeof entry.id === "string").map((entry) => ({
+          id: entry.id as string, title: typeof entry.title === "string" ? entry.title : "Untitled",
+          fields: entry.fields && typeof entry.fields === "object" ? entry.fields as SavedEntry["fields"] : {},
+          category: typeof entry.category === "string" ? entry.category : undefined,
+          createdAt: new Date(), updatedAt: new Date(),
+        }));
+        if (!printable.length) {toast.error("No printable content found"); return;}
+        const {printProfessionally} = await import("@/components/entries/ProfessionalPrintView");
+        const opened = printProfessionally(printable, {title: printable.length === 1 ? printable[0].title : `${printable.length} Entries`, includeMetadata: true});
+        if (!opened) toast.error("The print dialog could not open. Check your browser print settings and try again.");
+      } catch (error) {
+        console.error("Nova print failed", error);
+        toast.error("Nova couldn't open the print dialog. Please try again.");
+      }
     },
     onNovaAction: handleAction,
   });

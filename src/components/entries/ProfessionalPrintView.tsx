@@ -613,21 +613,49 @@ export const printProfessionally = (
     includeMetadata?: boolean;
     pageBreaks?: boolean;
   }
-): void => {
+): boolean => {
   const html = generateProfessionalPrintHTML(entries, options);
   const printWindow = window.open("", "_blank");
 
   if (printWindow) {
     printWindow.document.write(html);
     printWindow.document.close();
-
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-      }, 500);
+    let printed = false;
+    const printOnce = () => {
+      if (printed || printWindow.closed) return;
+      printed = true;
+      printWindow.focus();
+      printWindow.print();
     };
+    printWindow.addEventListener("load", () => setTimeout(printOnce, 300), {once: true});
+    // document.close() can finish loading before the listener above is attached.
+    // Always schedule a fallback so voice-triggered printing cannot silently stall.
+    setTimeout(printOnce, printWindow.document.readyState === "complete" ? 300 : 1200);
+    return true;
   }
+
+  // Voice commands arrive asynchronously, so browsers may block a new popup.
+  // A same-page iframe still gives the browser a printable document.
+  const frame = document.createElement("iframe");
+  frame.setAttribute("title", "Nova print document");
+  frame.style.cssText = "position:fixed;width:0;height:0;border:0;right:0;bottom:0";
+  document.body.appendChild(frame);
+  const frameWindow = frame.contentWindow;
+  if (!frameWindow) {frame.remove(); return false;}
+  frameWindow.document.open();
+  frameWindow.document.write(html);
+  frameWindow.document.close();
+  let printed = false;
+  const printOnce = () => {
+    if (printed) return;
+    printed = true;
+    frameWindow.focus();
+    frameWindow.print();
+    setTimeout(() => frame.remove(), 1000);
+  };
+  frame.addEventListener("load", () => setTimeout(printOnce, 300), {once: true});
+  setTimeout(printOnce, frameWindow.document.readyState === "complete" ? 300 : 1200);
+  return true;
 };
 
 export const ProfessionalPrintView: React.FC<ProfessionalPrintViewProps> = ({

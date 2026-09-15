@@ -58,6 +58,11 @@ export async function handleAppControlTool(
     return command("openEntry", { id: resolvedId, title: args.title || null }, { id: resolvedId, title: args.title || null });
   }
   case "printEntry": {
+    if (typeof args.content === "string" && args.content.trim()) {
+      const title = typeof args.title === "string" && args.title.trim() ? args.title.trim() : "Nova Printout";
+      const entries = [{id: `nova-print-${Date.now()}`, title, fields: {content: args.content.trim()}, category: "Personal"}];
+      return command("printEntry", {entries}, {entries, count: 1});
+    }
     const snap = await entriesRef
       .where("user_id", "==", userId)
       .orderBy("updated_at", "desc")

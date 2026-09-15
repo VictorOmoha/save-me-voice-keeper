@@ -67,12 +67,13 @@ export function validateToolArgs(toolName: string, args: Record<string, unknown>
     return { valid: true, sanitizedArgs: sanitized };
 
   case "printEntry":
-    if (!isNonEmptyString(args.id) && !isNonEmptyString(args.title) && !isNonEmptyString(args.category)) {
-      return { valid: false, error: "printEntry requires id, title, or category" };
+    if (!isNonEmptyString(args.id) && !isNonEmptyString(args.title) && !isNonEmptyString(args.category) && !isNonEmptyString(args.content)) {
+      return { valid: false, error: "printEntry requires id, title, category, or content" };
     }
     if (isNonEmptyString(args.id)) sanitized.id = truncate(args.id.trim(), 200);
     if (isNonEmptyString(args.title)) sanitized.title = truncate(args.title.trim(), 500);
     if (isNonEmptyString(args.category)) sanitized.category = truncate(args.category.trim(), 100);
+    if (isNonEmptyString(args.content)) sanitized.content = sanitizeString(args.content, MAX_CONTENT_LENGTH);
     return { valid: true, sanitizedArgs: sanitized };
 
   case "saveEntry":

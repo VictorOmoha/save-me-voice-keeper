@@ -388,13 +388,14 @@ Examples:
       // ── Print ──────────────────────────────────────────────────────────────
       {
         name: "printEntry",
-        description: "Print one or more entries. Use when user says 'print', 'print this entry', 'print my [title]', 'print entries in [category]'. Searches for the entry by title or category and opens the browser print dialog.",
+        description: "Print one or more saved entries, or print newly requested text. For a saved entry, pass its title, id, or category. For text the user asks Nova to compose or print directly, pass content and an optional title. Opens the browser print dialog.",
         parameters: {
           type: "OBJECT",
           properties: {
             title: {type: "STRING", description: "Entry title or partial title to find and print"},
             id: {type: "STRING", description: "Entry ID to print (if known)"},
             category: {type: "STRING", description: "Print all entries in this category"},
+            content: {type: "STRING", description: "New text to print when the request is not for an existing saved entry"},
           },
         },
       },

@@ -71,8 +71,9 @@ describe("Realtime voice boundary", () => {
     expect(config.audio.input.transcription.model).toBe("gpt-transcribe");
     expect(config.audio.output.voice).toBe("marin");
     expect(config.tools).toHaveLength(REALTIME_TOOLS.length);
-    expect(config.tools[0].parameters.type).toBe("object");
-    expect(config.tools[0].parameters.properties.route.type).toBe("string");
+    const navigation = config.tools.find((tool: {name: string}) => tool.name === 'navigateApp');
+    expect(navigation.parameters.type).toBe("object");
+    expect(navigation.parameters.properties.route.type).toBe("string");
     expect(JSON.stringify(res.json.mock.calls)).not.toContain("server-secret");
     expect(docs.get(`nova_conversations/${id}`)?.user_id).toBe("alice");
   });

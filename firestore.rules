@@ -91,6 +91,14 @@ service cloud.firestore {
       allow update, delete: if false; // server-only updates
     }
 
+    match /nova_agent_runs/{runId} {
+      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
+      allow write: if false;
+    }
+    match /nova_agent_accounts/{userId} {
+      allow read, write: if false;
+    }
+
     match /pending_notifications/{docId} {
       allow read: if isSignedIn()
         && resource.data.user_id == request.auth.uid;

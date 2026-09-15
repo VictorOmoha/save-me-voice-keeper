@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 import {runInNewContext} from 'node:vm';
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 
-type WorkerEvent = {data?: {json: () => unknown}; waitUntil: (work: Promise<void>) => void; notification?: {close: () => void}};
+type WorkerEvent = {data?: {json: () => unknown}; waitUntil: (work: Promise<void>) => void; notification?: {close: () => void; data?: {url: string}}};
 const listeners: Record<string, (event: WorkerEvent) => void> = {};
 const entries = new Map<string, Response>();
 const show = vi.fn();
@@ -30,6 +30,17 @@ async function push(payload: unknown) {
   await work;
 }
 describe('Background reminder notifications', () => {
+  it('opens a same-origin goal update and rejects an external goal URL', async () => {
+    const path = `/agent?run=${'a'.repeat(64)}`;
+    await push({data: {user_id: 'alice', notification_id: 'goal1', url: `https://saveme.space${path}`}});
+    expect(show.mock.calls[0][1].data.url).toBe(path);
+    let work = Promise.resolve();
+    listeners.notificationclick({notification: {close: vi.fn(), data: {url: path}}, waitUntil: promise => {work = promise;}});
+    await work;
+    expect(openWindow).toHaveBeenCalledWith(`https://saveme.space${path}`);
+    await push({data: {user_id: 'alice', notification_id: 'goal2', url: `https://evil.example${path}`}});
+    expect(show.mock.calls[1][1].data.url).toBe('/dashboard?reminders=open');
+  });
   it('shows a push while no app windows are open and suppresses repeat delivery', async () => {
     const payload = {data: {user_id: 'alice', notification_id: 'r1', body: 'Call Mum'}};
     await push(payload); await push(payload);

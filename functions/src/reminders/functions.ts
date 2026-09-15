@@ -2,12 +2,14 @@ import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import {randomUUID} from 'node:crypto';
 import {
-  appOrigin, channelEnabled, ChannelResult, DELIVERY_WINDOW_MS, EmailMessage,
+  appOrigin, agentDestination, channelEnabled, ChannelResult, DELIVERY_WINDOW_MS, EmailMessage,
   emailConfigured, emailMessage, MAX_ATTEMPTS, reminderText, retryAt, sendReminderEmail, terminal,
 } from './delivery';
 
 const timestamp = (millis: number) => admin.firestore.Timestamp.fromMillis(millis);
 interface DeliveryJob {
+  run_id?: string;
+  notification_id?: string;
   user_id: string;
   text: string;
   status: string;
@@ -91,6 +93,10 @@ export async function deliverReminder(db: admin.firestore.Firestore, ref: admin.
       return;
     }
     const preferences = prefs.data() || {};
+    if (job.run_id && preferences.automation_notifications === false) {
+      await save({status: 'complete', email: {state: 'skipped', reason: 'disabled'}, push: {state: 'skipped', reason: 'disabled'}});
+      return;
+    }
     const expired = now >= job.expires_at.toMillis() || job.attempts > MAX_ATTEMPTS;
     let email: ChannelResult | undefined = job.email;
     let push: ChannelResult | undefined = job.push;
@@ -101,7 +107,7 @@ export async function deliverReminder(db: admin.firestore.Firestore, ref: admin.
       else if (!emailConfigured()) email = {state: 'retry', reason: 'email_not_configured'};
       else {
         // Freeze the body before calling Resend so a retry uses the identical payload/key.
-        const message: EmailMessage = job.email_message || {...emailMessage(job.text), to: [user.email]};
+        const message: EmailMessage = job.email_message || {...emailMessage(job.text, job.run_id), to: [user.email]};
         if (message.to[0] !== user.email) email = {state: 'skipped', reason: 'email_changed'};
         else {
           if (!job.email_message) await save({email_message: message});
@@ -123,7 +129,7 @@ export async function deliverReminder(db: admin.firestore.Firestore, ref: admin.
           const group = pending.slice(index, index + 100);
           const response = await admin.messaging().sendEachForMulticast({
             tokens: group.map(device => device.data().token),
-            data: {title: 'SaveMe reminder', body: Array.from(job.text).slice(0, 450).join(''), user_id: uid, notification_id: `reminder_${ref.id}`, url: `${appOrigin()}/dashboard?reminders=open`},
+            data: {title: job.run_id ? 'Nova update' : 'SaveMe reminder', body: Array.from(job.text).slice(0, 450).join(''), user_id: uid, notification_id: job.notification_id || `reminder_${ref.id}`, url: `${appOrigin()}${agentDestination(job.run_id)}`},
             webpush: {headers: {TTL: '3600', Urgency: 'high'}},
           });
           for (let i = 0; i < response.responses.length; i++) {

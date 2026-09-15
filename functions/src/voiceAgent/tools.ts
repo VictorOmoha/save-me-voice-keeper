@@ -1,6 +1,9 @@
 export const VOICE_AGENT_TOOLS = [
   {
     functionDeclarations: [
+      {name: 'startAgentGoal', description: 'Delegate a multi-step research, planning, writing, or saved-information goal to Nova in the background. Use when the user asks you to work autonomously or keep working after the conversation. Returns a queued goal, not completed work. Call once and do not repeat an uncertain creation.',
+        parameters: {type: 'OBJECT', properties: {goal: {type: 'STRING', description: 'Complete user goal with constraints and exact deadlines; ask for missing timezone if necessary'}, autoSave: {type: 'BOOLEAN', description: 'True only when the user authorizes automatic saves/changes; otherwise false for review'}, allowWeb: {type: 'BOOLEAN', description: 'True when the user requests public web research; otherwise false'}}, required: ['goal', 'autoSave', 'allowWeb']}},
+      {name: 'getAgentGoals', description: 'Check the actual status and results of the user’s five most recent background goals.', parameters: {type: 'OBJECT', properties: {}}},
       // ── App Control ────────────────────────────────────────────────────────
       {
         name: "navigateApp",
@@ -10,7 +13,7 @@ export const VOICE_AGENT_TOOLS = [
           properties: {
             route: {
               type: "STRING",
-              enum: ["/dashboard", "/all-entries", "/insights", "/settings", "/brain-dump", "/subscription"],
+              enum: ["/dashboard", "/all-entries", "/insights", "/settings", "/brain-dump", "/subscription", "/agent"],
               description: "The route to navigate to",
             },
           },

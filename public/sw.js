@@ -127,6 +127,13 @@ self.addEventListener('message', (event) => {
 
 // FCM data messages are standard Web Push payloads. Keeping one native handler
 // in our existing worker avoids a second worker taking over the PWA's scope.
+function pushDestination(value) {
+  try {
+    const url = new URL(value, self.location.origin);
+    if (url.origin === self.location.origin && url.pathname === '/agent' && /^[a-f0-9]{64}$/.test(url.searchParams.get('run') || '')) return `/agent?run=${url.searchParams.get('run')}`;
+  } catch { /* Unrecognized destinations fall back to reminders. */ }
+  return '/dashboard?reminders=open';
+}
 self.addEventListener('push', (event) => {
   event.waitUntil((async () => {
     let payload;
@@ -142,7 +149,7 @@ self.addEventListener('push', (event) => {
       body: data.body || 'Your reminder is due.',
       icon: '/icon-192.png', badge: '/icon-192.png',
       tag: data.notification_id,
-      data: {url: '/dashboard?reminders=open'},
+      data: {url: pushDestination(data.url)},
     });
     await cache.put(seenKey, new Response(String(Date.now())));
     // Keep deduplication entries longer than the server retry window.
@@ -157,8 +164,8 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil((async () => {
-    // Always use our own destination; never navigate to an arbitrary push URL.
-    const url = new URL('/dashboard?reminders=open', self.location.origin).href;
+    // Allow only known, same-origin destinations, including persisted notifications.
+    const url = new URL(pushDestination(event.notification.data?.url), self.location.origin).href;
     const windows = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
     const existing = windows.find(client => new URL(client.url).origin === self.location.origin);
     if (existing) {await existing.navigate(url); await existing.focus();}

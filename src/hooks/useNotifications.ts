@@ -13,7 +13,7 @@ import {
 import { db } from "@/lib/firebase";
 import { useAuthState } from "./useAuthState";
 
-export type NotificationType = "reminder" | "action_due" | "system" | "nova_insight";
+export type NotificationType = "reminder" | "action_due" | "system" | "nova_insight" | "automation";
 
 export type InsightType = "connection" | "pattern" | "gap" | "reminder";
 
@@ -22,6 +22,7 @@ export interface Notification {
   type: NotificationType;
   text: string;
   entryId?: string | null;
+  runId?: string;
   entryIds?: string[];
   insightType?: InsightType;
   status: "pending" | "dismissed";
@@ -75,6 +76,7 @@ export const useNotifications = () => {
               type: (data.type || "reminder") as NotificationType,
               text: data.text,
               entryId: data.entry_id || null,
+              runId: typeof data.run_id === 'string' && /^[a-f0-9]{64}$/.test(data.run_id) ? data.run_id : undefined,
               entryIds: data.entry_ids || [],
               insightType: data.insight_type as InsightType | undefined,
               status: data.status,

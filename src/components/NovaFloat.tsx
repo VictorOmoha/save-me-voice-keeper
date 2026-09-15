@@ -46,6 +46,7 @@ export const NovaFloat = () => {
           <div className="flex items-center justify-between px-4 py-2 border-b shrink-0">
             <h2 className="text-sm font-semibold">Nova · Your conversation</h2>
             <div className="flex items-center">
+              <button onClick={() => navigate('/agent')} className="h-10 px-2 rounded-lg text-xs font-medium hover:bg-muted">Goals</button>
               <button onClick={() => navigate("/voice-capture")} aria-label="Open full voice capture" className="h-10 w-10 grid place-items-center rounded-lg hover:bg-muted"><Maximize2 className="h-4 w-4" /></button>
               <button ref={collapse} onClick={minimize} aria-label="Minimize conversation" className="h-10 w-10 grid place-items-center rounded-lg hover:bg-muted"><ChevronDown className="h-4 w-4" /></button>
               <button onClick={end} aria-label="End session and close" className="h-10 w-10 grid place-items-center rounded-lg hover:bg-muted"><X className="h-4 w-4" /></button>

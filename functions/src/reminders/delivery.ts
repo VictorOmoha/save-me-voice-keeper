@@ -30,11 +30,15 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY?.trim() && process.env.REMINDER_EMAIL_FROM?.trim());
 }
 
-export function emailMessage(text: string): Omit<EmailMessage, 'to'> {
+export function agentDestination(runId?: string): string {
+  return runId && /^[a-f0-9]{64}$/.test(runId) ? `/agent?run=${runId}` : '/dashboard?reminders=open';
+}
+
+export function emailMessage(text: string, runId?: string): Omit<EmailMessage, 'to'> {
   return {
     from: process.env.REMINDER_EMAIL_FROM || '',
-    subject: 'Your SaveMe reminder',
-    text: `${text}\n\nOpen your reminders: ${appOrigin()}/dashboard?reminders=open\n\nManage reminder delivery: ${appOrigin()}/settings?tab=notifications`,
+    subject: runId ? 'An update from Nova' : 'Your SaveMe reminder',
+    text: `${text}\n\nOpen SaveMe: ${appOrigin()}${agentDestination(runId)}\n\nManage delivery: ${appOrigin()}/settings?tab=notifications`,
   };
 }
 

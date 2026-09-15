@@ -25,6 +25,7 @@ const pages = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, section: "dashboard" },
   { to: "/voice-capture", label: "Voice capture", icon: Mic, section: "voice-capture" },
   { to: "/all-entries", label: "All entries", icon: FileText, section: "all-entries" },
+  { to: "/agent", label: "Nova goals", icon: Sparkles, section: "agent" },
   { to: "/brain-dump", label: "Brain dump", icon: Brain, section: "brain-dump" },
   { to: "/briefing", label: "Daily briefing", icon: Sunrise, section: "briefing" },
   { to: "/insights", label: "Insights", icon: Sparkles, section: "insights" },
@@ -45,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({savedEntriesCount, onAddEntry, 
       <div className="flex-1 overflow-y-auto px-3 pb-5">
         <p className="workspace-eyebrow px-3 pb-3 pt-5">Workspace</p>
         <nav aria-label="Main navigation" className="space-y-1">
-          {pages.slice(0, 3).map(({to, label, icon: Icon, section}) => {
+          {pages.slice(0, 4).map(({to, label, icon: Icon, section}) => {
             const active = activeSection ? activeSection === section : pathname === to || (to === "/all-entries" && pathname.startsWith(to + "/"));
             return <Link key={to} to={to} onClick={onMobileClose} className="workspace-nav-link" aria-current={active ? "page" : undefined}>
               <Icon className="h-[18px] w-[18px] shrink-0" /><span>{label}</span>
@@ -53,9 +54,9 @@ export const Sidebar: React.FC<SidebarProps> = ({savedEntriesCount, onAddEntry, 
             </Link>;
           })}
         </nav>
-        <details className="mt-3" key={pathname} open={pages.slice(3).some(page => page.to === pathname)}>
+        <details className="mt-3" key={pathname} open={pages.slice(4).some(page => page.to === pathname)}>
           <summary className="cursor-pointer px-3 py-3 text-sm text-muted-foreground">More tools</summary>
-          <nav aria-label="More tools" className="space-y-1">{pages.slice(3).map(({to, label, icon: Icon}) =>
+          <nav aria-label="More tools" className="space-y-1">{pages.slice(4).map(({to, label, icon: Icon}) =>
             <Link key={to} to={to} onClick={onMobileClose} className="workspace-nav-link" aria-current={pathname === to ? 'page' : undefined}>
               <Icon className="h-[18px] w-[18px] shrink-0" /><span>{label}</span>
             </Link>

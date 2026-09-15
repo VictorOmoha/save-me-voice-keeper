@@ -3,7 +3,7 @@ import type { InsightType } from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
 import { Bell, Sparkles, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 
 const INSIGHT_COLOR: Record<InsightType, string> = {
@@ -134,6 +134,7 @@ export const NotificationsPanel = () => {
                           </span>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm">{n.text}</p>
+                            {n.runId && <Link to={`/agent?run=${n.runId}`} onClick={() => setOpen(false)} className="mt-2 inline-block text-sm text-primary hover:underline">Open goal</Link>}
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {n.createdAt.toLocaleDateString()}
                             </p>

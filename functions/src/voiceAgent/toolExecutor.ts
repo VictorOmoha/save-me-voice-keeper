@@ -9,6 +9,7 @@ import {handleIntelligenceTool} from "../voiceTools/intelligence";
 import {summarizeToolArgs, validateToolArgs} from "../voiceToolValidation";
 import {GEMINI_API} from "./config";
 import {rebuildMemoryProfile} from "./memory";
+import {voiceGoalTool} from '../autonomy/voice';
 
 interface StructuredFieldInput {
   key: string;
@@ -175,6 +176,7 @@ export async function executeVoiceTool(
   });
 
   args = safeArgs;
+  if (toolName === 'startAgentGoal' || toolName === 'getAgentGoals') return voiceGoalTool(toolName, args, userId);
 
   // ── App control tools — return commands for the frontend to execute ────────
   const appControlResult = await handleAppControlTool(toolName, args, userId, entriesRef);

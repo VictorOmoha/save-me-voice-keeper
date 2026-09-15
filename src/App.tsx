@@ -39,6 +39,7 @@ const BrainDump = React.lazy(() => import("./pages/BrainDump.tsx"));
 const VoiceCapture = React.lazy(() => import("./pages/VoiceCapture.tsx"));
 const Insights = React.lazy(() => import("./pages/Insights.tsx"));
 const NovaBriefing = React.lazy(() => import("./pages/NovaBriefing.tsx"));
+const NovaGoals = React.lazy(() => import("./pages/NovaGoals.tsx"));
 const Onboarding = React.lazy(() => import("./pages/Onboarding.tsx"));
 const AppPreview = React.lazy(() => import("./pages/AppPreview.tsx"));
 
@@ -111,6 +112,7 @@ const App = () => (
                         <Route path="/category/:categoryName" element={<PrivateRoute><CategoryPage /></PrivateRoute>} />
                         <Route path="/insights" element={<PrivateRoute><Insights /></PrivateRoute>} />
                         <Route path="/briefing" element={<PrivateRoute><NovaBriefing /></PrivateRoute>} />
+                        <Route path="/agent" element={<PrivateRoute><NovaGoals /></PrivateRoute>} />
                         <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
                         <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
                         <Route path="/connect-agent" element={<Navigate to="/settings?tab=automation&connect=agent" replace />} />

@@ -2,8 +2,9 @@ export const VOICE_AGENT_TOOLS = [
   {
     functionDeclarations: [
       {name: 'startAgentGoal', description: 'Delegate a multi-step research, planning, writing, or saved-information goal to Nova in the background. Use when the user asks you to work autonomously or keep working after the conversation. Returns a queued goal, not completed work. Call once and do not repeat an uncertain creation.',
-        parameters: {type: 'OBJECT', properties: {goal: {type: 'STRING', description: 'Complete user goal with constraints and exact deadlines; ask for missing timezone if necessary'}, autoSave: {type: 'BOOLEAN', description: 'True only when the user authorizes automatic saves/changes; otherwise false for review'}, allowWeb: {type: 'BOOLEAN', description: 'True when the user requests public web research; otherwise false'}}, required: ['goal', 'autoSave', 'allowWeb']}},
+        parameters: {type: 'OBJECT', properties: {goal: {type: 'STRING', description: 'Complete user goal with constraints and exact deadlines; ask for missing timezone if necessary'}, autoSave: {type: 'BOOLEAN', description: 'True only when the user authorizes automatic saves/changes; otherwise false for review'}, allowWeb: {type: 'BOOLEAN', description: 'True when the user requests public web research; otherwise false'}, connectionIds: {type: 'ARRAY', items: {type: 'STRING'}, description: 'Exact ids from getConnectedApps for applications the user asked this goal to use. Empty or omitted means no external access.'}}, required: ['goal', 'autoSave', 'allowWeb']}},
       {name: 'getAgentGoals', description: 'Check the actual status and results of the user’s five most recent background goals.', parameters: {type: 'OBJECT', properties: {}}},
+      {name: 'getConnectedApps', description: 'List applications and external tools actually connected to this user. Use before delegating a goal that needs another application. Returns account names and connection ids, never credentials.', parameters: {type: 'OBJECT', properties: {}}},
       // ── App Control ────────────────────────────────────────────────────────
       {
         name: "navigateApp",

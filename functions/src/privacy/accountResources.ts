@@ -2,6 +2,9 @@
 export const ACCOUNT_COLLECTIONS = [
   {name: 'nova_agent_runs', owner: 'user_id'},
   {name: 'nova_agent_accounts', owner: 'documentId'},
+  {name: 'nova_connections', owner: 'user_id'},
+  {name: 'nova_oauth_states', owner: 'user_id'},
+  {name: 'nova_external_actions', owner: 'user_id'},
   {name: 'push_devices', owner: 'user_id'},
   {name: 'reminder_deliveries', owner: 'user_id'},
   ...['entries','action_items','nova_memories','nova_conversations','entry_links','entry_entities','entity_graph','user_patterns','user_category_patterns','reminders','pending_notifications','api_keys','shared_memories','search_analytics','webhook_events','support_tickets'].map(name => ({name, owner: 'user_id'})),

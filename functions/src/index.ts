@@ -50,6 +50,7 @@ export {
 } from "./entryIntelligence/functions";
 export {checkReminders, reminderDeliveryStatus} from './reminders/functions';
 export {novaAgent, novaAgentCreated, novaAgentScheduler} from './autonomy/functions';
+export {novaConnections} from './connections/functions';
 
 export {
   voiceAgent,

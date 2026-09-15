@@ -7,6 +7,7 @@ import {db} from '@/lib/firebase';
 import {Button} from '@/components/ui/button';
 import {WorkspacePage, WorkspacePageHeader} from '@/components/workspace/WorkspacePage';
 import {ended, goalRequest, goalStatus, NovaGoal} from '@/services/novaGoals';
+import {AppConnection, ConnectionList, connectionRequest} from '@/services/connections';
 
 const examples = [
   {label: 'Plan my week', goal: 'Review my recent saved notes, tasks, and reminders. Save a realistic plan for my week, with priorities and anything you need me to clarify.'},
@@ -66,6 +67,8 @@ function GoalWorkspace() {
   const [goal, setGoal] = useState('');
   const [writeMode, setWriteMode] = useState('auto');
   const [allowWeb, setAllowWeb] = useState(false);
+  const [connections, setConnections] = useState<AppConnection[]>([]);
+  const [connectionIds, setConnectionIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const request = useRef({key: '', id: ''});
   const selectedId = params.get('run') || '';
@@ -73,6 +76,7 @@ function GoalWorkspace() {
     if (!user) return;
     let active = true;
     goalRequest<{available: boolean}>(user, {operation: 'status'}).then(data => {if (active) setAvailable(data.available);}).catch(e => {if (active) setError(errorText(e));});
+    connectionRequest<ConnectionList>(user.uid, {operation: 'list'}).then(data => {if (active) setConnections(data.connections.filter(item => item.enabled_tools.length));}).catch(e => {if (active) setError(errorText(e));});
     const unsubscribe = onSnapshot(query(collection(db, 'nova_agent_runs'), where('user_id', '==', user.uid), orderBy('created_at', 'desc'), limit(30)), snapshot => {
       setRuns(snapshot.docs.map(item => ({...item.data(), id: item.id}) as NovaGoal)); setLoading(false);
     }, () => {setLoading(false); setError('Could not load your goals. Please reload to reconnect.');});
@@ -90,11 +94,11 @@ function GoalWorkspace() {
   const openCount = runs.filter(run => !ended(run)).length;
   async function start(event: FormEvent) {
     event.preventDefault(); if (!user || busy) return;
-    const key = JSON.stringify({goal: goal.trim(), writeMode, allowWeb});
+    const key = JSON.stringify({goal: goal.trim(), writeMode, allowWeb, connectionIds});
     if (request.current.key !== key) request.current = {key, id: crypto.randomUUID()};
     setBusy(true); setError('');
     try {
-      const result = await goalRequest<{runId: string}>(user, {operation: 'create', goal: goal.trim(), writeMode, allowWeb, maxSteps: 16, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, requestId: request.current.id});
+      const result = await goalRequest<{runId: string}>(user, {operation: 'create', goal: goal.trim(), writeMode, allowWeb, connectionIds, maxSteps: connectionIds.length ? 24 : 16, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, requestId: request.current.id});
       setParams({run: result.runId}); setGoal(''); request.current = {key: '', id: ''};
     } catch (e) {setError(errorText(e));} finally {setBusy(false);}
   }
@@ -121,12 +125,16 @@ function GoalWorkspace() {
           <select id="goal-mode" value={writeMode} onChange={event => setWriteMode(event.target.value)} className="mt-2 w-full rounded-lg border bg-background p-2.5 text-sm"><option value="auto">Save notes and reminders automatically</option><option value="review">Review each change first</option></select>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Deleting an entry always needs your approval.</p>
           <label className="mt-4 flex items-center gap-3 text-sm"><input type="checkbox" checked={allowWeb} onChange={event => setAllowWeb(event.target.checked)} className="h-4 w-4 accent-primary" />Allow public web research</label>
+          <fieldset className="mt-5 border-t pt-4"><legend className="pt-4 text-sm font-medium">Applications for this goal</legend>
+            {connections.map(connection => <label key={connection.id} className="mt-3 flex items-start gap-3 text-sm"><input type="checkbox" className="mt-1 h-4 w-4 shrink-0 accent-primary" checked={connectionIds.includes(connection.id)} onChange={event => setConnectionIds(current => event.target.checked ? [...current, connection.id] : current.filter(id => id !== connection.id))} /><span className="min-w-0">{connection.name}<span className="block break-all text-xs text-muted-foreground">{connection.account}</span></span></label>)}
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{connections.length ? 'Google reads run automatically. Calendar changes and external tool calls ask for approval. ' : 'Connect applications to let Nova work across them. '}<Link to="/settings?tab=connections" className="text-primary underline">Manage connections</Link></p>
+          </fieldset>
           <Button type="submit" className="mt-5 w-full" disabled={busy || available !== true || !goal.trim() || openCount >= 3}>{busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}Start goal</Button>
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Up to 16 steps per goal and 3 open goals. Work continues after you close the app.</p>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Up to {connectionIds.length ? 24 : 16} steps per goal and 3 open goals. Work continues after you close the app.</p>
           {openCount >= 3 && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Finish or cancel an open goal to start another.</p>}
         </form>
         <section aria-label="Your goals"><h2 className="mb-3 text-sm font-semibold">Your goals</h2>{loading ? <p className="text-sm text-muted-foreground">Loading goals…</p> : runs.length === 0 ? <p className="text-sm text-muted-foreground">Your first goal will appear here.</p> : <ul className="space-y-2">{runs.map(run => <li key={run.id}><button type="button" aria-pressed={selected?.id === run.id} onClick={() => setParams({run: run.id})} className={`w-full rounded-xl border p-4 text-left hover:bg-muted/50 ${selected?.id === run.id ? 'border-primary/50 bg-primary/5' : 'bg-card'}`}><span className="block line-clamp-2 break-words text-sm font-medium">{run.goal}</span><span className="mt-2 block text-xs text-muted-foreground">{goalStatus[run.status]} · {run.steps.length} steps</span></button></li>)}</ul>}</section>
-        <p className="text-xs leading-relaxed text-muted-foreground">Completion and questions appear in your inbox. Phone and email updates use your <Link to="/settings?tab=notifications" className="text-primary underline">notification preferences</Link>. External accounts and computer control are not connected yet.</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">Completion and questions appear in your inbox. Phone and email updates use your <Link to="/settings?tab=notifications" className="text-primary underline">notification preferences</Link>. Pausing or cancelling stops future actions; an external request already sent may still finish.</p>
       </div>
       {selected ? <GoalDetail key={selected.id} run={selected} busy={busy} onAction={action} /> : <div className="rounded-2xl border border-dashed p-8 md:p-12"><Sparkles className="h-8 w-8 text-primary" /><h2 className="mt-5 text-xl font-semibold">From a request to a finished result</h2><p className="mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">Give Nova a clear outcome. It makes a plan, uses the available tools, and checks its work. You can follow each step here, or come back when it is ready.</p><ol className="mt-6 space-y-4 text-sm"><li><strong>1. Describe the outcome</strong><p className="mt-1 text-muted-foreground">Include the topic, saved information to use, and what to produce.</p></li><li><strong>2. Nova works through it</strong><p className="mt-1 text-muted-foreground">Research, organize, draft, and schedule follow-ups.</p></li><li><strong>3. Review the result</strong><p className="mt-1 text-muted-foreground">Find the answer, sources, and saved work in one place.</p></li></ol></div>}
     </div>

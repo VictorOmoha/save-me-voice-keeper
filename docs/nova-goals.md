@@ -1,8 +1,8 @@
 # Nova background goals
 
-Nova goals (`/agent`) carry out bounded, multi-step work even when the browser is closed. Users can start a goal in the workspace or ask Nova to delegate one during a conversation. The initial tool set covers public web research, saved-entry search and reading, note drafting and updates, reviewed deletion, tasks/reminder lookup, reminders, and delayed follow-up.
+Nova goals (`/agent`) carry out bounded, multi-step work even when the browser is closed. Users can start a goal in the workspace or ask Nova to delegate one during a conversation. Tools cover public web research, saved-entry search and reading, note drafting and updates, reviewed deletion, tasks/reminder lookup, reminders, delayed follow-up, and [selected external applications](nova-connections.md).
 
-This is an autonomous agent within SaveMe's available tools. It does not execute code, control arbitrary websites or computers, purchase items, or send messages through unconnected accounts. Missing essential information or capabilities pause the run for the user.
+This is an autonomous agent within SaveMe's available tools. Google Calendar, Google Drive, and user-selected remote MCP tools extend its reach. There is no built-in browser/computer control, code execution, or purchasing tool. Missing essential information or capabilities pause the run for the user.
 
 ## Execution and controls
 
@@ -12,7 +12,7 @@ This is an autonomous agent within SaveMe's available tools. It does not execute
 - A pending action is stored before execution. Note/reminder effects and their completion record commit in the same transaction. Deterministic document ids and request ids prevent retry duplication. Updates and deletions require a complete recorded read and the exact Firestore revision. Oversized source entries require manual editing.
 - Review mode pauses before writes. Automatic mode permits saves, updates, and reminders; deletion always requires approval of the exact pending action. Stale approvals and replies are rejected.
 - A separate model call checks proposed completion against the goal and execution record. Rejected completion returns feedback to the runner. This is a consistency check, not a guarantee that an AI-generated answer is correct.
-- Each run has 4–30 steps (the UI uses 16), at most twice that many model calls, and a 100,000 observed-token threshold. Calls are reserved before provider requests, so interrupted calls still consume the call budget. The token threshold can be exceeded by the final in-flight response; it is not a billing cap. Three consecutive planning/provider infrastructure failures stop the run. At most three open goals and ten new goals per UTC day are allowed per account.
+- Each run has 4–30 steps (the UI uses 16, or 24 when applications are selected), at most twice that many model calls, and a 100,000 observed-token threshold. Calls are reserved before provider requests, so interrupted calls still consume the call budget. The token threshold can be exceeded by the final in-flight response; it is not a billing cap. Three consecutive planning/provider infrastructure failures stop the run. At most three open goals and ten new goals per UTC day are allowed per account.
 - Completion, questions, approvals, and failures create an inbox notification and a delivery job. Existing explicit phone/email opt-ins, the automation notification preference, and account-deletion checks apply. Email needs a configured provider; phone delivery needs a registered device. The UI never reports enqueueing as confirmed external delivery.
 
 ## Configuration and deployment
@@ -27,4 +27,4 @@ Run `npm run typecheck`, `npm test`, and `npm --prefix functions test`. The Fire
 
 Search covers the 500 most recently updated entries, returning up to twelve matches per query. Task/reminder lookup returns up to fifty of each. Run observations and sources are bounded to keep Firestore documents and model context manageable. Large or ambiguous goals should be split. Explicitly supply dates and timezones when delegating through voice; the workspace supplies the browser timezone.
 
-There is no arbitrary tool installation, recurring open-ended monitoring, or cross-app execution in this version. Add new connectors through the same owner checks, action policy, durable checkpoints, and review controls.
+There is no local tool installation or recurring open-ended monitoring. Cross-app execution uses the connections selected for that goal. Google reads can run automatically; Google Calendar changes and every remote MCP call require approval. External action outcomes are journaled separately because remote services cannot participate in a Firestore transaction. An already-sent external request may finish after pause/cancellation. See the connection documentation for recovery and transport limits.

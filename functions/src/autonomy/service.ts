@@ -20,6 +20,10 @@ export async function createRun(db: admin.firestore.Firestore, uid: string, body
       return;
     }
     if ((await tx.get(db.collection('account_deletions').doc(uid))).exists) throw new AgentRequestError(403, 'Account deletion is in progress');
+    for (const connectionId of run.connection_ids || []) {
+      const connection = (await tx.get(db.collection('nova_connections').doc(connectionId))).data();
+      if (connection?.user_id !== uid) throw new AgentRequestError(400, 'An application is no longer connected. Refresh and try again.');
+    }
     const lock = db.collection('nova_agent_accounts').doc(uid);
     const account = (await tx.get(lock)).data();
     const day = new Date().toISOString().slice(0, 10);

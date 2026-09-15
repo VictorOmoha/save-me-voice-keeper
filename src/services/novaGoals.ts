@@ -7,6 +7,7 @@ export interface NovaGoal {
   id: string; user_id: string; goal: string;
   status: 'queued' | 'running' | 'paused' | 'waiting' | 'completed' | 'failed' | 'cancelled';
   write_mode: 'auto' | 'review'; allow_web: boolean; max_steps: number;
+  connection_ids?: string[];
   steps: {number: number; tool: string; summary: string; result: string; at: string}[];
   plan: string[]; result: string; question: string;
   pending: {tool: string; args: Record<string, unknown>} | null; pending_id: string;

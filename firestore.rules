@@ -98,6 +98,11 @@ service cloud.firestore {
     match /nova_agent_accounts/{userId} {
       allow read, write: if false;
     }
+    // Connection credentials and execution journals are only accessed through
+    // authenticated server endpoints. Even the owner cannot read raw tokens.
+    match /nova_connections/{connectionId} { allow read, write: if false; }
+    match /nova_oauth_states/{stateId} { allow read, write: if false; }
+    match /nova_external_actions/{actionId} { allow read, write: if false; }
 
     match /pending_notifications/{docId} {
       allow read: if isSignedIn()

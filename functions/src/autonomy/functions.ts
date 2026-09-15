@@ -35,7 +35,7 @@ export const novaAgent = functions.runWith({timeoutSeconds: 60, memory: '256MB'}
     if (sendAbuseError(res, error) || sendEntitlementError(res, error)) return;
     if (error instanceof AgentRequestError) {res.status(error.status).json({error: error.message}); return;}
     // Validation errors contain no provider payloads or secrets.
-    if (error instanceof Error && /Describe a goal|Choose between|Invalid write/.test(error.message)) {res.status(400).json({error: error.message}); return;}
+    if (error instanceof Error && /Describe a goal|Choose between|Invalid write|Invalid connections/.test(error.message)) {res.status(400).json({error: error.message}); return;}
     console.error('Nova goal request failed', {operation: req.body?.operation});
     res.status(503).json({error: 'Nova could not update this goal. Please try again.'});
   }

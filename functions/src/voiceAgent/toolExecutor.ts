@@ -176,7 +176,7 @@ export async function executeVoiceTool(
   });
 
   args = safeArgs;
-  if (toolName === 'startAgentGoal' || toolName === 'getAgentGoals') return voiceGoalTool(toolName, args, userId);
+  if (toolName === 'startAgentGoal' || toolName === 'getAgentGoals' || toolName === 'getConnectedApps') return voiceGoalTool(toolName, args, userId);
 
   // ── App control tools — return commands for the frontend to execute ────────
   const appControlResult = await handleAppControlTool(toolName, args, userId, entriesRef);

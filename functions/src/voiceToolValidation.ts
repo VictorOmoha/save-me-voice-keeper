@@ -47,8 +47,10 @@ export function validateToolArgs(toolName: string, args: Record<string, unknown>
   switch (toolName) {
   case 'startAgentGoal':
     if (!isNonEmptyString(args.goal) || args.goal.length > 4000 || typeof args.autoSave !== 'boolean' || typeof args.allowWeb !== 'boolean') return {valid: false, error: 'A goal, autoSave choice, and allowWeb choice are required'};
-    return {valid: true, sanitizedArgs: {goal: args.goal.trim(), autoSave: args.autoSave, allowWeb: args.allowWeb}};
+    if (args.connectionIds !== undefined && (!Array.isArray(args.connectionIds) || args.connectionIds.length > 10 || args.connectionIds.some(id => typeof id !== 'string' || !/^[a-f0-9]{64}$/.test(id)))) return {valid: false, error: 'Use connection ids returned by getConnectedApps'};
+    return {valid: true, sanitizedArgs: {goal: args.goal.trim(), autoSave: args.autoSave, allowWeb: args.allowWeb, connectionIds: args.connectionIds || []}};
   case 'getAgentGoals':
+  case 'getConnectedApps':
     return {valid: true, sanitizedArgs: {}};
   case "navigateApp": {
     if (!isNonEmptyString(args.route)) return { valid: false, error: "navigateApp requires route" };

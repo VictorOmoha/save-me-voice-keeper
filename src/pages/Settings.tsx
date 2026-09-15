@@ -13,10 +13,11 @@ import { VoiceSettings } from "@/components/settings/VoiceSettings";
 import { EnhancedHelpSupportSettings } from "@/components/settings/EnhancedHelpSupportSettings";
 import { NovaMemorySettings } from "@/components/settings/NovaMemorySettings";
 import { ExtensionSettings } from "@/components/settings/ExtensionSettings";
+import { ConnectionsSettings } from "@/components/settings/ConnectionsSettings";
 import { VideoUpload } from "@/components/admin/VideoUpload";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic, Database, Brain } from "lucide-react";
+import { ArrowLeft, User, Shield, Bell, Palette, Zap, CreditCard, HelpCircle, Video, Mic, Database, Brain, Plug } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
@@ -29,6 +30,7 @@ const settingsSections = [
   {value: 'appearance', label: 'Appearance', icon: Palette},
   {value: 'voice', label: 'Voice', icon: Mic},
   {value: 'nova-memory', label: 'Nova memory', icon: Brain},
+  {value: 'connections', label: 'Connections', icon: Plug},
   {value: 'automation', label: 'Automation & API', icon: Zap},
   {value: 'subscription', label: 'Plan & billing', icon: CreditCard},
   {value: 'data-management', label: 'Your data', icon: Database},
@@ -60,7 +62,7 @@ const Settings = () => {
   }, [user]);
 
   useEffect(() => {
-    const requestedTab = searchParams.get('tab');
+    const requestedTab = searchParams.has('state') && (searchParams.has('code') || searchParams.has('error')) ? 'connections' : searchParams.get('tab');
     if (requestedTab && settingsSections.some(section => section.value === requestedTab)) {
       setActiveTab(requestedTab);
     }
@@ -138,6 +140,9 @@ const Settings = () => {
             </TabsContent>
             <TabsContent value="automation">
               <AutomationSettings />
+            </TabsContent>
+            <TabsContent value="connections">
+              <ConnectionsSettings />
             </TabsContent>
             <TabsContent value="subscription">
               <SubscriptionSettings />

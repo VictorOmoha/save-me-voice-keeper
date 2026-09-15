@@ -5,8 +5,10 @@ import {AgentRun, AgentStep, futureTime, requiresApproval, WRITE_TOOLS} from './
 import {claimRun, checkpoint, dataOf, notifyRun, stamp} from './store';
 import {nextAction, research, verifyCompletion} from './planner';
 import {Observation, readAction, writeAction} from './actions';
+import {externalAction, EXTERNAL_TOOLS, ExternalOutcomeUnknown} from '../connections/agent';
+import {ownedConnection} from '../connections/service';
 
-export const runnerDependencies = {nextAction, research, verifyCompletion};
+export const runnerDependencies = {nextAction, research, verifyCompletion, externalAction};
 const boundedResult = (value: string) => Buffer.byteLength(value) <= 16000 ? value : Buffer.from(value).subarray(0, 15900).toString('utf8') + '\n[Observation truncated; do not replace a source using an incomplete read.]';
 
 const record = (run: AgentRun, tool: string, observation: Observation): Partial<AgentRun> => ({
@@ -51,6 +53,10 @@ export async function runAgent(ref: admin.firestore.DocumentReference): Promise<
       });
       if (requiresApproval(action, run) && !run.approved) {
         let preview = '';
+        if (action.tool === 'call_external_tool') {
+          const connection = await ownedConnection(ref.firestore, run.user_id, action.args.connection_id).catch(() => null);
+          preview = connection ? `in ${connection.name} (${connection.account}) — ${action.args.tool_name}` : 'in a disconnected application';
+        }
         if (action.tool === 'delete_note' || action.tool === 'update_note') {
           const entry = await ref.firestore.collection('entries').doc(String(action.args.id)).get();
           if (entry.data()?.user_id === run.user_id) preview = `“${String(entry.data()?.title || 'Untitled').slice(0, 200)}”`;
@@ -62,7 +68,10 @@ export async function runAgent(ref: admin.firestore.DocumentReference): Promise<
         return;
       }
       try {
-        if (WRITE_TOOLS.has(action.tool)) {
+        if (EXTERNAL_TOOLS.has(action.tool)) {
+          const observation = await runnerDependencies.externalAction(ref, lease, run, action);
+          await commit((_tx, current) => record(current, action.tool, observation));
+        } else if (WRITE_TOOLS.has(action.tool)) {
           await commit(async (tx, current) => record(current, action.tool, await writeAction(tx, ref, current, action, plan)));
         } else if (action.tool === 'plan') {
           await commit((_tx, current) => ({...record(current, 'plan', {summary: 'Updated the plan', result: JSON.stringify(action.args.steps)}), plan: action.args.steps as string[]}));
@@ -101,6 +110,14 @@ export async function runAgent(ref: admin.firestore.DocumentReference): Promise<
           await commit((_tx, current) => ({...record(current, action.tool, observation), sources, tokens: current.tokens + tokens}));
         }
       } catch (error) {
+        if (error instanceof ExternalOutcomeUnknown) {
+          await commit((tx, current) => {
+            notifyRun(tx, ref, current, 'question');
+            return {...record(current, action.tool, {summary: 'Check the external action’s outcome', result: JSON.stringify({success: false, uncertain: true, error: error.message})}),
+              status: 'waiting', question: error.message, lease: null, lease_until: 0};
+          });
+          return;
+        }
         // Tool failures become observations so Nova can recover without claiming success.
         await commit((_tx, current) => record(current, action.tool, {summary: `Could not ${action.tool.replace(/_/g, ' ')}`,
           result: JSON.stringify({success: false, error: ['web_research', 'finish'].includes(action.tool) ? 'The provider could not complete this action. Try again or ask the user.' : error instanceof Error ? error.message.slice(0, 400) : 'Action failed'})}));

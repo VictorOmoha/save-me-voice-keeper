@@ -1,6 +1,7 @@
 import type {User} from 'firebase/auth';
 import type {Timestamp} from 'firebase/firestore';
 import {getCloudFunctionUrl} from '@/utils/cloudFunctions';
+import {auth} from '@/lib/firebase';
 
 export interface NovaGoal {
   id: string; user_id: string; goal: string;
@@ -13,9 +14,14 @@ export interface NovaGoal {
   next_run_at?: Timestamp;
 }
 
-export async function goalRequest<T = {success: boolean}>(user: Pick<User, 'getIdToken'>, body: Record<string, unknown>): Promise<T> {
+export async function goalRequest<T = {success: boolean}>(user: Pick<User, 'uid'>, body: Record<string, unknown>): Promise<T> {
+  // AuthContext exposes a spread profile; Firebase's prototype methods live on the session.
+  const session = auth.currentUser;
+  if (!session || session.uid !== user.uid) throw new Error('Sign in again to continue.');
+  const token = await session.getIdToken();
+  if (auth.currentUser?.uid !== user.uid) throw new Error('Your account changed. Please try again.');
   const response = await fetch(getCloudFunctionUrl('novaAgent'), {method: 'POST',
-    headers: {'Content-Type': 'application/json', Authorization: `Bearer ${await user.getIdToken()}`},
+    headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
     body: JSON.stringify(body), signal: AbortSignal.timeout(60000)});
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || 'Could not update this goal. Please try again.');

@@ -82,6 +82,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
     if (path.startsWith("/brain-dump")) items.push({ label: "Brain dump" });
     if (path.startsWith("/insights")) items.push({ label: "Insights" });
     if (path.startsWith("/briefing")) items.push({ label: "Briefing" });
+    if (path.startsWith("/agent")) items.push({ label: "Nova goals" });
     if (path.startsWith("/settings")) items.push({ label: "Settings" });
     if (path.startsWith("/subscription")) items.push({ label: "Subscription" });
     return items;

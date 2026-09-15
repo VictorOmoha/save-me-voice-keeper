@@ -46,7 +46,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const {pathname} = useLocation();
   useEffect(() => {
     const names: Record<string, string> = {'/dashboard': 'Dashboard', '/all-entries': 'All entries', '/brain-dump': 'Brain dump', '/voice-capture': 'Voice capture', '/briefing': 'Daily briefing', '/insights': 'Insights', '/settings': 'Settings', '/subscription': 'Plan & billing', '/user-guide': 'Help & guide'};
-    const title = names[pathname] || (pathname.startsWith('/category/') ? decodeURIComponent(pathname.split('/').pop() || '') : 'Your memories');
+    const title = pathname === '/agent' ? 'Nova goals' : names[pathname] || (pathname.startsWith('/category/') ? decodeURIComponent(pathname.split('/').pop() || '') : 'Your memories');
     document.title = `${title} | SaveMe`;
   }, [pathname]);
 
